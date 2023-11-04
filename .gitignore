@@ -1,0 +1,23 @@
+# Binaries
+**/bin/
+!vendor/premake/bin/
+bin-int/
+
+# files
+*.log
+
+# Visual Studio files and folder
+*.vs/
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+
+# Directories
+V-Shade/vendors/spdlog
+V-Shade/vendors/glfw
+V-Shade/vendors/glm
+V-Shade/vendors/ImGui
+V-Shade/vendors/ImGuizmo
+Editor/resources/Vulkan_cache
+Editor/resources/scripts

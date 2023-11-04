@@ -1,0 +1,81 @@
+#pragma once
+#include <shade/core/environment/Light.h>
+#include <shade/core/camera/Camera.h>
+
+namespace shade
+{
+	class SHADE_API SpotLight : public Light
+	{
+	public:
+		struct ShadowCascade
+		{
+			glm::mat4 ViewProjectionMatrix;
+			alignas(16) float SplitDistacne = 0.0f;
+		};
+		struct RenderData : public Light::RenderData
+		{
+			alignas(16) glm::vec3	Position;
+			alignas(16) glm::vec3	Direction;
+			float					Distance;
+			float					Falloff;
+			float					MinAngle;
+			float					MaxAngle;
+			ShadowCascade			Cascade;
+		};
+	public:
+		SpotLight();
+		virtual ~SpotLight();
+		RenderData GetRenderData(const glm::vec3& position, const glm::vec3& derection, const SharedPointer<Camera>& camera) const;
+		std::uint32_t GetTotalCount();
+
+		// Test collsion between obb and shadow cascade
+		static const bool IsMeshInside(const glm::mat4& cascade, const glm::mat4& transform, const glm::vec3& minHalfExt, const glm::vec3& maxHalfExt);
+	public:
+		float	Distance = 20.f;
+		float	Falloff = 0.25f;
+		float	MinAngle = 46.f; // degrees
+		float	MaxAngle = 45.f; // degrees
+	private:
+		ShadowCascade GetSpotLightCascade(float fov, const glm::vec3& position, const glm::vec3& direction, float zNear, float zFar) const;
+	private:
+		static std::uint32_t m_sTotalCount;
+	private:
+		friend class SceneComponentSerializer;
+		std::size_t SerializeAsComponent(std::ostream& stream) const;
+		std::size_t DeserializeAsComponent(std::istream& stream);
+	};
+
+#ifndef SPOT_LIGHT_DATA_SIZE
+	#define SPOT_LIGHT_DATA_SIZE (sizeof(SpotLight::RenderData))
+#endif // !SPOT_LIGHT_DATA_SIZE
+
+#ifndef SPOT_LIGHTS_DATA_SIZE
+	#define SPOT_LIGHTS_DATA_SIZE(count) (SPOT_LIGHT_DATA_SIZE * static_cast<std::uint32_t>(count))
+#endif // !SPOT_LIGHTS_DATA_SIZE
+}
+namespace shade
+{
+	template<>
+	inline std::size_t shade::SceneComponentSerializer::Serialize(std::ostream& stream, const SpotLight& light)
+	{
+		return light.SerializeAsComponent(stream);
+	}
+
+	template<>
+	inline std::size_t shade::SceneComponentSerializer::Serialize(std::ostream& stream, const SharedPointer<SpotLight>& light)
+	{
+		return light->SerializeAsComponent(stream);
+	}
+
+	template<>
+	inline std::size_t shade::SceneComponentSerializer::Deserialize(std::istream& stream, SpotLight& light, std::size_t count)
+	{
+		return light.DeserializeAsComponent(stream);
+	}
+
+	template<>
+	inline std::size_t shade::SceneComponentSerializer::Deserialize(std::istream& stream, SharedPointer<SpotLight>& light, std::size_t count)
+	{
+		return light->DeserializeAsComponent(stream);
+	}
+}

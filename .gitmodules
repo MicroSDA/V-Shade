@@ -1,0 +1,15 @@
+[submodule "V-Shade/vendors/glfw"]
+	path = V-Shade/vendors/glfw
+	url = https://github.com/glfw/glfw
+[submodule "V-Shade/vendors/glm"]
+	path = V-Shade/vendors/glm
+	url = https://github.com/g-truc/glm
+[submodule "V-Shade/vendors/ImGui"]
+	path = V-Shade/vendors/ImGui
+	url = https://github.com/MicroSDA/ImGui/
+[submodule "V-Shade/vendors/ImGuizmo"]
+	path = V-Shade/vendors/ImGuizmo
+	url = https://github.com/MicroSDA/ImGuizmo
+[submodule "V-Shade/vendors/spdlog"]
+	path = V-Shade/vendors/spdlog
+	url = https://github.com/MicroSDA/spdlog
