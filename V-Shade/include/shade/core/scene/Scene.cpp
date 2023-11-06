@@ -11,6 +11,7 @@ shade::SharedPointer<shade::Scene> shade::Scene::m_sActiveScene;
 #ifndef SERIALIZE_COMPONENT
     #define SERIALIZE_COMPONENT(stream, count, Type, entity) \
         if (HasComponent<Type>(entity)) { \
+           SHADE_CORE_INFO("       Serrializing: {}", typeid(Type).name());\
             std::uint32_t hash = static_cast<std::uint32_t>(std::hash<std::string>()(typeid(Type).name()));\
             shade::Serializer::Serialize(stream, hash); \
             shade::SceneComponentSerializer::Serialize(stream, GetComponent<Type>(entity)); \
@@ -146,11 +147,12 @@ glm::mat4 shade::Scene::ComputePCTransform(ecs::Entity& entity)
         return transform;
 }
 
-// TODO:
 std::size_t shade::Scene::Serialize(std::ostream& stream) const
 {
-    std::string header("@s_scene");
-    Serializer::Serialize(stream, header);
+    SHADE_CORE_INFO("******************************************************************");
+    SHADE_CORE_INFO("Start to serrialize scene ->: {}", "PATH");
+    SHADE_CORE_INFO("******************************************************************");
+    SHADE_CORE_INFO("Entities count : {}", EntitiesCount());
     Serializer::Serialize(stream, static_cast<std::uint32_t>(this->EntitiesCount()));
     // See Components.h
     for (const auto& entity : *this)
@@ -161,8 +163,17 @@ std::size_t shade::Scene::Serialize(std::ostream& stream) const
 }
 
 std::size_t shade::Scene::Deserialize(std::istream& stream)
-{
-    std::string header;
+{ 
+    std::uint32_t entitiesCount = 0u;
+    std::size_t size = Serializer::Deserialize(stream, entitiesCount);
+
+    for (std::uint32_t entIndex = 0u; entIndex < entitiesCount; entIndex++)
+    {
+        ecs::Entity entity = CreateEntity();
+        DeserrializeEntity(stream, entity);
+    }
+
+   /* std::string header;
     Serializer::Deserialize(stream, header);
     if (header == "@s_scene")
     {
@@ -174,7 +185,7 @@ std::size_t shade::Scene::Deserialize(std::istream& stream)
             ecs::Entity entity = CreateEntity();
             DeserrializeEntity(stream, entity);
         } 
-    }
+    }*/
 
     return std::size_t();
 }
@@ -184,12 +195,16 @@ void shade::Scene::SerrializeEntity(std::ostream& stream, ecs::Entity entity, bo
     if (entity.HasParent() && !isParentCall)
         return;
 
+    SHADE_CORE_INFO("   Serrializing entity id: {}", entity.GetID());
+    SHADE_CORE_INFO("------------------------------------------------------------------");
+
     std::uint32_t componentsCount = 0u, childrenCount = entity.GetChildrensCount();
     std::size_t  componentsCountPosition = stream.tellp();
     // Write how many components has to be serrialized ;
     Serializer::Serialize(stream, componentsCount);
     // Write how many childrens has to be serrialized ;
     Serializer::Serialize(stream, childrenCount);
+    SHADE_CORE_INFO("       Childs count: {}", childrenCount);
 
     SERIALIZE_COMPONENT(stream, componentsCount, TagComponent, entity);
     SERIALIZE_COMPONENT(stream, componentsCount, CameraComponent, entity);
@@ -207,9 +222,10 @@ void shade::Scene::SerrializeEntity(std::ostream& stream, ecs::Entity entity, bo
     Serializer::Serialize(stream, componentsCount);
     stream.seekp(endPosition);
 
+    SHADE_CORE_INFO("------------------------------------------------------------------");
     // Serrialize childrens
     for (const ecs::Entity& child : entity)
-        SerrializeEntity(stream, child, true);
+        SerrializeEntity(stream, child, true); 
 }
 
 void shade::Scene::DeserrializeEntity(std::istream& stream, ecs::Entity entity)

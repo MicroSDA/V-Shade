@@ -2,17 +2,10 @@
 #include <shade/config/ShadeAPI.h>
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtc/type_ptr.hpp>
+#include <shade/utils/Logger.h>
 
 namespace shade
 {
-	// NOTE: Prototype, need to be done in future !
-	struct FileHeader
-	{
-		std::string Header;
-		std::uint16_t Version;
-		std::uint32_t CheckSum;
-	};
-
 	class SHADE_API Serializer
 	{
 	public:
@@ -34,6 +27,72 @@ namespace shade
 		template<typename T>
 		static std::size_t Deserialize(std::istream& stream, T&, std::size_t count = 1);
 	};
+
+
+	template <typename T, typename = std::enable_if_t<std::is_same<T, std::uint32_t>::value || std::is_same<T, std::uint64_t>::value>>
+	T GenerateCheckSum(const std::string& content) { return static_cast<T>(std::hash<std::string>{}(content)); }
+
+	class SHADE_API File
+	{
+	
+		using checksum_t = std::uint32_t;
+		using version_t  = std::uint16_t;
+		using magic_t    = std::string;
+
+	public:
+		enum class Flag
+		{
+			ReadFile = 0,
+			WriteFile = 1
+		};
+		struct Header
+		{
+			magic_t     Magic;
+			version_t   Version = 0u;
+			checksum_t  CheckSum = 0u;
+		};
+	public:
+		File() = default;
+		File(const std::string& filePath, version_t version, const magic_t& magic, Flag flag);
+		virtual ~File();
+	public:
+		bool OpenEngineFile(const std::string& filePath, version_t version, const magic_t& magic, Flag flag);
+		bool OpenFile(const std::string& filePath);
+		bool IsOpen() const;
+		void CloseFile();
+
+		std::size_t _GetSize();
+		static version_t VERSION(version_t major, version_t minor, version_t patch);
+
+		template<typename T>
+		std::size_t Write(const T& value);
+		template<typename T>
+		std::size_t Read(T& value);
+
+	private:
+		std::string m_Path;
+		Flag m_Flag;
+		Header m_Header;
+		std::fstream m_Stream;
+		std::size_t m_ContentPosition;
+	private:
+		void ReadHeader(std::istream& stream, version_t version, const magic_t& magic);
+		void WriteHeader(std::ostream& stream, version_t version, const magic_t& magic);
+		void UpdateChecksum();
+		checksum_t GetChecksum();
+	private:
+		static std::unordered_map<std::string, std::pair<std::string, std::uint32_t>> m_PathMap;
+	};
+	template<typename T>
+	inline std::size_t File::Write(const T& value)
+	{
+		return Serializer::Serialize(m_Stream, value);
+	}
+	template<typename T>
+	inline std::size_t File::Read(T& value)
+	{
+		return Serializer::Deserialize(m_Stream, value);
+	}
 }
 
 namespace shade
@@ -42,6 +101,11 @@ namespace shade
 	inline std::size_t Serializer::Deserialize(std::istream& stream, T& value, std::size_t count)
 	{
 		return stream.read(reinterpret_cast<char*>(&value), sizeof(T) * count).tellg();
+	}
+	template<typename T>
+	inline std::size_t Serializer::Serialize(std::ostream& stream, const T& value)
+	{
+		return stream.write(reinterpret_cast<const char*>(&value), sizeof(T)).tellp();
 	}
 	/* Serrialize std::uint32_t.*/
 	template<>
@@ -129,23 +193,20 @@ namespace shade
 		const std::streampos begin = stream.tellg();
 		char symbol = ' ';
 		// Try to find null terminated character.
-		do { stream.read(&symbol, sizeof(char)); } while (symbol != '\0');
+		do { stream.read(&symbol, sizeof(char)); } while (symbol != '\0' && stream.good());
 
 		// Calculate string's size.
 		const std::streampos end = stream.tellg();
 		const std::uint32_t size = std::uint32_t((end - begin) - 1);
 
-		if (size == UINT32_MAX)
-			throw std::out_of_range(std::format("Incorrect string size = {}", size));
+		if (size + 1 == UINT32_MAX || size < 0)
+			throw std::out_of_range(std::format("Incorrect string size = {}", size + 1));
 
 		if (size)
 		{
 			string.resize(size); stream.seekg(begin); stream.read(string.data(), sizeof(char) * (string.size())); return stream.seekg(end).tellg();
 		}
-		else
-		{
-			return end;
-		}
+		return end;
 	}
 	/////////////////////////////////////////////////////////////////////////////////////
 	/* Serrialize std::vector<std::uint32_t>. Vector's size will be std::uin32_t.*/

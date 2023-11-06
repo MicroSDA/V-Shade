@@ -83,11 +83,11 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 					auto path = shade::FileDialog::OpenFile("Shade scene(*.scene) \0*.scene\0");
 					if (!path.empty())
 					{
-						std::ifstream file(path, std::ios::binary);
-						if (file.is_open())
+						shade::File file(path.string(), shade::File::VERSION(0, 0, 1), "@s_scene", shade::File::Flag::ReadFile);
+						if (file.IsOpen())
 						{
 							scene->DestroyAllEntites();
-							shade::Serializer::Deserialize(file, scene);
+							file.Read(scene);
 						}
 						else
 						{
@@ -101,11 +101,10 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 					auto path = shade::FileDialog::SaveFile("Shade scene(*.scene) \0*.scene\0");
 					if (!path.empty())
 					{
-						std::ofstream file(path, std::ios::binary);
-						if (file.is_open())
+						shade::File file(path.string(), shade::File::VERSION(0, 0, 1), "@s_scene", shade::File::Flag::WriteFile);
+						if (file.IsOpen())
 						{
-							shade::Serializer::Serialize(file, scene);
-							file.close();
+							file.Write(scene);
 						}
 						else
 						{

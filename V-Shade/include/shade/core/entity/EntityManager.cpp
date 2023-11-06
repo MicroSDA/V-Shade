@@ -34,6 +34,8 @@ shade::ecs::Entity shade::ecs::EntityManager::CreateEntity()
 	if (m_OnEntityCreate)
 		m_OnEntityCreate(entity);
 
+	m_EntitiesCount++;
+
 	return entity;
 }
 
@@ -44,6 +46,7 @@ void shade::ecs::EntityManager::DestroyAllEntites()
 	m_Entities.clear();
 	m_Pools.clear();
 	m_Destroyed = ecs::null;
+	m_EntitiesCount = 0;
 }
 
 void shade::ecs::EntityManager::SetOnEntityCreate(void(*function)(Entity&))
@@ -53,7 +56,10 @@ void shade::ecs::EntityManager::SetOnEntityCreate(void(*function)(Entity&))
 
 std::size_t shade::ecs::EntityManager::EntitiesCount() const
 {
-	return (m_Destroyed == ecs::null) ? m_Entities.size() : m_Entities.size() - (EntityTraits<EntityID>::ToID(m_Destroyed) + 1);
+	return m_EntitiesCount;
+
+	// Doesnt work !
+	//return (m_Destroyed == ecs::null) ? m_Entities.size() : m_Entities.size() - (EntityTraits<EntityID>::ToID(m_Destroyed - 1));
 }
  
 bool shade::ecs::EntityManager::IsValidEntity(const EntityID& entity) const
@@ -85,6 +91,8 @@ void shade::ecs::EntityManager::DestroyEntity(const EntityID& entity)
 				pData->m_Destroy(handle, pData.get(), nullptr);
 		}
 	}
+
+	m_EntitiesCount--;
 }
 
 void shade::ecs::EntityManager::AddChild(const EntityID& entity, const EntityID& child)

@@ -249,6 +249,7 @@ namespace shade
 			Systems m_Systems;
 			EntityID m_Destroyed = ecs::null;
 			std::vector<EntityData>	m_Entities;
+			std::size_t m_EntitiesCount = 0u;
 			void (*m_OnEntityCreate)(Entity&) = nullptr;
 		private:
 		};
