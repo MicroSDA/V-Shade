@@ -3,6 +3,7 @@
 #include <Shade.h>
 #include <layer/EditorLayer.h>
 
+
 class EditorApplication : public shade::Application
 {
 public:

@@ -9,6 +9,8 @@ EditorLayer::EditorLayer()
 	shade::ImGuiThemeEditor::SetColors(0x202020FF, 0xFAFFFDFF, 0x505050FF, 0x9C1938CC, 0xFFC307B1);
 	shade::ImGuiThemeEditor::ApplyTheme();
 
+
+	IModel model;
 }
 
 void EditorLayer::OnCreate()
@@ -105,6 +107,7 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 						if (file.IsOpen())
 						{
 							file.Write(scene);
+							auto v = file._GetSize();
 						}
 						else
 						{

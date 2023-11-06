@@ -69,9 +69,7 @@ namespace std
 		std::size_t operator()(const shade::VulkanDescriptorSet& set) const
 		{
 			std::size_t result = 0;
-
 			shade::HashCombine(result, set.GetDescriptorSet());
-
 			return result;
 		}
 	};

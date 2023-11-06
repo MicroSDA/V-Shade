@@ -3,6 +3,8 @@
 #include <shade/core/layer/imgui/ImGuiLayer.h>
 #include <shade/core/system/FileDialog.h>
 
+#include <import/IModel.h>
+
 class EditorLayer : public shade::ImGuiLayer
 {
 public:

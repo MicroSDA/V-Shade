@@ -18,6 +18,7 @@ includeDir["VULKAN"]  	= "$(VK_SDK_PATH)/include/"
 --Include path for premake project
 include "V-Shade/vendors/glfw"
 include "V-Shade/vendors/ImGui"
+include "Editor/vendors/assimp"
 
 group "Engine"
 project "V-Shade"
@@ -115,13 +116,15 @@ project "Editor"
 		"%{includeDir.GLM}",
 		"%{prj.name}/include",
 		"%{prj.name}/include/vendors",
+		"%{prj.name}/vendors/assimp/include",
 		"%{wks.name}/include",
 		"%{wks.name}/vendors",
 	}
 
 	links {
 		"V-Shade",
-		"ImGui"
+		"ImGui",
+		"assimp"
 	}
 
 	filter "system:windows"
@@ -200,3 +203,4 @@ project "Scripts"
 	postbuildcommands {
 		"{COPY} %{cfg.targetdir}/Scripts.dll ../resources/scripts/"
 	}
+

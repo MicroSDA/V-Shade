@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <shade/config/ShadeAPI.h>
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtc/type_ptr.hpp>
@@ -28,13 +28,16 @@ namespace shade
 		static std::size_t Deserialize(std::istream& stream, T&, std::size_t count = 1);
 	};
 
-
+	// Templated function to generate a checksum of content.
+	// This function is used to create a checksum of a given stringцц.
+	// @tparam T The type of the checksum value (either std::uint32_t or std::uint64_t).
+	// @param content The input string for which the checksum is generated.
+	// @return The generated checksum of type T.
 	template <typename T, typename = std::enable_if_t<std::is_same<T, std::uint32_t>::value || std::is_same<T, std::uint64_t>::value>>
 	T GenerateCheckSum(const std::string& content) { return static_cast<T>(std::hash<std::string>{}(content)); }
 
 	class SHADE_API File
 	{
-	
 		using checksum_t = std::uint32_t;
 		using version_t  = std::uint16_t;
 		using magic_t    = std::string;
@@ -55,19 +58,70 @@ namespace shade
 		File() = default;
 		File(const std::string& filePath, version_t version, const magic_t& magic, Flag flag);
 		virtual ~File();
+
 	public:
+		/**
+		* @brief Opens a file for reading or writing, depending on the flag.
+		*
+		* @param filePath  The path to the file.
+		* @param version   The expected file version.
+		* @param magic     The magic string to identify the file format.
+		* @param flag      The file open flag (ReadFile or WriteFile).
+		* @return True if the file was opened successfully; otherwise, false.
+		*/
 		bool OpenEngineFile(const std::string& filePath, version_t version, const magic_t& magic, Flag flag);
+		/**
+		* @brief Opens a file for general use (not yet implemented).
+		*
+		* @param filePath  The path to the file.
+		* @return True if the file was opened successfully; otherwise, false.
+		*/
 		bool OpenFile(const std::string& filePath);
+		/**
+		* @brief Checks if the file is open.
+		*
+		* @return True if the file is open; otherwise, false.
+		*/
 		bool IsOpen() const;
+		/**
+		 * @brief Closes the file, updating the checksum if it was a write operation.
+		 */
 		void CloseFile();
-
+		/**
+		 * @brief Gets the size of the file.
+		 *
+		 * @return The size of the file in bytes.
+		 */
 		std::size_t _GetSize();
+		/**
+		 * @brief Generates a version number based on major, minor, and patch values.
+		 *
+		 * @param major Major version.
+		 * @param minor Minor version.
+		 * @param patch Patch version.
+		 * @return The generated version number.
+		 */
 		static version_t VERSION(version_t major, version_t minor, version_t patch);
-
+		/**
+		 * @brief Writes a value of a templated type to the file.
+		 *
+		 * @param value The value to be written to the file.
+		 * @return The number of bytes written.
+		 */
 		template<typename T>
 		std::size_t Write(const T& value);
+		/**
+		 * @brief Reads a value of a templated type from the file.
+		 *
+		 * @param value The value read from the file.
+		 * @return The number of bytes read.
+		 */
 		template<typename T>
 		std::size_t Read(T& value);
+
+
+
+		static void PackFiles(); 
 
 	private:
 		std::string m_Path;
@@ -76,11 +130,34 @@ namespace shade
 		std::fstream m_Stream;
 		std::size_t m_ContentPosition;
 	private:
+		/**
+		 * @brief Reads the file header and performs integrity checks.
+		 *
+		 * @param stream The input stream to read from.
+		 * @param version The expected file version.
+		 * @param magic The magic string to identify the file format.
+		 */
 		void ReadHeader(std::istream& stream, version_t version, const magic_t& magic);
+		/**
+		 * @brief Writes the file header.
+		 *
+		 * @param stream The output stream to write to.
+		 * @param version The file version to write to the header.
+		 * @param magic The magic string to identify the file format.
+		 */
 		void WriteHeader(std::ostream& stream, version_t version, const magic_t& magic);
+		/**
+		* @brief Updates the checksum in the file.
+		*/
 		void UpdateChecksum();
+		/**
+		 * @brief Calculates and returns the checksum of the file content.
+		 *
+		 * @return The calculated checksum.
+		 */
 		checksum_t GetChecksum();
 	private:
+		// Where string - > path, string - > path inside packet, uint32_t position in packet
 		static std::unordered_map<std::string, std::pair<std::string, std::uint32_t>> m_PathMap;
 	};
 	template<typename T>

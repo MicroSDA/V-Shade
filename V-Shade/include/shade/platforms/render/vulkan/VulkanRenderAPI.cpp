@@ -111,7 +111,7 @@ void shade::VulkanRenderAPI::EndFrame(std::uint32_t frameIndex)
 void shade::VulkanRenderAPI::BeginScene(SharedPointer<Camera>& camera, std::uint32_t frameIndex)
 {
 	// Update global descriptors
-	// It's very importatnt to update all descriptrs at the becign of scene and before any piplines will use it!
+	// It's very importatnt to update all descriptrs at the bgining of scene and before any piplines will use it!
 	m_sVulkanGlobaSceneData.Bindings[Pipeline::Set::Global].Buffers[CAMERA_BINDING][0] = m_sSubmitedSceneRenderData.CameraBuffer->As<VulkanUniformBuffer>().GetDescriptorBufferInfo(frameIndex);
 	m_sVulkanGlobaSceneData.Bindings[Pipeline::Set::Global].Buffers[SCENE_RENDER_DATA_BINDING][0] = m_sSubmitedSceneRenderData.SceneRenderDataBuffer->As<VulkanUniformBuffer>().GetDescriptorBufferInfo(frameIndex);
 	m_sVulkanGlobaSceneData.Bindings[Pipeline::Set::Global].Buffers[RENDER_SETTINGS_BINDING][0] = m_sSubmitedSceneRenderData.RenderSettingsDataBuffer->As<VulkanUniformBuffer>().GetDescriptorBufferInfo(frameIndex);
