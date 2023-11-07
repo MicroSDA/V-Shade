@@ -38,6 +38,7 @@ namespace shade
 		const std::array<shade::Drawable::Lod, MAX_LEVEL_OF_DETAIL>& GetLods() const;
 		std::array<shade::Drawable::Lod, MAX_LEVEL_OF_DETAIL>& GetLods();
 		
+		void GenerateHalfExt();
 		// Get Vertices of lod = 0;
 		const Vertices& GetVertices() const;
 		// Get Indices of lod = 0;

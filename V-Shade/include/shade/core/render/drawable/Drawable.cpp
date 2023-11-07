@@ -66,11 +66,11 @@ void shade::Drawable::RecalculateLod(std::size_t level, std::size_t faces)
 }
 void shade::Drawable::RecalculateAllLods(std::size_t levelCount, std::size_t maxFaces, std::size_t minFaces, float splitLambda)
 {
-    std::vector<std::size_t> faceCounts = shade::algo::CalculateFaceCountLodLevel(Drawable::MAX_LEVEL_OF_DETAIL, maxFaces, minFaces, splitLambda);
+    std::vector<std::size_t> faceCounts = shade::algo::CalculateFaceCountLodLevel(levelCount, maxFaces, minFaces, splitLambda);
 
     Lod highPolyLod = GetLod(0);
 
-    for (std::size_t i = 1; i < Drawable::MAX_LEVEL_OF_DETAIL; i++)
+    for (std::size_t i = 1; i < levelCount; i++)
     {
         Lod simlyfied = highPolyLod;
         algo::SimplifyMesh(simlyfied.Vertices, simlyfied.Indices, faceCounts[i]);
@@ -130,4 +130,21 @@ const glm::vec3& shade::Drawable::GetMinHalfExt() const
 const glm::vec3& shade::Drawable::GetMaxHalfExt() const
 {
     return m_MaxHalfExt;
+}
+
+void shade::Drawable::GenerateHalfExt()
+{
+    // Generate min and max half extension based on mesh origin
+    m_MinHalfExt = { std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
+    m_MaxHalfExt = { -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max() };
+
+    for (const auto& vertex : GetVertices())
+    {
+        m_MinHalfExt.x = glm::min(vertex.Position.x, m_MinHalfExt.x);
+        m_MinHalfExt.y = glm::min(vertex.Position.y, m_MinHalfExt.y);
+        m_MinHalfExt.z = glm::min(vertex.Position.z, m_MinHalfExt.z);
+        m_MaxHalfExt.x = glm::max(vertex.Position.x, m_MaxHalfExt.x);
+        m_MaxHalfExt.y = glm::max(vertex.Position.y, m_MaxHalfExt.y);
+        m_MaxHalfExt.z = glm::max(vertex.Position.z, m_MaxHalfExt.z);
+    }
 }

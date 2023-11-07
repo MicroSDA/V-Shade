@@ -15,6 +15,10 @@ namespace shade
 		virtual ~Mesh() = default;
 		static AssetMeta::Type GetAssetStaticType();
 		virtual AssetMeta::Type GetAssetType() const override;
+
+		Mesh() = default;
+		static SharedPointer<Mesh> CreateEXP();
+
 	private:
 		Mesh(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
 		static Mesh* Create(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);

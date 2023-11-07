@@ -17,11 +17,12 @@ public:
 	virtual void OnEvent(shade::SharedPointer<shade::Scene>& scene, const shade::Event& event, const shade::FrameTimer& deltaTime) override;
 	virtual void OnDestroy() override;
 private:
+	std::uint32_t				m_ImGuizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
+	shade::ecs::Entity			m_SelectedEntity;
+	shade::MaterialComponent	m_SelectedMaterial;
+	shade::MeshComponent		m_SelectedMesh;
 
-	std::uint32_t m_ImGuizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
-	shade::ecs::Entity m_SelectedEntity;
-	shade::MaterialComponent m_SelectedMaterial;
-	shade::MeshComponent	 m_SelectedMesh;
+	shade::SharedPointer<shade::Model> m_ImportedModel;
 
 	shade::SharedPointer<shade::SceneRenderer>  m_SceneRenderer;
 
@@ -29,6 +30,7 @@ private:
 	bool m_IsAddNewAttributeModalOpen = false;
 	bool m_IsCreateNewRawAssetModalOpen = false;
 	bool m_IsAddCollisionShapeModal = false;
+	bool m_ImportModelModal = false;
 
 	void MainMenu(shade::SharedPointer<shade::Scene>& scene);
 	void Scene(shade::SharedPointer<shade::Scene>& scene);

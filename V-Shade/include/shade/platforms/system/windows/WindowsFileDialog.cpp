@@ -39,7 +39,8 @@ std::filesystem::path shade::WindowsFileDialog::OpenFile(const char* filter)
 			std::replace(path.begin(), path.end(), '\\', '/');
 			
 		}
-		return "." + path;
+		//return "." + path;
+		return path;
 	}
 	return std::filesystem::path();
 }
@@ -114,7 +115,7 @@ std::filesystem::path shade::WindowsFileDialog::SelectFolder(const char* filter)
 			std::replace(path.begin(), path.end(), '\\', '/');
 			path.erase(0, 1); // first '/'
 		}
-		return path + "/";
+		return "./" + path + "/";
 	}
 	else
 	{

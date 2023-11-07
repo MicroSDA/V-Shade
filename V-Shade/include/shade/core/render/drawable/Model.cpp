@@ -65,3 +65,8 @@ shade::Model* shade::Model::Create(SharedPointer<AssetData> assetData, LifeTime 
 {
     return new Model(assetData, lifeTime, behaviour);
 }
+shade::SharedPointer<shade::Model> shade::Model::CreateEXP()
+{
+	return SharedPointer<shade::Model>::Create();
+}
+

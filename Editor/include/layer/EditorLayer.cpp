@@ -8,9 +8,6 @@ EditorLayer::EditorLayer()
 
 	shade::ImGuiThemeEditor::SetColors(0x202020FF, 0xFAFFFDFF, 0x505050FF, 0x9C1938CC, 0xFFC307B1);
 	shade::ImGuiThemeEditor::ApplyTheme();
-
-
-	IModel model;
 }
 
 void EditorLayer::OnCreate()
@@ -23,6 +20,7 @@ void EditorLayer::OnUpdate(shade::SharedPointer<shade::Scene>& scene, const shad
 	shade::physic::PhysicsManager::Step(scene, deltaTime);
 
 	m_SelectedMaterial = nullptr;
+
 	m_SceneRenderer->OnUpdate(scene, deltaTime);
 }
 
@@ -118,10 +116,195 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 				ImGui::EndMenu();
 			}
 
+			if (ImGui::BeginMenu("Import"))
+			{
+				if (ImGui::MenuItem("Model"))
+				{
+					m_ImportModelModal = true;
+				}
+				ImGui::EndMenu();
+			}
+
 			ImGui::EndMenu();
 		}
 		ImGui::EndMenuBar();
 	}
+
+	ImGui::SetNextWindowSize(ImVec2{ 400, 500 });
+	DrawModal("Import model", m_ImportModelModal, [&]()
+		{
+			static std::string from;
+			static std::string to;
+
+			if (!m_ImportedModel)
+			{
+				if (ImGui::BeginTable("SelectFrom", 2, ImGuiTableFlags_SizingStretchProp, { ImGui::GetContentRegionAvail().x, 0 }))
+				{
+					ImGui::TableNextColumn();
+					{
+						InputTextCol("Select from", from);
+
+					}
+					ImGui::TableNextColumn();
+					{
+						if (ImGui::Button("...##From"))
+						{
+							auto selectedPath = shade::FileDialog::OpenFile("Supported formats(*.obj, *.fbx, *.dae) \0*.obj;*.fbx;*.dae\0");
+							if (!selectedPath.empty())
+							{
+								m_ImportedModel = IModel::Import(selectedPath.string());
+
+								from = selectedPath.string();
+							}
+
+						}
+					}
+					ImGui::EndTable();
+				}
+			}
+
+			//if (ImGui::BeginTable("SaveTo", 2, ImGuiTableFlags_SizingStretchProp, { ImGui::GetContentRegionAvail().x, 0 }))
+			//{
+			//	ImGui::TableNextColumn();
+			//	{
+			//		InputTextCol("Save to", to);
+			//	}
+			//	ImGui::TableNextColumn();
+			//	{
+			//		if (ImGui::Button("...##To"))
+			//		{
+			//			auto selectedPath = shade::FileDialog::SaveFile("Shade scene(*.s_mesh) \0*.s_mesh\0");
+			//			if (!selectedPath.empty())
+			//				to = selectedPath.string();
+
+			//			/*if (!path.empty())
+			//			{
+			//				shade::File file(path.string(), shade::File::VERSION(0, 0, 1), "@s_mesh", shade::File::Flag::WriteFile);
+			//				if (file.IsOpen())
+			//				{
+			//					file.Write(scene);
+			//					auto v = file._GetSize();
+			//				}
+			//				else
+			//				{
+			//					SHADE_CORE_WARNING("Couldn't open scene file, path ={0}", path);
+			//				}
+			//			}*/
+			//		}
+			//	}
+			//	ImGui::EndTable();
+			//}
+
+			if (m_ImportedModel)
+			{
+				for (auto& mesh : *m_ImportedModel)
+				{
+					const int maxFaces = mesh->GetLod(0).Indices.size() / 3;
+					static int faces = maxFaces;
+					static float lambda = 0.1;
+
+					if (ImGui::TreeNodeEx(std::format("Mesh: {}", mesh->GetAssetData()->GetId()).c_str(), ImGuiTreeNodeFlags_Framed))
+					{
+						ImGui::Text("Set globally :"); ImGui::Separator();
+						if (ImGui::BeginTable("_title.c_str()", 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp, { 0, 0 }))
+						{
+							ImGui::TableNextColumn();
+							{
+								if (DragInt("Faces", &faces, 1, 1, maxFaces))
+									mesh->RecalculateAllLods(shade::Drawable::MAX_LEVEL_OF_DETAIL, maxFaces, faces, lambda);
+							}
+							ImGui::TableNextColumn();
+							{
+								if (DragFloat("Split power", &lambda, 0.01, 0.01, 1.0))
+									mesh->RecalculateAllLods(shade::Drawable::MAX_LEVEL_OF_DETAIL, maxFaces, faces, lambda);
+							}
+							ImGui::EndTable();
+						}
+
+						ImGui::Text("Set manually :"); ImGui::Separator();
+						for (int i = 1; i < mesh->GetLods().size(); i++)
+						{
+							int faces = mesh->GetLod(i).Indices.size() / 3;
+
+							if (DragInt(std::format("Lod level #:{}, faces :", i).c_str(), &faces, 1, 1, maxFaces))
+							{
+								mesh->RecalculateLod(i, faces);
+							}
+						}
+
+						/*if (ImGui::Button("Save"))
+						{
+							auto path = mesh->GetAssetData()->GetReference()->GetAttribute<std::string>("Path");
+
+							if (!path.empty())
+							{
+								std::ofstream file(path, std::ios::binary);
+								shade::Serializer::Serialize(file, mesh);
+								file.close();
+							}
+							else
+							{
+								SHADE_CORE_WARNING("Couldn't save mesh, asset path is empty!");
+							}
+
+						}*/
+						ImGui::TreePop();
+					}
+				}
+
+				if (ImGui::BeginTable("Save to", 2, ImGuiTableFlags_SizingStretchProp, { ImGui::GetContentRegionAvail().x, 0 }))
+				{
+					ImGui::TableNextColumn();
+					{
+						InputTextCol("Save into", to);
+					}
+					ImGui::TableNextColumn();
+					{
+						if (ImGui::Button("...##To"))
+						{
+							auto selectedPath = shade::FileDialog::SelectFolder("");
+							if (!selectedPath.empty())
+								to = selectedPath.string();
+						}
+					}
+
+					ImGui::EndTable();
+				}
+
+				if (!to.empty())
+				{
+					if (ImGui::Button("Save", { ImGui::GetContentRegionAvail().x, 0.f }))
+					{
+						for (const auto& mesh : *m_ImportedModel)
+						{
+							const std::string path(to + mesh->GetAssetData()->GetId() + ".s_mesh");
+							shade::File file(path, shade::File::VERSION(0, 0, 1), "@s_mesh", shade::File::Flag::WriteFile);
+							if (file.IsOpen())
+							{
+								file.Write(mesh);
+							}
+							else
+							{
+								SHADE_CORE_WARNING("Failed to save mesh, path = {}", path);
+							}
+						}
+
+						m_ImportedModel = nullptr;
+						m_ImportModelModal = false;
+					}
+				}
+			}
+
+			/*if(ImGui::Button(""))
+			auto path = shade::FileDialog::OpenFile("Supported formats(*.obj, *.fbx, *.dae) \0*.obj;*.fbx;*.dae\0");
+			if (!path.empty())
+			{
+
+
+				m_ImportedModel = IModel::Import(path.string());
+			}*/
+
+		});
 }
 
 void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
@@ -163,7 +346,7 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 
 		});
 
-	// Geomtry
+	// Geometry
 	{
 		if (m_SelectedEntity && m_SelectedEntity.HasComponent<shade::TransformComponent>())
 		{
@@ -557,7 +740,7 @@ void EditorLayer::Creator()
 
 	{
 		ImGui::BeginChild("##Createor", ImVec2(ImGui::GetContentRegionAvail()), true);
-		
+
 		switch (selectedType)
 		{
 		case shade::AssetMeta::Undefined:
@@ -587,7 +770,7 @@ void EditorLayer::Creator()
 		}
 		ImGui::EndChild();
 	}
-	
+
 }
 
 void EditorLayer::EditAsset(shade::SharedPointer<shade::AssetData>& assetData)
@@ -1119,10 +1302,9 @@ void EditorLayer::ModelComponent(shade::ecs::Entity& entity)
 				ImGui::Text("Set globally :"); ImGui::Separator();
 				if (ImGui::BeginTable("_title.c_str()", 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp, { 0, 0 }))
 				{
-					
 					ImGui::TableNextColumn();
 					{
-						if(DragInt("Faces", &faces, 1, 1, maxFaces))
+						if (DragInt("Faces", &faces, 1, 1, maxFaces))
 							mesh->RecalculateAllLods(shade::Drawable::MAX_LEVEL_OF_DETAIL, maxFaces, faces, lambda);
 					}
 					ImGui::TableNextColumn();
@@ -1158,7 +1340,7 @@ void EditorLayer::ModelComponent(shade::ecs::Entity& entity)
 					{
 						SHADE_CORE_WARNING("Couldn't save mesh, asset path is empty!");
 					}
-					
+
 				}
 				ImGui::TreePop();
 			}
@@ -1225,13 +1407,13 @@ void EditorLayer::RgidBodyComponent(shade::ecs::Entity& entity)
 
 					for (const auto& assetData : shade::AssetManager::GetAssetDataList(shade::AssetMeta::Category::Secondary))
 					{
-						if (assetData.second->GetType() == shade::AssetMeta::Type::CollisionShapes &&assetData.first.find(search) != std::string::npos)
+						if (assetData.second->GetType() == shade::AssetMeta::Type::CollisionShapes && assetData.first.find(search) != std::string::npos)
 						{
 							if (ImGui::Selectable(assetData.first.c_str(), id == assetData.first))
 							{
 								shade::AssetManager::GetAsset<shade::physic::CollisionShapes, shade::BaseAsset::InstantiationBehaviour::Synchronous>(assetData.first, shade::AssetMeta::Category::Secondary, shade::BaseAsset::LifeTime::DontKeepAlive, [&](auto& asset) mutable
 									{
-										rigidBody.AddCollider(asset);	
+										rigidBody.AddCollider(asset);
 									});
 
 								m_IsAddCollisionShapeModal = false;
@@ -1403,11 +1585,11 @@ void EditorLayer::CreateCollisionShapes()
 					{
 						SHADE_CORE_WARNING("Couldn't save convex shapes, path ={0}", path);
 					}
-					
+
 					m_IsCreateNewRawAssetModalOpen = false;
 				}
 			}
-			
+
 		});
 
 	if (ImGui::Button("Create convex shapes", { ImGui::GetContentRegionAvail().x, 0 }))

@@ -3,19 +3,20 @@
 
 namespace shade
 {
-	class SHADE_API Model : public BaseAsset, public Asset<Model>
+	class SHADE_API		Model : public BaseAsset, public Asset<Model>
 	{
 	public:
 		virtual ~Model();
 		static AssetMeta::Type GetAssetStaticType();
 		virtual AssetMeta::Type GetAssetType() const override;
 
+		Model() = default;
+		static SharedPointer<Model> CreateEXP();
 	public:
 		std::vector<Asset<Mesh>>::iterator begin() noexcept { return m_Meshes.begin(); };
 		std::vector<Asset<Mesh>>::iterator end() noexcept { return m_Meshes.end(); };
 		std::vector<Asset<Mesh>>::const_iterator cbegin() const noexcept { return m_Meshes.begin(); };
 		std::vector<Asset<Mesh>>::const_iterator cend() const noexcept { return m_Meshes.end(); };
-
 	public:
 		void AddMesh(const Asset<Mesh>& mesh);
 		const std::vector<Asset<Mesh>>& GetMeshes() const;
@@ -25,6 +26,7 @@ namespace shade
 	private:
 		static Model* Create(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
 		Model(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
+
 		friend class Asset<Model>;
 		friend class Serializer;
 	private:
