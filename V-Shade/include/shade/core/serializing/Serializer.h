@@ -29,12 +29,12 @@ namespace shade
 	};
 
 	// Templated function to generate a checksum of content.
-	// This function is used to create a checksum of a given stringцц.
+	// This function is used to create a checksum of a given stringstream.
 	// @tparam T The type of the checksum value (either std::uint32_t or std::uint64_t).
 	// @param content The input string for which the checksum is generated.
 	// @return The generated checksum of type T.
 	template <typename T, typename = std::enable_if_t<std::is_same<T, std::uint32_t>::value || std::is_same<T, std::uint64_t>::value>>
-	T GenerateCheckSum(const std::string& content) { return static_cast<T>(std::hash<std::string>{}(content)); }
+	T GenerateCheckSum(const std::stringstream& stream) { return static_cast<T>(std::hash<std::string>{}(stream.str())); }
 
 	class SHADE_API File
 	{
@@ -127,7 +127,8 @@ namespace shade
 		std::string m_Path;
 		Flag m_Flag;
 		Header m_Header;
-		std::fstream m_Stream;
+		std::fstream m_File;
+		std::stringstream m_Stream;
 		std::size_t m_ContentPosition;
 	private:
 		/**

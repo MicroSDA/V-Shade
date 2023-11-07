@@ -21,26 +21,26 @@ bool shade::File::OpenEngineFile(const std::string& filePath, version_t version,
 		{
 			case Flag::ReadFile:
 			{
-				m_Stream.open(filePath, std::ios::in | std::ios::binary);
-				if (!m_Stream.is_open()) throw std::runtime_error(std::format("Failed to open file, path = {}", filePath));
+				m_File.open(filePath, std::ios::in | std::ios::binary);
+				if (!m_File.is_open()) throw std::runtime_error(std::format("Failed to open file, path = {}", filePath));
 
-				ReadHeader(m_Stream, version, magic); return true;
+				ReadHeader(m_File, version, magic); return true;
 			}
 			case Flag::WriteFile:
 			{
-				if (!std::filesystem::exists(filePath))
-					std::fstream(filePath, std::ios::out | std::ios::binary);
+				/*if (!std::filesystem::exists(filePath))
+					std::fstream(filePath, std::ios::out | std::ios::binary);*/
 
-				m_Stream.open(filePath, std::ios::in | std::ios::out | std::ios::binary);
-				if (!m_Stream.is_open()) throw std::runtime_error(std::format("Failed to open file, path = {}", filePath));
+				m_File.open(filePath, std::ios::out | std::ios::binary);
+				if (!m_File.is_open()) throw std::runtime_error(std::format("Failed to open file, path = {}", filePath));
 
-				WriteHeader(m_Stream, version, magic); return true;
+				WriteHeader(m_File, version, magic); return true;
 			}
 		}
 	}
 	catch (std::exception& e)
 	{
-		SHADE_CORE_ERROR("Exception: {}", e.what()); m_Stream.close(); return false;
+		SHADE_CORE_ERROR("Exception: {}", e.what()); m_File.close(); return false;
 	}
 }
 
@@ -52,17 +52,17 @@ bool shade::File::OpenFile(const std::string& filePath)
 
 bool shade::File::IsOpen() const
 {
-	return m_Stream.is_open();
+	return m_File.is_open();
 }
 
 void shade::File::CloseFile()
 {
-	if (m_Stream.is_open())
+	if (m_File.is_open())
 	{
 		if (m_Flag == Flag::WriteFile)
 			UpdateChecksum();
 
-		m_Stream.close();
+		m_File.close();
 	}
 }
 
@@ -86,7 +86,11 @@ void shade::File::ReadHeader(std::istream& stream, version_t version, const magi
 	Serializer::Deserialize(stream, m_Header.Version);
 	Serializer::Deserialize(stream, m_Header.CheckSum);
 
-	m_ContentPosition = m_Stream.tellg();
+	// TODO: Here'is a problem
+	// We will read whole file at once
+	// In case we will have this file as part of if big packet we nee to creaete some specific end of file and read before this token !!
+	m_ContentPosition = m_File.tellg();
+	m_Stream << m_File.rdbuf();
 
 	if (m_Header.Magic != magic)
 		throw std::runtime_error(std::format("Wrong magic value : {}", m_Header.Magic));
@@ -94,13 +98,11 @@ void shade::File::ReadHeader(std::istream& stream, version_t version, const magi
 	if (m_Header.Version != version)
 		throw std::runtime_error(std::format("Wrong version value : {}", m_Header.Version));
 
-	if (m_Header.CheckSum != GetChecksum())
+	if (m_Header.CheckSum != GenerateCheckSum<checksum_t>(m_Stream))
 		throw std::runtime_error(std::format("Wrong checksum value : {}", m_Header.CheckSum));
 
 	if (!stream.good())
 		throw std::runtime_error("Failed to read file header");
-
-	m_Stream.seekp(m_ContentPosition);
 }
 
 void shade::File::WriteHeader(std::ostream& stream, version_t version, const magic_t& magic)
@@ -114,13 +116,14 @@ void shade::File::WriteHeader(std::ostream& stream, version_t version, const mag
 
 void shade::File::UpdateChecksum()
 {
+	checksum_t checksum = GenerateCheckSum<checksum_t>(m_Stream);
+	m_File << m_Stream.rdbuf();
 	m_Stream.seekp(m_ContentPosition);
-	checksum_t checksum = GetChecksum();
 	m_Stream.seekp(m_ContentPosition - sizeof(checksum_t));
-	Serializer::Serialize(m_Stream, checksum);
+	Serializer::Serialize(m_File, checksum);
 }
 
 shade::File::checksum_t shade::File::GetChecksum()
 {
-	return GenerateCheckSum<checksum_t>(std::string((std::istreambuf_iterator<char>(m_Stream)), std::istreambuf_iterator<char>()));
+	return GenerateCheckSum<checksum_t>(m_Stream);
 }
