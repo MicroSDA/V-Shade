@@ -47,7 +47,7 @@ namespace shade
 		std::size_t Deserialize(std::istream& stream);
 
 		void SerrializeEntity(std::ostream& stream, ecs::Entity entity, bool isParentCall = false) const;
-		void DeserrializeEntity(std::istream& stream, ecs::Entity entity);
+		void DeserrializeEntity(std::istream& stream, ecs::Entity entity, std::uint32_t& index);
 	};
 
 	/* Serialize Scene.*/

@@ -77,6 +77,19 @@ shade::File::version_t shade::File::VERSION(version_t major, version_t minor, ve
 	return (static_cast<version_t>(major) << 10u) | (static_cast<version_t>(minor) << 4u) | static_cast<version_t>(patch);
 }
 
+void testfn(std::ios::event ev, std::ios_base& stream, int index)
+{
+	switch (ev)
+	{
+	case stream.copyfmt_event:
+		std::cout << "copyfmt_event\n"; break;
+	case stream.imbue_event:
+		std::cout << "imbue_event\n"; break;
+	case stream.erase_event:
+		std::cout << "erase_event\n"; break;
+	}
+}
+
 void shade::File::ReadHeader(std::istream& stream, version_t version, const magic_t& magic)
 {
 	Serializer::Deserialize(stream, m_Header.Magic);
@@ -85,10 +98,10 @@ void shade::File::ReadHeader(std::istream& stream, version_t version, const magi
 	Serializer::Deserialize(stream, m_Header.CheckSum);
 
 	m_ContentPosition = m_File.tellg();
-	std::string buffer ("", m_Header.Size);
 
+	std::string buffer(m_Header.Size, '\0');
+	m_File.seekp(m_ContentPosition);
 	m_File.read(buffer.data(), m_Header.Size);
-	
 	m_Stream << buffer;
 
 	if (m_Header.Magic != magic)
@@ -97,7 +110,7 @@ void shade::File::ReadHeader(std::istream& stream, version_t version, const magi
 	if (m_Header.Version != version)
 		throw std::runtime_error(std::format("Wrong version value : {}", m_Header.Version));
 
-	if (m_Header.CheckSum != GenerateCheckSum<checksum_t>(m_Stream))
+	if (m_Header.CheckSum != GenerateCheckSum<checksum_t>(buffer))
 		throw std::runtime_error(std::format("Wrong checksum value : {}", m_Header.CheckSum));
 
 	if (!stream.good())

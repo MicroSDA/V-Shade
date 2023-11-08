@@ -153,7 +153,7 @@ std::size_t shade::Scene::Serialize(std::ostream& stream) const
     SHADE_CORE_INFO("Start to serrialize scene ->: {}", "PATH");
     SHADE_CORE_INFO("******************************************************************");
     SHADE_CORE_INFO("Entities count : {}", EntitiesCount());
-    Serializer::Serialize(stream, static_cast<std::uint32_t>(this->EntitiesCount()));
+    Serializer::Serialize(stream, static_cast<std::uint32_t>(EntitiesCount()));
     // See Components.h
     for (const auto& entity : *this)
     {
@@ -170,22 +170,8 @@ std::size_t shade::Scene::Deserialize(std::istream& stream)
     for (std::uint32_t entIndex = 0u; entIndex < entitiesCount; entIndex++)
     {
         ecs::Entity entity = CreateEntity();
-        DeserrializeEntity(stream, entity);
+        DeserrializeEntity(stream, entity, entIndex);
     }
-
-   /* std::string header;
-    Serializer::Deserialize(stream, header);
-    if (header == "@s_scene")
-    {
-        std::uint32_t entitiesCount = 0u;
-        Serializer::Deserialize(stream, entitiesCount);
-
-        for (std::uint32_t entIndex = 0u; entIndex < entitiesCount; entIndex++)
-        {
-            ecs::Entity entity = CreateEntity();
-            DeserrializeEntity(stream, entity);
-        } 
-    }*/
 
     return std::size_t();
 }
@@ -228,7 +214,7 @@ void shade::Scene::SerrializeEntity(std::ostream& stream, ecs::Entity entity, bo
         SerrializeEntity(stream, child, true); 
 }
 
-void shade::Scene::DeserrializeEntity(std::istream& stream, ecs::Entity entity)
+void shade::Scene::DeserrializeEntity(std::istream& stream, ecs::Entity entity, std::uint32_t& index)
 {
     std::uint32_t componentsCount = 0u, childrenCount = 0u;
     Serializer::Deserialize(stream, componentsCount);
@@ -271,10 +257,10 @@ void shade::Scene::DeserrializeEntity(std::istream& stream, ecs::Entity entity)
             });
     }
     // Deserrialize childrens
-    for (std::uint32_t childIndex = 0u; childIndex < childrenCount; childIndex++)
+    for (std::uint32_t childIndex = 0u; childIndex < childrenCount; childIndex++, index++)
     {
         ecs::Entity child = CreateEntity();
-        DeserrializeEntity(stream, child);
+        DeserrializeEntity(stream, child, index);
         entity.AddChild(child);
     }
 }
