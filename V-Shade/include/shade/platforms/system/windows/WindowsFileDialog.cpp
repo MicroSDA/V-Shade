@@ -37,10 +37,14 @@ std::filesystem::path shade::WindowsFileDialog::OpenFile(const char* filter)
 		{
 			path.erase(pos, workDir.string().size());
 			std::replace(path.begin(), path.end(), '\\', '/');
-			
+
+			return "." + path;
 		}
-		//return "." + path;
-		return path;
+		else
+		{
+			std::replace(path.begin(), path.end(), '\\', '/');
+			return path;
+		}
 	}
 	return std::filesystem::path();
 }

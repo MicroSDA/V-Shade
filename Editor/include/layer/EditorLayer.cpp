@@ -105,7 +105,6 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 						if (file.IsOpen())
 						{
 							file.Write(scene);
-							auto v = file._GetSize();
 						}
 						else
 						{
@@ -136,7 +135,7 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 			static std::string from;
 			static std::string to;
 
-			if (!m_ImportedModel)
+			//if (!m_ImportedModel)
 			{
 				if (ImGui::BeginTable("SelectFrom", 2, ImGuiTableFlags_SizingStretchProp, { ImGui::GetContentRegionAvail().x, 0 }))
 				{
@@ -1575,11 +1574,12 @@ void EditorLayer::CreateCollisionShapes()
 							}
 						});
 
-					std::ofstream file(path, std::ios::binary);
-					if (file.is_open())
+
+					shade::File file(path.c_str(), shade::File::VERSION(0, 0, 1), "@s_c_shape", shade::File::Flag::WriteFile);
+					if (file.IsOpen())
 					{
-						shade::Serializer::Serialize(file, shapes);
-						file.close();
+						file.Write(shapes);
+						file.CloseFile();
 					}
 					else
 					{

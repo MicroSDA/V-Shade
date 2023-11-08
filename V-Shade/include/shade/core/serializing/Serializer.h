@@ -38,9 +38,10 @@ namespace shade
 
 	class SHADE_API File
 	{
-		using checksum_t = std::uint32_t;
-		using version_t  = std::uint16_t;
-		using magic_t    = std::string;
+		using checksum_t	 = std::uint32_t;
+		using version_t		 = std::uint16_t;
+		using magic_t		 = std::string;
+		using content_size_t = checksum_t;
 
 	public:
 		enum class Flag
@@ -50,9 +51,10 @@ namespace shade
 		};
 		struct Header
 		{
-			magic_t     Magic;
-			version_t   Version = 0u;
-			checksum_t  CheckSum = 0u;
+			magic_t          Magic;
+			version_t        Version  = 0u;
+			content_size_t   Size     = 0u;
+			checksum_t		 CheckSum = 0u;
 		};
 	public:
 		File() = default;

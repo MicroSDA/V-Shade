@@ -28,9 +28,6 @@ bool shade::File::OpenEngineFile(const std::string& filePath, version_t version,
 			}
 			case Flag::WriteFile:
 			{
-				/*if (!std::filesystem::exists(filePath))
-					std::fstream(filePath, std::ios::out | std::ios::binary);*/
-
 				m_File.open(filePath, std::ios::out | std::ios::binary);
 				if (!m_File.is_open()) throw std::runtime_error(std::format("Failed to open file, path = {}", filePath));
 
@@ -84,13 +81,15 @@ void shade::File::ReadHeader(std::istream& stream, version_t version, const magi
 {
 	Serializer::Deserialize(stream, m_Header.Magic);
 	Serializer::Deserialize(stream, m_Header.Version);
+	Serializer::Deserialize(stream, m_Header.Size);
 	Serializer::Deserialize(stream, m_Header.CheckSum);
 
-	// TODO: Here'is a problem
-	// We will read whole file at once
-	// In case we will have this file as part of if big packet we nee to creaete some specific end of file and read before this token !!
 	m_ContentPosition = m_File.tellg();
-	m_Stream << m_File.rdbuf();
+	std::string buffer ("", m_Header.Size);
+
+	m_File.read(buffer.data(), m_Header.Size);
+	
+	m_Stream << buffer;
 
 	if (m_Header.Magic != magic)
 		throw std::runtime_error(std::format("Wrong magic value : {}", m_Header.Magic));
@@ -109,6 +108,9 @@ void shade::File::WriteHeader(std::ostream& stream, version_t version, const mag
 {
 	Serializer::Serialize(stream, magic);
 	Serializer::Serialize(stream, version);
+	// Size
+	Serializer::Serialize(stream, std::uint32_t(0u));
+	// Version
 	Serializer::Serialize(stream, std::uint32_t(0u));
 
 	m_ContentPosition = stream.tellp();
@@ -116,10 +118,14 @@ void shade::File::WriteHeader(std::ostream& stream, version_t version, const mag
 
 void shade::File::UpdateChecksum()
 {
+	content_size_t size = m_Stream.str().size();
 	checksum_t checksum = GenerateCheckSum<checksum_t>(m_Stream);
+	
 	m_File << m_Stream.rdbuf();
-	m_Stream.seekp(m_ContentPosition);
-	m_Stream.seekp(m_ContentPosition - sizeof(checksum_t));
+
+	m_File.seekp(static_cast<checksum_t>(m_ContentPosition - sizeof(checksum_t) - sizeof(content_size_t)));
+
+	Serializer::Serialize(m_File, size);
 	Serializer::Serialize(m_File, checksum);
 }
 
