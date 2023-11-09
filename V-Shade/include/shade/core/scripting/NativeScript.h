@@ -20,6 +20,7 @@ namespace shade
 				InstantiateScript = [=]() { return instance; };
 				DestroyScript = [](NativeScript* nsc) { delete nsc->m_pInstance; nsc->m_pInstance = nullptr; };
 			}
+			ScriptableEntity* GetIsntace() { return m_pInstance; }
 		private:
 			ScriptableEntity* m_pInstance = nullptr;
 			std::function<ScriptableEntity* ()>	InstantiateScript;

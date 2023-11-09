@@ -38,7 +38,7 @@ shade::Mesh::Mesh(SharedPointer<AssetData> assetData, LifeTime lifeTime, Instant
 
 	auto filePath = mesh->GetAttribute<std::string>("Path");
 
-	shade::File file(filePath, shade::File::VERSION(0, 0, 1), "@s_mesh", shade::File::Flag::ReadFile);
+	shade::File file(filePath, shade::File::In, "@s_mesh", shade::File::VERSION(0, 0, 1));
 	if (!file.IsOpen())
 		SHADE_CORE_WARNING("Failed to read file, wrong path = {0}", filePath)
 	else

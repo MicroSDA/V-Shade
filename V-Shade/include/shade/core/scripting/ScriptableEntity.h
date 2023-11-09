@@ -15,6 +15,7 @@ namespace shade
 			ScriptableEntity() = default;
 			virtual ~ScriptableEntity() = default;
 			bool IsUpdate();
+			void SetUpdate(bool update);
 
 			template<typename T>
 			T& GetComponent();
@@ -37,7 +38,11 @@ namespace shade
 			friend class shade::Scene;
 			friend class shade::ScriptManager;
 		};
+
 		inline bool ScriptableEntity::IsUpdate() { return m_IsUpdate; }
+
+		inline void ScriptableEntity::SetUpdate(bool update) { m_IsUpdate = update; }
+
 		template<typename T>
 		inline T& ScriptableEntity::GetComponent()
 		{

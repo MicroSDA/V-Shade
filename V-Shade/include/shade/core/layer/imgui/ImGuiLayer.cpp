@@ -110,6 +110,12 @@ bool shade::ImGuiLayer::InputTextCol(const char* title, std::string& str, float 
 	return isInput;
 }	
 
+bool shade::ImGuiLayer::InputTextD(const char* title, std::string& str)
+{
+	std::string _title = std::string("##") + title;
+
+	return ImGui::InputText(_title.c_str(), &str, 0, InputTextCallback);
+}
 bool shade::ImGuiLayer::ComboCol(const char* title, std::string& selected, std::vector<std::string>& elements, ImGuiSelectableFlags selectedFlags, ImGuiComboFlags comboFlags, const float& cw1, const float& cw2)
 {
 	std::string _title = std::string("##") + title;

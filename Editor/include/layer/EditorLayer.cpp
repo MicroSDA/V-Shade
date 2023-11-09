@@ -50,6 +50,9 @@ void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shad
 		ShowWindowBar("Inspector", &EditorLayer::EntityInspector, this, m_SelectedEntity);
 		ShowWindowBar("Material", &EditorLayer::MaterialEdit, this, (m_SelectedMaterial) ? *m_SelectedMaterial : *shade::Renderer::GetDefaultMaterial());
 
+
+		ImGui::ShowDemoWindow();
+
 	}ImGui::End();
 }
 
@@ -83,7 +86,7 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 					auto path = shade::FileDialog::OpenFile("Shade scene(*.scene) \0*.scene\0");
 					if (!path.empty())
 					{
-						shade::File file(path.string(), shade::File::VERSION(0, 0, 1), "@s_scene", shade::File::Flag::ReadFile);
+						shade::File file(path.string(), shade::File::In, "@s_scene", shade::File::VERSION(0, 0, 1));
 						if (file.IsOpen())
 						{
 							scene->DestroyAllEntites();
@@ -101,7 +104,7 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 					auto path = shade::FileDialog::SaveFile("Shade scene(*.scene) \0*.scene\0");
 					if (!path.empty())
 					{
-						shade::File file(path.string(), shade::File::VERSION(0, 0, 1), "@s_scene", shade::File::Flag::WriteFile);
+						shade::File file(path.string(), shade::File::Out, "@s_scene", shade::File::VERSION(0, 0, 1));
 						if (file.IsOpen())
 						{
 							file.Write(scene);
@@ -122,6 +125,11 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 					m_ImportModelModal = true;
 				}
 				ImGui::EndMenu();
+			}
+
+			if (ImGui::MenuItem("Pack"))
+			{
+				m_PackFilesModal = true;
 			}
 
 			ImGui::EndMenu();
@@ -161,38 +169,6 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 					ImGui::EndTable();
 				}
 			}
-
-			//if (ImGui::BeginTable("SaveTo", 2, ImGuiTableFlags_SizingStretchProp, { ImGui::GetContentRegionAvail().x, 0 }))
-			//{
-			//	ImGui::TableNextColumn();
-			//	{
-			//		InputTextCol("Save to", to);
-			//	}
-			//	ImGui::TableNextColumn();
-			//	{
-			//		if (ImGui::Button("...##To"))
-			//		{
-			//			auto selectedPath = shade::FileDialog::SaveFile("Shade scene(*.s_mesh) \0*.s_mesh\0");
-			//			if (!selectedPath.empty())
-			//				to = selectedPath.string();
-
-			//			/*if (!path.empty())
-			//			{
-			//				shade::File file(path.string(), shade::File::VERSION(0, 0, 1), "@s_mesh", shade::File::Flag::WriteFile);
-			//				if (file.IsOpen())
-			//				{
-			//					file.Write(scene);
-			//					auto v = file._GetSize();
-			//				}
-			//				else
-			//				{
-			//					SHADE_CORE_WARNING("Couldn't open scene file, path ={0}", path);
-			//				}
-			//			}*/
-			//		}
-			//	}
-			//	ImGui::EndTable();
-			//}
 
 			if (m_ImportedModel)
 			{
@@ -277,7 +253,7 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 						for (const auto& mesh : *m_ImportedModel)
 						{
 							const std::string path(to + mesh->GetAssetData()->GetId() + ".s_mesh");
-							shade::File file(path, shade::File::VERSION(0, 0, 1), "@s_mesh", shade::File::Flag::WriteFile);
+							shade::File file(path, shade::File::Out, "@s_mesh", shade::File::VERSION(0, 0, 1));
 							if (file.IsOpen())
 							{
 								file.Write(mesh);
@@ -304,18 +280,151 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 			}*/
 
 		});
+
+		//ImGui::SetNextWindowSize(ImVec2{ 400, 500 });
+	DrawModal("Import model", m_PackFilesModal, [&]()
+		{
+			static std::string rootPath = std::filesystem::current_path().generic_string();
+			static std::unordered_map < std::string, std::vector<std::string>> from;
+			static std::unordered_map < std::string, std::string> to;
+
+			if (ImGui::BeginTable("Search where", 2, ImGuiTableFlags_SizingStretchProp, { ImGui::GetContentRegionAvail().x, 0 }))
+			{
+				ImGui::TableNextColumn();
+				{
+					InputTextCol("Root", rootPath);
+				}
+				ImGui::TableNextColumn();
+				{
+					if (ImGui::Button("...##Root"))
+					{
+						auto selectedPath = shade::FileDialog::SelectFolder("");
+
+						if (!selectedPath.empty())
+						{
+							from = shade::File::FindFilesWithExtensionExclude(selectedPath);
+						}
+
+					}
+				}
+				ImGui::EndTable();
+			}
+
+
+
+			if (ImGui::BeginTable("table1", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit))
+			{
+
+				ImGui::TableSetupColumn("Extension");
+				ImGui::TableSetupColumn("Path");
+
+				ImGui::TableHeadersRow();
+
+				auto interator = from.begin();
+
+				for (auto interator = from.begin(); interator != from.end();)
+				{
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					{
+						ImGui::Text(interator->first.c_str());
+					}
+					ImGui::TableSetColumnIndex(1);
+					{
+						ImGui::PushItemWidth(175.f);
+						InputTextD(interator->first.c_str(), to[interator->first]);
+						ImGui::PopItemWidth();
+
+					}
+					ImGui::TableSetColumnIndex(2);
+					{
+						if (ImGui::Button("Select"))
+						{
+							auto path = shade::FileDialog::SaveFile("Shade pakcet(*.bin) \0*.bin\0");
+							if (!path.empty())
+							{
+								to[interator->first] = path.string();
+							}
+						}
+					}
+					ImGui::TableSetColumnIndex(3);
+					{
+						if (ImGui::Button("Remove"))
+						{
+							interator = from.erase(interator);
+							auto toIter = to.find(interator->first);
+							if (toIter != to.end())
+							{
+								to.erase(toIter);
+							}
+						}
+						else
+							interator++;
+					}
+				}
+				ImGui::EndTable();
+			}
+
+			if (!to.empty() && !from.empty()) 
+			{
+				if(ImGui::Button("Pack", ImGui::GetContentRegionAvail()))
+				{
+					shade::File::Specification spec;
+					shade::File::PackFiles({from, to});
+				}
+			}
+				/*for (const auto& [ext, path] : from)
+				{
+					
+					ImGui::Text(ext.c_str());
+					for (const auto& p : path)
+					{
+						ImGui::Text(p.c_str());
+					}
+				}*/
+				//ImGui::Checkbox("Enable", &renderer->GetSettings().BloomSettings.Enabled);
+				// per extension select path
+				// slect met file path -- set default
+				// press save 
+
+
+				/*shade::File::Specification spec;
+				shade::File::PackFiles(spec);*/
+
+			});
+
 }
 
 void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 {
 	static ImVec4 focusColor = { 0, 0, 0, 1 };
 
-	if (ImGui::IsWindowFocused())
+	shade::ecs::ScriptableEntity* cameraInstance = nullptr;
+
+	auto cameraEntity = scene->GetPrimaryCamera();
+
+	if (cameraEntity.IsValid() && cameraEntity.HasComponent<shade::NativeScriptComponent>())
 	{
-		focusColor = { 0.995f, 0.857f, 0.420f, 1.000f };
+		cameraInstance = scene->GetPrimaryCamera().GetComponent<shade::NativeScriptComponent>().GetIsntace();
 	}
 	else
 	{
+		cameraInstance = nullptr;
+	}
+	/*if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) || ImGui::IsMouseClicked(ImGuiMouseButton_Middle))
+		ImGui::SetWindowFocus(NULL);*/
+
+	// TODO: Need to rewrite this logic !
+	if (ImGui::IsWindowFocused())
+	{
+		focusColor = { 0.995f, 0.857f, 0.420f, 1.000f };
+		if (cameraInstance)
+			cameraInstance->SetUpdate(true);
+	}
+	else
+	{
+		if (cameraInstance)
+			cameraInstance->SetUpdate(false);
 		focusColor = { 0, 0, 0, 1 };
 	}
 
@@ -1575,7 +1684,7 @@ void EditorLayer::CreateCollisionShapes()
 						});
 
 
-					shade::File file(path.c_str(), shade::File::VERSION(0, 0, 1), "@s_c_shape", shade::File::Flag::WriteFile);
+					shade::File file(path.c_str(), shade::File::Out, "@s_c_shape", shade::File::VERSION(0, 0, 1));
 					if (file.IsOpen())
 					{
 						file.Write(shapes);

@@ -31,6 +31,7 @@ private:
 	bool m_IsCreateNewRawAssetModalOpen = false;
 	bool m_IsAddCollisionShapeModal = false;
 	bool m_ImportModelModal = false;
+	bool m_PackFilesModal	= false;
 
 	void MainMenu(shade::SharedPointer<shade::Scene>& scene);
 	void Scene(shade::SharedPointer<shade::Scene>& scene);

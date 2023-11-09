@@ -185,7 +185,7 @@ shade::physic::CollisionShapes::CollisionShapes(SharedPointer<AssetData> assetDa
 {
 	auto filePath = assetData->GetAttribute<std::string>("Path");
 
-	shade::File file(filePath, shade::File::VERSION(0, 0, 1), "@s_c_shape", shade::File::Flag::ReadFile);
+	shade::File file(filePath, shade::File::In, "@s_c_shape", shade::File::VERSION(0, 0, 1));
 
 	if (!file.IsOpen())
 		SHADE_CORE_WARNING("Failed to read file, wrong path = {0}", filePath)

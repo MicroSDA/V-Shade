@@ -45,17 +45,23 @@ namespace shade
 
 	class SHADE_API File
 	{
+		#define SHADE_META_FILE_PATH "./data/META.bin"
+
 		using checksum_t	 = std::uint32_t;
 		using version_t		 = std::uint16_t;
 		using magic_t		 = std::string;
 		using content_size_t = checksum_t;
 
 	public:
-		enum class Flag
-		{
-			ReadFile = 0,
-			WriteFile = 1
-		};
+		using FileFlag = int;
+
+		static constexpr int In				= 0x01;
+		static constexpr int Out			= 0x02;
+		static constexpr int SkipMagic		= 0x04;
+		static constexpr int SkipVersion	= 0x08;
+		static constexpr int SkipSize		= 0x10;
+		static constexpr int SkipChecksum	= 0x20;
+
 		struct Header
 		{
 			magic_t          Magic;
@@ -63,9 +69,20 @@ namespace shade
 			content_size_t   Size     = 0u;
 			checksum_t		 CheckSum = 0u;
 		};
+
+		struct Specification
+		{
+			// Where format -> Current path
+			std::unordered_map<std::string, std::vector<std::string>> FormatPath;
+			// Where format -> Packet path
+			std::unordered_map<std::string, std::string> FormatPacketPath;
+			// Path to meta file
+			std::string MetaFilePath = SHADE_META_FILE_PATH;
+		};
+
 	public:
 		File() = default;
-		File(const std::string& filePath, version_t version, const magic_t& magic, Flag flag);
+		File(const std::string& filePath, FileFlag flag, const magic_t& magic = "@", version_t version = version_t(0));
 		virtual ~File();
 
 	public:
@@ -78,7 +95,7 @@ namespace shade
 		* @param flag      The file open flag (ReadFile or WriteFile).
 		* @return True if the file was opened successfully; otherwise, false.
 		*/
-		bool OpenEngineFile(const std::string& filePath, version_t version, const magic_t& magic, Flag flag);
+		bool OpenEngineFile(const std::string& filePath, FileFlag flag, const magic_t& magic = "@", version_t version = version_t(0));
 		/**
 		* @brief Opens a file for general use (not yet implemented).
 		*
@@ -92,6 +109,10 @@ namespace shade
 		* @return True if the file is open; otherwise, false.
 		*/
 		bool IsOpen() const;
+		/**
+		 * @brief Return true if the end of the file has been reached.
+		 */
+		bool Eof();
 		/**
 		 * @brief Closes the file, updating the checksum if it was a write operation.
 		 */
@@ -128,13 +149,14 @@ namespace shade
 		template<typename T>
 		std::size_t Read(T& value);
 
+		static std::unordered_map<std::string, std::vector<std::string>> FindFilesWithExtension(const std::filesystem::path& directory, const std::vector<std::string>& extensions = std::vector<std::string>());
+		static std::unordered_map<std::string, std::vector<std::string>> FindFilesWithExtensionExclude(const std::filesystem::path& directory, const std::vector<std::string>& excludeExtensions = std::vector<std::string>());
 
-
-		static void PackFiles(); 
-
+		static void PackFiles(const shade::File::Specification& specification);
+		static void InitializeMetaFile(const std::string& filepath = SHADE_META_FILE_PATH);
 	private:
 		std::string m_Path;
-		Flag m_Flag;
+		FileFlag	m_Flag;
 		Header m_Header;
 		std::fstream m_File;
 		std::stringstream m_Stream;
@@ -147,7 +169,7 @@ namespace shade
 		 * @param version The expected file version.
 		 * @param magic The magic string to identify the file format.
 		 */
-		void ReadHeader(std::istream& stream, version_t version, const magic_t& magic);
+		void ReadHeader(std::istream& stream, version_t version, const magic_t& magic, FileFlag flag);
 		/**
 		 * @brief Writes the file header.
 		 *
@@ -155,7 +177,7 @@ namespace shade
 		 * @param version The file version to write to the header.
 		 * @param magic The magic string to identify the file format.
 		 */
-		void WriteHeader(std::ostream& stream, version_t version, const magic_t& magic);
+		void WriteHeader(std::ostream& stream, version_t version, const magic_t& magic, FileFlag flag);
 		/**
 		* @brief Updates the checksum in the file.
 		*/
@@ -173,11 +195,13 @@ namespace shade
 	template<typename T>
 	inline std::size_t File::Write(const T& value)
 	{
+		assert((m_Flag & shade::File::Out) && "Cannot write into file, 'Out' flag is not set !");
 		return Serializer::Serialize(m_Stream, value);
 	}
 	template<typename T>
 	inline std::size_t File::Read(T& value)
 	{
+		assert((m_Flag & shade::File::In) && "Cannot read from file, 'In' flag is not set !");
 		return Serializer::Deserialize(m_Stream, value);
 	}
 }
