@@ -338,7 +338,7 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 					}
 					ImGui::TableSetColumnIndex(2);
 					{
-						if (ImGui::Button(std::string("Select##" + interator->first).c_str()))
+						if (ImGui::Button("Select"))
 						{
 							auto path = shade::FileDialog::SaveFile("Shade pakcet(*.bin) \0*.bin\0");
 							if (!path.empty())
@@ -351,6 +351,7 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 					{
 						if (ImGui::Button(std::string("Remove##" + interator->first).c_str()))
 						{
+							
 							auto toIter = to.find(interator->first);
 							if (toIter != to.end())
 							{
