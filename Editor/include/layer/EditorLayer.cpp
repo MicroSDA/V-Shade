@@ -51,8 +51,6 @@ void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shad
 		ShowWindowBar("Material", &EditorLayer::MaterialEdit, this, (m_SelectedMaterial) ? *m_SelectedMaterial : *shade::Renderer::GetDefaultMaterial());
 
 
-		ImGui::ShowDemoWindow();
-
 	}ImGui::End();
 }
 
@@ -282,12 +280,12 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 		});
 
 		//ImGui::SetNextWindowSize(ImVec2{ 400, 500 });
-	DrawModal("Import model", m_PackFilesModal, [&]()
+	DrawModal("Pack files", m_PackFilesModal, [&]()
 		{
 			static std::string rootPath = std::filesystem::current_path().generic_string();
 			static std::unordered_map < std::string, std::vector<std::string>> from;
 			static std::unordered_map < std::string, std::string> to;
-
+			 
 			if (ImGui::BeginTable("Search where", 2, ImGuiTableFlags_SizingStretchProp, { ImGui::GetContentRegionAvail().x, 0 }))
 			{
 				ImGui::TableNextColumn();
@@ -298,19 +296,19 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 				{
 					if (ImGui::Button("...##Root"))
 					{
-						auto selectedPath = shade::FileDialog::SelectFolder("");
-
-						if (!selectedPath.empty())
-						{
-							from = shade::File::FindFilesWithExtensionExclude(selectedPath);
-						}
-
+						rootPath = shade::FileDialog::SelectFolder("").string();
 					}
 				}
 				ImGui::EndTable();
 			}
 
-
+			if (!rootPath.empty())
+			{
+				if (ImGui::Button("Scan", { ImGui::GetContentRegionAvail().x, 0 }))
+				{
+					from = shade::File::FindFilesWithExtensionExclude(rootPath, { ".bin", ".comp", ".vert",".dds",".dll",".glsl",".frag" });
+				}
+			}
 
 			if (ImGui::BeginTable("table1", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit))
 			{
@@ -372,26 +370,11 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 				{
 					shade::File::Specification spec;
 					shade::File::PackFiles({from, to});
+
+					from.clear(); to.clear();
+					//m_PackFilesModal = false; 
 				}
 			}
-				/*for (const auto& [ext, path] : from)
-				{
-					
-					ImGui::Text(ext.c_str());
-					for (const auto& p : path)
-					{
-						ImGui::Text(p.c_str());
-					}
-				}*/
-				//ImGui::Checkbox("Enable", &renderer->GetSettings().BloomSettings.Enabled);
-				// per extension select path
-				// slect met file path -- set default
-				// press save 
-
-
-				/*shade::File::Specification spec;
-				shade::File::PackFiles(spec);*/
-
 			});
 
 }

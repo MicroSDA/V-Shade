@@ -124,6 +124,16 @@ namespace shade
 		 */
 		std::size_t _GetSize();
 		/**
+		 * @brief Gets the file stream.
+		 *
+		 * @return Return std::stringstream&.
+		 */
+		std::stringstream& GetStream();
+		/**
+		 * @return Current position within file stream.
+		 */
+		std::size_t TellPosition();
+		/**
 		 * @brief Generates a version number based on major, minor, and patch values.
 		 *
 		 * @param major Major version.
@@ -154,6 +164,9 @@ namespace shade
 
 		static void PackFiles(const shade::File::Specification& specification);
 		static void InitializeMetaFile(const std::string& filepath = SHADE_META_FILE_PATH);
+
+
+
 	private:
 		std::string m_Path;
 		FileFlag	m_Flag;
@@ -169,7 +182,7 @@ namespace shade
 		 * @param version The expected file version.
 		 * @param magic The magic string to identify the file format.
 		 */
-		void ReadHeader(std::istream& stream, version_t version, const magic_t& magic, FileFlag flag);
+		void ReadHeader(std::istream& stream, version_t version, const magic_t& magic, FileFlag flag, bool skipContent = false);
 		/**
 		 * @brief Writes the file header.
 		 *
@@ -182,6 +195,10 @@ namespace shade
 		* @brief Updates the checksum in the file.
 		*/
 		void UpdateChecksum();
+		/**
+		* @brief Updates the size in the file.
+		*/
+		void UpdateSize();
 		/**
 		 * @brief Calculates and returns the checksum of the file content.
 		 *

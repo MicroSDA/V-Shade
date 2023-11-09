@@ -23,7 +23,6 @@ bool shade::File::OpenEngineFile(const std::string& filePath, FileFlag flag, con
 		{
 			if (std::filesystem::exists(filePath))
 			{
-			
 				m_File.open(filePath, std::ios::in | std::ios::binary);
 				if (!m_File.is_open()) return false;
 
@@ -40,10 +39,14 @@ bool shade::File::OpenEngineFile(const std::string& filePath, FileFlag flag, con
 					m_File.open(packed->second.first, std::ios::in | std::ios::binary);
 					if (!m_File.is_open()) return false;
 
+					// Read packet header without content
+					ReadHeader(m_File, version, "@s_packet", In | SkipSize | SkipChecksum, true);
+
 					m_File.seekp(packed->second.second);
 
 					SHADE_CORE_DEBUG("Open the file from packet for reading, path = {}", m_Path);
 
+					// Read file
 					ReadHeader(m_File, version, magic, flag); return true;
 				}
 				else
@@ -93,8 +96,17 @@ void shade::File::CloseFile()
 {
 	if (m_File.is_open())
 	{
-		if ((m_Flag & shade::File::Out) && !(m_Flag & shade::File::SkipChecksum))
-			UpdateChecksum();
+		if ((m_Flag & shade::File::Out))
+		{
+			m_File << m_Stream.rdbuf();
+
+			if(!(m_Flag & shade::File::SkipChecksum))
+				UpdateChecksum();
+
+			if (!(m_Flag & shade::File::SkipSize))
+				UpdateSize();
+		}
+
 		m_File.close();
 	}
 }
@@ -106,6 +118,16 @@ std::size_t shade::File::_GetSize()
 	std::streampos size = m_Stream.tellp();
 	m_Stream.seekg(current);
 	return size;
+}
+
+std::size_t shade::File::TellPosition()
+{
+	return m_ContentPosition + m_Stream.tellp() ;
+}
+
+std::stringstream& shade::File::GetStream()
+{
+	return m_Stream;
 }
 
 shade::File::version_t shade::File::VERSION(version_t major, version_t minor, version_t patch)
@@ -186,25 +208,25 @@ void shade::File::PackFiles(const shade::File::Specification& specification)
 
 	if (metaFile.IsOpen())
 	{
-		std::unordered_map<std::string, std::fstream> packetFiles;
+		std::unordered_map<std::string, File> packetFiles;
 
 		for (const auto& [ext, from] : specification.FormatPath)
 		{
 			auto& packet = packetFiles[ext];
 
-			if (!packet.is_open())
-				packet.open(specification.FormatPacketPath.at(ext), std::ios::out | std::ios::binary);
+			if (!packet.IsOpen())
+				packet.OpenEngineFile(specification.FormatPacketPath.at(ext), Out | SkipSize | SkipChecksum, "@s_packet", VERSION(0,0,1));
 
 			for (const auto& currentPath : from)
 			{
 				// Open file searched file
-				std::uint32_t position = packet.tellp();
+				std::uint32_t position = packet.TellPosition();
 				std::fstream file(currentPath, std::ios::in | std::ios::binary);
 
 				if (file.is_open())
 				{
 					// Write into packed file
-					packet << file.rdbuf();
+					packet.GetStream() << file.rdbuf();
 					// Write meta data into meta file 
 					metaFile.Write(currentPath); metaFile.Write(specification.FormatPacketPath.at(ext)); metaFile.Write(position);
 				}
@@ -224,6 +246,7 @@ void shade::File::InitializeMetaFile(const std::string& filepath)
 	if (metaFile.IsOpen())
 	{
 		m_PathMap.clear();
+
 		while (!metaFile.Eof())
 		{
 			std::string singlePath, packetPath;
@@ -238,7 +261,7 @@ void shade::File::InitializeMetaFile(const std::string& filepath)
 	}
 }
 
-void shade::File::ReadHeader(std::istream& stream, version_t version, const magic_t& magic, FileFlag flag)
+void shade::File::ReadHeader(std::istream& stream, version_t version, const magic_t& magic, FileFlag flag, bool skipContent)
 {
 	if (!(flag & shade::File::SkipMagic))
 	{
@@ -264,30 +287,35 @@ void shade::File::ReadHeader(std::istream& stream, version_t version, const magi
 
 		m_ContentPosition = m_File.tellg();
 
-		std::string buffer(m_Header.Size, ' ');
-		m_File.seekp(m_ContentPosition);
-		m_File.read(buffer.data(), m_Header.Size);
-		m_Stream << buffer;
-
-		if (!(flag & shade::File::SkipChecksum))
+		if (!skipContent)
 		{
-			if (m_Header.CheckSum != GenerateCheckSum<checksum_t>(buffer))
-				throw std::runtime_error(std::format("Wrong checksum value : {} in : {}", m_Header.CheckSum, m_Path));
-		}
+			std::string buffer(m_Header.Size, ' ');
+			m_File.seekp(m_ContentPosition);
+			m_File.read(buffer.data(), m_Header.Size);
+			m_Stream << buffer;
 
+			if (!(flag & shade::File::SkipChecksum))
+			{
+				if (m_Header.CheckSum != GenerateCheckSum<checksum_t>(buffer))
+					throw std::runtime_error(std::format("Wrong checksum value : {} in : {}", m_Header.CheckSum, m_Path));
+			}
+		}
 	}
 	else
 	{
-		if (!(flag & shade::File::SkipChecksum))
-			Serializer::Deserialize(stream, m_Header.CheckSum);
-
-		m_ContentPosition = m_File.tellg();
-		m_Stream << m_File.rdbuf();
-
-		if (!(flag & shade::File::SkipChecksum))
+		if (!skipContent)
 		{
-			if (m_Header.CheckSum != GenerateCheckSum<checksum_t>(m_Stream))
-				throw std::runtime_error(std::format("Wrong checksum value : {} in : {}", m_Header.CheckSum, m_Path));
+			if (!(flag & shade::File::SkipChecksum))
+				Serializer::Deserialize(stream, m_Header.CheckSum);
+
+			m_ContentPosition = m_File.tellg();
+			m_Stream << m_File.rdbuf();
+
+			if (!(flag & shade::File::SkipChecksum))
+			{
+				if (m_Header.CheckSum != GenerateCheckSum<checksum_t>(m_Stream))
+					throw std::runtime_error(std::format("Wrong checksum value : {} in : {}", m_Header.CheckSum, m_Path));
+			}
 		}
 	}
 
@@ -309,16 +337,17 @@ void shade::File::WriteHeader(std::ostream& stream, version_t version, const mag
 	m_ContentPosition = stream.tellp();
 }
 
-void shade::File::UpdateChecksum()
+void shade::File::UpdateSize()
 {
 	content_size_t size = m_Stream.str().size();
-	checksum_t checksum = GenerateCheckSum<checksum_t>(m_Stream);
-
-	m_File << m_Stream.rdbuf();
-
 	m_File.seekp(static_cast<checksum_t>(m_ContentPosition - sizeof(checksum_t) - sizeof(content_size_t)));
-
 	Serializer::Serialize(m_File, size);
+}
+
+void shade::File::UpdateChecksum()
+{
+	checksum_t checksum = GenerateCheckSum<checksum_t>(m_Stream);
+	m_File.seekp(static_cast<checksum_t>(m_ContentPosition - sizeof(checksum_t)));
 	Serializer::Serialize(m_File, checksum);
 }
 

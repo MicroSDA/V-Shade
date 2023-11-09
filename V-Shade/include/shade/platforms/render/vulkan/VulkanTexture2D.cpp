@@ -73,11 +73,6 @@ void shade::VulkanTexture2D::Invalidate()
 	if(m_Sampler != VK_NULL_HANDLE)
 		vkDestroySampler(m_VkDevice, m_Sampler, m_VkInstance.AllocationCallbaks);
 
-	if (m_Image->GetSpecification().IsCubeMap)
-	{
-		int x = 0;
-	}
-
 	VkSamplerCreateInfo samplerCreateInfo
 	{
 		VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO, // sType
@@ -100,7 +95,6 @@ void shade::VulkanTexture2D::Invalidate()
 		VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, // borderColor // TODO: TAKE A LOOK
 		VK_FALSE, // unnormalizedCoordinates // TODO: TAKE A LOOK
 	};
-
 
 	if (m_Image->GetSpecification().Format <= render::Image::Format(5))
 	{
