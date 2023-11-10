@@ -72,7 +72,7 @@ shade::VulkanShader::VulkanShader(const std::string& filePath):
         std::ifstream in(cachedPath, std::ios::in | std::ios::binary);
  
         // Always recompile shaders !
-#if 0
+#if 1
         if (in.is_open())
         {
             in.seekg(0, std::ios::end);

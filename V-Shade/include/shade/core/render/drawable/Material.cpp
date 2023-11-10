@@ -42,14 +42,14 @@ shade::Material::Material(SharedPointer<AssetData> assetData, LifeTime lifeTime,
 
 	auto filePath = material->GetAttribute<std::string>("Path");
 
-	std::ifstream file(filePath, std::ios::binary);
-	if (!file.is_open())
+	File file(filePath, File::In, "@s_mat", File::VERSION(0, 0, 1));
+
+	if (!file.IsOpen())
 		SHADE_CORE_WARNING("Failed to read file, wrong path = {0}", filePath)
 	else
-	{
-		Deserialize(file);
-	}
-	file.close();
+		file.Read(*this);
+
+	file.CloseFile();
 }
 
 shade::AssetMeta::Type shade::Material::GetAssetStaticType()
@@ -69,41 +69,36 @@ shade::Material* shade::Material::Create(SharedPointer<AssetData> assetData, Bas
 
 std::size_t shade::Material::Serialize(std::ostream& stream) const
 {
-	std::string header = "@s_mat";
-	Serializer::Serialize(stream, header);
-	Serializer::Serialize(stream, ColorAmbient);
-	Serializer::Serialize(stream, ColorDiffuse);
-	Serializer::Serialize(stream, ColorSpecular);
-	Serializer::Serialize(stream, ColorTransparent);
-	Serializer::Serialize(stream, Emmisive);
-	Serializer::Serialize(stream, Opacity);
-	Serializer::Serialize(stream, Shininess);
-	Serializer::Serialize(stream, ShininessStrength);
-	Serializer::Serialize(stream, Refracti);
-	Serializer::Serialize(stream, NormalMapEnabled);
-	Serializer::Serialize(stream, BumpMapEnabled);
-	return 0;
+	std::size_t size = Serializer::Serialize(stream, ColorAmbient);
+	
+	size += Serializer::Serialize(stream, ColorDiffuse);
+	size += Serializer::Serialize(stream, ColorSpecular);
+	size += Serializer::Serialize(stream, ColorTransparent);
+	size += Serializer::Serialize(stream, Emmisive);
+	size += Serializer::Serialize(stream, Opacity);
+	size += Serializer::Serialize(stream, Shininess);
+	size += Serializer::Serialize(stream, ShininessStrength);
+	size += Serializer::Serialize(stream, Refracti);
+	size += Serializer::Serialize(stream, NormalMapEnabled);
+	size += Serializer::Serialize(stream, BumpMapEnabled);
+
+	return size;
 }
 
 std::size_t shade::Material::Deserialize(std::istream& stream)
 {
-	std::string header;
-	Serializer::Deserialize(stream, header);
-	if (header == "@s_mat")
-	{
-		Serializer::Deserialize(stream, ColorAmbient);
-		Serializer::Deserialize(stream, ColorDiffuse);
-		Serializer::Deserialize(stream, ColorSpecular);
-		Serializer::Deserialize(stream, ColorTransparent);
-		Serializer::Deserialize(stream, Emmisive);
-		Serializer::Deserialize(stream, Opacity);
-		Serializer::Deserialize(stream, Shininess);
-		Serializer::Deserialize(stream, ShininessStrength);
-		Serializer::Deserialize(stream, Refracti);
-		Serializer::Deserialize(stream, Shading);
-		/*Serializer::Deserialize(stream, NormalMapEnabled);
-		Serializer::Deserialize(stream, BumpMapEnabled);*/
-	}
+	std::size_t size = Serializer::Deserialize(stream, ColorAmbient);
+	size += Serializer::Deserialize(stream, ColorDiffuse);
+	size += Serializer::Deserialize(stream, ColorSpecular);
+	size += Serializer::Deserialize(stream, ColorTransparent);
+	size += Serializer::Deserialize(stream, Emmisive);
+	size += Serializer::Deserialize(stream, Opacity);
+	size += Serializer::Deserialize(stream, Shininess);
+	size += Serializer::Deserialize(stream, ShininessStrength);
+	size += Serializer::Deserialize(stream, Refracti);
+	size += Serializer::Deserialize(stream, Shading);
+	/*size +=Serializer::Deserialize(stream, NormalMapEnabled);
+	size +=Serializer::Deserialize(stream, BumpMapEnabled);*/
 
-	return 0;
+	return size;
 }

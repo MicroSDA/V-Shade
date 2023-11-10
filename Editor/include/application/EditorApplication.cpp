@@ -16,8 +16,6 @@ void EditorApplication::OnCreate()
 {
 	// Initialzie render.
 	shade::Renderer::Initialize(shade::RenderAPI::API::Vulkan, shade::SystemsRequirements{ .GPU { .Discrete = true }, .FramesInFlight = 3 });
-
-	shade::File::InitializeMetaFile();
 	// Crete window.
 	shade::Window::Create({"Editor", 1900, 900, false, false});
 

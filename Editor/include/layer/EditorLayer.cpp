@@ -306,7 +306,7 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 			{
 				if (ImGui::Button("Scan", { ImGui::GetContentRegionAvail().x, 0 }))
 				{
-					from = shade::File::FindFilesWithExtensionExclude(rootPath, { ".bin", ".comp", ".vert",".dds",".dll",".glsl",".frag" });
+					from = shade::File::FindFilesWithExtensionExclude(rootPath, { ".comp", ".vert",".dds",".dll",".glsl",".frag" });
 				}
 			}
 
@@ -654,6 +654,11 @@ void EditorLayer::Entities(shade::SharedPointer<shade::Scene>& scene)
 
 void EditorLayer::AssetsExplorer()
 {
+	//static std::string assetMetaFilePath = shade::AssetManager::G
+
+	//InputTextCol("Asset meta file: ",)
+	//ImGui::Text("Some Path");
+
 	auto width = ImGui::GetContentRegionAvail().x / 3;
 	auto height = width / 2;
 
@@ -711,9 +716,12 @@ void EditorLayer::AssetsExplorer()
 	ImGui::Separator();
 	EditAsset(selectedAssetData);
 
-	ImGui::SetNextWindowSize(ImGui::GetContentRegionAvail());
+	ImGui::SetNextWindowSize( { 400, 400 });
 	DrawModal("Create new asset", m_IsAddNewAssetModalOpen, [&]()
 		{
+			auto width = ImGui::GetContentRegionAvail().x / 3;
+			auto height = width / 2;
+
 			static shade::AssetMeta::Category selectedCategory = shade::AssetMeta::Category::None;
 			static shade::AssetMeta::Type selectedType = shade::AssetMeta::Type::ASSET_TYPE_MAX_ENUM;
 			static std::string id;
@@ -798,8 +806,8 @@ void EditorLayer::AssetsExplorer()
 				assetData = shade::SharedPointer<shade::AssetData>::Create();
 				selectedCategory = shade::AssetMeta::Category::None;
 				selectedType = shade::AssetMeta::Type::ASSET_TYPE_MAX_ENUM;
-				id = "";
-				path = "";
+				id.clear();
+				path.clear();
 			}
 			ImGui::SameLine();
 		});
@@ -809,7 +817,7 @@ void EditorLayer::AssetsExplorer()
 		m_IsAddNewAssetModalOpen = true;
 	ImGui::SameLine();
 	if (ImGui::Button("Override"))
-		shade::AssetManager::Save("./resources/assets/assets.bin");
+		shade::AssetManager::Save();
 }
 
 void EditorLayer::Creator()

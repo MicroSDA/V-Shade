@@ -10,6 +10,10 @@ namespace shade
 {
 	class SHADE_API AssetManager
 	{
+	#ifndef SHADE_ASSET_META_FILE_PATH
+		#define SHADE_ASSET_META_FILE_PATH "./resources/ASSET_META.bin"
+	#endif // !SHADE_META_FILE_PATH
+
 	public:
 		// Contain all assets which were loaded.
 		using AssetMap = std::unordered_map<std::string, Asset<BaseAsset>>;
@@ -22,11 +26,11 @@ namespace shade
 		using AssetsDataRelink = std::unordered_set<std::string>;
 	public:
 		// Initialize Assets data from file in folder.
-		static void Initialize(const std::string& folderPath);
+		static void Initialize(const std::string& filePath = SHADE_ASSET_META_FILE_PATH);
 		// Initialize Assets data from stream.
 		static void Initialize(std::istream& stream);
 		// Save Assets data to file.
-		static void Save(const std::string& filePath);
+		static void Save(const std::string& filePath = SHADE_ASSET_META_FILE_PATH);
 		// Save Assets data to stream.
 		static void Save(std::ostream& stream);
 		// TIP: Not SharedPointer ?

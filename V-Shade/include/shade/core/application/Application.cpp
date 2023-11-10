@@ -30,11 +30,13 @@ shade::UniquePointer<shade::Window>& shade::Application::GetWindow()
 
 void shade::Application::Initialize()
 {
+	File::InitializeMetaFile();
+	AssetManager::Initialize();
+
 	// Create dummy scene.
 	Scene::Create("Dummy")->SetAsActiveScene();
 
 	EventManager::Initialize();
-	AssetManager::Initialize("./resources/assets/");
 }
 
 shade::Application& shade::Application::GetInstance()

@@ -45,7 +45,10 @@ namespace shade
 
 	class SHADE_API File
 	{
+
+	#ifndef SHADE_META_FILE_PATH
 		#define SHADE_META_FILE_PATH "./data/META.bin"
+	#endif // !SHADE_META_FILE_PATH
 
 		using checksum_t	 = std::uint32_t;
 		using version_t		 = std::uint16_t;

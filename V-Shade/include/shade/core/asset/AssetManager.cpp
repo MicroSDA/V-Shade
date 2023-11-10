@@ -8,6 +8,10 @@ std::array<shade::AssetManager::AssetsDataRelink, shade::AssetMeta::Category::AS
 std::array<std::recursive_mutex, shade::AssetMeta::Category::ASSET_CATEGORY_MAX_ENUM> shade::AssetManager::m_sMutexs;
 shade::thread::ThreadPool shade::AssetManager::m_sThreadPool;
 
+
+
+// TODO: Try to use m_SecondaryReferenceId != '\0' insetad of m_SecondaryReferenceId != "NULL"
+
 void shade::AssetManager::Delivery(AssetMeta::Category category)
 {
 	std::unique_lock<std::recursive_mutex> lock(m_sMutexs[category], std::defer_lock);
@@ -55,33 +59,40 @@ void shade::AssetManager::Delivery(AssetMeta::Category category)
 	}
 }
 
-void shade::AssetManager::Initialize(const std::string& folderPath)
+void shade::AssetManager::Initialize(const std::string& filePath)
 {
-	if (std::filesystem::exists(folderPath))
+	File file(filePath, File::In, "@s_m_asset", File::VERSION(0, 0, 1));
+	if (file.IsOpen())
 	{
-		for (const auto& entry : std::filesystem::directory_iterator(folderPath))
-		{
-			// Get file path and inverse '\' to '/'.
-			const std::string filePath = entry.path().generic_string();
-
-			if (entry.path().extension().string() == std::string(".bin"))
-			{
-				const std::string filename = entry.path().filename().replace_extension().string();
-
-				std::ifstream file(filePath, std::ios::binary);
-				if (!file.is_open())
-					SHADE_CORE_WARNING("Failed to initialize AssetManager, wrong path = {0}", filePath)
-				else
-				{
-					Initialize(file);
-					file.close();
-				}
-					
-			}
-		}
+		Initialize(file.GetStream());
+		file.CloseFile();
 	}
-	else
-		SHADE_CORE_WARNING("Failed to initialize AssetManager, wrong path = {0}", folderPath);
+
+	//if (std::filesystem::exists(folderPath))
+	//{
+	//	for (const auto& entry : std::filesystem::directory_iterator(folderPath))
+	//	{
+	//		// Get file path and inverse '\' to '/'.
+	//		const std::string filePath = entry.path().generic_string();
+
+	//		if (entry.path().extension().string() == std::string(".bin"))
+	//		{
+	//			const std::string filename = entry.path().filename().replace_extension().string();
+
+	//			std::ifstream file(filePath, std::ios::binary);
+	//			if (!file.is_open())
+	//				SHADE_CORE_WARNING("Failed to initialize AssetManager, wrong path = {0}", filePath)
+	//			else
+	//			{
+	//				Initialize(file);
+	//				file.close();
+	//			}
+	//				
+	//		}
+	//	}
+	//}
+	//else
+	//	SHADE_CORE_WARNING("Failed to initialize AssetManager, wrong path = {0}", folderPath);
 }
 
 void shade::AssetManager::AddNewAssetData(const SharedPointer<AssetData>& data)
@@ -215,13 +226,20 @@ void shade::AssetManager::LinkAssetDataRecursivly(const std::string& id, SharedP
 
 void shade::AssetManager::Save(const std::string& filePath)
 {
-	std::ofstream file(filePath, std::ios::binary);
-	if (!file.is_open())
-		SHADE_CORE_WARNING("Failed to save asset data, wrong path = {0}", filePath)
-	else
-		Save(file);
+	File file(filePath, File::Out, "@s_m_asset", File::VERSION(0, 0, 1));
+	if (file.IsOpen())
+	{
+		Save(file.GetStream());
+		file.CloseFile();
+	}
 
-	file.close();
+	//std::ofstream file(filePath, std::ios::binary);
+	//if (!file.is_open())
+	//	SHADE_CORE_WARNING("Failed to save asset data, wrong path = {0}", filePath)
+	//else
+	//	Save(file);
+
+	//file.close();
 }
 
 void shade::AssetManager::Save(std::ostream& stream)
