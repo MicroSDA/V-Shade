@@ -31,27 +31,28 @@ void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shad
 	ImGui::SetCurrentContext(GetImGuiContext());
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 
-	if (ImGui::Begin("DockSpace"))
+	if (ImGui::Begin("Shade", nullptr, m_WindowFlags))
 	{
 		if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
 		{
-			ImGuiID dockspaceId = ImGui::GetID("DockSpace");
+			ImGuiID dockspaceId = ImGui::GetID("Shade");
 			ImGui::DockSpace(dockspaceId, ImVec2(0.f, 0.f), m_DockSpaceFlags);
 		}
 
-		ShowWindowBar("Menu", &EditorLayer::MainMenu, this, scene);
+		MainMenu(scene);
 		ShowWindowBar("Entities", &EditorLayer::Entities, this, scene);
 		ShowWindowBar("Creator", &EditorLayer::Creator, this);
 		ShowWindowBar("Assets", &EditorLayer::AssetsExplorer, this);
 		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 1));
 		ShowWindowBar("Scene", &EditorLayer::Scene, this, scene);
 		ImGui::PopStyleColor();
-		ShowWindowBar("Render settings", &EditorLayer::RenderSettings, this, m_SceneRenderer);
 		ShowWindowBar("Inspector", &EditorLayer::EntityInspector, this, m_SelectedEntity);
+		
+		
 		ShowWindowBar("Material", &EditorLayer::MaterialEdit, this, (m_SelectedMaterial) ? *m_SelectedMaterial : *shade::Renderer::GetDefaultMaterial());
-
-
-	}ImGui::End();
+		ShowWindowBar("Render settings", &EditorLayer::RenderSettings, this, m_SceneRenderer);
+		ImGui::End();
+	}
 }
 
 void EditorLayer::OnEvent(shade::SharedPointer<shade::Scene>& scene, const shade::Event& event, const shade::FrameTimer& deltaTime)
@@ -125,7 +126,7 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 				ImGui::EndMenu();
 			}
 
-			if (ImGui::MenuItem("Pack"))
+			if (ImGui::MenuItem("Pack files"))
 			{
 				m_PackFilesModal = true;
 			}
@@ -279,13 +280,13 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 
 		});
 
-		//ImGui::SetNextWindowSize(ImVec2{ 400, 500 });
+	ImGui::SetNextWindowSize(ImVec2{ 600, 400 });
 	DrawModal("Pack files", m_PackFilesModal, [&]()
 		{
 			static std::string rootPath = std::filesystem::current_path().generic_string();
 			static std::unordered_map < std::string, std::vector<std::string>> from;
 			static std::unordered_map < std::string, std::string> to;
-			 
+
 			if (ImGui::BeginTable("Search where", 2, ImGuiTableFlags_SizingStretchProp, { ImGui::GetContentRegionAvail().x, 0 }))
 			{
 				ImGui::TableNextColumn();
@@ -306,7 +307,7 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 			{
 				if (ImGui::Button("Scan", { ImGui::GetContentRegionAvail().x, 0 }))
 				{
-					from = shade::File::FindFilesWithExtensionExclude(rootPath, { ".dds", ".dll", ".glsl"});
+					from = shade::File::FindFilesWithExtensionExclude(rootPath, { ".dds", ".dll", ".glsl" });
 				}
 			}
 
@@ -364,18 +365,18 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 				ImGui::EndTable();
 			}
 
-			if (!to.empty() && !from.empty()) 
+			if (!to.empty() && !from.empty())
 			{
-				if (ImGui::Button("Pack", { ImGui::GetContentRegionAvail().x, 0}))
+				if (ImGui::Button("Pack", { ImGui::GetContentRegionAvail().x, 0 }))
 				{
 					shade::File::Specification spec;
-					shade::File::PackFiles({from, to});
+					shade::File::PackFiles({ from, to });
 
 					from.clear(); to.clear();
 					//m_PackFilesModal = false; 
 				}
 			}
-			});
+		});
 
 }
 
@@ -398,7 +399,7 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 	/*if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) || ImGui::IsMouseClicked(ImGuiMouseButton_Middle))
 		ImGui::SetWindowFocus(NULL);*/
 
-	// TODO: Need to rewrite this logic !
+		// TODO: Need to rewrite this logic !
 	if (ImGui::IsWindowFocused())
 	{
 		focusColor = { 0.995f, 0.857f, 0.420f, 1.000f };
@@ -716,7 +717,7 @@ void EditorLayer::AssetsExplorer()
 	ImGui::Separator();
 	EditAsset(selectedAssetData);
 
-	ImGui::SetNextWindowSize( { 400, 400 });
+	ImGui::SetNextWindowSize({ 400, 400 });
 	DrawModal("Create new asset", m_IsAddNewAssetModalOpen, [&]()
 		{
 			auto width = ImGui::GetContentRegionAvail().x / 3;

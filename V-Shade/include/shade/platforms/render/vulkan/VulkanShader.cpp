@@ -79,7 +79,7 @@ shade::VulkanShader::VulkanShader(const std::string& filePath):
             if (in.IsOpen())
             {
                 auto& data = shaderData[stage];
-                auto size = in.GetHeader().Size;
+                auto size = in.GetHeader().Size; // in case the sahder can be as part of packet !
                 data.resize(size / sizeof(std::uint32_t));
                 in.GetStream().read((char*)data.data(), size);
             }

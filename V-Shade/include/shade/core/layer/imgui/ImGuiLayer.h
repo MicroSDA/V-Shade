@@ -33,7 +33,7 @@ namespace shade
 		template<typename Callback, typename ...Args>
 		void ShowWindowBar(const char* title, Callback callback, Args && ...args)
 		{
-			if (ImGui::Begin(title, nullptr, ImGuiWindowFlags_Modal | ImGuiWindowFlags_MenuBar))
+			if (ImGui::Begin(title, nullptr, ImGuiWindowFlags_MenuBar))
 				std::invoke(callback, std::forward<Args>(args)...);
 			ImGui::End();
 		}

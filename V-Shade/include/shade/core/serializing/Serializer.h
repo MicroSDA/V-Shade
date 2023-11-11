@@ -56,6 +56,7 @@ namespace shade
 		using content_size_t = checksum_t;
 
 	public:
+
 		using FileFlag = int;
 
 		static constexpr int In				= 0x01;
@@ -120,9 +121,10 @@ namespace shade
 		 * @brief Closes the file, updating the checksum if it was a write operation.
 		 */
 		void CloseFile();
-
+		/**
+		* @return File header.
+		*/
 		Header GetHeader() const;
-
 		/**
 		 * @brief Gets the size of the file.
 		 *
@@ -164,15 +166,32 @@ namespace shade
 		 */
 		template<typename T>
 		std::size_t Read(T& value, std::size_t count = 1);
-
+		/**
+		 * @brief Trying to find all files recursively.
+		 * 
+		 * @param directory Directory for start skaning.
+		 * @param extensions Set of extensions for search.
+		 * @return The map where key is extension and value all files with given extension.
+		 */
 		static std::unordered_map<std::string, std::vector<std::string>> FindFilesWithExtension(const std::filesystem::path& directory, const std::vector<std::string>& extensions = std::vector<std::string>());
+		/**
+		 * @brief Trying to find all files recursively.
+		 *
+		 * @param directory Directory for start skaning.
+		 * @param extensions Set of extensions which has to be ignored.
+		 * @return The map where key is extension and value all files with given extension.
+		 */
 		static std::unordered_map<std::string, std::vector<std::string>> FindFilesWithExtensionExclude(const std::filesystem::path& directory, const std::vector<std::string>& excludeExtensions = std::vector<std::string>());
-
+		/**
+		 * @brief Pack files to packets.
+		 * @param specification Specification struct.
+		 */
 		static void PackFiles(const shade::File::Specification& specification);
+		/**
+		 * @brief Load meta file.
+		 * @param filepath.
+		 */
 		static void InitializeMetaFile(const std::string& filepath = SHADE_META_FILE_PATH);
-
-		
-
 	private:
 		std::string m_Path;
 		FileFlag	m_Flag;

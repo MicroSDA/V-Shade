@@ -41,12 +41,12 @@ bool shade::File::OpenEngineFile(const std::string& filePath, FileFlag flag, con
 
 					// Read packet header without content
 					ReadHeader(m_File, version, "@s_packet", In | SkipSize | SkipChecksum, true);
-
+					// Set file start position inside packet
 					m_File.seekp(packed->second.second);
 
 					SHADE_CORE_DEBUG("Open the file from packet for reading, path = {}", m_Path);
 
-					// Read file
+					// Read file header
 					ReadHeader(m_File, version, magic, flag); return true;
 				}
 				else
@@ -145,7 +145,6 @@ std::unordered_map<std::string, std::vector<std::string>> shade::File::FindFiles
 		{
 			// Recursively scan subdirectories
 			auto subdirectoryFiles = FindFilesWithExtension(entry.path(), extensions);
-
 			// Merge subdirectory results into the main result
 			for (const auto& [ext, paths] : subdirectoryFiles) 
 			{
@@ -169,30 +168,36 @@ std::unordered_map<std::string, std::vector<std::string>> shade::File::FindFiles
 	return result;
 }
 
-std::unordered_map<std::string, std::vector<std::string>> shade::File::FindFilesWithExtensionExclude(const std::filesystem::path& directory, const std::vector<std::string>& excludeExtensions) {
+std::unordered_map<std::string, std::vector<std::string>> shade::File::FindFilesWithExtensionExclude(const std::filesystem::path& directory, const std::vector<std::string>& excludeExtensions) 
+{
 	std::unordered_map<std::string, std::vector<std::string>> result;
 
-	for (const auto& entry : std::filesystem::directory_iterator(directory)) {
-		if (std::filesystem::is_directory(entry.status())) {
+	for (const auto& entry : std::filesystem::directory_iterator(directory)) 
+	{
+		if (std::filesystem::is_directory(entry.status())) 
+		{
 			// Recursively scan subdirectories
 			auto subdirectoryFiles = FindFilesWithExtensionExclude(entry.path(), excludeExtensions);
-
 			// Merge subdirectory results into the main result
-			for (const auto& [ext, paths] : subdirectoryFiles) {
+			for (const auto& [ext, paths] : subdirectoryFiles) 
+			{
 				result[ext].insert(result[ext].end(), paths.begin(), paths.end());
 			}
 		}
-		else if (std::filesystem::is_regular_file(entry.status())) {
+		else if (std::filesystem::is_regular_file(entry.status())) 
+		{
 			// Check if the file has one of the specified extensions
 			bool excludeFile = false;
-			for (const auto& excludeExt : excludeExtensions) {
-				if (entry.path().extension() == excludeExt) {
+			for (const auto& excludeExt : excludeExtensions) 
+			{
+				if (entry.path().extension() == excludeExt) 
+				{
 					excludeFile = true;
 					break;
 				}
 			}
-
-			if (!excludeFile) {
+			if (!excludeFile) 
+			{
 				// Add the path to the result map
 				result[entry.path().extension().string()].push_back(entry.path().generic_string());
 			}
@@ -215,7 +220,7 @@ void shade::File::PackFiles(const shade::File::Specification& specification)
 			auto& packet = packetFiles[ext];
 
 			if (!packet.IsOpen())
-				packet.OpenEngineFile(specification.FormatPacketPath.at(ext), Out | SkipSize | SkipChecksum, "@s_packet", VERSION(0,0,1));
+				packet.OpenEngineFile(specification.FormatPacketPath.at(ext), Out | SkipSize | SkipChecksum, "@s_packet", VERSION(0, 0, 1));
 
 			for (const auto& currentPath : from)
 			{
@@ -305,7 +310,7 @@ void shade::File::ReadHeader(std::istream& stream, version_t version, const magi
 			m_File.seekp(m_ContentPosition);
 			m_File.read(buffer.data(), m_Header.Size);
 			m_Stream << buffer;
-			m_Stream.seekp(0);
+			m_Stream.seekp(0, std::ios::beg);
 
 			if (!(flag & shade::File::SkipChecksum))
 			{
@@ -325,7 +330,7 @@ void shade::File::ReadHeader(std::istream& stream, version_t version, const magi
 
 			m_ContentPosition = m_File.tellg();
 			m_Stream << m_File.rdbuf();
-			m_Stream.seekp(0);
+			m_Stream.seekp(0, std::ios::beg);
 
 			if (!(flag & shade::File::SkipChecksum))
 			{
@@ -364,7 +369,6 @@ void shade::File::WriteHeader(std::ostream& stream, version_t version, const mag
 
 void shade::File::UpdateSize()
 {
-	// Wrong size update in case skippeing some headers
 	content_size_t size = m_Stream.str().size();
 	m_File.seekp(m_SizePosition);
 	Serializer::Serialize(m_File, size);
