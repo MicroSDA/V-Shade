@@ -99,7 +99,7 @@ void shade::File::CloseFile()
 		if ((m_Flag & shade::File::Out))
 		{
 			m_File << m_Stream.rdbuf();
-
+			
 			if(!(m_Flag & shade::File::SkipChecksum))
 				UpdateChecksum();
 
@@ -113,10 +113,10 @@ void shade::File::CloseFile()
 
 std::size_t shade::File::_GetSize()
 {
-	std::streampos current = m_Stream.tellp();
-	m_Stream.seekg(0, std::ios_base::end);
-	std::streampos size = m_Stream.tellp();
-	m_Stream.seekg(current);
+	std::size_t current = m_Stream.tellp();
+	m_Stream.seekp(0, std::ios_base::end);
+	std::size_t size = m_Stream.tellp();
+	m_Stream.seekp(current);
 	return size;
 }
 
@@ -261,6 +261,11 @@ void shade::File::InitializeMetaFile(const std::string& filepath)
 	}
 }
 
+shade::File::Header shade::File::GetHeader() const
+{
+	return m_Header;
+}
+
 void shade::File::ReadHeader(std::istream& stream, version_t version, const magic_t& magic, FileFlag flag, bool skipContent)
 {
 	if (!(flag & shade::File::SkipMagic))
@@ -269,7 +274,10 @@ void shade::File::ReadHeader(std::istream& stream, version_t version, const magi
 
 		if (m_Header.Magic != magic)
 			throw std::runtime_error(std::format("Wrong magic value : {} in : {}", m_Header.Magic, m_Path));
-	}	
+	}
+
+	m_VersionPosition = m_File.tellp();
+
 	if (!(flag & shade::File::SkipVersion))
 	{
 		Serializer::Deserialize(stream, m_Header.Version);
@@ -277,10 +285,14 @@ void shade::File::ReadHeader(std::istream& stream, version_t version, const magi
 		if (m_Header.Version != version)
 			throw std::runtime_error(std::format("Wrong version value : {} in : {}", m_Header.Version, m_Path));
 	}
-		
+	
+	m_SizePosition = m_File.tellp();
+
 	if (!(flag & shade::File::SkipSize))
 	{
 		Serializer::Deserialize(stream, m_Header.Size);
+
+		m_CheckSumPosition = m_File.tellp();
 
 		if (!(flag & shade::File::SkipChecksum))
 			Serializer::Deserialize(stream, m_Header.CheckSum);
@@ -293,6 +305,7 @@ void shade::File::ReadHeader(std::istream& stream, version_t version, const magi
 			m_File.seekp(m_ContentPosition);
 			m_File.read(buffer.data(), m_Header.Size);
 			m_Stream << buffer;
+			m_Stream.seekp(0);
 
 			if (!(flag & shade::File::SkipChecksum))
 			{
@@ -305,11 +318,14 @@ void shade::File::ReadHeader(std::istream& stream, version_t version, const magi
 	{
 		if (!skipContent)
 		{
+			m_CheckSumPosition = m_File.tellp();
+
 			if (!(flag & shade::File::SkipChecksum))
 				Serializer::Deserialize(stream, m_Header.CheckSum);
 
 			m_ContentPosition = m_File.tellg();
 			m_Stream << m_File.rdbuf();
+			m_Stream.seekp(0);
 
 			if (!(flag & shade::File::SkipChecksum))
 			{
@@ -327,10 +343,19 @@ void shade::File::WriteHeader(std::ostream& stream, version_t version, const mag
 {
 	if (!(flag & shade::File::SkipMagic))
 		Serializer::Serialize(stream, magic);
+
+	m_VersionPosition = stream.tellp();
+
 	if (!(flag & shade::File::SkipVersion))
 		Serializer::Serialize(stream, version);
+
+	m_SizePosition = stream.tellp();
+
 	if (!(flag & shade::File::SkipSize))
 		Serializer::Serialize(stream, std::uint32_t(0u));
+
+	m_CheckSumPosition = stream.tellp();
+
 	if (!(flag & shade::File::SkipChecksum))
 		Serializer::Serialize(stream, std::uint32_t(0u));
 
@@ -339,15 +364,16 @@ void shade::File::WriteHeader(std::ostream& stream, version_t version, const mag
 
 void shade::File::UpdateSize()
 {
+	// Wrong size update in case skippeing some headers
 	content_size_t size = m_Stream.str().size();
-	m_File.seekp(static_cast<checksum_t>(m_ContentPosition - sizeof(checksum_t) - sizeof(content_size_t)));
+	m_File.seekp(m_SizePosition);
 	Serializer::Serialize(m_File, size);
 }
 
 void shade::File::UpdateChecksum()
 {
 	checksum_t checksum = GenerateCheckSum<checksum_t>(m_Stream);
-	m_File.seekp(static_cast<checksum_t>(m_ContentPosition - sizeof(checksum_t)));
+	m_File.seekp(m_CheckSumPosition);
 	Serializer::Serialize(m_File, checksum);
 }
 

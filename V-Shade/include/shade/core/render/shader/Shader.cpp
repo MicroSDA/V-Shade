@@ -15,15 +15,17 @@ namespace utils
 
 shade::Shader::Shader(const std::string& filePath)
 {
-    std::string api(RenderAPI::GetCurrentAPIAsString());
-    utils::CreateChacheDirectory(GetShaderCacheDirectory());
-
-    m_FilePath = filePath;
-    m_FileName = std::filesystem::path(filePath).stem().string();
+    m_FilePath  = filePath;
+    m_FileName  = std::filesystem::path(filePath).stem().string();
     m_Directory = std::filesystem::path(filePath).remove_filename().string();
-
+    // Try to open raw source file
     std::string source = ReadFile(m_FilePath);
-    m_SourceCode = PreProcess(source, std::filesystem::path(filePath).filename().stem().string());
+    // If file doesn't exist
+    if (!source.empty())
+    {
+        m_SourceCode = PreProcess(source, std::filesystem::path(filePath).filename().stem().string());
+        utils::CreateChacheDirectory(GetShaderCacheDirectory());
+    }
 }
 
 shade::SharedPointer<shade::Shader> shade::Shader::Create(const std::string& filePath)
@@ -58,7 +60,7 @@ void shade::Shader::SetFilePath(const std::string& filePath)
 std::string shade::Shader::GetShaderCacheDirectory()
 {
     std::string api(RenderAPI::GetCurrentAPIAsString());
-    return "resources/" + api + "_cache/";
+    return "./resources/" + api + "/";
 }
 
 std::uint32_t shade::Shader::GetDataTypeSize(const DataType& type)
@@ -81,10 +83,11 @@ std::uint32_t shade::Shader::GetDataTypeSize(const DataType& type)
 }
 std::string shade::Shader::ReadFile(const std::string& filePath) 
 {
+    std::string source;
     std::ifstream file(filePath, std::ios::binary);
+
     if (file.is_open())
     {
-        std::string source;
         file.seekg(0, std::ios::end);
         std::size_t fileSize = file.tellg();
         if (fileSize)
@@ -95,12 +98,9 @@ std::string shade::Shader::ReadFile(const std::string& filePath)
         }
 
         file.close();
-        return source;
     }
-    else
-    {
-        SHADE_CORE_ERROR("Failed to open shader file '{0}'", filePath);
-    }
+
+    return source;
 }
 
 std::unordered_map<shade::Shader::Type, std::string> shade::Shader::PreProcess(std::string& source, const std::string& origin)

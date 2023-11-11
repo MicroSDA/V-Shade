@@ -9,13 +9,14 @@ namespace shade
 	{
 	public:
 		// Shader type.
-		enum class Type
+		enum class Type : std::uint32_t
 		{
 			Undefined,
 			Vertex,
 			Fragment,
 			Geometry,
-			Compute
+			Compute,
+			SHADER_TYPE_MAX_ENUM
 		};
 		enum class DataType
 		{
@@ -44,6 +45,7 @@ namespace shade
 		T& As();
 	protected:
 		std::unordered_map<Shader::Type, std::string> m_SourceCode;
+		virtual void TryToFindInCacheAndCompile() = 0;
 	private:
 		// Full path.
 		std::string m_FilePath;

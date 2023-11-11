@@ -52,7 +52,7 @@ namespace shade
 
 	/* Serialize Scene.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Scene& scene)
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Scene& scene, std::size_t)
 	{
 		return scene.Serialize(stream);
 	}
@@ -64,7 +64,7 @@ namespace shade
 	}
 	/* Serialize SharedPointer<Scene>.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const SharedPointer<Scene>& scene)
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const SharedPointer<Scene>& scene, std::size_t)
 	{
 		return scene->Serialize(stream);
 	}

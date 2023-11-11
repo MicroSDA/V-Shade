@@ -59,76 +59,81 @@ shade::VulkanShader::VulkanShader(const std::string& filePath):
     shaderc::CompileOptions options; 
 
     options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3);
-
     //options.SetOptimizationLevel(shaderc_optimization_level_performance);
-    
     std::filesystem::path cacheDirectory = GetShaderCacheDirectory();
 
+    std::filesystem::path shaderFilePath = GetFilePath();
+
     auto& shaderData = m_VulkanSPIRV;
-    for (auto&& [stage, source] : m_SourceCode)
+
+    if (m_SourceCode.empty())
     {
-        std::filesystem::path shaderFilePath = GetFilePath();
-        std::filesystem::path cachedPath = cacheDirectory / (GetFileName() + utils::GetCachedFileExtension(stage));
-        std::ifstream in(cachedPath, std::ios::in | std::ios::binary);
- 
-        // Always recompile shaders !
-#if 1
-        if (in.is_open())
+        SHADE_CORE_INFO("Trying to load shader form cache or packet, path = {}", filePath);
+        // Try to find in cache or in packet
+        for (Shader::Type stage = Type::Vertex; stage < Type::SHADER_TYPE_MAX_ENUM; ((std::uint32_t&)stage)++)
         {
-            in.seekg(0, std::ios::end);
-            auto size = in.tellg();
-            in.seekg(0, std::ios::beg);
+            std::filesystem::path cachedPath = cacheDirectory / (GetFileName() + utils::GetCachedFileExtension(stage));
 
-            auto& data = shaderData[stage];
-            data.resize(size / sizeof(uint32_t));
-            in.read((char*)data.data(), size);
-        }
-        else
-        {
-            shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, utils::ToShaderCShaderType(stage), GetFilePath().c_str(), options);
+            File in(cachedPath.string(), File::In | File::SkipMagic | File::SkipChecksum, "", File::VERSION(0, 0, 1));
 
-            if (module.GetCompilationStatus() != shaderc_compilation_status_success)
-            {
-                SHADE_CORE_ERROR(module.GetErrorMessage());
-            }
-
-            shaderData[stage] = std::vector<uint32_t>(module.cbegin(), module.cend());
-
-            std::ofstream out(cachedPath, std::ios::out | std::ios::binary);
-            if (out.is_open())
+            if (in.IsOpen())
             {
                 auto& data = shaderData[stage];
-                out.write((char*)data.data(), data.size() * sizeof(uint32_t));
-                out.flush();
-                out.close();
+                auto size = in.GetHeader().Size;
+                data.resize(size / sizeof(std::uint32_t));
+                in.GetStream().read((char*)data.data(), size);
             }
         }
-#else
-        shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, utils::ToShaderCShaderType(stage), GetFilePath().c_str(), options);
-
-        if (module.GetCompilationStatus() != shaderc_compilation_status_success)
+    }
+    else
+    {
+        for (auto&& [stage, source] : m_SourceCode)
         {
-            SHADE_CORE_ERROR(module.GetErrorMessage());
+            SHADE_CORE_INFO("Trying to load shader form cache or source, path = {}", filePath);
+
+            std::filesystem::path cachedPath = cacheDirectory / (GetFileName() + utils::GetCachedFileExtension(stage));
+
+            File in(cachedPath.string(), File::In | File::SkipMagic | File::SkipChecksum, "", File::VERSION(0, 0, 1));
+
+            if (in.IsOpen())
+            {
+                auto& data = shaderData[stage];
+                auto size = in.GetHeader().Size;
+                data.resize(size / sizeof(std::uint32_t));
+
+                in.GetStream().read((char*)data.data(), size);
+            }
+            else
+            {
+                shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, utils::ToShaderCShaderType(stage), GetFilePath().c_str(), options);
+
+                if (module.GetCompilationStatus() != shaderc_compilation_status_success)
+                {
+                    SHADE_CORE_ERROR(module.GetErrorMessage());
+                }
+
+                shaderData[stage] = std::vector<uint32_t>(module.cbegin(), module.cend());
+
+                File out(cachedPath.string(), File::Out | File::SkipMagic | File::SkipChecksum, "", File::VERSION(0, 0, 1));
+
+                if (out.IsOpen())
+                {
+                    auto& data = shaderData[stage];
+                    out.GetStream().write((char*)data.data(), data.size() * sizeof(std::uint32_t));
+                    out.CloseFile();
+                }
+            }
         }
-
-        shaderData[stage] = std::vector<uint32_t>(module.cbegin(), module.cend());
-
-        std::ofstream out(cachedPath, std::ios::out | std::ios::binary);
-        if (out.is_open())
-        {
-            auto& data = shaderData[stage];
-            out.write((char*)data.data(), data.size() * sizeof(uint32_t));
-            out.flush();
-            out.close();
-        }
-#endif // 1
-
+       
     }
 
     for (auto&& [stage, data] : shaderData)
         Reflect(stage, data);
 
-	CreateShader();
+    if (!shaderData.empty())
+        CreateShader();
+    else
+        SHADE_CORE_ERROR("Failed to create the shader, shader doesn't exist, path = {}", filePath);
 }
 
 void shade::VulkanShader::Reflect(shade::Shader::Type type, const std::vector<uint32_t>& shaderData)
@@ -301,6 +306,84 @@ void shade::VulkanShader::Recompile()
 VkShaderStageFlags shade::VulkanShader::GetStages() const
 {
     return m_Stages;
+}
+
+void shade::VulkanShader::TryToFindInCacheAndCompile()
+{
+    shaderc::Compiler compiler;
+    shaderc::CompileOptions options;
+
+    options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3);
+    //options.SetOptimizationLevel(shaderc_optimization_level_performance);
+
+    std::filesystem::path cacheDirectory = GetShaderCacheDirectory();
+
+    auto& shaderData = m_VulkanSPIRV;
+    for (auto&& [stage, source] : m_SourceCode)
+    {
+        std::filesystem::path shaderFilePath = GetFilePath();
+        std::filesystem::path cachedPath = cacheDirectory / (GetFileName() + utils::GetCachedFileExtension(stage));
+
+        // TODO: Read file, with getting size need overlap both cases when size from packed file or size from header !! that the case !!!!
+        // Wrong behavier,
+        File in(cachedPath.string(), File::In | File::SkipMagic | File::SkipChecksum, "", File::VERSION(0, 0, 1));
+        // Always recompile shaders !
+#if 1
+        if (in.IsOpen())
+        {
+            auto& data = shaderData[stage];
+            auto size = in.GetHeader().Size;
+            data.resize(size / sizeof(std::uint32_t));
+
+            in.GetStream().read((char*)data.data(), size);
+        }
+        else
+        {
+            shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, utils::ToShaderCShaderType(stage), GetFilePath().c_str(), options);
+
+            if (module.GetCompilationStatus() != shaderc_compilation_status_success)
+            {
+                SHADE_CORE_ERROR(module.GetErrorMessage());
+            }
+
+            shaderData[stage] = std::vector<uint32_t>(module.cbegin(), module.cend());
+
+            File out(cachedPath.string(), File::Out | File::SkipMagic | File::SkipChecksum, "", File::VERSION(0, 0, 1));
+
+            //std::ofstream out(cachedPath, std::ios::out | std::ios::binary);
+            if (out.IsOpen())
+            {
+                auto& data = shaderData[stage];
+                out.GetStream().write((char*)data.data(), data.size() * sizeof(std::uint32_t));
+                out.CloseFile();
+            }
+        }
+#else
+        shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, utils::ToShaderCShaderType(stage), GetFilePath().c_str(), options);
+
+        if (module.GetCompilationStatus() != shaderc_compilation_status_success)
+        {
+            SHADE_CORE_ERROR(module.GetErrorMessage());
+        }
+
+        shaderData[stage] = std::vector<uint32_t>(module.cbegin(), module.cend());
+
+        std::ofstream out(cachedPath, std::ios::out | std::ios::binary);
+        if (out.is_open())
+        {
+            auto& data = shaderData[stage];
+            out.write((char*)data.data(), data.size() * sizeof(uint32_t));
+            out.flush();
+            out.close();
+        }
+#endif // 1
+
+    }
+
+    for (auto&& [stage, data] : shaderData)
+        Reflect(stage, data);
+
+    CreateShader();
 }
 
 VkFormat shade::VulkanShader::GetShaderDataToVulkanFormat(const Shader::DataType& type)

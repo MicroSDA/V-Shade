@@ -49,19 +49,19 @@ shade::SceneRenderer::SceneRenderer()
 
 	m_MainGeometryPipeline = shade::RenderPipeline::Create(
 		{
-			.Shader = ShaderLibrary::Create("Main", "resources/assets/shaders/Shader.glsl"),
+			.Shader = ShaderLibrary::Create("Main", "./resources/assets/shaders/Shader.glsl"),
 			.FrameBuffer = m_MainTargetFrameBuffer,
 			.VertexLayout = mainGeometryVertexlayout,
 		});
 	m_LightCullingPreDepthPipeline = shade::RenderPipeline::Create(
 		{
-			.Shader = ShaderLibrary::Create("PreDepth", "resources/assets/shaders/preprocess/Tiled-Forward-Pre-Depth.glsl"),
+			.Shader = ShaderLibrary::Create("PreDepth", "./resources/assets/shaders/preprocess/Tiled-Forward-Pre-Depth.glsl"),
 			.FrameBuffer = m_LightCullingPreDepthFrameBuffer,
 			.VertexLayout = mainGeometryVertexlayout
 		});
 	m_LightCullingPipeline = shade::ComputePipeline::Create(
 		{
-			.Shader = ShaderLibrary::Create("LightCulling", "resources/assets/shaders/preprocess/Tiled-Forward-Light-Culling.glsl"),
+			.Shader = ShaderLibrary::Create("LightCulling", "./resources/assets/shaders/preprocess/Tiled-Forward-Light-Culling.glsl"),
 		});
 	// TODO: Should it be like some internal part of renderer ?
 	m_VisibleSpotLightIndicesBuffer  = StorageBuffer::Create(StorageBuffer::Usage::GPU, RenderAPI::SPOT_LIGHT_INDINCES_BINDING, sizeof(std::uint32_t) * RenderAPI::MAX_SPOT_LIGHTS_COUNT, Renderer::GetFramesCount(), 20);
@@ -69,7 +69,7 @@ shade::SceneRenderer::SceneRenderer()
 
 	m_GlobalLightShadowDepthPipeline = shade::RenderPipeline::Create(
 		{
-			.Shader = ShaderLibrary::Create("GlobalShadowPreDepth", "resources/assets/shaders/preprocess/Global-Light-Shadow-Pre-Depth.glsl"),
+			.Shader = ShaderLibrary::Create("GlobalShadowPreDepth", "./resources/assets/shaders/preprocess/Global-Light-Shadow-Pre-Depth.glsl"),
 			.FrameBuffer = m_GlobalLightShadowFrameBuffer,
 			.VertexLayout = mainGeometryVertexlayout,
 			.BackFalceCull = false,
@@ -78,7 +78,7 @@ shade::SceneRenderer::SceneRenderer()
 		});
 	m_SpotLightShadowDepthPipeline = shade::RenderPipeline::Create(
 		{
-			.Shader = ShaderLibrary::Create("SpotShadowPreDepth", "resources/assets/shaders/preprocess/Spot-Light-Shadow-Pre-Depth.glsl"),
+			.Shader = ShaderLibrary::Create("SpotShadowPreDepth", "./resources/assets/shaders/preprocess/Spot-Light-Shadow-Pre-Depth.glsl"),
 			.FrameBuffer = m_SpotLightShadowFrameBuffer,
 			.VertexLayout = mainGeometryVertexlayout,
 			.BackFalceCull = false,
@@ -87,7 +87,7 @@ shade::SceneRenderer::SceneRenderer()
 		});
 	m_PointLightShadowDepthPipeline = shade::RenderPipeline::Create(
 		{
-			.Shader = ShaderLibrary::Create("PointShadowPreDepth", "resources/assets/shaders/preprocess/Point-Light-Shadow-Pre-Depth.glsl"),
+			.Shader = ShaderLibrary::Create("PointShadowPreDepth", "./resources/assets/shaders/preprocess/Point-Light-Shadow-Pre-Depth.glsl"),
 			.FrameBuffer = m_PointLightShadowFrameBuffer,
 			.VertexLayout = mainGeometryVertexlayout,
 			.BackFalceCull = false,
@@ -96,7 +96,7 @@ shade::SceneRenderer::SceneRenderer()
 		});
 	m_PointLightVisualizationPipeline = shade::RenderPipeline::Create(
 		{
-			.Shader = ShaderLibrary::Create("LightsVisualizing", "resources/assets/shaders/utils/LightsVisualizing.glsl"),
+			.Shader = ShaderLibrary::Create("LightsVisualizing", "./resources/assets/shaders/utils/LightsVisualizing.glsl"),
 			.FrameBuffer = m_MainTargetFrameBuffer,
 			.VertexLayout = mainGeometryVertexlayout,
 			.Topology = Pipeline::PrimitiveTopology::Line,
@@ -112,7 +112,7 @@ shade::SceneRenderer::SceneRenderer()
 		});
 	m_GridPipeline = shade::RenderPipeline::Create(
 		{
-			.Shader = ShaderLibrary::Create("Grid", "resources/assets/shaders/utils/Grid.glsl"),
+			.Shader = ShaderLibrary::Create("Grid", "./resources/assets/shaders/utils/Grid.glsl"),
 			.FrameBuffer = m_MainTargetFrameBuffer,
 			.VertexLayout = gridVertexlayout,
 			.Topology = Pipeline::PrimitiveTopology::TriangleStrip,
@@ -120,7 +120,7 @@ shade::SceneRenderer::SceneRenderer()
 		});
 	m_AABB_OBB_Pipeline = shade::RenderPipeline::Create(
 		{
-			.Shader = ShaderLibrary::Create("StaticFlat", "resources/assets/shaders/StaticFlat.glsl"),
+			.Shader = ShaderLibrary::Create("StaticFlat", "./resources/assets/shaders/StaticFlat.glsl"),
 			.FrameBuffer = m_MainTargetFrameBuffer,
 			.VertexLayout = mainGeometryVertexlayout,
 			.Topology = Pipeline::PrimitiveTopology::Line,
@@ -129,16 +129,16 @@ shade::SceneRenderer::SceneRenderer()
 		});
 	m_ScreenSpaceAmbientOcclusionPipeline = shade::ComputePipeline::Create(
 		{
-			.Shader = ShaderLibrary::Create("SSAO", "resources/assets/shaders/postprocess/SSAO/Screen-Sapce-Ambien-Occlusion-Compute.glsl"),
+			.Shader = ShaderLibrary::Create("SSAO", "./resources/assets/shaders/postprocess/SSAO/Screen-Sapce-Ambien-Occlusion-Compute.glsl"),
 		});
 	m_SSAOSamplesBuffer = UniformBuffer::Create(UniformBuffer::Usage::CPU_GPU, 4, sizeof(SSAO::RenderBuffer), Renderer::GetFramesCount(), 0);
 	m_ColorCorrectionPipeline = shade::ComputePipeline::Create(
 		{
-			.Shader = ShaderLibrary::Create("ColorCorrection", "resources/assets/shaders/postprocess/Color-Correction.glsl"),
+			.Shader = ShaderLibrary::Create("ColorCorrection", "./resources/assets/shaders/postprocess/Color-Correction.glsl"),
 		});
 	m_BloomPipeline = shade::ComputePipeline::Create(
 		{
-			.Shader = ShaderLibrary::Create("Bloom", "resources/assets/shaders/postprocess/Bloom/Bloom-Compute.glsl"),
+			.Shader = ShaderLibrary::Create("Bloom", "./resources/assets/shaders/postprocess/Bloom/Bloom-Compute.glsl"),
 		});
 
 	m_MainGeometryPipeline->Process = BIND_PIPELINE_PROCESS_FUNCTION(SceneRenderer, InstancedGeometryPass, this);

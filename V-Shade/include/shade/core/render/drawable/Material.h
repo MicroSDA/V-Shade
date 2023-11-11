@@ -107,7 +107,7 @@ namespace shade
 	};
 
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Material::ShadingModel& shading)
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Material::ShadingModel& shading, std::size_t)
 	{
 		return Serializer::Serialize(stream, static_cast<std::uint32_t>(shading));
 	}
@@ -119,7 +119,7 @@ namespace shade
 
 	/* Serialize Material.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Material& material)
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Material& material, std::size_t)
 	{
 		return material->Serialize(stream);
 	}
@@ -131,7 +131,7 @@ namespace shade
 	}
 	/* Serialize Asset<Material>.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Asset<Material>& material)
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Asset<Material>& material, std::size_t)
 	{
 		return material->Serialize(stream);
 	}
@@ -143,7 +143,7 @@ namespace shade
 	}
 	/* Serialize SharedPointer<Material>.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const SharedPointer<Material>& material)
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const SharedPointer<Material>& material, std::size_t)
 	{
 		return material->Serialize(stream);
 	}

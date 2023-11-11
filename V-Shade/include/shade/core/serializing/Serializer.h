@@ -11,7 +11,7 @@ namespace shade
 	public:
 		// Serrialize object into stream.
 		template<typename T>
-		static std::size_t Serialize(std::ostream& stream, const T&);
+		static std::size_t Serialize(std::ostream& stream, const T&, std::size_t count = 1);
 		// Deserialize object from stream.
 		template<typename T>
 		static std::size_t Deserialize(std::istream& stream, T&, std::size_t count = 1);
@@ -120,6 +120,9 @@ namespace shade
 		 * @brief Closes the file, updating the checksum if it was a write operation.
 		 */
 		void CloseFile();
+
+		Header GetHeader() const;
+
 		/**
 		 * @brief Gets the size of the file.
 		 *
@@ -152,7 +155,7 @@ namespace shade
 		 * @return The number of bytes written.
 		 */
 		template<typename T>
-		std::size_t Write(const T& value);
+		std::size_t Write(const T& value, std::size_t count = 1);
 		/**
 		 * @brief Reads a value of a templated type from the file.
 		 *
@@ -160,7 +163,7 @@ namespace shade
 		 * @return The number of bytes read.
 		 */
 		template<typename T>
-		std::size_t Read(T& value);
+		std::size_t Read(T& value, std::size_t count = 1);
 
 		static std::unordered_map<std::string, std::vector<std::string>> FindFilesWithExtension(const std::filesystem::path& directory, const std::vector<std::string>& extensions = std::vector<std::string>());
 		static std::unordered_map<std::string, std::vector<std::string>> FindFilesWithExtensionExclude(const std::filesystem::path& directory, const std::vector<std::string>& excludeExtensions = std::vector<std::string>());
@@ -168,7 +171,7 @@ namespace shade
 		static void PackFiles(const shade::File::Specification& specification);
 		static void InitializeMetaFile(const std::string& filepath = SHADE_META_FILE_PATH);
 
-
+		
 
 	private:
 		std::string m_Path;
@@ -177,6 +180,9 @@ namespace shade
 		std::fstream m_File;
 		std::stringstream m_Stream;
 		std::size_t m_ContentPosition;
+		std::size_t m_VersionPosition;
+		std::size_t m_SizePosition;
+		std::size_t m_CheckSumPosition;
 	private:
 		/**
 		 * @brief Reads the file header and performs integrity checks.
@@ -213,16 +219,16 @@ namespace shade
 		static std::unordered_map<std::string, std::pair<std::string, std::uint32_t>> m_PathMap;
 	};
 	template<typename T>
-	inline std::size_t File::Write(const T& value)
+	inline std::size_t File::Write(const T& value, std::size_t count)
 	{
 		assert((m_Flag & shade::File::Out) && "Cannot write into file, 'Out' flag is not set !");
-		return Serializer::Serialize(m_Stream, value);
+		return Serializer::Serialize(m_Stream, value, count);
 	}
 	template<typename T>
-	inline std::size_t File::Read(T& value)
+	inline std::size_t File::Read(T& value, std::size_t count)
 	{
 		assert((m_Flag & shade::File::In) && "Cannot read from file, 'In' flag is not set !");
-		return Serializer::Deserialize(m_Stream, value);
+		return Serializer::Deserialize(m_Stream, value, count);
 	}
 }
 
@@ -234,13 +240,13 @@ namespace shade
 		return stream.read(reinterpret_cast<char*>(&value), sizeof(T) * count).tellg();
 	}
 	template<typename T>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const T& value)
+	inline std::size_t Serializer::Serialize(std::ostream& stream, const T& value, std::size_t count)
 	{
-		return stream.write(reinterpret_cast<const char*>(&value), sizeof(T)).tellp();
+		return stream.write(reinterpret_cast<const char*>(&value), sizeof(T) * count).tellp();
 	}
 	/* Serrialize std::uint32_t.*/
 	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::uint32_t& value)
+	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::uint32_t& value, std::size_t count)
 	{
 		return stream.write(reinterpret_cast<const char*>(&value), sizeof(std::uint32_t)).tellp();
 	}
@@ -253,7 +259,7 @@ namespace shade
 	/////////////////////////////////////////////////////////////////////////////////////
 	/* Serrialize std::uint64_t.*/
 	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::uint64_t& value)
+	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::uint64_t& value, std::size_t count)
 	{
 		return stream.write(reinterpret_cast<const char*>(&value), sizeof(std::uint64_t)).tellp();
 	}
@@ -266,7 +272,7 @@ namespace shade
 	/////////////////////////////////////////////////////////////////////////////////////
 	/* Serrialize bool.*/
 	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const bool& value)
+	inline std::size_t Serializer::Serialize(std::ostream& stream, const bool& value, std::size_t count)
 	{
 		return stream.write(reinterpret_cast<const char*>(&value), sizeof(bool)).tellp();
 	}
@@ -279,7 +285,7 @@ namespace shade
 	/////////////////////////////////////////////////////////////////////////////////////
 	/* Serrialize float.*/
 	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const float& value)
+	inline std::size_t Serializer::Serialize(std::ostream& stream, const float& value, std::size_t count)
 	{
 		return stream.write(reinterpret_cast<const char*>(&value), sizeof(float)).tellp();
 	}
@@ -292,9 +298,9 @@ namespace shade
 	/////////////////////////////////////////////////////////////////////////////////////
 	/* Serrialize char.*/
 	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const char& value)
+	inline std::size_t Serializer::Serialize(std::ostream& stream, const char& value, std::size_t count)
 	{
-		return stream.write(&value, sizeof(char)).tellp();
+		return stream.write(&value, sizeof(char) * count).tellp();
 	}
 	/* Deserialize char.*/
 	template<>
@@ -305,7 +311,7 @@ namespace shade
 	/////////////////////////////////////////////////////////////////////////////////////
 	/* Serrialize std::string. String's size will be std::uin32_t.*/
 	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::string& string)
+	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::string& string, std::size_t count)
 	{
 		std::uint32_t size = static_cast<std::uint32_t>(string.size());
 		if (size == UINT32_MAX)
@@ -342,7 +348,7 @@ namespace shade
 	/////////////////////////////////////////////////////////////////////////////////////
 	/* Serrialize std::vector<std::uint32_t>. Vector's size will be std::uin32_t.*/
 	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::vector<std::uint32_t>& array)
+	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::vector<std::uint32_t>& array, std::size_t count)
 	{
 		std::uint32_t size = static_cast<std::uint32_t>(array.size());
 		if (size == UINT32_MAX)
@@ -378,7 +384,7 @@ namespace shade
 	/////////////////////////////////////////////////////////////////////////////////////
 	/* Serrialize std::vector<std::uint64_t>. Vector's size will be std::uin64_t.*/
 	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::vector<std::uint64_t>& array)
+	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::vector<std::uint64_t>& array, std::size_t count)
 	{
 		std::uint64_t size = array.size();
 		if (size == UINT32_MAX)
@@ -414,7 +420,7 @@ namespace shade
 	/////////////////////////////////////////////////////////////////////////////////////
 	/* Serrialize std::unordered_map<std::string, std::uint32_t>. Map's size will be std::uin32_t.*/
 	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::unordered_map<std::string, std::uint32_t>& map)
+	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::unordered_map<std::string, std::uint32_t>& map, std::size_t count)
 	{
 		std::uint32_t size = static_cast<std::uint32_t>(map.size());
 		if (size == UINT32_MAX)
@@ -456,7 +462,7 @@ namespace shade
 	/////////////////////////////////////////////////////////////////////////////////////
 	/* Serrialize std::unordered_map<std::string, std::uint64_t>. Map's size will be std::uin64_t.*/
 	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::unordered_map<std::string, std::uint64_t>& map)
+	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::unordered_map<std::string, std::uint64_t>& map, std::size_t count)
 	{
 		std::uint64_t size = map.size();
 		if (size == UINT32_MAX)
@@ -498,7 +504,7 @@ namespace shade
 	/////////////////////////////////////////////////////////////////////////////////////
 	/* Serrialize std::unordered_map<std::string, std::string>. Map's size will be std::uin32_t.*/
 	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::unordered_map<std::string, std::string>& map)
+	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::unordered_map<std::string, std::string>& map, std::size_t count)
 	{
 		std::uint32_t size = static_cast<std::uint32_t>(map.size());
 		if (size == UINT32_MAX)
@@ -539,7 +545,7 @@ namespace shade
 	}
 	/* Serrialize glm::vec3.*/
 	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const glm::vec3& value)
+	inline std::size_t Serializer::Serialize(std::ostream& stream, const glm::vec3& value, std::size_t count)
 	{
 		return stream.write(reinterpret_cast<const char*>(glm::value_ptr(value)), sizeof(glm::vec3)).tellp();
 	}

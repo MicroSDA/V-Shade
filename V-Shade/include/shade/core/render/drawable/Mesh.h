@@ -31,7 +31,7 @@ namespace shade
 
 	/* Serialize Mesh.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Mesh& mesh)
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Mesh& mesh, std::size_t)
 	{
 		return mesh.Serialize(stream);
 	}
@@ -43,7 +43,7 @@ namespace shade
 	}
 	/* Serialize Asset<Mesh>.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Asset<Mesh>& mesh)
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Asset<Mesh>& mesh, std::size_t)
 	{
 		return mesh->Serialize(stream);
 	}

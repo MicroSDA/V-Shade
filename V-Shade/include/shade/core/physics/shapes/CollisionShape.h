@@ -138,7 +138,7 @@ namespace shade
 
 	/* Serialize CollisionShapes.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const physic::CollisionShapes& shapes)
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const physic::CollisionShapes& shapes, std::size_t)
 	{
 		return shapes.Serialize(stream);
 	}
@@ -150,7 +150,7 @@ namespace shade
 	}
 	/* Serialize Asset<CollisionShapes>.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Asset<physic::CollisionShapes>& shapes)
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Asset<physic::CollisionShapes>& shapes, std::size_t)
 	{
 		return shapes->Serialize(stream);
 	}
@@ -163,7 +163,7 @@ namespace shade
 
 	/* Serialize CollisionShape.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const physic::CollisionShape& shape)
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const physic::CollisionShape& shape, std::size_t)
 	{
 		return shape.Serialize(stream);
 	}
@@ -175,7 +175,7 @@ namespace shade
 	}
 	/* Serialize SharedPointer<CollisionShape>.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const SharedPointer<physic::CollisionShape>& shape)
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const SharedPointer<physic::CollisionShape>& shape, std::size_t)
 	{
 		return shape->Serialize(stream);
 	}

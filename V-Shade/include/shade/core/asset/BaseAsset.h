@@ -274,7 +274,7 @@ namespace shade
 	};
 	/* Serialize AssetData.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const SharedPointer<AssetData>& assetData)
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const SharedPointer<AssetData>& assetData, std::size_t)
 	{
 		return assetData->Serialize(stream);
 	}
@@ -287,7 +287,7 @@ namespace shade
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/* Serialize std::vector<AssetData>.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const std::vector<SharedPointer<AssetData>>& array)
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const std::vector<SharedPointer<AssetData>>& array, std::size_t)
 	{
 		std::uint32_t size = static_cast<std::uint32_t>(array.size());
 		if (size == UINT32_MAX)

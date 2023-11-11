@@ -50,7 +50,7 @@ namespace shade
 			VkShaderStageFlagBits ShaderType = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
 		};
 	};
-	class VulkanShader :public Shader
+	class VulkanShader : public Shader
 	{
 	public:
 		struct ShaderResources
@@ -83,6 +83,7 @@ namespace shade
 		virtual void Recompile() override;
 
 		VkShaderStageFlags GetStages() const;
+		virtual void TryToFindInCacheAndCompile() override;
 	private:
 		void CreateShader();
 		VkShaderModule CreateShaderModule(const VulkanContext::VulkanInstance& instance,  VkDevice device, const std::vector<std::uint32_t>& code);

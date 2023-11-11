@@ -152,7 +152,7 @@ namespace shade
 
 	// This function serializes an image on a given output stream
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const render::Image& image)
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const render::Image& image, std::size_t)
 	{
 		return image.Serialize(stream);
 	}

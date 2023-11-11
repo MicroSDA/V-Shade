@@ -306,7 +306,7 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 			{
 				if (ImGui::Button("Scan", { ImGui::GetContentRegionAvail().x, 0 }))
 				{
-					from = shade::File::FindFilesWithExtensionExclude(rootPath, { ".comp", ".vert",".dds",".dll",".glsl",".frag" });
+					from = shade::File::FindFilesWithExtensionExclude(rootPath, { ".dds", ".dll", ".glsl"});
 				}
 			}
 
