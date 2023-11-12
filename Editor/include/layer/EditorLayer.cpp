@@ -667,6 +667,34 @@ void EditorLayer::Entities(shade::SharedPointer<shade::Scene>& scene)
 
 void EditorLayer::AssetsExplorer()
 {
+	static std::string assetMetaPath = SHADE_ASSET_META_FILE_PATH;
+
+	if (ImGui::BeginTable("#RegisterNewAssetOrOverrideTable", 3, ImGuiTableFlags_SizingStretchProp))
+	{
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+		{
+			if (ImGui::Button("Register new asset"))
+				m_IsAddNewAssetModalOpen = true;
+		}
+		ImGui::TableNextColumn();
+		{
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+			InputTextD("##AssetMetaPath", assetMetaPath);
+		}
+		ImGui::TableNextColumn();
+		{
+			if (ImGui::Button("Override asset meta"))
+			{
+				if (assetMetaPath.empty())
+					shade::AssetManager::Save();
+				else 
+					shade::AssetManager::Save(assetMetaPath);
+			}	
+		}
+
+		ImGui::EndTable();
+	}
 	//static std::string assetMetaFilePath = shade::AssetManager::G
 
 	//InputTextCol("Asset meta file: ",)
@@ -724,9 +752,8 @@ void EditorLayer::AssetsExplorer()
 	ImGui::EndChild();
 	ImGui::EndGroup();
 
+	ImGui::Spacing();
 
-	ImGui::Text("Editor:");
-	ImGui::Separator();
 	EditAsset(selectedAssetData);
 
 	ImGui::SetNextWindowSize({ 300, 200 });
@@ -849,7 +876,7 @@ void EditorLayer::AssetsExplorer()
 
 			if (!id.empty())
 			{
-				if (ImGui::Button("Save", {ImGui::GetContentRegionAvail().x, 0}))
+				if (ImGui::Button("Save", { ImGui::GetContentRegionAvail().x, 0 }))
 				{
 					shade::AssetManager::AddNewAssetData(assetData);
 					// Reset
@@ -861,13 +888,6 @@ void EditorLayer::AssetsExplorer()
 				}
 			}
 		});
-
-	ImGui::Separator();
-	if (ImGui::Button("Create"))
-		m_IsAddNewAssetModalOpen = true;
-	ImGui::SameLine();
-	if (ImGui::Button("Override"))
-		shade::AssetManager::Save();
 }
 
 void EditorLayer::Creator()
@@ -925,9 +945,9 @@ void EditorLayer::Creator()
 
 void EditorLayer::EditAsset(shade::SharedPointer<shade::AssetData>& assetData)
 {
+	ImGui::ShowDemoWindow();
 	auto width = ImGui::GetContentRegionAvail().x / 6;
-	auto width2 = ImGui::GetContentRegionAvail().x / 3;
-	auto heingt = ImGui::GetContentRegionAvail().y / 2;
+	auto height = ImGui::GetContentRegionAvail().y / 3;
 
 	if (assetData)
 	{
@@ -935,28 +955,41 @@ void EditorLayer::EditAsset(shade::SharedPointer<shade::AssetData>& assetData)
 		const shade::AssetMeta::Type type = assetData->GetType();
 
 		std::string id = assetData->GetId();
-		if (InputTextCol("Id", id, width, ImGui::GetContentRegionAvail().x))
-			assetData->SetId(id);
-		{
-			ImGui::Separator();
-			std::vector<std::string> items(shade::AssetMeta::Category::ASSET_CATEGORY_MAX_ENUM);
-			for (shade::AssetMeta::Category cat = shade::AssetMeta::Category::None; cat < shade::AssetMeta::Category::ASSET_CATEGORY_MAX_ENUM; ((std::uint32_t&)cat)++)
-				items[cat] = shade::AssetMeta::GetCategoryAsString(cat);
-			std::string currentItem = shade::AssetMeta::GetCategoryAsString(category);
 
-			ComboCol("Category", currentItem, items, ImGuiSelectableFlags_Disabled, ImGuiComboFlags_None, width);
-		}
+		if (ImGui::BeginTable("##EditExistingAssetTable", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter))
 		{
-			ImGui::Separator();
-			std::vector<std::string> items(shade::AssetMeta::Type::ASSET_TYPE_MAX_ENUM);
-			for (shade::AssetMeta::Type typ = shade::AssetMeta::Type::Undefined; typ < shade::AssetMeta::Type::ASSET_TYPE_MAX_ENUM; ((std::uint32_t&)typ)++)
-				items[typ] = shade::AssetMeta::GetTypeAsString(typ);
-			std::string currentItem = shade::AssetMeta::GetTypeAsString(type);
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn(); { ImGui::Text("Id         "); }
+			ImGui::TableNextColumn();
+			{
 
-			ComboCol("Type", currentItem, items, ImGuiSelectableFlags_Disabled, ImGuiComboFlags_None, width);
-		}
-		ImGui::Separator();
-		{
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				if (InputTextD(" ##Id", id)) { assetData->SetId(id); }
+			}
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn(); { ImGui::Text("Category"); }
+			ImGui::TableNextColumn();
+			{
+				std::vector<std::string> items(shade::AssetMeta::Category::ASSET_CATEGORY_MAX_ENUM);
+				for (shade::AssetMeta::Category cat = shade::AssetMeta::Category::None; cat < shade::AssetMeta::Category::ASSET_CATEGORY_MAX_ENUM; ((std::uint32_t&)cat)++)
+					items[cat] = shade::AssetMeta::GetCategoryAsString(cat);
+				std::string currentItem = shade::AssetMeta::GetCategoryAsString(category);
+
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				DrawCombo(" ##Category", currentItem, items, ImGuiSelectableFlags_Disabled, ImGuiComboFlags_None);
+			}
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn(); { ImGui::Text("Type"); }
+			ImGui::TableNextColumn();
+			{
+				std::vector<std::string> items(shade::AssetMeta::Type::ASSET_TYPE_MAX_ENUM);
+				for (shade::AssetMeta::Type typ = shade::AssetMeta::Type::Undefined; typ < shade::AssetMeta::Type::ASSET_TYPE_MAX_ENUM; ((std::uint32_t&)typ)++)
+					items[typ] = shade::AssetMeta::GetTypeAsString(typ);
+				std::string currentItem = shade::AssetMeta::GetTypeAsString(type);
+
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				DrawCombo(" ##Type", currentItem, items, ImGuiSelectableFlags_Disabled, ImGuiComboFlags_None);
+			}
 			if (assetData->GetCategory() == shade::AssetMeta::Category::Primary)
 			{
 				std::vector<std::string> items;
@@ -972,194 +1005,151 @@ void EditorLayer::EditAsset(shade::SharedPointer<shade::AssetData>& assetData)
 
 				if (items.size())
 				{
-					if (ComboCol("Reference", currentItem, items, ImGuiSelectableFlags_None, ImGuiComboFlags_None, width))
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn(); { ImGui::Text("Reference"); }
+					ImGui::TableNextColumn();
 					{
-						auto assetReference = shade::AssetManager::GetAssetData(shade::AssetMeta::Category::Secondary, currentItem);
-						if (assetReference)
-							assetData->SetReference(assetReference);
-					}
-					ImGui::Separator();
-				}
-			}
-			ImGui::BeginGroup();
-			{
-				ImGui::BeginChild("##DependenciesCol", ImVec2(width2, heingt), true);
-
-				static std::string search;
-				InputTextCol("Dependencies:", search);
-				ImGui::Separator();
-				if (ImGui::ListBoxHeader("Dependencies##Dependencies", { ImGui::GetContentRegionAvail().x, heingt }))
-				{
-					for (auto i = 0; i < assetData->GetDependencies().size(); i++)
-					{
-						if (assetData->GetDependencies()[i]->GetId().find(search) != std::string::npos)
+						ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+						if (DrawCombo("Reference", currentItem, items, ImGuiSelectableFlags_None, ImGuiComboFlags_None))
 						{
-							ImGui::Selectable(assetData->GetDependencies()[i]->GetId().c_str()); ImGui::SameLine();
-							ImGui::Dummy({ ImGui::GetContentRegionAvail().x - 60, 0 }); ImGui::SameLine();
-							if (ImGui::Button(std::string("Remove##RemoveDependenci" + std::to_string(i)).c_str()))
-								assetData->GetDependencies().erase(assetData->GetDependencies().begin() + i);
+							auto assetReference = shade::AssetManager::GetAssetData(shade::AssetMeta::Category::Secondary, currentItem);
+							if (assetReference)
+								assetData->SetReference(assetReference);
 						}
 					}
-
-					ImGui::ListBoxFooter();
 				}
-				ImGui::EndChild();
 			}
-			ImGui::SameLine();
+
+			ImGui::TableNextRow();
 			{
-				ImGui::BeginChild("##AddDependenciesCol", ImVec2(width2 * 2, heingt), true);
-				static std::string search;
-				InputTextCol("Add new dependency:", search);
-				ImGui::Separator();
+				ImGui::TableNextColumn();
 				{
-					if (ImGui::ListBoxHeader("##AddDependenciesPrimary", { width2, heingt }))
+					static std::string search;
+
+					if (ImGui::BeginTable("##ExistingDependciesTable", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp))
 					{
-						for (auto& [id, asset] : shade::AssetManager::GetAssetDataList(shade::AssetMeta::Category::Primary))
+						ImGui::TableNextRow();
+						ImGui::TableNextColumn(); { ImGui::Text("Dependencies"); }
+						ImGui::TableNextColumn();
 						{
-							if (type != asset->GetType() && asset->GetId().find(search) != std::string::npos)
+							ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+							InputTextD("##Dependencies", search);
+						}
+						ImGui::EndTable();
+					}
+
+					if (ImGui::ListBoxHeader("Dependencies##Dependencies", { ImGui::GetContentRegionAvail().x, height }))
+					{
+						for (auto i = 0; i < assetData->GetDependencies().size(); i++)
+						{
+							if (assetData->GetDependencies()[i]->GetId().find(search) != std::string::npos)
 							{
-								ImGui::Selectable(asset->GetId().c_str()); ImGui::SameLine();
-								ImGui::Dummy({ ImGui::GetContentRegionAvail().x - 40, 0 }); ImGui::SameLine();
-								if (ImGui::Button(std::string("Add##AddDependenci" + asset->GetId()).c_str()))
-								{
-									assetData->AddDependency(asset);
-								}
+								if (ImGui::Selectable(assetData->GetDependencies()[i]->GetId().c_str()))
+									assetData->GetDependencies().erase(assetData->GetDependencies().begin() + i);
 							}
 						}
+
 						ImGui::ListBoxFooter();
 					}
-					ImGui::SameLine();
-					if (ImGui::ListBoxHeader("##AddDependenciesSecondary", { width2 - 20, heingt }))
+
+				}
+				ImGui::TableNextColumn();
+				{
+					static std::string search;
+
+					if (ImGui::BeginTable("##AddNewDependancyTable", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp))
 					{
-						for (auto& [id, asset] : shade::AssetManager::GetAssetDataList(shade::AssetMeta::Category::Secondary))
+						ImGui::TableNextRow();
+						ImGui::TableNextColumn(); { ImGui::Text("Add new dependency"); }
+						ImGui::TableNextColumn();
 						{
-							if (type != asset->GetType() && asset->GetId().find(search) != std::string::npos)
+							ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+							InputTextD("##AddNewDependency", search);
+						}
+						ImGui::EndTable();
+					}
+
+					if (ImGui::BeginTable("##AddNewDependancySelectCategoryTable", 2))
+					{
+						ImGui::TableSetupColumn("Primary");
+						ImGui::TableSetupColumn("Secondary");
+						ImGui::TableHeadersRow();
+
+						ImGui::TableNextRow();
+						ImGui::TableNextColumn();
+						{
+							if (ImGui::ListBoxHeader("##AddDependenciesPrimary", { ImGui::GetContentRegionAvail().x, height - 20 }))
 							{
-								ImGui::Selectable(asset->GetId().c_str()); ImGui::SameLine();
-								ImGui::Dummy({ ImGui::GetContentRegionAvail().x - 40, 0 }); ImGui::SameLine();
-								if (ImGui::Button(std::string("Add##AddDependenci" + asset->GetId()).c_str()))
+								for (auto& [id, asset] : shade::AssetManager::GetAssetDataList(shade::AssetMeta::Category::Primary))
 								{
-									assetData->AddDependency(asset);
+									if (type != asset->GetType() && asset->GetId().find(search) != std::string::npos)
+									{
+										if (ImGui::Selectable(asset->GetId().c_str()))
+										{
+											assetData->AddDependency(asset);
+										}
+									}
 								}
+								ImGui::ListBoxFooter();
 							}
 						}
-						ImGui::ListBoxFooter();
-					}
-				}
-				/*if (ImGui::ListBoxHeader("DependencyPrimary##AddDependenciesPrimary", { ImGui::GetContentRegionAvail().x, heingt }))
-				{
-					for (auto& [id, asset] : shade::AssetManager::GetAssetDataList(shade::AssetMeta::Category::Primary))
-					{
-						if (type != asset->GetType() && asset->GetId().find(search) != std::string::npos)
+						ImGui::TableNextColumn();
 						{
-							ImGui::Selectable(asset->GetId().c_str()); ImGui::SameLine();
-							ImGui::Dummy({ ImGui::GetContentRegionAvail().x - 40, 0 }); ImGui::SameLine();
-							if (ImGui::Button(std::string("Add##AddDependenci" + asset->GetId()).c_str()))
+							if (ImGui::ListBoxHeader("##AddDependenciesSecondary", { ImGui::GetContentRegionAvail().x, height - 20 }))
 							{
-								std::cout << asset->GetId() << " Primary" << " Add\n";
+								for (auto& [id, asset] : shade::AssetManager::GetAssetDataList(shade::AssetMeta::Category::Secondary))
+								{
+									if (type != asset->GetType() && asset->GetId().find(search) != std::string::npos)
+									{
+										if (ImGui::Selectable(asset->GetId().c_str()))
+										{
+											assetData->AddDependency(asset);
+										}
+									}
+								}
+								ImGui::ListBoxFooter();
 							}
 						}
-					}
-					ImGui::ListBoxFooter();
-				}
-				ImGui::Separator();
-				if (ImGui::ListBoxHeader("DependencySecondary##AddDependenciesSecondary", { ImGui::GetContentRegionAvail().x, heingt }))
-				{
-					for (auto& [id, asset] : shade::AssetManager::GetAssetDataList(shade::AssetMeta::Category::Secondary))
-					{
-						if (type != asset->GetType() && asset->GetId().find(search) != std::string::npos)
-						{
-							ImGui::Selectable(asset->GetId().c_str()); ImGui::SameLine();
-							ImGui::Dummy({ ImGui::GetContentRegionAvail().x - 40, 0 }); ImGui::SameLine();
-							if (ImGui::Button(std::string("Add##AddDependenci" + asset->GetId()).c_str()))
-							{
-								assetData->AddDependency(asset);
-								std::cout << asset->GetId() << " Secondary" << " Add\n";
-							}
-						}
-					}
-
-					ImGui::ListBoxFooter();
-				}*/
-				ImGui::EndChild();
-
-			}
-			ImGui::EndGroup();
-			/*if (ImGui::BeginMenu("Add"))
-			{
-				ImGui::MenuItem("Primary", "", false, false);
-				ImGui::Separator();
-				for (auto& [id, asset] : shade::AssetManager::GetAssetDataList(shade::AssetMeta::Category::Primary))
-				{
-					if (type != asset->GetType())
-					{
-						if (ImGui::MenuItem(id.c_str()))
-							assetData->AddDependency(asset);
-					}
-				}
-				ImGui::Separator();
-				ImGui::MenuItem("Secondary", "", false, false);
-				ImGui::Separator();
-				for (auto& [id, asset] : shade::AssetManager::GetAssetDataList(shade::AssetMeta::Category::Secondary))
-				{
-					if (type != asset->GetType())
-					{
-						if (ImGui::MenuItem(id.c_str()))
-							assetData->AddDependency(asset);
-					}
-				}
-				ImGui::EndMenu();
-			}*/
-
-			/*for (auto i = 0; i < assetData->GetDependencies().size(); i++)
-			{
-				ImGui::Text(assetData->GetDependencies()[i]->GetId().c_str()); ImGui::SameLine();
-				if (ImGui::Button(std::string("Remove##" + std::to_string(i)).c_str()))
-					assetData->GetDependencies().erase(assetData->GetDependencies().begin() + i);
-			}*/
-		}
-
-		// Attributes
-
-		std::string attributesLogo = "Attributes: " + std::to_string(assetData->GetAttributes().size());
-		float fontSize = ImGui::GetFontSize() * attributesLogo.size() / 2;
-		if (ImGui::Button(attributesLogo.c_str()))
-		{
-			m_IsAddNewAttributeModalOpen = true;
-		}
-		//! Attributes
-		//! 
-		ImGui::Separator();
-		//assetData->SetAttribute("Path", "./resources/assets/sponza/Sponza.Object21.s_mesh");
-
-		ImGui::BeginGroup();
-		ImGui::BeginChild("Key", { ImGui::GetContentRegionAvail().x, 0 });
-		if (ImGui::BeginTable("Attributes", 2, ImGuiTableFlags_SizingStretchProp, ImGui::GetContentRegionAvail()))
-		{
-			ImGui::TableNextColumn();
-			{
-				for (auto& [key, attribute] : assetData->GetAttributes())
-				{
-					//ImGui::TableNextRow();
-					{
-						InputTextCol(key.c_str(), attribute, width);
+						ImGui::EndTable();
 					}
 				}
 			}
-			ImGui::TableNextColumn();
-			{
-				if (ImGui::Button("Remove"))
-				{
-
-				}
-			}
-
-
 			ImGui::EndTable();
 		}
-		ImGui::EndChild();
-		ImGui::EndGroup();
+		if (ImGui::TreeNodeEx("Attributes", ImGuiTreeNodeFlags_Framed))
+		{
+			if (ImGui::Button("Create new", { ImGui::GetContentRegionAvail().x,0 }))
+				m_IsAddNewAttributeModalOpen = true;
 
+
+			if (ImGui::BeginTable("##AddRemoveAttributeTable", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp, { ImGui::GetContentRegionAvail().x, height / 2.f }))
+			{
+				ImGui::TableSetupColumn("Key            ");
+				ImGui::TableSetupColumn("Value");
+				ImGui::TableHeadersRow();
+
+				for (auto& [key, attribute] : assetData->GetAttributes())
+				{
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn(); { ImGui::Text(key.c_str()); }
+					ImGui::TableNextColumn();
+					{
+						ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+						InputTextD(std::string("##Attribute" + key).c_str(), attribute);
+					}
+					ImGui::TableNextColumn();
+					{
+						if (ImGui::Button(std::string("Remove##" + key).c_str()))
+						{
+							assert(false);
+						}
+					}
+				}
+				ImGui::EndTable();
+			}
+
+			ImGui::TreePop();
+		}
 	}
 
 	DrawModal("Attribute", m_IsAddNewAttributeModalOpen, [&]()
@@ -1168,12 +1158,14 @@ void EditorLayer::EditAsset(shade::SharedPointer<shade::AssetData>& assetData)
 			InputTextCol("Key", key, 100, 300);
 			InputTextCol("Value", value, 100, 300);
 
-			if (ImGui::Button("Save"))
+			if (!key.empty() && !value.empty())
 			{
-				assetData->SetAttribute(key, value);
-				key = ""; value = "";
+				if (ImGui::Button("Save", { ImGui::GetContentRegionAvail().x, 0 }))
+				{
+					assetData->SetAttribute(key, value);
+					key.clear(); value.clear();
+				}
 			}
-			ImGui::SameLine();
 		});
 }
 
