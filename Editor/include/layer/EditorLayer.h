@@ -55,7 +55,8 @@ private:
 	void RgidBodyComponent(shade::ecs::Entity& entity);
 	///////
 	void MaterialEdit(shade::Material& material);
-	//////
 	void CreateMaterial();
+	void Material(shade::Material& material);
+	//////
 	void CreateCollisionShapes();
 };

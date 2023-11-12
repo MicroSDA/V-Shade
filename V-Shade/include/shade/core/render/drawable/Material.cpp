@@ -97,8 +97,8 @@ std::size_t shade::Material::Deserialize(std::istream& stream)
 	size += Serializer::Deserialize(stream, ShininessStrength);
 	size += Serializer::Deserialize(stream, Refracti);
 	size += Serializer::Deserialize(stream, Shading);
-	/*size +=Serializer::Deserialize(stream, NormalMapEnabled);
-	size +=Serializer::Deserialize(stream, BumpMapEnabled);*/
+	size += Serializer::Deserialize(stream, NormalMapEnabled);
+	size += Serializer::Deserialize(stream, BumpMapEnabled);
 
 	return size;
 }

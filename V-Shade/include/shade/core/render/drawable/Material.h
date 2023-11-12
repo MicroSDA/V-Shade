@@ -121,13 +121,13 @@ namespace shade
 	template<>
 	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Material& material, std::size_t)
 	{
-		return material->Serialize(stream);
+		return material.Serialize(stream);
 	}
 	/* Deserialize Material.*/
 	template<>
 	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, Material& material, std::size_t)
 	{
-		return material->Deserialize(stream);
+		return material.Deserialize(stream);
 	}
 	/* Serialize Asset<Material>.*/
 	template<>

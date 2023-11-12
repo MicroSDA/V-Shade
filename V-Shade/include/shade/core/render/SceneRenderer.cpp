@@ -260,7 +260,7 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 				{
 					if (frustum.IsInFrustum(pcTransform, mesh->GetMinHalfExt(), mesh->GetMaxHalfExt()))
 					{
-						Renderer::SubmitStaticMeshDynamicLOD(m_MainGeometryPipeline, mesh, nullptr /*mesh->GetMaterial()*/, pcTransform); m_Statistic.SubmitedInstances++;
+						Renderer::SubmitStaticMeshDynamicLOD(m_MainGeometryPipeline, mesh, mesh->GetMaterial(), pcTransform); m_Statistic.SubmitedInstances++;
 
 						if (m_Settings.RenderSettings.LightCulling)
 							Renderer::SubmitStaticMeshDynamicLOD(m_LightCullingPreDepthPipeline, mesh, nullptr, pcTransform);

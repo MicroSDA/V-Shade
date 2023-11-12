@@ -19,8 +19,6 @@ void EditorLayer::OnUpdate(shade::SharedPointer<shade::Scene>& scene, const shad
 {
 	shade::physic::PhysicsManager::Step(scene, deltaTime);
 
-	m_SelectedMaterial = nullptr;
-
 	m_SceneRenderer->OnUpdate(scene, deltaTime);
 }
 
@@ -47,9 +45,9 @@ void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shad
 		ShowWindowBar("Scene", &EditorLayer::Scene, this, scene);
 		ImGui::PopStyleColor();
 		ShowWindowBar("Inspector", &EditorLayer::EntityInspector, this, m_SelectedEntity);
-		
-		
-		ShowWindowBar("Material", &EditorLayer::MaterialEdit, this, (m_SelectedMaterial) ? *m_SelectedMaterial : *shade::Renderer::GetDefaultMaterial());
+
+
+		ShowWindowBar("Material", &EditorLayer::MaterialEdit, this, (m_SelectedMaterial != nullptr) ? *m_SelectedMaterial : *shade::Renderer::GetDefaultMaterial());
 		ShowWindowBar("Render settings", &EditorLayer::RenderSettings, this, m_SceneRenderer);
 		ImGui::End();
 	}
@@ -1454,6 +1452,15 @@ void EditorLayer::ModelComponent(shade::ecs::Entity& entity)
 				m_SelectedMesh = mesh;
 				m_SelectedMaterial = mesh->GetMaterial();
 			}
+			if (mesh->GetMaterial())
+			{
+
+				if (DrawButton("Material", mesh->GetMaterial()->GetAssetData()->GetId().c_str()))
+				{
+					m_SelectedMaterial = mesh->GetMaterial();
+				}
+
+			}
 
 		}
 		ImGui::TreePop();
@@ -1571,42 +1578,181 @@ void EditorLayer::RgidBodyComponent(shade::ecs::Entity& entity)
 
 void EditorLayer::MaterialEdit(shade::Material& material)
 {
-	ColorEdit3("Ambient color", glm::value_ptr(material.ColorAmbient));
-	ColorEdit3("Diffuse color", glm::value_ptr(material.ColorDiffuse));
-	ColorEdit3("Specular color", glm::value_ptr(material.ColorSpecular));
-	DragFloat("Emmisive", &material.Emmisive, 0.01f, 0.f);
-	DragFloat("Opacity", &material.Opacity, 0.01f, 1.f);
-	DragFloat("Shininess", &material.Shininess, 0.01f, 0.f);
-	DragFloat("Shininess Strength", &material.ShininessStrength, 0.01f, 0.f);
-	DragFloat("Refracti", &material.Refracti, 0.01f, 0.f);
-	ImGui::Checkbox("NormalMap enable", &material.NormalMapEnabled);
-	ImGui::Checkbox("BumpMap  enable", &material.BumpMapEnabled);
+	static std::string path;
 
-	if (ImGui::Button("Save"))
+	if (ImGui::BeginTable("##SomeTable", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp))
 	{
-		std::string path = material.GetAssetData()->GetAttribute<std::string>("Path");
-		if (!path.empty())
+		ImGui::TableNextRow();
 		{
-			std::ofstream file(path, std::ios::binary);
-			if (file.is_open())
+			ImGui::TableNextColumn(); { if (ImGui::Button("Select default")) { m_SelectedMaterial = nullptr; path.clear(); } }
+			ImGui::TableNextColumn();
 			{
-				shade::Serializer::Serialize(file, material);
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				InputTextD("##MaterialPath", path);
 			}
-			else
+			ImGui::TableNextColumn();
 			{
-				SHADE_CORE_WARNING("Cannot open file for saving marerial, path = {0}", path);
+				if (ImGui::Button("..."))
+				{
+					path = shade::FileDialog::OpenFile("Shade material(*.s_mat) \0*.s_mat\0").string();
+					if (!path.empty())
+					{
+						shade::File file(path, shade::File::In, "@s_mat", shade::File::VERSION(0, 0, 1));
+						if (file.IsOpen())
+						{
+							m_SelectedMaterial = shade::SharedPointer<shade::Material>::Create();
+							file.Read(m_SelectedMaterial);
+						}
+					}
+				}
 			}
 		}
-		else
+		ImGui::EndTable();
+	}
+
+	Material(material);
+
+	if (&material != shade::Renderer::GetDefaultMaterial().Raw())
+	{
+		if (ImGui::Button("Save", { ImGui::GetContentRegionAvail().x, 0 }))
 		{
-			SHADE_CORE_WARNING("Cannot open file for saving marerial, path = {0}", path);
+			shade::File file(path, shade::File::Out, "@s_mat", shade::File::VERSION(0, 0, 1));
+			if (file.IsOpen())
+			{
+				file.Write(material);
+			}
 		}
 	}
 }
 
+void EditorLayer::Material(shade::Material& material)
+{
+	if (ImGui::BeginTable("##MaterailTable", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp))
+	{
+		ImGui::TableNextRow();
+		{
+			ImGui::TableNextColumn(); { ImGui::Text("Ambient"); }
+			ImGui::TableNextColumn();
+			{
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				ImGui::ColorEdit3("##Ambient", glm::value_ptr(material.ColorAmbient));
+			}
+		}
+		ImGui::TableNextRow();
+		{
+			ImGui::TableNextColumn(); {ImGui::Text("Diffuse"); }
+			ImGui::TableNextColumn();
+			{
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				ImGui::ColorEdit3("##Diffuse", glm::value_ptr(material.ColorDiffuse));
+			}
+		}
+		ImGui::TableNextRow();
+		{
+			ImGui::TableNextColumn(); { ImGui::Text("Specular"); }
+			ImGui::TableNextColumn();
+			{
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				ImGui::ColorEdit3("##Specular", glm::value_ptr(material.ColorSpecular));
+			}
+		}
+		ImGui::TableNextRow();
+		{
+			ImGui::TableNextColumn(); { ImGui::Text("Emmisive"); }
+			ImGui::TableNextColumn();
+			{
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				ImGui::DragFloat("##Emmisive", &material.Emmisive, 0.01f, 0);
+			}
+		}
+		ImGui::TableNextRow();
+		{
+			ImGui::TableNextColumn(); { ImGui::Text("Opacity"); }
+			ImGui::TableNextColumn();
+			{
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				ImGui::DragFloat("##Opacity", &material.Opacity, 0.01f, 0);
+			}
+		}
+		ImGui::TableNextRow();
+		{
+			ImGui::TableNextColumn(); { ImGui::Text("Shininess"); }
+			ImGui::TableNextColumn();
+			{
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				ImGui::DragFloat("##Shininess", &material.Shininess, 0.01f, 0);
+			}
+		}
+		ImGui::TableNextRow();
+		{
+			ImGui::TableNextColumn(); { ImGui::Text("Shininess Strength"); }
+			ImGui::TableNextColumn();
+			{
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				ImGui::DragFloat("##Shininess Strength", &material.ShininessStrength, 0.01f, 0);
+			}
+		}
+		ImGui::TableNextRow();
+		{
+			ImGui::TableNextColumn(); { ImGui::Text("Refracti"); }
+			ImGui::TableNextColumn();
+			{
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				ImGui::DragFloat("##Refracti", &material.Refracti, 0.01f, 0);
+			}
+		}
+		ImGui::TableNextRow();
+		{
+			ImGui::TableNextColumn(); { ImGui::Text("Normal map"); }
+			ImGui::TableNextColumn(); { ImGui::Checkbox("##NormalMap", &material.NormalMapEnabled); }
+		}
+		ImGui::TableNextRow();
+		{
+			ImGui::TableNextColumn(); { ImGui::Text("Bump map"); }
+			ImGui::TableNextColumn(); { ImGui::Checkbox("##BumpMap", &material.BumpMapEnabled); }
+		}
+
+		ImGui::EndTable();
+	}
+
+}
+
 void EditorLayer::CreateMaterial()
 {
-	ImGui::Text("TODO: Create Material");
+	static std::string path;
+	static shade::SharedPointer<shade::Material> material = shade::SharedPointer<shade::Material>::Create();
+
+	Material(*material);
+
+	if (ImGui::BeginTable("Path", 2, ImGuiTableFlags_SizingStretchProp, { ImGui::GetContentRegionAvail().x, 0 }))
+	{
+		ImGui::TableNextColumn();
+		{
+			InputTextCol("Path", path);
+		}
+		ImGui::TableNextColumn();
+		{
+			if (ImGui::Button("..."))
+			{
+				path = shade::FileDialog::SaveFile("Shade material(*.s_mat) \0*.s_mat\0").string();
+			}
+		}
+		ImGui::EndTable();
+	}
+
+	if (!path.empty())
+	{
+		if (ImGui::Button("Save", { ImGui::GetContentRegionAvail().x, 0 }))
+		{
+			shade::File file(path, shade::File::Out, "@s_mat", shade::File::VERSION(0, 0, 1));
+			if (file.IsOpen())
+			{
+				file.Write(material);
+				file.CloseFile();
+				path.clear();
+			}
+		}
+	}
 }
 
 void EditorLayer::CreateCollisionShapes()
