@@ -42,7 +42,7 @@ namespace shade
 		{
 			ImGui::SetNextWindowViewport(veiwport->ID);
 			ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
-			ImGui::SetNextWindowPos(ImVec2{ ImGui::GetWindowPos().x + 10.0f, ImGui::GetWindowPos().y + 30.0f }, ImGuiCond_Always);
+			ImGui::SetNextWindowPos(ImVec2{ ImGui::GetWindowPos().x + 5.0f, ImGui::GetWindowPos().y + 50.0f }, ImGuiCond_Always);
 			//ImGui::SetNextWindowSize(ImVec2{ ImGui::GetWindowSize().x - 20.0f,0}, ImGuiCond_Always);
 
 			if (ImGui::Begin(title, nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize |
@@ -164,6 +164,8 @@ namespace shade
 		bool InputTextCol(const char* title, std::string& str, float cw1 = 0.0f, float cw2 = 0.0);
 		bool InputTextD(const char* title, std::string& str);
 		bool ComboCol(const char* id, std::string& selected, std::vector<std::string>& elements, ImGuiSelectableFlags selectedFlags, ImGuiComboFlags comboFlags, const float& cw1 = 0.0f, const float& cw2 = 0.0);
+		bool DrawCombo(const char* id, std::string& selected, std::vector<std::string>& elements, ImGuiSelectableFlags selectedFlags, ImGuiComboFlags comboFlags);
+
 		bool DragFloat(const char* title, float* data, float step = 0.01f, float min = 0.0, float max = FLT_MAX, float cw1 = 0.0f, float cw2 = 0.0);
 		bool DragFloat3(const char* title, float* data, float resetValue, float step = 0.01f, float min = 0.0, float max = FLT_MAX, float cw1 = 0.0f, float cw2 = 0.0);
 		bool DragInt(const char* title, int* data, int step = 1, int min = 0, int max = INT_MAX, float cw1 = 0.0f, float cw2 = 0.0, bool readOnly = false);

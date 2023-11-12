@@ -87,7 +87,7 @@ bool shade::ImGuiLayer::InputTextCol(const char* title, std::string& str, float 
 
 	std::string _title = std::string("##") + title;
 
-	if (ImGui::BeginTable(_title.c_str(), 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp, {0, 0}))
+	if (ImGui::BeginTable(_title.c_str(), 2, ImGuiTableFlags_SizingStretchProp, {0, 0}))
 	{
 		ImGui::TableNextColumn();
 		{
@@ -156,6 +156,27 @@ bool shade::ImGuiLayer::ComboCol(const char* title, std::string& selected, std::
 	}
 
 	return hasSelected;
+}
+
+bool shade::ImGuiLayer::DrawCombo(const char* title, std::string& selected, std::vector<std::string>& elements, ImGuiSelectableFlags selectedFlags, ImGuiComboFlags comboFlags)
+{
+	bool hasBeenSelected = false;
+	if (ImGui::BeginCombo(title, selected.c_str(), comboFlags)) // The second parameter is the label previewed before opening the combo.
+	{
+		for (auto& element : elements)
+		{
+			bool isSelected = (selected == element);
+			if (ImGui::Selectable(element.c_str(), isSelected, selectedFlags))
+			{
+				selected = element;
+				hasBeenSelected = true;
+			}
+			if (isSelected)
+				ImGui::SetItemDefaultFocus();
+		}
+		ImGui::EndCombo();
+	}
+	return hasBeenSelected;
 }
 
 bool shade::ImGuiLayer::DragFloat(const char* title, float* data, float step, float min, float max, float cw1, float cw2)
