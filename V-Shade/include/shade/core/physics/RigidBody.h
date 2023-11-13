@@ -49,7 +49,8 @@ namespace shade
 			const shade::StackArray<glm::vec<3, scalar_t>, 4>& GetCollisionContacts() const;
 			const Asset<CollisionShapes>& GetCollisionShapes() const;
 			Asset<CollisionShapes>& GetCollisionShapes();
-
+			const std::vector<HalfExtensions>& GetExtensions() const;
+			std::vector<HalfExtensions>& GetExtensions();
 			
 		public:
 			std::vector<SharedPointer<CollisionShape>>::iterator begin() { return m_CollisionShapes->GetColliders().begin(); }
@@ -90,6 +91,7 @@ namespace shade
 			Type m_Type = Type::Static;
 
 			Asset<CollisionShapes> m_CollisionShapes;
+			std::vector<HalfExtensions> m_Extensions;
 
 			scalar_t m_TimeToSleep = 0.0;
 			bool m_IsSleep = false;

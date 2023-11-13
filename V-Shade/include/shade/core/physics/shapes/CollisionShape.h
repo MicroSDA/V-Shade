@@ -9,6 +9,19 @@ namespace shade
 {
 	namespace physic
 	{
+		struct HalfExtensions
+		{
+			glm::vec<3, scalar_t> MinHalfExt;
+			glm::vec<3, scalar_t> MaxHalfExt;
+			glm::vec<3, scalar_t> MinHalfExtWorldSpace;
+			glm::vec<3, scalar_t> MaxHalfExtWorldSpace;
+			std::array<glm::vec<3, scalar_t>, 8> Corners;
+		
+			void UpdateCorners(const glm::mat<4, 4, shade::physic::scalar_t>& transform);
+			bool AABB_X_AABB(const HalfExtensions& extB) const;
+			bool OBB_X_OBB(const HalfExtensions& extB) const;
+		};
+
 		class SHADE_API CollisionShape
 		{
 		public:
@@ -78,30 +91,22 @@ namespace shade
 			void SetMinMaxHalfExt(const glm::vec<3, scalar_t>& minExt, const glm::vec<3, scalar_t>& maxExt);
 
 			virtual Manifold TestCollision(const glm::mat<4, 4, scalar_t>& transform, const CollisionShape& otherShape, const glm::mat<4, 4, scalar_t>& otherTransform) const = 0; // TODO: {} insead of  = 0
-			bool AABB_X_AABB(const glm::mat<4, 4, scalar_t>& transform, const CollisionShape& otherShape, const glm::mat<4, 4, scalar_t>& otherTransform) const; // TODO: {} insead of  = 0
-			bool OBB_X_OBB(const glm::mat<4, 4, scalar_t>& transform, const CollisionShape& otherShape, const glm::mat<4, 4, scalar_t>& otherTransform) const; // TODO: {} insead of  = 0
 			virtual glm::vec<3, scalar_t> FindFurthestPointWorld(const glm::mat<4, 4, scalar_t>& transform, const glm::vec<3, scalar_t>& direction) const = 0; // TODO: {} insead of  = 0
 		
 			const glm::vec<3, scalar_t>& GetMinHalfExt() const;
 			const glm::vec<3, scalar_t>& GetMaxHalfExt() const;
 
-			const glm::vec<3, scalar_t>& GetMinHalfExtWorldSpace() const;
-			const glm::vec<3, scalar_t>& GetMaxHalfExtWorldSpace() const;
-
-			const std::array<glm::vec<3, scalar_t>, 8>& GetCorners() const;
 			Shape GetShape() const;
-
-			void UpdateCorners(const glm::mat<4, 4, scalar_t>& transform);
 		private:
 			const Shape m_Shape;
 			glm::vec<3, scalar_t> m_MinHalfExt = glm::vec<3, scalar_t>(-1.0);
 			glm::vec<3, scalar_t> m_MaxHalfExt = glm::vec<3, scalar_t>(1.0);
 
-			// Using only for debug purposes
-			glm::vec<3, scalar_t> m_MinHalfExtWorldSpace = glm::vec<3, scalar_t>(-1.0);
-			glm::vec<3, scalar_t> m_MaxHalfExtWorldSpace = glm::vec<3, scalar_t>(1.0);
+			//// Using only for debug purposes
+			//glm::vec<3, scalar_t> m_MinHalfExtWorldSpace = glm::vec<3, scalar_t>(-1.0);
+			//glm::vec<3, scalar_t> m_MaxHalfExtWorldSpace = glm::vec<3, scalar_t>(1.0);
 
-			std::array<glm::vec<3, scalar_t>, 8> m_Corners;
+			//std::array<glm::vec<3, scalar_t>, 8> m_Corners;
 		protected:
 			virtual std::size_t Serialize(std::ostream& stream) const = 0;
 			virtual std::size_t Deserialize(std::istream& stream) = 0;

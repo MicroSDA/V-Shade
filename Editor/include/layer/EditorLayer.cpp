@@ -37,18 +37,25 @@ void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shad
 			ImGui::DockSpace(dockspaceId, ImVec2(0.f, 0.f), m_DockSpaceFlags);
 		}
 
-		MainMenu(scene);
-		ShowWindowBar("Entities", &EditorLayer::Entities, this, scene);
-		ShowWindowBar("Creator", &EditorLayer::Creator, this);
-		ShowWindowBar("Assets", &EditorLayer::AssetsExplorer, this);
+		if (!m_IsScenePlaying)
+		{
+			MainMenu(scene);
+			ShowWindowBar("Entities", &EditorLayer::Entities, this, scene);
+			ShowWindowBar("Creator", &EditorLayer::Creator, this);
+			ShowWindowBar("Assets", &EditorLayer::AssetsExplorer, this);
+			ShowWindowBar("Inspector", &EditorLayer::EntityInspector, this, m_SelectedEntity);
+
+			ShowWindowBar("Material", &EditorLayer::MaterialEdit, this, (m_SelectedMaterial != nullptr) ? *m_SelectedMaterial : *shade::Renderer::GetDefaultMaterial());
+			ShowWindowBar("Render settings", &EditorLayer::RenderSettings, this, m_SceneRenderer);
+		}
+		
 		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 1));
 		ShowWindowBar("Scene", &EditorLayer::Scene, this, scene);
 		ImGui::PopStyleColor();
-		ShowWindowBar("Inspector", &EditorLayer::EntityInspector, this, m_SelectedEntity);
+		
 
 
-		ShowWindowBar("Material", &EditorLayer::MaterialEdit, this, (m_SelectedMaterial != nullptr) ? *m_SelectedMaterial : *shade::Renderer::GetDefaultMaterial());
-		ShowWindowBar("Render settings", &EditorLayer::RenderSettings, this, m_SceneRenderer);
+	
 		ImGui::End();
 	}
 }
@@ -443,7 +450,10 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 					}
 					ImGui::TableNextColumn();
 					{
-						ImGui::Button("Play");
+						if (ImGui::Button("Play")) 
+						{ 
+							m_IsScenePlaying = (m_IsScenePlaying) ? false : true;
+						}
 					}
 				}
 

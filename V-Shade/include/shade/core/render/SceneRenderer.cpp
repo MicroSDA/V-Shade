@@ -327,22 +327,19 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 				{
 					auto& rigidBody = entity.GetComponent<RigidBodyComponent>();
 
-					if (rigidBody.GetCollisionShapes())
+					for (const auto& ext : rigidBody.GetExtensions())
 					{
-						for (auto& shape : rigidBody.GetCollisionShapes()->GetColliders())
-						{
-							auto minExt = shape->GetMinHalfExtWorldSpace();
-							auto maxExt = shape->GetMaxHalfExtWorldSpace();
+						auto minExt = ext.MinHalfExtWorldSpace;
+						auto maxExt = ext.MaxHalfExtWorldSpace;
 
-							glm::mat<4, 4, physic::scalar_t> permeshTransform = glm::translate(glm::mat<4, 4, physic::scalar_t>(1.0), (minExt + maxExt) / 2.0);
-							permeshTransform = glm::scale(permeshTransform,
-								(maxExt - minExt) / glm::vec<3, physic::scalar_t>(m_OBB->GetMaxHalfExt() - m_OBB->GetMinHalfExt())
-							);
+						glm::mat<4, 4, physic::scalar_t> permeshTransform = glm::translate(glm::mat<4, 4, physic::scalar_t>(1.0), (minExt + maxExt) / 2.0);
+						permeshTransform = glm::scale(permeshTransform,
+							(maxExt - minExt) / glm::vec<3, physic::scalar_t>(m_OBB->GetMaxHalfExt() - m_OBB->GetMinHalfExt())
+						);
 
-							Renderer::SubmitStaticMesh(m_AABB_OBB_Pipeline, m_OBB, m_AABBMaterial, permeshTransform);
-						}
+						Renderer::SubmitStaticMesh(m_AABB_OBB_Pipeline, m_OBB, m_AABBMaterial, permeshTransform);
 					}
-
+					
 					//for (auto& contactPoint : rigidBody.GetCollisionContacts())
 					//{
 					//	glm::mat4 pointTransform = glm::translate(pcTransform, static_cast<glm::vec3>(contactPoint));

@@ -33,6 +33,10 @@ private:
 	bool m_ImportModelModal = false;
 	bool m_PackFilesModal	= false;
 
+	// TEST !
+	bool m_IsScenePlaying = false;
+
+
 	void MainMenu(shade::SharedPointer<shade::Scene>& scene);
 	void Scene(shade::SharedPointer<shade::Scene>& scene);
 	void EntitiesList(const char* search, shade::SharedPointer<shade::Scene>& scene);

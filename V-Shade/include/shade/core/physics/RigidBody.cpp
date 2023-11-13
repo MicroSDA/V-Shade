@@ -20,6 +20,15 @@ shade::physic::RigidBody::Type shade::physic::RigidBody::GetBodyType() const
 void shade::physic::RigidBody::AddCollider(const Asset<CollisionShapes>& collider)
 {
 	m_CollisionShapes = collider;
+	m_Extensions.clear();
+	for (const auto& colider : m_CollisionShapes->GetColliders())
+	{
+		m_Extensions.emplace_back(
+			HalfExtensions{ .MinHalfExt = colider->GetMinHalfExt(),
+				.MaxHalfExt = colider->GetMaxHalfExt(),
+				.MinHalfExtWorldSpace = colider->GetMinHalfExt(),
+				.MaxHalfExtWorldSpace = colider->GetMaxHalfExt() });
+	}
 }
 
 std::size_t shade::physic::RigidBody::GetCollidersCount() const
@@ -57,11 +66,11 @@ bool shade::physic::RigidBody::AABB_X_AABB(const glm::mat<4, 4, physic::scalar_t
 {
 	if (m_CollisionShapes && other.m_CollisionShapes)
 	{
-		for (const auto& colliderA : m_CollisionShapes->GetColliders())
+		for (const auto& extA : m_Extensions)
 		{
-			for (const auto& colliderB : other.m_CollisionShapes->GetColliders())
+			for (const auto& extB : other.m_Extensions)
 			{
-				if (colliderA->AABB_X_AABB(transform, *colliderB, otherTransform))
+				if (extA.AABB_X_AABB(extB))
 				{
 					return true;
 				}
@@ -76,11 +85,11 @@ bool shade::physic::RigidBody::OBB_X_OBB(const glm::mat<4, 4, physic::scalar_t>&
 {
 	if (m_CollisionShapes && other.m_CollisionShapes)
 	{
-		for (const auto& colliderA : m_CollisionShapes->GetColliders())
+		for (const auto& extA : m_Extensions)
 		{
-			for (const auto& colliderB : other.m_CollisionShapes->GetColliders())
+			for (const auto& extB : other.m_Extensions)
 			{
-				if (colliderA->OBB_X_OBB(transform, *colliderB, otherTransform))
+				if (extA.OBB_X_OBB(extB))
 				{
 					return true;
 				}
@@ -145,6 +154,16 @@ const shade::Asset<shade::physic::CollisionShapes>& shade::physic::RigidBody::Ge
 shade::Asset<shade::physic::CollisionShapes>& shade::physic::RigidBody::GetCollisionShapes()
 {
 	return m_CollisionShapes;
+}
+
+const std::vector<shade::physic::HalfExtensions>& shade::physic::RigidBody::GetExtensions() const
+{
+	return m_Extensions;
+}
+
+std::vector<shade::physic::HalfExtensions>& shade::physic::RigidBody::GetExtensions()
+{
+	return m_Extensions;
 }
 
 const glm::mat<3, 3, shade::physic::scalar_t>& shade::physic::RigidBody::GetIntertiaTensor() const
@@ -229,10 +248,15 @@ void shade::physic::RigidBody::Integrate(Transform& transform, scalar_t deltaTim
 
 	if (m_CollisionShapes)
 	{
-		for (auto& collider : m_CollisionShapes->GetColliders())
+		for (auto& ext : m_Extensions)
+		{
+			ext.UpdateCorners(transform.GetModelMatrix());
+		}
+
+		/*for (auto& collider : m_CollisionShapes->GetColliders())
 		{
 			collider->UpdateCorners(transform.GetModelMatrix());
-		}
+		}*/
 
 		if (!*this)
 		{
