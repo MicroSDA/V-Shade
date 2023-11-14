@@ -5,15 +5,17 @@
 
 #include <glm/glm/gtx/hash.hpp>
 
-shade::SharedPointer<shade::SceneRenderer> shade::SceneRenderer::Create()
+shade::SharedPointer<shade::SceneRenderer> shade::SceneRenderer::Create(bool swapChainAsMainTarget)
 {
-	return SharedPointer<SceneRenderer>::Create();
+	return SharedPointer<SceneRenderer>::Create(swapChainAsMainTarget);
 }
 
-shade::SceneRenderer::SceneRenderer()
+shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 {
-	auto framesCount = Renderer::GetFramesCount();
-	m_MainCommandBuffer = RenderCommandBuffer::Create(RenderCommandBuffer::Type::Primary, RenderCommandBuffer::Family::Graphic, Renderer::GetFramesCount());
+	if (swapChainAsMainTarget)
+		m_MainCommandBuffer = RenderCommandBuffer::CreateFromSwapChain();
+	else
+		m_MainCommandBuffer = RenderCommandBuffer::Create(RenderCommandBuffer::Type::Primary, RenderCommandBuffer::Family::Graphic, Renderer::GetFramesCount());
 
 	VertexBuffer::Layout mainGeometryVertexlayout =
 	{
@@ -39,7 +41,13 @@ shade::SceneRenderer::SceneRenderer()
 		{ "a_UV_Coordinates",	Shader::DataType::Float2, VertexBuffer::Layout::Usage::PerVertex},
 	};
 
-	m_MainTargetFrameBuffer				= FrameBuffer::Create({ 1000, 1000, {0.0f, 0.0f, 0.0f, 1.f}, 1.f, { { render::Image::Format::RGBA32F}, { render::Image::Format::RGBA32F}, { render::Image::Format::RGBA32F}, { render::Image::Format::DEPTH32F } } });
+	if (swapChainAsMainTarget)
+		m_MainTargetFrameBuffer = FrameBuffer::CreateFromSwapChain();
+	else
+	{
+		m_MainTargetFrameBuffer = { Renderer::GetFramesCount(), FrameBuffer::Create({ 1000, 1000, {0.0f, 0.0f, 0.0f, 1.f}, 1.f, { { render::Image::Format::RGBA32F}, { render::Image::Format::RGBA32F}, { render::Image::Format::RGBA32F}, { render::Image::Format::DEPTH32F } } }) };
+	}
+	
 	m_LightCullingPreDepthFrameBuffer	= FrameBuffer::Create({ 1, 1, {0.0f, 0.0f, 0.0f, 1.f}, 1.f, { { render::Image::Format::DEPTH24STENCIL8 } } });
 	m_GlobalLightShadowFrameBuffer		= FrameBuffer::Create({ 6000, 6000, {0.0f, 0.0f, 0.0f, 1.f}, 1.f, { { render::Image::Format::Depth, render::Image::Usage::Attachment, 1, GlobalLight::SHADOW_CASCADES_COUNT } } });
 	m_SpotLightShadowFrameBuffer		= FrameBuffer::Create({ 2000, 2000, {0.0f, 0.0f, 0.0f, 1.f}, 1.f, { { render::Image::Format::Depth, render::Image::Usage::Attachment,  1,  RenderAPI::MAX_SPOT_SHADOW_CASTERS }} });
@@ -50,7 +58,7 @@ shade::SceneRenderer::SceneRenderer()
 	m_MainGeometryPipeline = shade::RenderPipeline::Create(
 		{
 			.Shader = ShaderLibrary::Create("Main", "./resources/assets/shaders/Shader.glsl"),
-			.FrameBuffer = m_MainTargetFrameBuffer,
+			.FrameBuffer = m_MainTargetFrameBuffer[0],
 			.VertexLayout = mainGeometryVertexlayout,
 		});
 	m_LightCullingPreDepthPipeline = shade::RenderPipeline::Create(
@@ -97,7 +105,7 @@ shade::SceneRenderer::SceneRenderer()
 	m_PointLightVisualizationPipeline = shade::RenderPipeline::Create(
 		{
 			.Shader = ShaderLibrary::Create("LightsVisualizing", "./resources/assets/shaders/utils/LightsVisualizing.glsl"),
-			.FrameBuffer = m_MainTargetFrameBuffer,
+			.FrameBuffer = m_MainTargetFrameBuffer[0],
 			.VertexLayout = mainGeometryVertexlayout,
 			.Topology = Pipeline::PrimitiveTopology::Line,
 			.BackFalceCull = false
@@ -105,7 +113,7 @@ shade::SceneRenderer::SceneRenderer()
 	m_SpotLightVisualizationPipeline = shade::RenderPipeline::Create(
 		{
 			.Shader = ShaderLibrary::Get("LightsVisualizing"),
-			.FrameBuffer = m_MainTargetFrameBuffer,
+			.FrameBuffer = m_MainTargetFrameBuffer[0],
 			.VertexLayout = mainGeometryVertexlayout,
 			.Topology = Pipeline::PrimitiveTopology::LineStrip,
 			.BackFalceCull = false
@@ -113,7 +121,7 @@ shade::SceneRenderer::SceneRenderer()
 	m_GridPipeline = shade::RenderPipeline::Create(
 		{
 			.Shader = ShaderLibrary::Create("Grid", "./resources/assets/shaders/utils/Grid.glsl"),
-			.FrameBuffer = m_MainTargetFrameBuffer,
+			.FrameBuffer = m_MainTargetFrameBuffer[0],
 			.VertexLayout = gridVertexlayout,
 			.Topology = Pipeline::PrimitiveTopology::TriangleStrip,
 			.BackFalceCull = false
@@ -121,7 +129,7 @@ shade::SceneRenderer::SceneRenderer()
 	m_AABB_OBB_Pipeline = shade::RenderPipeline::Create(
 		{
 			.Shader = ShaderLibrary::Create("StaticFlat", "./resources/assets/shaders/StaticFlat.glsl"),
-			.FrameBuffer = m_MainTargetFrameBuffer,
+			.FrameBuffer = m_MainTargetFrameBuffer[0],
 			.VertexLayout = mainGeometryVertexlayout,
 			.Topology = Pipeline::PrimitiveTopology::Line,
 			//.PolygonMode = Pipeline::PrimitivePolygonMode::Point,
@@ -181,35 +189,37 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 	m_Statistic.Reset();
 	ecs::Entity camera = scene->GetPrimaryCamera();
 
+	const std::uint32_t currentFrame = Renderer::GetCurrentFrameIndex();
+
 	if (camera.IsValid())
 	{
 		m_Camera = camera.GetComponent<CameraComponent>();
 
 		// Set camera aspect base on render target resolution
-		m_Camera->SetAspect((float)m_MainTargetFrameBuffer->GetWidth() / (float)m_MainTargetFrameBuffer->GetHeight());
+		m_Camera->SetAspect((float)m_MainTargetFrameBuffer[currentFrame]->GetWidth() / (float)m_MainTargetFrameBuffer[currentFrame]->GetHeight());
 
 		if (m_Settings.RenderSettings.LightCulling)
 		{
-			if (m_LightCullingPreDepthFrameBuffer->GetWidth() != m_MainTargetFrameBuffer->GetWidth() || m_LightCullingPreDepthFrameBuffer->GetHeight() != m_MainTargetFrameBuffer->GetHeight())
+			if (m_LightCullingPreDepthFrameBuffer->GetWidth() != m_MainTargetFrameBuffer[currentFrame]->GetWidth() || m_LightCullingPreDepthFrameBuffer->GetHeight() != m_MainTargetFrameBuffer[currentFrame]->GetHeight())
 			{
-				m_LightCullingPreDepthFrameBuffer->Resize(m_MainTargetFrameBuffer->GetWidth(), m_MainTargetFrameBuffer->GetHeight());
+				m_LightCullingPreDepthFrameBuffer->Resize(m_MainTargetFrameBuffer[currentFrame]->GetWidth(), m_MainTargetFrameBuffer[currentFrame]->GetHeight());
 			}
 		}
 		if (m_Settings.BloomSettings.Enabled)
 		{
-			if (m_BloomTarget->GetWidth() != m_MainTargetFrameBuffer->GetWidth() ||
-				m_BloomTarget->GetHeight() != m_MainTargetFrameBuffer->GetHeight() ||
+			if (m_BloomTarget->GetWidth() != m_MainTargetFrameBuffer[currentFrame]->GetWidth() ||
+				m_BloomTarget->GetHeight() != m_MainTargetFrameBuffer[currentFrame]->GetHeight() ||
 				m_BloomTarget->GetImage()->GetSpecification().MipLevels != m_Settings.BloomSettings.Samples)
 			{
-				m_BloomTarget->Resize(m_MainTargetFrameBuffer->GetWidth(), m_MainTargetFrameBuffer->GetHeight(), m_Settings.BloomSettings.Samples);
+				m_BloomTarget->Resize(m_MainTargetFrameBuffer[currentFrame]->GetWidth(), m_MainTargetFrameBuffer[currentFrame]->GetHeight(), m_Settings.BloomSettings.Samples);
 			}
 		}
 		if (m_Settings.RenderSettings.SSAOEnabled)
 		{
-			if (m_ScreenSpaceAmbientOcclusionTarget->GetWidth() != m_MainTargetFrameBuffer->GetWidth() ||
-				m_ScreenSpaceAmbientOcclusionTarget->GetHeight() != m_MainTargetFrameBuffer->GetHeight())
+			if (m_ScreenSpaceAmbientOcclusionTarget->GetWidth() != m_MainTargetFrameBuffer[currentFrame]->GetWidth() ||
+				m_ScreenSpaceAmbientOcclusionTarget->GetHeight() != m_MainTargetFrameBuffer[currentFrame]->GetHeight())
 			{
-				m_ScreenSpaceAmbientOcclusionTarget->Resize(m_MainTargetFrameBuffer->GetWidth(), m_MainTargetFrameBuffer->GetHeight());
+				m_ScreenSpaceAmbientOcclusionTarget->Resize(m_MainTargetFrameBuffer[currentFrame]->GetWidth(), m_MainTargetFrameBuffer[currentFrame]->GetHeight());
 			}
 		}
 
@@ -467,7 +477,7 @@ void shade::SceneRenderer::OnEvent(SharedPointer<Scene>& scene, const Event& eve
 
 }
 
-shade::SharedPointer<shade::FrameBuffer>& shade::SceneRenderer::GetMainTargetFrameBuffer()
+std::vector<shade::SharedPointer<shade::FrameBuffer>>& shade::SceneRenderer::GetMainTargetFrameBuffer()
 {
 	return m_MainTargetFrameBuffer;
 }
@@ -751,7 +761,7 @@ void shade::SceneRenderer::ColorCorrectionComputePass(SharedPointer<ComputePipel
 	Renderer::BeginTimestamp(m_MainCommandBuffer, "Color-Correction");
 	Renderer::BeginCompute(m_MainCommandBuffer, pipeline, frameIndex);
 	// Get the texture attachment from the main target frame buffer and store in a constant auto reference.
-	const auto& texture = m_MainTargetFrameBuffer->GetTextureAttachment(0);
+	const auto& texture = m_MainTargetFrameBuffer[frameIndex]->GetTextureAttachment(0);
 	// Calculate the number of execution groups required to cover the entire texture.
 	glm::uvec3 executionGroups
 	{
@@ -777,7 +787,7 @@ void shade::SceneRenderer::ColorCorrectionComputePass(SharedPointer<ComputePipel
 
 void shade::SceneRenderer::BloomComputePass(SharedPointer<ComputePipeline>& pipeline, std::uint32_t frameIndex)
 {
-	const auto& mainTarget = m_MainTargetFrameBuffer->GetTextureAttachment(0);
+	const auto& mainTarget = m_MainTargetFrameBuffer[frameIndex]->GetTextureAttachment(0);
 	const std::uint32_t SAMPLES = m_Settings.BloomSettings.Samples;
 
 	glm::uvec3 executionGroups { std::ceil(static_cast<float>(mainTarget->GetWidth()) / 16.f), std::ceil(static_cast<float>(mainTarget->GetHeight()) / 16.0f), 1 };
@@ -856,9 +866,9 @@ void shade::SceneRenderer::BloomComputePass(SharedPointer<ComputePipeline>& pipe
 
 void shade::SceneRenderer::SSAOComputePass(SharedPointer<ComputePipeline>& pipeline, std::uint32_t frameIndex)
 {
-	const auto& mainTarget		= m_MainTargetFrameBuffer->GetTextureAttachment(0);
-	const auto& positionTexture	= m_MainTargetFrameBuffer->GetTextureAttachment(1);
-	const auto& normalTexture	= m_MainTargetFrameBuffer->GetTextureAttachment(2);
+	const auto& mainTarget		= m_MainTargetFrameBuffer[frameIndex]->GetTextureAttachment(0);
+	const auto& positionTexture	= m_MainTargetFrameBuffer[frameIndex]->GetTextureAttachment(1);
+	const auto& normalTexture	= m_MainTargetFrameBuffer[frameIndex]->GetTextureAttachment(2);
 
 	glm::uvec3 executionGroups { std::ceil(static_cast<float>(mainTarget->GetWidth()) / 16.f), std::ceil(static_cast<float>(mainTarget->GetHeight()) / 16.0f), 1 };
 

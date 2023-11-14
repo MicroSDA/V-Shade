@@ -137,6 +137,7 @@ void EditorApplication::OnCreate()
 
 	// Create layer.
 	shade::Layer::Create<EditorLayer>();
+	//shade::Layer::Create<GameLayer>();
 }
 
 void EditorApplication::OnDestroy()

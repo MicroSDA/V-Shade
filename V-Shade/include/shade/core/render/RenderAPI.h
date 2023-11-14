@@ -76,8 +76,7 @@ namespace shade
 				// Since bool it's uint in the shader we need to use memset to set all additional bits to 0 after alignment.
 				memset(this, 0, sizeof(RenderSettings));
 				// Common default values.
-				LightCulling			= true;
-				LightCulling			= true;
+				LightCulling			= false;
 				ShowLightComplexity		= false;
 				GlobalShadowsEnabled	= true;
 				SpotShadowEnabled		= true;

@@ -158,15 +158,15 @@ namespace shade
 			void Reset() { (*this) = Statistic{}; }
 		};
 	public:
-		static SharedPointer<SceneRenderer> Create();
-		SceneRenderer();
+		static SharedPointer<SceneRenderer> Create(bool swapChainAsMainTarget = false);
+		SceneRenderer(bool swapChainAsMainTarget);
 		virtual ~SceneRenderer() = default;
                             
 		void OnUpdate(SharedPointer<Scene>& scene, const FrameTimer& deltaTime);
 		void OnRender(SharedPointer<Scene>& scene, const FrameTimer& deltaTime);
 		void OnEvent(SharedPointer<Scene>& scene, const Event& event, const FrameTimer& deltaTime);
 
-		SharedPointer<FrameBuffer>& GetMainTargetFrameBuffer();
+		std::vector<SharedPointer<FrameBuffer>>& GetMainTargetFrameBuffer();
 		SharedPointer<Texture2D>&	GetBloomRenderTarget();
 		SharedPointer<Texture2D>&	GetSAAORenderTarget();
 
@@ -180,7 +180,7 @@ namespace shade
 
 		SharedPointer<RenderCommandBuffer> m_MainCommandBuffer;
 
-		SharedPointer<FrameBuffer>		m_MainTargetFrameBuffer;
+		std::vector<SharedPointer<FrameBuffer>>	m_MainTargetFrameBuffer;
 		SharedPointer<RenderPipeline>	m_MainGeometryPipeline;
 
 		SharedPointer<FrameBuffer>		m_LightCullingPreDepthFrameBuffer;

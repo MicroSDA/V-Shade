@@ -387,6 +387,9 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 
 void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 {
+
+	const std::uint32_t frameIndex = shade::Renderer::GetCurrentFrameIndex();
+
 	static ImVec4 focusColor = { 0, 0, 0, 1 };
 
 	shade::ecs::ScriptableEntity* cameraInstance = nullptr;
@@ -428,13 +431,13 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 				camera.GetComponent<shade::CameraComponent>()->Resize((float)m_SceneViewPort.ViewPort.z / (float)m_SceneViewPort.ViewPort.w);*/
 
 		if (m_SceneViewPort.ViewPort.z && m_SceneViewPort.ViewPort.w)
-			m_SceneRenderer->GetMainTargetFrameBuffer()->Resize(m_SceneViewPort.ViewPort.z, m_SceneViewPort.ViewPort.w);
+			m_SceneRenderer->GetMainTargetFrameBuffer()[frameIndex]->Resize(m_SceneViewPort.ViewPort.z, m_SceneViewPort.ViewPort.w);
 	}
 
 	m_SceneViewPort.ViewPort.y = ImGui::GetWindowPos().x + ImGui::GetCursorPos().x; // With tab size
 	m_SceneViewPort.ViewPort.x = ImGui::GetWindowPos().y + ImGui::GetCursorPos().y; // With tab size
 
-	DrawImage(m_SceneRenderer->GetMainTargetFrameBuffer()->GetTextureAttachment(0), { m_SceneViewPort.ViewPort.z, m_SceneViewPort.ViewPort.w }, focusColor);
+	DrawImage(m_SceneRenderer->GetMainTargetFrameBuffer()[frameIndex]->GetTextureAttachment(0), {m_SceneViewPort.ViewPort.z, m_SceneViewPort.ViewPort.w}, focusColor);
 
 	ImGui::SetNextWindowSize(ImVec2{ ImGui::GetWindowSize().x - 20.0f,0 }, ImGuiCond_Always);
 	ShowWindowBarOverlay("Overlay", ImGui::GetWindowViewport(), [&]()
@@ -955,7 +958,6 @@ void EditorLayer::Creator()
 
 void EditorLayer::EditAsset(shade::SharedPointer<shade::AssetData>& assetData)
 {
-	ImGui::ShowDemoWindow();
 	auto width = ImGui::GetContentRegionAvail().x / 6;
 	auto height = ImGui::GetContentRegionAvail().y / 3;
 

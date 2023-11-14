@@ -2,6 +2,7 @@
 
 #include <Shade.h>
 #include <layer/EditorLayer.h>
+#include <layer/GameLayer.h>
 
 
 class EditorApplication : public shade::Application
