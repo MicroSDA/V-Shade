@@ -15,6 +15,10 @@ namespace shade
 		const std::vector<VkDescriptorPool>& GetDescriptorPool() const { return m_DescriptorPools; }
 		const VulkanDescriptorSetLayout& GetDescriptorSetLayout() const { return m_DescriptorLayout; }
 		VkDescriptorSet AllocateDesciptorSet();
+
+		void SetDepricated(bool is) { m_IsDeprecated = is; }
+		bool IsDepricated() const { return m_IsDeprecated; }
+
 	private:
 		const VulkanDescriptorSetLayout& m_DescriptorLayout;
 		std::vector<VkDescriptorPool> m_DescriptorPools;
@@ -27,6 +31,8 @@ namespace shade
 		std::uint32_t m_MaxSets = 0, m_PoolIndex = 0;
 		VkDevice m_VkDevice = VK_NULL_HANDLE;
 		VulkanContext::VulkanInstance m_VkInstance;
+
+		bool m_IsDeprecated = false;
 	private:
 		std::uint32_t FindAvaliblePool(std::uint32_t searchIndex);
 		

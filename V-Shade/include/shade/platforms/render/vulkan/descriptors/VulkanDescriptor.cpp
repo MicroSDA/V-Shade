@@ -36,12 +36,42 @@ void shade::VulkanDescriptorsManager::ResetAllDescripotrs(std::uint32_t frameInd
 	m_sDescriptorPools.at(frameIndex).clear();
 }
 
+void shade::VulkanDescriptorsManager::ResetDepricated(std::uint32_t frameIndex)
+{
+	for (auto descriptor = m_sDescriptorSets[frameIndex].begin(); descriptor != m_sDescriptorSets[frameIndex].end();)
+	{
+		if (descriptor->second.IsDepricated())
+		{
+			//SHADE_CORE_DEBUG("Removing descriptor set = {0}", descriptor->first);
+			m_sDescriptorSets[frameIndex].erase(descriptor++);	
+		}
+		else
+		{
+			descriptor->second.SetDepricated(true);
+			++descriptor;
+		}
+	}
+
+	for (auto pool = m_sDescriptorPools[frameIndex].begin(); pool != m_sDescriptorPools[frameIndex].end();)
+	{
+		if (pool->second.IsDepricated())
+		{
+			//SHADE_CORE_DEBUG("Removing descriptor pool = {0}", pool->first);
+			m_sDescriptorPools[frameIndex].erase(pool++);
+		}
+		else
+		{
+			pool->second.SetDepricated(true);
+			++pool;
+		}
+	}
+}
+
 shade::VulkanDescriptorSet& shade::VulkanDescriptorsManager::ReciveDescriptor(
 	const VulkanDescriptorSetLayout& layout,
 	const DescriptorBufferBindings& bufferInfos,
 	std::uint32_t frameIndex)
 {
-
 	auto& descriptorPool = GetResource(m_sDescriptorPools.at(frameIndex), layout);
 	return GetResource(m_sDescriptorSets.at(frameIndex), layout, descriptorPool, bufferInfos);
 }

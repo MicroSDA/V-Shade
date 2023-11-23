@@ -53,6 +53,7 @@ namespace shade
 		static T& GetResource(std::unordered_map<std::size_t, T>& resources, Args&... args);
 
 		static void ResetAllDescripotrs(std::uint32_t frameIndex);
+		static void ResetDepricated(std::uint32_t frameIndex);
 	private:
 		// Frame index - > (Descriptor Layout + Buffers + ImageBuffers) Hashes - > DescriptorPool
 		static std::vector<std::unordered_map<std::size_t, VulkanDescriptorSetPool>> m_sDescriptorPools;
@@ -78,12 +79,17 @@ namespace shade
 
 		auto resource = resources.find(hash);
 		if (resource != resources.end())
+		{
+			resource->second.SetDepricated(false);
 			return resource->second;
+		}
+		else
+		{
+			T newResource(m_sVkDevice, m_sVkInstance, args...);
+			auto it = resources.emplace(hash, std::move(newResource));
+			return it.first->second;
 
-		T newResource(m_sVkDevice, m_sVkInstance, args...);
-		auto it = resources.emplace(hash, std::move(newResource));
-		return it.first->second;
-
+		}
 	}
 	template <typename T>
 	inline void VulkanDescriptorsManager::GenerateHash(std::size_t& seed, const T& value)

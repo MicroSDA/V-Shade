@@ -50,7 +50,8 @@ namespace shade
 		const VkDescriptorSet& GetDescriptorSet() const { return m_DescriptorSet; };
 		
 		void Update(const DescriptorBingingsMap<VkDescriptorBufferInfo>& bufferInfos, const DescriptorBingingsMap<VkDescriptorImageInfo>& imageInfos);
-
+		void SetDepricated(bool is) { m_IsDeprecated = is; }
+		bool IsDepricated() const { return m_IsDeprecated; }
 	private:
 		VkDescriptorSet m_DescriptorSet = VK_NULL_HANDLE;
 		const VulkanDescriptorSetLayout& m_Layout;
@@ -58,6 +59,7 @@ namespace shade
 
 		VkDevice m_VkDevice = VK_NULL_HANDLE;
 		VulkanContext::VulkanInstance m_VkInstance;
+		bool m_IsDeprecated = false;
 	};
 }
 

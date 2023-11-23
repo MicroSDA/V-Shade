@@ -100,7 +100,7 @@ void shade::VulkanRenderAPI::ShutDown()
 void shade::VulkanRenderAPI::BeginFrame(std::uint32_t frameIndex)
 {
 	SetCurrentFrameIndex(frameIndex);
-	VulkanDescriptorsManager::ResetAllDescripotrs(frameIndex);
+	VulkanDescriptorsManager::ResetDepricated(frameIndex);
 }
 
 void shade::VulkanRenderAPI::EndFrame(std::uint32_t frameIndex)
