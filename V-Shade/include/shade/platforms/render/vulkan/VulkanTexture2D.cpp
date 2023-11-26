@@ -63,11 +63,6 @@ VkDescriptorImageInfo shade::VulkanTexture2D::GetDescriptorImageInfoLayer(std::u
 	return { .sampler = m_Sampler, .imageView = m_Image->As<VulkanImage2D>().GetImageViewPerLayer(layer), .imageLayout = m_Image->As<VulkanImage2D>().GetImageLayout() };
 }
 
-shade::VulkanDescriptorSet& shade::VulkanTexture2D::GetDescriptorSet()
-{
-	return *m_DescriptorSet;
-}
-
 void shade::VulkanTexture2D::Invalidate()
 {
 	if(m_Sampler != VK_NULL_HANDLE)

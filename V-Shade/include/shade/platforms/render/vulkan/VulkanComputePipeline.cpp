@@ -149,7 +149,7 @@ void shade::VulkanComputePipeline::UpdateResources(SharedPointer<RenderCommandBu
 void shade::VulkanComputePipeline::BindDescriptorsSets(SharedPointer<RenderCommandBuffer>& commandBuffer, std::uint32_t frameIndex)
 {
 	vkCmdBindDescriptorSets(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(frameIndex), VK_PIPELINE_BIND_POINT_COMPUTE,
-		m_PipelineLayout, std::uint32_t(Pipeline::Set::Global), 1, &VulkanRenderAPI::GetGlobalDescriptorSet(frameIndex).GetDescriptorSet(), 0, VK_NULL_HANDLE);
+		m_PipelineLayout, std::uint32_t(Pipeline::Set::Global), 1, &VulkanRenderAPI::GetGlobalDescriptorSet(frameIndex)->GetDescriptorSet(), 0, VK_NULL_HANDLE);
 
 	for (auto& [set, layout] : m_DescriptorsLayouts)
 	{
@@ -160,7 +160,7 @@ void shade::VulkanComputePipeline::BindDescriptorsSets(SharedPointer<RenderComma
 			{
 				auto& resources = resourcesAtSetIndex->second;
 				vkCmdBindDescriptorSets(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(frameIndex), VK_PIPELINE_BIND_POINT_COMPUTE,
-					m_PipelineLayout, std::uint32_t(set), 1, &VulkanDescriptorsManager::ReciveDescriptor(layout, resources, frameIndex).GetDescriptorSet(), 0, VK_NULL_HANDLE);
+					m_PipelineLayout, std::uint32_t(set), 1, &VulkanDescriptorsManager::ReciveDescriptor(layout, resources, frameIndex)->GetDescriptorSet(), 0, VK_NULL_HANDLE);
 			}
 			else
 			{

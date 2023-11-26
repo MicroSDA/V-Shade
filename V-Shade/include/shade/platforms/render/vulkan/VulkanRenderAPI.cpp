@@ -101,6 +101,7 @@ void shade::VulkanRenderAPI::BeginFrame(std::uint32_t frameIndex)
 {
 	SetCurrentFrameIndex(frameIndex);
 	VulkanDescriptorsManager::ResetDepricated(frameIndex);
+	//VulkanDescriptorsManager::ResetAllDescripotrs(frameIndex);
 }
 
 void shade::VulkanRenderAPI::EndFrame(std::uint32_t frameIndex)
@@ -278,7 +279,7 @@ void shade::VulkanRenderAPI::DrawInstanced(SharedPointer<RenderCommandBuffer>& c
 	//vkCmdDraw(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(m_sCurrentFrameIndex), static_cast<std::uint32_t>(vertices->GetSize() / VERTEX_DATA_SIZE), count, 0, 0);
 }
 
-const shade::VulkanDescriptorSet& shade::VulkanRenderAPI::GetGlobalDescriptorSet(std::uint32_t frameIndex)
+const std::shared_ptr<shade::VulkanDescriptorSet> shade::VulkanRenderAPI::GetGlobalDescriptorSet(std::uint32_t frameIndex)
 {
 	return VulkanDescriptorsManager::ReciveDescriptor(*m_sVulkanGlobaSceneData.DescriptorSetLayout, m_sVulkanGlobaSceneData.Bindings[Pipeline::Set::Global], frameIndex);
 }

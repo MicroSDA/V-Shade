@@ -26,13 +26,11 @@ namespace shade
 		VkDescriptorImageInfo GetDescriptorImageInfo();
 		VkDescriptorImageInfo GetDescriptorImageInfoMip(std::uint32_t mipLevel = 0);
 		VkDescriptorImageInfo GetDescriptorImageInfoLayer(std::uint32_t layer  = 0);
-		VulkanDescriptorSet&  GetDescriptorSet();
 	private:
 		VkSampler m_Sampler = VK_NULL_HANDLE;
 		VkDevice m_VkDevice = VK_NULL_HANDLE;
 		VulkanContext::VulkanInstance m_VkInstance;
 		VkDescriptorImageInfo m_DescriptorImageInfo;
-		VulkanDescriptorSet* m_DescriptorSet;
 	private:
 		void Invalidate();
 	};

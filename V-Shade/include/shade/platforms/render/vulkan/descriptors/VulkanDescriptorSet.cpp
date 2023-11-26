@@ -4,9 +4,9 @@
 shade::VulkanDescriptorSet::VulkanDescriptorSet(const VkDevice& device,
 	const VulkanContext::VulkanInstance& instance,
 	const VulkanDescriptorSetLayout& layout,
-	VulkanDescriptorSetPool& pool,
+	std::shared_ptr<VulkanDescriptorSetPool>& pool,
 	const DescriptorBufferBindings& bufferInfos):
-	m_VkDevice(device), m_VkInstance(instance), m_Layout(layout), m_Pool(pool), m_DescriptorSet(pool.AllocateDesciptorSet())
+	m_VkDevice(device), m_VkInstance(instance), m_Layout(layout), m_Pool(pool), m_DescriptorSet(pool->AllocateDesciptorSet())
 {
 
 	if (!bufferInfos.Buffers.empty() || !bufferInfos.Images.empty())

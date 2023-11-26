@@ -41,7 +41,6 @@ shade::SharedPointer<shade::Texture2D> shade::Texture2D::CreateEXP(const render:
 
 shade::Texture2D::Texture2D(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour) : BaseAsset(assetData, lifeTime, behaviour)
 {
-	
 	auto filePath = assetData->GetAttribute<std::string>("Path");
 
 	std::ifstream file(filePath, std::ios::binary);

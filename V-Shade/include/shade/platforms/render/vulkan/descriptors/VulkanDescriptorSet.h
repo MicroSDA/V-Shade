@@ -43,7 +43,7 @@ namespace shade
 		VulkanDescriptorSet(const VkDevice& device,
 							const VulkanContext::VulkanInstance& instance,
 							const VulkanDescriptorSetLayout& layout,
-							VulkanDescriptorSetPool& pool,
+							std::shared_ptr<VulkanDescriptorSetPool>& pool,
 							const DescriptorBufferBindings& bufferInfos);
 
 		~VulkanDescriptorSet() = default;
@@ -55,7 +55,7 @@ namespace shade
 	private:
 		VkDescriptorSet m_DescriptorSet = VK_NULL_HANDLE;
 		const VulkanDescriptorSetLayout& m_Layout;
-		VulkanDescriptorSetPool& m_Pool;
+		std::shared_ptr<VulkanDescriptorSetPool> m_Pool;
 
 		VkDevice m_VkDevice = VK_NULL_HANDLE;
 		VulkanContext::VulkanInstance m_VkInstance;

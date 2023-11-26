@@ -43,27 +43,28 @@ namespace shade
 	{
 	public:
 		static void Initialize(VkDevice& device, const VulkanContext::VulkanInstance& instance, std::uint32_t framesCount);
-		static VulkanDescriptorSet& ReciveDescriptor(
+		static std::shared_ptr<VulkanDescriptorSet> ReciveDescriptor(
 			const VulkanDescriptorSetLayout& layout,
 			const DescriptorBufferBindings& bufferInfos,
 			std::uint32_t frameIndex);
 
 		static void ShutDown();
 		template<typename T, typename... Args>
-		static T& GetResource(std::unordered_map<std::size_t, T>& resources, Args&... args);
+		static std::shared_ptr<T> GetPool(std::unordered_map<std::size_t, std::weak_ptr<T>>& resources, Args&... args);
+		template<typename T, typename... Args>
+		static std::shared_ptr<T> GetDescriptor(std::unordered_map<std::size_t, std::shared_ptr<T>>& resources, Args&... args);
 
 		static void ResetAllDescripotrs(std::uint32_t frameIndex);
 		static void ResetDepricated(std::uint32_t frameIndex);
 	private:
-		// Frame index - > (Descriptor Layout + Buffers + ImageBuffers) Hashes - > DescriptorPool
-		static std::vector<std::unordered_map<std::size_t, VulkanDescriptorSetPool>> m_sDescriptorPools;
+		// Frame index - > (Descriptor Layout) Hash - > DescriptorPool
+		static std::vector<std::unordered_map<std::size_t, std::weak_ptr<VulkanDescriptorSetPool>>> m_sDescriptorPools;
 		// Frame index - > (Descriptor Layout + Buffers + ImageBuffers) Hashes - > DescriptorSet
-		static std::vector<std::unordered_map<std::size_t, VulkanDescriptorSet>>  m_sDescriptorSets;
+		static std::vector<std::unordered_map<std::size_t, std::shared_ptr<VulkanDescriptorSet>>>  m_sDescriptorSets;
 
 		static VkDevice m_sVkDevice;
 		static VulkanContext::VulkanInstance m_sVkInstance;
 		static std::uint32_t m_sFramesCount;
-
 
 	private:
 		template<typename T>
@@ -72,7 +73,7 @@ namespace shade
 		static inline void GenerateHash(size_t& seed, const T& first_arg, const Args &... args);
 	};
 	template<typename T, typename... Args>
-	inline T& VulkanDescriptorsManager::GetResource(std::unordered_map<std::size_t, T>& resources, Args&... args)
+	inline std::shared_ptr<T> VulkanDescriptorsManager::GetPool(std::unordered_map<std::size_t, std::weak_ptr<T>>& resources, Args&... args)
 	{
 		std::size_t hash = 0U;
 		GenerateHash(hash, args...);
@@ -80,15 +81,32 @@ namespace shade
 		auto resource = resources.find(hash);
 		if (resource != resources.end())
 		{
-			resource->second.SetDepricated(false);
+			return resource->second.lock();
+		}
+		else
+		{
+			std::shared_ptr<T> newResource = std::make_shared<T>(m_sVkDevice, m_sVkInstance, args...);
+			resources.emplace(hash, newResource);
+			return newResource;
+		}
+	}
+	template<typename T, typename... Args>
+	inline std::shared_ptr<T> VulkanDescriptorsManager::GetDescriptor(std::unordered_map<std::size_t, std::shared_ptr<T>>& resources, Args&... args)
+	{
+		std::size_t hash = 0U;
+		GenerateHash(hash, args...);
+
+		auto resource = resources.find(hash);
+		if (resource != resources.end())
+		{
+			resource->second->SetDepricated(false);
 			return resource->second;
 		}
 		else
 		{
-			T newResource(m_sVkDevice, m_sVkInstance, args...);
-			auto it = resources.emplace(hash, std::move(newResource));
-			return it.first->second;
-
+			std::shared_ptr<T> newResource = std::make_shared<T>(m_sVkDevice, m_sVkInstance, args...);
+			resources.emplace(hash, newResource);
+			return newResource;
 		}
 	}
 	template <typename T>

@@ -844,7 +844,11 @@ void EditorLayer::AssetsExplorer()
 									{
 										auto selectedPath = shade::FileDialog::OpenFile("");
 										if (!selectedPath.empty())
+										{
 											path = selectedPath.string();
+											assetData->SetAttribute<std::string>("Path", path);
+										}
+											
 									}
 								}
 								ImGui::EndTable();
