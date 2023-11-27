@@ -1,4 +1,4 @@
 1. Pack textures
 2. Pack srcipts ?
-3.Add material creator
-4. Use Vk_mem_alloc ?
+3. Use Vk_mem_alloc ?
+4. Use enum bit shift for asset type and add space for sub type like TextureType 

@@ -836,7 +836,7 @@ void EditorLayer::AssetsExplorer()
 								ImGui::TableNextColumn();
 								{
 									ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-									if (InputTextD(" ##Path", path)) { assetData->SetAttribute("Path", path); }
+									if (InputTextD(" ##Path", path)) { assetData->SetAttribute<std::string>("Path", path); }
 								}
 								ImGui::TableNextColumn();
 								{
