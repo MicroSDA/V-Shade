@@ -34,11 +34,11 @@ void IModel::ProcessModelNode(shade::SharedPointer<shade::Model>& model, const c
 {
 	for (unsigned int i = 0; i < node->mNumMeshes; i++)
 	{
-		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+		aiMesh* aMesh = scene->mMeshes[node->mMeshes[i]];
 
-		auto _mesh = shade::Mesh::CreateEXP();
-		ProcessMeshNode(_mesh, filePath, mesh, scene);
-		model->AddMesh(_mesh);
+		shade::SharedPointer<shade::Mesh> mesh = shade::Mesh::CreateEXP();
+		ProcessMeshNode(mesh, filePath, aMesh, scene);
+		model->AddMesh(mesh);
 	}
 
 	for (unsigned int i = 0; i < node->mNumChildren; i++)
@@ -47,15 +47,15 @@ void IModel::ProcessModelNode(shade::SharedPointer<shade::Model>& model, const c
 	}
 }
 
-void IModel::ProcessMeshNode(shade::SharedPointer<shade::Mesh>& mesh, const char* filePath, aiMesh* amesh, const aiScene* scene)
+void IModel::ProcessMeshNode(shade::SharedPointer<shade::Mesh>& mesh, const char* filePath, aiMesh* aMesh, const aiScene* scene)
 {
 	shade::SharedPointer<shade::AssetData> assetData = shade::SharedPointer<shade::AssetData>::Create();
-	assetData->SetId(amesh->mName.C_Str());
+	assetData->SetId(aMesh->mName.C_Str());
 	mesh->SetAssetData(assetData);
 
-	for (std::size_t v = 0; v < amesh->mNumVertices; v++)
+	for (std::size_t v = 0; v < aMesh->mNumVertices; v++)
 	{
-		shade::Vertex vertex { .Position = { amesh->mVertices[v].x, amesh->mVertices[v].y, amesh->mVertices[v].z} };
+		shade::Vertex vertex { .Position = { aMesh->mVertices[v].x, aMesh->mVertices[v].y, aMesh->mVertices[v].z} };
 		if (amesh->HasNormals())
 		{
 			vertex.Normal = { amesh->mNormals[v].x ,amesh->mNormals[v].y,amesh->mNormals[v].z };
