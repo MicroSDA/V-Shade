@@ -21,6 +21,16 @@ void shade::Drawable::AddIndices(const Indices& indices, std::size_t lodLevel)
     std::copy(indices.begin(), indices.end(), std::back_inserter(GetLod(lodLevel).Indices));
 }
 
+void shade::Drawable::AddBone(const Bone& bone, std::size_t lodLevel)
+{
+    GetLod(lodLevel).Bones.emplace_back(bone);
+}
+
+void shade::Drawable::AddBones(const Bones& bone, std::size_t lodLevel)
+{
+    std::copy(bone.begin(), bone.end(), std::back_inserter(GetLod(lodLevel).Bones));
+}
+
 void shade::Drawable::SetVertices(Vertices& vertices, std::size_t lodLevel)
 {
     GetLod(lodLevel).Vertices = std::move(vertices);
@@ -35,6 +45,11 @@ void shade::Drawable::SetVertices(std::vector<glm::vec3>& vertices, std::size_t 
 void shade::Drawable::SetIndices(Indices& indices, std::size_t lodLevel)
 {
     GetLod(lodLevel).Indices = std::move(indices);
+}
+
+void shade::Drawable::SetBones(Bones& bones, std::size_t lodLevel)
+{
+   GetLod(lodLevel).Bones = std::move(bones);
 }
 
 const shade::Drawable::Lod& shade::Drawable::GetLod(std::size_t level) const
@@ -95,6 +110,16 @@ shade::Vertices& shade::Drawable::GetVertices()
 shade::Indices& shade::Drawable::GetIndices()
 {
     return GetLod(0).Indices;
+}
+
+const shade::Bones& shade::Drawable::GetBones() const
+{
+    return GetLod(0).Bones;
+}
+
+shade::Bones& shade::Drawable::GetBones()
+{
+    return GetLod(0).Bones;
 }
 
 void shade::Drawable::SetMaterial(Asset<Material> material)

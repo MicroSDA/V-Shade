@@ -8,12 +8,14 @@ namespace shade
 	class SHADE_API Drawable
 	{
 	public:
-		static constexpr std::uint32_t MAX_LEVEL_OF_DETAIL = 10;
+
+		static constexpr std::uint32_t MAX_LEVEL_OF_DETAIL  = 10;
 
 		struct Lod
 		{
 			Vertices Vertices;
 			Indices	 Indices;
+			Bones	 Bones;
 		};
 
 		Drawable() = default;
@@ -25,9 +27,13 @@ namespace shade
 		void AddVertices(const Vertices& vertices, std::size_t lodLevel = 0);
 		void AddIndices(const Indices& indices, std::size_t lodLevel = 0);
 
+		void AddBone(const Bone& bone, std::size_t lodLevel = 0);
+		void AddBones(const Bones& bone, std::size_t lodLevel = 0);
+
 		void SetVertices(Vertices& vertices, std::size_t lodLevel = 0);
 		void SetVertices(std::vector<glm::vec3>& vertices, std::size_t lodLevel = 0);
 		void SetIndices(Indices& indices, std::size_t lodLevel = 0);
+		void SetBones(Bones& bones, std::size_t lodLevel = 0);
 
 		const Lod& GetLod(std::size_t level) const;
 		Lod& GetLod(std::size_t level);
@@ -47,6 +53,10 @@ namespace shade
 		Vertices& GetVertices();
 		// Get Indices of lod = 0;
 		Indices& GetIndices();
+		// Get Bones of lod = 0;
+		const Bones& GetBones() const;
+		// Get Bones of lod = 0;
+		Bones& GetBones();
 
 		void SetMaterial(Asset<Material> material);
 		const Asset<Material>& GetMaterial() const;

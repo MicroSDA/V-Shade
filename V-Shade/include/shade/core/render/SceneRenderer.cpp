@@ -31,6 +31,7 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 		{ "a_Transform",		 Shader::DataType::Float4, VertexBuffer::Layout::Usage::PerInstance},
 		{ "a_Transform",		 Shader::DataType::Float4, VertexBuffer::Layout::Usage::PerInstance}
 	};
+
 	VertexBuffer::Layout gridVertexlayout =
 	{
 		// Per Vertex
