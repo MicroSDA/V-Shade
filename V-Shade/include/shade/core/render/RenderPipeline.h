@@ -12,7 +12,7 @@ namespace shade
 {
 #ifndef BIND_PIPELINE_PROCESS_FUNCTION
 #define BIND_PIPELINE_PROCESS_FUNCTION(class_name, function_name, instance) \
-    std::bind(std::mem_fn(&class_name::function_name), instance, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4)
+    std::bind(std::mem_fn(&class_name::function_name), instance, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5)
 #endif
 #ifndef BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION
 	#define BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION(class_name, function_name, instance) \
@@ -151,7 +151,7 @@ namespace shade
 		template<typename T>
 		T& As();
 
-		std::function<void(SharedPointer<RenderPipeline>& pipeline, const render::SubmitedInstances&, const render::SubmitedSceneRenderData&, std::uint32_t)> Process;
+		std::function<void(SharedPointer<RenderPipeline>&, const render::SubmitedInstances&, const render::SubmitedSceneRenderData&, std::uint32_t, bool)> Process;
 	protected:
 		RenderPipeline::Specification m_Specification;
 	};

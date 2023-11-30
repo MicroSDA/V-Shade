@@ -121,7 +121,15 @@ namespace shade
 			const SharedPointer<VertexBuffer>& vertices,
 			const SharedPointer<IndexBuffer>& indices,
 			const SharedPointer<VertexBuffer>& transforms,
+			std::uint32_t count,
+			std::uint32_t transformOffset) = 0;
+
+		virtual void DrawInstancedAnimated(
+			SharedPointer<RenderCommandBuffer>& commandBuffer,
+			const SharedPointer<VertexBuffer>& vertices,
+			const SharedPointer<IndexBuffer>& indices,
 			const SharedPointer<VertexBuffer>& bones,
+			const SharedPointer<VertexBuffer>& transforms,
 			std::uint32_t count,
 			std::uint32_t transformOffset) = 0;
 

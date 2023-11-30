@@ -151,6 +151,7 @@ std::size_t shade::Mesh::Deserialize(std::istream& stream)
 				Serializer::Deserialize(stream, index);
 
 			SetVertices(vertices, i); SetIndices(indices, i);
+
 		}
 
 		/* AABB */
@@ -164,21 +165,6 @@ std::size_t shade::Mesh::Deserialize(std::istream& stream)
 		SHADE_CORE_WARNING("Couldn't read mesh - corrupted file !");
 	}
 	
-
-	// TODO: Remove it form here, just for test puproses
-
-	for (std::uint32_t i = 0; i < GetVertices().size(); ++i)
-	{
-		Bone bone;
-		for (std::uint32_t j = 0; j < MAX_BONES_PER_VERTEX; ++j)
-		{
-			bone.IDs[j] = i;
-			bone.IDs[j] = j;
-		}
-		
-		GetLod(0).Bones.push_back(bone);
-	}
-
 	return stream.tellg();
 }
 shade::SharedPointer<shade::Mesh> shade::Mesh::CreateEXP()

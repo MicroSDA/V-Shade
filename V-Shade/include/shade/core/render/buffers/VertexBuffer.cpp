@@ -54,30 +54,43 @@ std::uint32_t shade::VertexBuffer::Layout::Element::GetComponentCount(Shader::Da
 	}
 }
 
-std::uint32_t shade::VertexBuffer::Layout::GetStride(Layout::Usage usage)
+std::uint32_t shade::VertexBuffer::Layout::GetStride(std::size_t layout)
 {
-	switch (usage)
-	{
-	case shade::VertexBuffer::Layout::Usage::PerVertex:return m_PerVertexStride;
-	case shade::VertexBuffer::Layout::Usage::PerInstance:return m_PerInstanceStride;
-	default:
-		return 0;
-	}
+	return m_Strides[layout];
 }
 
 std::uint32_t shade::VertexBuffer::Layout::GetCount()
 {
-	return static_cast<std::uint32_t>(m_Elements.size());
+	std::uint32_t count = 0;
+	for (const auto& elementLayout : m_ElementLayouts)
+		for (const auto& element : elementLayout.Elements)
+			count++;
+
+	return count;
 }
 
-const std::vector<shade::VertexBuffer::Layout::Element>& shade::VertexBuffer::Layout::GetElements() const
+const std::vector<shade::VertexBuffer::Layout::ElementsLayout>& shade::VertexBuffer::Layout::GetElementLayouts() const
 {
-	return m_Elements;
+	return m_ElementLayouts;
 }
 
 void shade::VertexBuffer::Layout::ComputeOffsetAndStride()
 {
-	std::uint32_t perVertexOffset = 0, perInstanceOffset = 0;
+	m_Strides.resize(m_ElementLayouts.size(), 0u);
+
+	for (std::uint32_t layoutIndex = 0; layoutIndex < m_ElementLayouts.size(); ++layoutIndex)
+	{
+		std::uint32_t offset = 0;
+
+		for (auto& element : m_ElementLayouts[layoutIndex].Elements)
+		{
+			element.Offset = offset;
+			offset += element.Size;
+			m_Strides[layoutIndex] += element.Size;
+		}
+	}
+
+	/*std::uint32_t perVertexOffset = 0, perInstanceOffset = 0;
 	m_PerVertexStride = 0, m_PerInstanceStride = 0;
 
 	for (auto& element : m_Elements)
@@ -94,5 +107,5 @@ void shade::VertexBuffer::Layout::ComputeOffsetAndStride()
 			perInstanceOffset += element.Size;
 			m_PerInstanceStride += element.Size;
 		}
-	}
+	}*/
 }

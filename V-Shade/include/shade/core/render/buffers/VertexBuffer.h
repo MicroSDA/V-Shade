@@ -12,21 +12,19 @@ namespace shade
 		class Layout
 		{
 		public:
-			enum class Usage
+			enum class Usage : std::uint32_t
 			{
-				None = 0,
 				PerVertex,
 				PerInstance
 			};
 			struct Element
 			{
-				Element() :Name("Undefined"), Type(Shader::DataType::None), Usage(Layout::Usage::PerVertex), Size(0), Offset(0) {};
+				Element() :Name("Undefined"), Type(Shader::DataType::None), Size(0), Offset(0) {};
 				Element(const std::string& name, Shader::DataType type, Layout::Usage usage = Layout::Usage::PerVertex)
-					: Name(name), Type(type), Usage(usage), Size(Shader::GetDataTypeSize(type)), Offset(0) {};
+					: Name(name), Type(type), Size(Shader::GetDataTypeSize(type)), Offset(0) {};
 
 				// TODO: Is name necessary ?
 				std::string Name;
-				Layout::Usage Usage;
 				Shader::DataType Type;
 				std::uint32_t Size;
 				std::uint32_t Offset;
@@ -38,15 +36,16 @@ namespace shade
 				std::vector<Element> Elements;
 			};
 		public:
-			Layout() :m_PerVertexStride(0), m_PerInstanceStride(0) {};
-			Layout(const std::initializer_list<Element>& elements, Layout::Usage usgae = Layout::Usage::PerVertex) : m_Elements(elements) { ComputeOffsetAndStride(); }
+			Layout() = default;
+			Layout(const std::initializer_list<ElementsLayout>& elements, Layout::Usage usgae = Layout::Usage::PerVertex) : m_ElementLayouts(elements) { ComputeOffsetAndStride(); }
+			~Layout() = default;
 		public:
-			std::uint32_t GetStride(Layout::Usage usage);
+			std::uint32_t GetStride(std::size_t layout);
 			std::uint32_t GetCount();
-			const std::vector<Element>& GetElements() const;
+			const std::vector<ElementsLayout>& GetElementLayouts() const;
 		private:
-			std::vector<Element> m_Elements;
-			std::uint32_t m_PerVertexStride, m_PerInstanceStride;
+			std::vector<ElementsLayout> m_ElementLayouts;
+			std::vector<std::uint32_t> m_Strides;
 		
 			void ComputeOffsetAndStride();
 		};

@@ -229,42 +229,54 @@ void shade::VulkanPipeline::Invalidate()
 		};
 		/*	A vertex binding describes at which rate to load data from memory throughout the vertices.
 			It specifies the number of bytes between data entries and whether to move to the next data entry after each vertex or after each instance. */
-		std::vector<VkVertexInputBindingDescription> vertexInputBindingDescriptions
+		std::vector<VkVertexInputBindingDescription> vertexInputBindingDescriptions(m_Specification.VertexLayout.GetElementLayouts().size());
+		for (std::uint32_t i = 0; i < vertexInputBindingDescriptions.size(); ++i)
 		{
-			// Vertex
+			vertexInputBindingDescriptions[i] =
 			{
-				.binding = 0,
-				// Size of one pice of data per Vertex !
-				.stride = m_Specification.VertexLayout.GetStride(VertexBuffer::Layout::Usage::PerVertex),
-				.inputRate = VK_VERTEX_INPUT_RATE_VERTEX
-			},
-			// Transform
-			{
-				.binding = 1,
-				// Size of one pice of data per Instance !
-				.stride = m_Specification.VertexLayout.GetStride(VertexBuffer::Layout::Usage::PerInstance),
-				.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE
-			}
-		};
+				.binding = i,
+				.stride = m_Specification.VertexLayout.GetStride(i),
+				.inputRate = static_cast<VkVertexInputRate>(m_Specification.VertexLayout.GetElementLayouts()[i].Usage)
+			};
+		}
 		/* The structure that describes how to handle vertex input. */
 		std::vector<VkVertexInputAttributeDescription> vertexInputAttributeDescription(m_Specification.VertexLayout.GetCount());
 
-		for (auto i = 0; i < vertexInputAttributeDescription.size(); i++)
+		std::uint32_t elementIndex = 0;
+		for (std::uint32_t i = 0; i < m_Specification.VertexLayout.GetElementLayouts().size(); ++i)
 		{
-			for (const auto& description : vertexInputBindingDescriptions)
+			for (std::uint32_t j = 0; j < m_Specification.VertexLayout.GetElementLayouts()[i].Elements.size(); ++j)
 			{
-				// Per vertex binding
-				if (description.inputRate == VK_VERTEX_INPUT_RATE_VERTEX && m_Specification.VertexLayout.GetElements()[i].Usage == VertexBuffer::Layout::Usage::PerVertex)
-					vertexInputAttributeDescription[i].binding = description.binding;
-				// Per instance binding
-				if (description.inputRate == VK_VERTEX_INPUT_RATE_INSTANCE && m_Specification.VertexLayout.GetElements()[i].Usage == VertexBuffer::Layout::Usage::PerInstance)
-					vertexInputAttributeDescription[i].binding = description.binding;
-			}
+				vertexInputAttributeDescription[elementIndex] =
+				{
+					.location	= elementIndex,
+					.binding	= i,
+					.format		= VulkanShader::GetShaderDataToVulkanFormat(m_Specification.VertexLayout.GetElementLayouts()[i].Elements[j].Type),
+					.offset		= m_Specification.VertexLayout.GetElementLayouts()[i].Elements[j].Offset
+				};
 
-			vertexInputAttributeDescription[i].location = i;
-			vertexInputAttributeDescription[i].format = VulkanShader::GetShaderDataToVulkanFormat(m_Specification.VertexLayout.GetElements()[i].Type);
-			vertexInputAttributeDescription[i].offset = m_Specification.VertexLayout.GetElements()[i].Offset;
+				++elementIndex;
+			}
 		}
+		//for (std::uint32_t i = 0; i < vertexInputAttributeDescription.size(); i++)
+		//{
+
+
+		//	for (const auto& description : vertexInputBindingDescriptions)
+		//	{
+		//		description.inputRate
+		//		// Per vertex binding
+		//		if (description.inputRate == VK_VERTEX_INPUT_RATE_VERTEX && m_Specification.VertexLayout.GetElements()[i].Usage == VertexBuffer::Layout::Usage::PerVertex)
+		//			vertexInputAttributeDescription[i].binding = description.binding;
+		//		// Per instance binding
+		//		if (description.inputRate == VK_VERTEX_INPUT_RATE_INSTANCE && m_Specification.VertexLayout.GetElements()[i].Usage == VertexBuffer::Layout::Usage::PerInstance)
+		//			vertexInputAttributeDescription[i].binding = description.binding;
+		//	}
+
+		//	vertexInputAttributeDescription[i].location = i;
+		//	vertexInputAttributeDescription[i].format = VulkanShader::GetShaderDataToVulkanFormat(m_Specification.VertexLayout.GetElements()[i].Type);
+		//	vertexInputAttributeDescription[i].offset = m_Specification.VertexLayout.GetElements()[i].Offset;
+		//}
 
 		/* Contains the information for vertex buffers and vertex formats.
 		   This is equivalent to the VAO configuration on opengl.*/

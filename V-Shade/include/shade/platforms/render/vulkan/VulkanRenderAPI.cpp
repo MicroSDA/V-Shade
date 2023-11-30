@@ -261,18 +261,25 @@ void shade::VulkanRenderAPI::EndRender(SharedPointer<RenderCommandBuffer>& comma
 	vkCmdEndRendering(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(frameIndex));
 }
 
-void shade::VulkanRenderAPI::DrawInstanced(SharedPointer<RenderCommandBuffer>& commandBuffer, const SharedPointer<VertexBuffer>& vertices, const SharedPointer<IndexBuffer>& indices, const SharedPointer<VertexBuffer>& transforms, const SharedPointer<VertexBuffer>& bones, std::uint32_t count, std::uint32_t transformOffset)
+void shade::VulkanRenderAPI::DrawInstanced(SharedPointer<RenderCommandBuffer>& commandBuffer, const SharedPointer<VertexBuffer>& vertices, const SharedPointer<IndexBuffer>& indices, const SharedPointer<VertexBuffer>& transforms, std::uint32_t count, std::uint32_t transformOffset)
 {
-	static constexpr std::uint32_t VERTEX_BINDING = 0, TRANSFORMS_BINDING = 1, BONES_BINDING = 2;
+	static constexpr std::uint32_t VERTEX_BINDING = 0, TRANSFORMS_BINDING = 1;
 
 	vertices->Bind(commandBuffer, m_sCurrentFrameIndex, VERTEX_BINDING);
 	indices->Bind(commandBuffer, m_sCurrentFrameIndex);
 	transforms->Bind(commandBuffer, m_sCurrentFrameIndex, TRANSFORMS_BINDING, transformOffset);
 
-	if (bones)
-	{
-		bones->Bind(commandBuffer, m_sCurrentFrameIndex, 2);
-	}
+	vkCmdDrawIndexed(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(m_sCurrentFrameIndex), static_cast<std::uint32_t>(indices->GetCount()), count, 0, 0, 0);
+}
+
+void shade::VulkanRenderAPI::DrawInstancedAnimated(SharedPointer<RenderCommandBuffer>& commandBuffer, const SharedPointer<VertexBuffer>& vertices, const SharedPointer<IndexBuffer>& indices, const SharedPointer<VertexBuffer>& bones, const SharedPointer<VertexBuffer>& transforms, std::uint32_t count, std::uint32_t transformOffset)
+{
+	static constexpr std::uint32_t VERTEX_BINDING = 0, BONES_BINDING = 1, TRANSFORMS_BINDING = 2;
+
+	vertices->Bind(commandBuffer, m_sCurrentFrameIndex, VERTEX_BINDING);
+	indices->Bind(commandBuffer, m_sCurrentFrameIndex);
+	bones->Bind(commandBuffer, m_sCurrentFrameIndex, BONES_BINDING);
+	transforms->Bind(commandBuffer, m_sCurrentFrameIndex, TRANSFORMS_BINDING, transformOffset);
 
 	vkCmdDrawIndexed(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(m_sCurrentFrameIndex), static_cast<std::uint32_t>(indices->GetCount()), count, 0, 0, 0);
 }

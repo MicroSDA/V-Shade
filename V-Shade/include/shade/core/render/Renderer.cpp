@@ -298,7 +298,7 @@ void shade::Renderer::EndRender(SharedPointer<RenderCommandBuffer>& commandBuffe
 
 void shade::Renderer::DrawInstanced(SharedPointer<RenderCommandBuffer>& commandBuffer, const SharedPointer<VertexBuffer>& vertices, const SharedPointer<IndexBuffer>& indices, const SharedPointer<VertexBuffer>& transforms, const SharedPointer<VertexBuffer>& bones, std::uint32_t count, std::uint32_t transformOffset)
 {
-	m_sRenderAPI->DrawInstanced(commandBuffer, vertices, indices, transforms, bones, count, transformOffset);
+	m_sRenderAPI->DrawInstanced(commandBuffer, vertices, indices, transforms, count, transformOffset);
 }
 
 void shade::Renderer::DrawSubmitedInstanced(SharedPointer<RenderCommandBuffer>& commandBuffer, const SharedPointer<RenderPipeline>& pipeline, std::size_t instance, std::size_t material, std::uint32_t frameIndex, std::size_t lod, std::uint32_t splitOffset)
@@ -312,12 +312,25 @@ void shade::Renderer::DrawSubmitedInstanced(SharedPointer<RenderCommandBuffer>& 
 	{
 		auto& i = m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.at(instance)[lod].VB;
 
-		m_sRenderAPI->DrawInstanced(commandBuffer, 
-			m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.at(instance)[lod].VB, 
-			m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.at(instance)[lod].IB, 
-			m_sRenderAPI->m_sSubmitedSceneRenderData.TransformBuffers[frameIndex], 
-			m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.at(instance)[lod].BW,
-			rawData->second.Transforms.size(), rawData->second.TransformOffset);
+		if (m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.at(instance)[lod].BW)
+		{
+			// Draw as animated with bone data.
+			m_sRenderAPI->DrawInstancedAnimated(commandBuffer,
+				m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.at(instance)[lod].VB,
+				m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.at(instance)[lod].IB,
+				m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.at(instance)[lod].BW,
+				m_sRenderAPI->m_sSubmitedSceneRenderData.TransformBuffers[frameIndex],
+				rawData->second.Transforms.size(), rawData->second.TransformOffset);
+		}
+		else
+		{
+			// Draw as static without bone data.
+			m_sRenderAPI->DrawInstanced(commandBuffer,
+				m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.at(instance)[lod].VB,
+				m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.at(instance)[lod].IB,
+				m_sRenderAPI->m_sSubmitedSceneRenderData.TransformBuffers[frameIndex],
+				rawData->second.Transforms.size(), rawData->second.TransformOffset);
+		}
 	}
 }
 
@@ -407,7 +420,7 @@ void shade::Renderer::SubmitStaticMeshDynamicLOD(const SharedPointer<RenderPipel
 	}
 }
 
-bool shade::Renderer::ExecuteSubmitedRenderPipeline(SharedPointer<RenderPipeline>& pipeline, std::uint32_t frameIndex)
+bool shade::Renderer::ExecuteSubmitedRenderPipeline(SharedPointer<RenderPipeline>& pipeline, std::uint32_t frameIndex, bool isForceClear)
 {
 	// Search for the submitted pipelines map
 	auto search = m_sRenderAPI->m_sSubmitedPipelines.find(pipeline);
@@ -415,7 +428,7 @@ bool shade::Renderer::ExecuteSubmitedRenderPipeline(SharedPointer<RenderPipeline
 	if (search != m_sRenderAPI->m_sSubmitedPipelines.end())
 	{
 		// Process the pipeline
-		pipeline->Process(pipeline, search->second, m_sRenderAPI->m_sSubmitedSceneRenderData, frameIndex);
+		pipeline->Process(pipeline, search->second, m_sRenderAPI->m_sSubmitedSceneRenderData, frameIndex, isForceClear);
 		return true;
 	}
 	// If the pipeline is not found, return false
@@ -558,50 +571,26 @@ void shade::Renderer::CreateInstancedGeometryBuffer(const Asset<Drawable>& drawa
 		if (bones.size())
 			buffer[lod].BW = VertexBuffer::Create(VertexBuffer::Usage::GPU, BONES_DATA_SIZE(bones.size()), 0, bones.data());
 	}
-	
-
-	//if (lod != 0 && vertices.size() && indices.size())
-	//{
-	//	buffer[lod].VB = VertexBuffer::Create(VertexBuffer::Usage::GPU, VERTICES_DATA_SIZE(vertices.size()), 0, vertices.data());
-	//	// Create an index buffer for the drawable object's indices
-	//	buffer[lod].IB = IndexBuffer::Create(IndexBuffer::Usage::GPU, INDICES_DATA_SIZE(indices.size()), 0, indices.data());
-	//}
-	//else
-	//{
-	//	buffer[lod].VB = VertexBuffer::Create(VertexBuffer::Usage::GPU, VERTICES_DATA_SIZE(drawable->GetLod(0).Vertices.size()), 0, drawable->GetLod(0).Vertices.data());
-	//	// Create an index buffer for the drawable object's indices
-	//	buffer[lod].IB = IndexBuffer::Create(IndexBuffer::Usage::GPU, INDICES_DATA_SIZE(drawable->GetLod(0).Indices.size()), 0, drawable->GetLod(0).Indices.data());
-	//	if (bones.size())
-	//	{
-	//		buffer[lod].BW = VertexBuffer::Create(VertexBuffer::Usage::GPU, BONES_DATA_SIZE(drawable->GetLod(0).Bones.size()), 0, drawable->GetLod(0).Bones.data());
-	//	}
-	//}
 }
 
 void shade::Renderer::CreateInstancedGeometryBuffer(const SharedPointer<Drawable>& drawable, std::size_t lod)
 {
 	// Get the geometry buffer of the current drawable object
 	auto& buffer = m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers[drawable];
-	// Create a vertex buffer for the drawable object's vertices
-	auto& vertices = drawable->GetLod(lod).Vertices;
-	auto& indices  = drawable->GetLod(lod).Indices;
-	auto& bones	   = drawable->GetLod(lod).Bones;
 
-	if (lod != 0 && vertices.size() && indices.size())
+	const auto& vertices	= drawable->GetLod((lod) ? lod : 0).Vertices;
+	const auto& indices		= drawable->GetLod((lod) ? lod : 0).Indices;
+	const auto& bones		= drawable->GetLod((lod) ? lod : 0).Bones;
+
+	if (vertices.size() && indices.size())
 	{
+		// Create a vertex buffer for the drawable object's vertices
 		buffer[lod].VB = VertexBuffer::Create(VertexBuffer::Usage::GPU, VERTICES_DATA_SIZE(vertices.size()), 0, vertices.data());
 		// Create an index buffer for the drawable object's indices
 		buffer[lod].IB = IndexBuffer::Create(IndexBuffer::Usage::GPU, INDICES_DATA_SIZE(indices.size()), 0, indices.data());
-	}
-	else
-	{
-		buffer[lod].VB = VertexBuffer::Create(VertexBuffer::Usage::GPU, VERTICES_DATA_SIZE(drawable->GetLod(0).Vertices.size()), 0, drawable->GetLod(0).Vertices.data());
-		// Create an index buffer for the drawable object's indices
-		buffer[lod].IB = IndexBuffer::Create(IndexBuffer::Usage::GPU, INDICES_DATA_SIZE(drawable->GetLod(0).Indices.size()), 0, drawable->GetLod(0).Indices.data());
+
 		if (bones.size())
-		{
-			buffer[lod].BW = VertexBuffer::Create(VertexBuffer::Usage::GPU, BONES_DATA_SIZE(drawable->GetLod(0).Bones.size()), 0, drawable->GetLod(0).Bones.data());
-		}
+			buffer[lod].BW = VertexBuffer::Create(VertexBuffer::Usage::GPU, BONES_DATA_SIZE(bones.size()), 0, bones.data());
 	}
 }
 

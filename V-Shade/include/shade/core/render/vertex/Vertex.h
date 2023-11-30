@@ -42,7 +42,7 @@ namespace shade
 		{
 			for (auto i = 0; i < MAX_BONES_PER_VERTEX; ++i)
 			{
-				IDs[i]		= std::numeric_limits<std::uint32_t>::max();
+				IDs[i]		= ~0;
 				Weights[i]	= 0.f;
 			}
 		}
