@@ -152,12 +152,14 @@ void IModel::ProcessBones(shade::SharedPointer<shade::Mesh>& mesh, const char* f
 			float weight = aMesh->mBones[boneIndex]->mWeights[weightIndex].mWeight;
 			assert(vertexId <= mesh->GetVertices().size());
 
-			for (auto &bone : mesh->GetBones()[vertexId])
+			for (std::uint32_t i = 0; i < shade::MAX_BONES_PER_VERTEX; ++i)
 			{
-				if (bone.Id == std::numeric_limits<std::uint32_t>::max())
+				auto& bone = mesh->GetBones()[vertexId];
+
+				if (bone.IDs[i] == std::numeric_limits<std::uint32_t>::max())
 				{
-					bone.Id = boneId;
-					bone.Weight = weight;
+					bone.IDs[i] = boneId;
+					bone.Weights[i] = weight;
 					break;
 				}
 			}

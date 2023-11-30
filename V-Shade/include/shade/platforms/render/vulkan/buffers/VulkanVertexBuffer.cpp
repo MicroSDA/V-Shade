@@ -118,7 +118,7 @@ const VkBuffer* shade::VulkanVertexBuffer::GetBuffer() const
 void shade::VulkanVertexBuffer::Bind(SharedPointer<RenderCommandBuffer>& commandBuffer, std::uint32_t frameIndex, std::uint32_t binding, std::uint32_t offset) const
 {
 	VkDeviceSize instanceOffset[1] = { offset };
-	vkCmdBindVertexBuffers(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(frameIndex), binding, 1, GetBuffer(), instanceOffset);
+	vkCmdBindVertexBuffers(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(frameIndex), binding, 1, &m_Buffer, instanceOffset);
 }
 
 void shade::VulkanVertexBuffer::Invalidate(Usage usage, std::uint32_t size, std::size_t resizeThreshold)

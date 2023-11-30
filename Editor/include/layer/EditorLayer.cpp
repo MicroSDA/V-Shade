@@ -164,6 +164,14 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 							if (!selectedPath.empty())
 							{
 								m_ImportedModel = IModel::Import(selectedPath.string());
+								if (m_ImportedModel)
+								{
+									// Temorary and actually wrong bcs we need to create imported model entity as part of editor layer!
+									auto imEntity = scene->CreateEntity();
+									imEntity.AddComponent<shade::TagComponent>("Improted model");
+									imEntity.AddComponent<shade::TransformComponent>();
+									imEntity.AddComponent<shade::ModelComponent>(m_ImportedModel);
+								}
 
 								from = selectedPath.string();
 							}

@@ -21,8 +21,8 @@ namespace shade
 			struct Element
 			{
 				Element() :Name("Undefined"), Type(Shader::DataType::None), Usage(Layout::Usage::PerVertex), Size(0), Offset(0) {};
-				Element(const std::string& name, Shader::DataType type, Layout::Usage usgae = Layout::Usage::PerVertex)
-					: Name(name), Type(type), Usage(usgae), Size(Shader::GetDataTypeSize(type)), Offset(0) {};
+				Element(const std::string& name, Shader::DataType type, Layout::Usage usage = Layout::Usage::PerVertex)
+					: Name(name), Type(type), Usage(usage), Size(Shader::GetDataTypeSize(type)), Offset(0) {};
 
 				// TODO: Is name necessary ?
 				std::string Name;
@@ -31,6 +31,11 @@ namespace shade
 				std::uint32_t Size;
 				std::uint32_t Offset;
 				static std::uint32_t GetComponentCount(Shader::DataType type);
+			};
+			struct ElementsLayout
+			{
+				Layout::Usage Usage;
+				std::vector<Element> Elements;
 			};
 		public:
 			Layout() :m_PerVertexStride(0), m_PerInstanceStride(0) {};

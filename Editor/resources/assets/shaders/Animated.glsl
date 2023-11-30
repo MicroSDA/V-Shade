@@ -6,12 +6,16 @@
 #include "include/Camera.glsl"
 #include "include/Vertex.glsl"
 //Input attributes
-layout(location = 0) in vec3 a_Position;
-layout(location = 1) in vec3 a_Normal;
-layout(location = 2) in vec3 a_Tangent;
-layout(location = 3) in vec3 a_Bitangent;
-layout(location = 4) in vec2 a_UV_Coordinates;
-layout(location = 5) in mat4 a_Transform;
+
+layout(location = 0)  in vec3  a_Position;
+layout(location = 1)  in vec3  a_Normal;
+layout(location = 2)  in vec3  a_Tangent;
+layout(location = 3)  in vec3  a_Bitangent;
+layout(location = 4)  in vec2  a_UV_Coordinates;
+layout(location = 5)  in ivec4 a_BoneId;
+layout(location = 6)  in vec4  a_BoneWeight;
+layout(location = 7)  in mat4  a_Transform;
+
 //Output variables
 layout(location = 0) out vec2 out_UV_Coordinates;
 layout(location = 1) out vec3 out_NormalWorldSpace;

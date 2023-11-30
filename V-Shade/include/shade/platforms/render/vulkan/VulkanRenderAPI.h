@@ -27,7 +27,14 @@ namespace shade
 
 		virtual void EndRender(SharedPointer<RenderCommandBuffer>& commandBuffer, std::uint32_t frameIndex) override;
 
-		virtual void DrawInstanced(SharedPointer<RenderCommandBuffer>& commandBuffer, const SharedPointer<VertexBuffer>& vertices, const SharedPointer<IndexBuffer>& indices, const SharedPointer<VertexBuffer>& transforms, std::uint32_t count, std::uint32_t transformOffset) override;
+		virtual void DrawInstanced(
+			SharedPointer<RenderCommandBuffer>& commandBuffer, 
+			const SharedPointer<VertexBuffer>& vertices, 
+			const SharedPointer<IndexBuffer>& indices,
+			const SharedPointer<VertexBuffer>& transforms,
+			const SharedPointer<VertexBuffer>& bones,
+			std::uint32_t count,
+			std::uint32_t transformOffset) override;
 
 		static const std::shared_ptr<shade::VulkanDescriptorSet> GetGlobalDescriptorSet(std::uint32_t frameIndex);
 

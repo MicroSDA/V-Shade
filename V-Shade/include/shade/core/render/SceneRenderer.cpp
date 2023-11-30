@@ -32,6 +32,27 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 		{ "a_Transform",		 Shader::DataType::Float4, VertexBuffer::Layout::Usage::PerInstance}
 	};
 
+
+
+	VertexBuffer::Layout animatedVertexlayout =
+	{
+		// Per Vertex
+		{ "a_Position",			 Shader::DataType::Float3, VertexBuffer::Layout::Usage::PerVertex},
+		{ "a_Normal",			 Shader::DataType::Float3, VertexBuffer::Layout::Usage::PerVertex},
+		{ "a_Tangent",			 Shader::DataType::Float3, VertexBuffer::Layout::Usage::PerVertex},
+		{ "a_Bitangent",		 Shader::DataType::Float3, VertexBuffer::Layout::Usage::PerVertex},
+		{ "a_UV_Coordinates",	 Shader::DataType::Float2, VertexBuffer::Layout::Usage::PerVertex},
+		// Нужно сепарировать этот участок, что бы пейплайн понимал что тут идет другой буффер наверно, потому что его не видит вообще ! его как будто нету в пейлайн леауте
+		{ "a_BoneIds",			 Shader::DataType::Int4,   VertexBuffer::Layout::Usage::PerVertex},
+		{ "a_BoneWeights",		 Shader::DataType::Float4, VertexBuffer::Layout::Usage::PerVertex},
+		// Per instance
+		{ "a_Transform",		 Shader::DataType::Float4, VertexBuffer::Layout::Usage::PerInstance},
+		{ "a_Transform",		 Shader::DataType::Float4, VertexBuffer::Layout::Usage::PerInstance},
+		{ "a_Transform",		 Shader::DataType::Float4, VertexBuffer::Layout::Usage::PerInstance},
+		{ "a_Transform",		 Shader::DataType::Float4, VertexBuffer::Layout::Usage::PerInstance},
+	
+	};
+
 	VertexBuffer::Layout gridVertexlayout =
 	{
 		// Per Vertex
@@ -58,10 +79,18 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 
 	m_MainGeometryPipeline = shade::RenderPipeline::Create(
 		{
-			.Shader = ShaderLibrary::Create("Main", "./resources/assets/shaders/Shader.glsl"),
+			.Shader = ShaderLibrary::Create("Main", "./resources/assets/shaders/Animated.glsl"),
+			.FrameBuffer = m_MainTargetFrameBuffer[0],
+			.VertexLayout = animatedVertexlayout,
+		});
+
+	m_AnimatedPipeline = shade::RenderPipeline::Create(
+		{
+			.Shader = ShaderLibrary::Create("Main", "./resources/assets/shaders/Animated.glsl"),
 			.FrameBuffer = m_MainTargetFrameBuffer[0],
 			.VertexLayout = mainGeometryVertexlayout,
 		});
+
 	m_LightCullingPreDepthPipeline = shade::RenderPipeline::Create(
 		{
 			.Shader = ShaderLibrary::Create("PreDepth", "./resources/assets/shaders/preprocess/Tiled-Forward-Pre-Depth.glsl"),

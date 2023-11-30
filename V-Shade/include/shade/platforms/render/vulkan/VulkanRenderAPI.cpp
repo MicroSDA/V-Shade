@@ -30,10 +30,10 @@ shade::UniquePointer<shade::RenderContext> shade::VulkanRenderAPI::Initialize(co
 		// Camera
 		{
 			.binding = CAMERA_BINDING,
-				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				.descriptorCount = 1,
-				.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_COMPUTE_BIT,
-				.pImmutableSamplers = VK_NULL_HANDLE
+			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			.descriptorCount = 1,
+			.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_COMPUTE_BIT,
+			.pImmutableSamplers = VK_NULL_HANDLE
 		},
 			// Scene Data
 		{
@@ -43,6 +43,7 @@ shade::UniquePointer<shade::RenderContext> shade::VulkanRenderAPI::Initialize(co
 			.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_COMPUTE_BIT,
 			.pImmutableSamplers = VK_NULL_HANDLE
 		},
+			// Render settings
 		{
 			.binding = RENDER_SETTINGS_BINDING,
 			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -50,15 +51,7 @@ shade::UniquePointer<shade::RenderContext> shade::VulkanRenderAPI::Initialize(co
 			.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_COMPUTE_BIT,
 			.pImmutableSamplers = VK_NULL_HANDLE
 		},
-			//	// Materials
-			//{
-			//	.binding = 2,
-			//	.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-			//	.descriptorCount = 1,
-			//	.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_COMPUTE_BIT,
-			//	.pImmutableSamplers = VK_NULL_HANDLE
-			//},
-				// Directional lights
+			// Directional lights
 		{
 			.binding = GLOBAL_LIGHT_BINDING,
 			.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -100,8 +93,9 @@ void shade::VulkanRenderAPI::ShutDown()
 void shade::VulkanRenderAPI::BeginFrame(std::uint32_t frameIndex)
 {
 	SetCurrentFrameIndex(frameIndex);
-	VulkanDescriptorsManager::ResetDepricated(frameIndex);
-	//VulkanDescriptorsManager::ResetAllDescripotrs(frameIndex);
+	//VulkanDescriptorsManager::ResetDepricated(frameIndex);
+	// For RenderDoc
+	VulkanDescriptorsManager::ResetAllDescripotrs(frameIndex);
 }
 
 void shade::VulkanRenderAPI::EndFrame(std::uint32_t frameIndex)
@@ -267,16 +261,20 @@ void shade::VulkanRenderAPI::EndRender(SharedPointer<RenderCommandBuffer>& comma
 	vkCmdEndRendering(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(frameIndex));
 }
 
-void shade::VulkanRenderAPI::DrawInstanced(SharedPointer<RenderCommandBuffer>& commandBuffer, const SharedPointer<VertexBuffer>& vertices, const SharedPointer<IndexBuffer>& indices, const SharedPointer<VertexBuffer>& transforms, std::uint32_t count, std::uint32_t transformOffset)
+void shade::VulkanRenderAPI::DrawInstanced(SharedPointer<RenderCommandBuffer>& commandBuffer, const SharedPointer<VertexBuffer>& vertices, const SharedPointer<IndexBuffer>& indices, const SharedPointer<VertexBuffer>& transforms, const SharedPointer<VertexBuffer>& bones, std::uint32_t count, std::uint32_t transformOffset)
 {
-	static const std::uint32_t VERTEX_BINDING = 0, TRANSFORMS_BINDING = 1;
+	static constexpr std::uint32_t VERTEX_BINDING = 0, TRANSFORMS_BINDING = 1, BONES_BINDING = 2;
 
 	vertices->Bind(commandBuffer, m_sCurrentFrameIndex, VERTEX_BINDING);
 	indices->Bind(commandBuffer, m_sCurrentFrameIndex);
 	transforms->Bind(commandBuffer, m_sCurrentFrameIndex, TRANSFORMS_BINDING, transformOffset);
 
+	if (bones)
+	{
+		bones->Bind(commandBuffer, m_sCurrentFrameIndex, 2);
+	}
+
 	vkCmdDrawIndexed(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(m_sCurrentFrameIndex), static_cast<std::uint32_t>(indices->GetCount()), count, 0, 0, 0);
-	//vkCmdDraw(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(m_sCurrentFrameIndex), static_cast<std::uint32_t>(vertices->GetSize() / VERTEX_DATA_SIZE), count, 0, 0);
 }
 
 const std::shared_ptr<shade::VulkanDescriptorSet> shade::VulkanRenderAPI::GetGlobalDescriptorSet(std::uint32_t frameIndex)
@@ -353,6 +351,6 @@ std::uint32_t shade::VulkanRenderAPI::GetMaxImageLayers() const
 
 std::uint32_t shade::VulkanRenderAPI::GetMaxViewportsCount() const
 {
-	auto v = VulkanContext::GetPhysicalDevice()->GetPhysicalDeviceProperties().limits.maxGeometryOutputVertices;
+	//VulkanContext::GetPhysicalDevice()->GetPhysicalDeviceProperties().limits.maxGeometryOutputVertices;
 	return VulkanContext::GetPhysicalDevice()->GetPhysicalDeviceProperties().limits.maxViewports;
 }

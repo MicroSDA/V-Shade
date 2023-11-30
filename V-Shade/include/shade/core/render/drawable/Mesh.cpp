@@ -165,6 +165,20 @@ std::size_t shade::Mesh::Deserialize(std::istream& stream)
 	}
 	
 
+	// TODO: Remove it form here, just for test puproses
+
+	for (std::uint32_t i = 0; i < GetVertices().size(); ++i)
+	{
+		Bone bone;
+		for (std::uint32_t j = 0; j < MAX_BONES_PER_VERTEX; ++j)
+		{
+			bone.IDs[j] = i;
+			bone.IDs[j] = j;
+		}
+		
+		GetLod(0).Bones.push_back(bone);
+	}
+
 	return stream.tellg();
 }
 shade::SharedPointer<shade::Mesh> shade::Mesh::CreateEXP()

@@ -182,6 +182,7 @@ namespace shade
 
 		std::vector<SharedPointer<FrameBuffer>>	m_MainTargetFrameBuffer;
 		SharedPointer<RenderPipeline>	m_MainGeometryPipeline;
+		SharedPointer<RenderPipeline>	m_AnimatedPipeline;
 
 		SharedPointer<FrameBuffer>		m_LightCullingPreDepthFrameBuffer;
 		SharedPointer<RenderPipeline>	m_LightCullingPreDepthPipeline;

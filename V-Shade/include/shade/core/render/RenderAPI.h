@@ -30,6 +30,7 @@ namespace shade
 	class SHADE_API RenderAPI
 	{
 	public:
+		// TODO: Probably need to change it or way to how it works, mby we need to parse data form shader and set binding ids from here !		
 		// Set 0
 		static constexpr std::uint32_t CAMERA_BINDING					= 0;
 		static constexpr std::uint32_t SCENE_RENDER_DATA_BINDING		= 1;
@@ -47,7 +48,7 @@ namespace shade
 		static constexpr std::uint32_t POINT_SHADOW_MAP_BINDING			= 6;
 		static constexpr std::uint32_t SPOT_LIGHT_INDINCES_BINDING		= 7;
 		static constexpr std::uint32_t POINT_LIGHT_INDINCES_BINDING		= 8;
-		
+
 		static constexpr std::uint32_t MAX_GLOBAL_LIGHTS_COUNT			= 10;
 		static constexpr std::uint32_t MAX_GLOBAL_SHADOW_CASTERS		= 1;
 		static constexpr std::uint32_t MAX_POINT_LIGHTS_COUNT			= 1024;
@@ -115,7 +116,14 @@ namespace shade
 		virtual void BeginRenderWithCustomomViewPort(SharedPointer<RenderCommandBuffer>& commandBuffer, SharedPointer<RenderPipeline>& pipeline, std::uint32_t frameIndex, glm::vec2 viewPort, bool isClear) = 0;
 
 		virtual void EndRender(SharedPointer<RenderCommandBuffer>& commandBuffer, std::uint32_t frameIndex) = 0;
-		virtual void DrawInstanced(SharedPointer<RenderCommandBuffer>& commandBuffer, const SharedPointer<VertexBuffer>& vertices, const SharedPointer<IndexBuffer>& indices, const SharedPointer<VertexBuffer>& transforms, std::uint32_t count, std::uint32_t transformOffset) = 0;
+		virtual void DrawInstanced(
+			SharedPointer<RenderCommandBuffer>& commandBuffer,
+			const SharedPointer<VertexBuffer>& vertices,
+			const SharedPointer<IndexBuffer>& indices,
+			const SharedPointer<VertexBuffer>& transforms,
+			const SharedPointer<VertexBuffer>& bones,
+			std::uint32_t count,
+			std::uint32_t transformOffset) = 0;
 
 		virtual void BeginTimestamp(SharedPointer<RenderCommandBuffer>& commandBuffer, const std::string& name) = 0;
 		virtual float EndTimestamp(SharedPointer<RenderCommandBuffer>& commandBuffer, const std::string& name) = 0;

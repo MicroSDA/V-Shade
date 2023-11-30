@@ -64,6 +64,8 @@ namespace shade
 			SharedPointer<VertexBuffer> VB;
 			// Indices.
 			SharedPointer<IndexBuffer>  IB;
+			// Bones&Weights
+			SharedPointer<VertexBuffer> BW;
 		};
 
 		struct InstanceRawData
@@ -82,7 +84,7 @@ namespace shade
 		struct SubmitedSceneRenderData
 		{
 			// Where size_t is Asset<Drawable> hash - > Geometry buffers
-			std::unordered_map<std::size_t, std::array<render::GeometryBuffer, 10>> GeometryBuffers;
+			std::unordered_map<std::size_t, std::array<render::GeometryBuffer, Drawable::MAX_LEVEL_OF_DETAIL>> GeometryBuffers;
 			// Where size_t is hash of (Pipeline, Drawable, Material) - > Transforms and materials with offset.
 			std::unordered_map<std::size_t, InstanceRawData> InstanceRawData;
 			// Where index is frame index.

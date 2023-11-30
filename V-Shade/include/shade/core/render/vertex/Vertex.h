@@ -34,18 +34,25 @@ namespace shade
 		}
 	};
 
-	static constexpr std::uint32_t MAX_BONES_PER_VERTEX = 5;
+	static constexpr std::uint32_t MAX_BONES_PER_VERTEX = 4;
 
-	struct BoneData
+	struct Bone
 	{
-		std::uint32_t Id	= std::numeric_limits<std::uint32_t>::max();
-		float Weight		= 0.f;
+		Bone()
+		{
+			for (auto i = 0; i < MAX_BONES_PER_VERTEX; ++i)
+			{
+				IDs[i]		= std::numeric_limits<std::uint32_t>::max();
+				Weights[i]	= 0.f;
+			}
+		}
+		std::array<std::uint32_t, MAX_BONES_PER_VERTEX> IDs;
+		std::array<float, MAX_BONES_PER_VERTEX> Weights;
 	};
 
 	using Vertices	= std::vector<Vertex>;
 	using Index		= std::uint32_t;
 	using Indices	= std::vector<Index>;
-	using Bone		= std::array<BoneData, MAX_BONES_PER_VERTEX>;
 	using Bones		= std::vector<Bone>;
 	
 	namespace algo
@@ -71,7 +78,7 @@ namespace shade
 #endif // !INDICES_DATA_SIZE
 
 #ifndef BONE_DATA_SIZE
-	#define BONE_DATA_SIZE (sizeof(BoneData) * MAX_BONES_PER_VERTEX)
+	#define BONE_DATA_SIZE (sizeof(Bone))
 #endif // !BONE_DATA_SIZE
 
 #ifndef BONES_DATA_SIZE

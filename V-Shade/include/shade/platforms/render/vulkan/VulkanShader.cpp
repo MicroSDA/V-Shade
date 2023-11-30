@@ -395,6 +395,11 @@ VkFormat shade::VulkanShader::GetShaderDataToVulkanFormat(const Shader::DataType
     case Shader::DataType::Float3:    return VK_FORMAT_R32G32B32_SFLOAT;
     case Shader::DataType::Float4:    return VK_FORMAT_R32G32B32A32_SFLOAT;
     case Shader::DataType::Mat4:      return VK_FORMAT_R32G32B32A32_SFLOAT;
+    case Shader::DataType::Int:       return VK_FORMAT_R32_SINT;
+    case Shader::DataType::Int2:      return VK_FORMAT_R32G32_SINT;
+    case Shader::DataType::Int3:      return VK_FORMAT_R32G32B32_SINT;
+    case Shader::DataType::Int4:      return VK_FORMAT_R32G32B32A32_SINT;
+
     default: return VK_FORMAT_UNDEFINED;
     }
 }
