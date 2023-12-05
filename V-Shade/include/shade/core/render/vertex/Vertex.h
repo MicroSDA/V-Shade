@@ -43,7 +43,7 @@ namespace shade
 			for (auto i = 0; i < MAX_BONES_PER_VERTEX; ++i)
 			{
 				IDs[i]		= ~0;
-				Weights[i]	= 0.f;
+				Weights[i]	= 1.f;
 			}
 		}
 		std::array<std::uint32_t, MAX_BONES_PER_VERTEX> IDs;

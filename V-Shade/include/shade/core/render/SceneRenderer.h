@@ -215,6 +215,7 @@ namespace shade
 		SharedPointer<StorageBuffer>	m_VisibleSpotLightIndicesBuffer;
 		SharedPointer<UniformBuffer>	m_SSAOSamplesBuffer;
 
+		SharedPointer<StorageBuffer>	m_BoneTranformation;
 
 		SharedPointer<Camera>			m_Camera;
 

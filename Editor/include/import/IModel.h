@@ -5,14 +5,22 @@
 #pragma once
 #include <shade/core/layer/Layer.h>
 
-// TODO: Need to refactor !
-struct BoneInfo
-{
-	/*id is index in finalBoneMatrices*/
-	int id;
 
-	/*offset matrix transforms vertex from model space to bone space*/
-	glm::mat4 offset;
+class ISkeleton
+{
+public:
+	static shade::SharedPointer<shade::Skeleton> ExtractSkeleton(const aiScene* scene);
+private:
+	static void ProcessNode(const aiScene* scene, aiNode* node, shade::SharedPointer<shade::Skeleton>& skeleton);
+	static void ProcessBone(const aiScene*, const aiNode* node, shade::SharedPointer<shade::Skeleton>& skeleton, shade::SharedPointer<shade::Skeleton::BoneNode> bone);
+private:
+	static std::set<std::string> m_sBones;
+};
+
+class IAnimation
+{
+public:
+	static std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> ImportAnimation(const aiScene* scene);
 };
 
 class IModel
@@ -21,11 +29,9 @@ public:
 	IModel() = default;
 	virtual ~IModel() = default;
 public:
-	static shade::SharedPointer<shade::Model> Import(const std::string& filePath);
+	static std::tuple<shade::SharedPointer<shade::Model>, std::unordered_map<std::string, shade::SharedPointer<shade::Animation>>> Import(const std::string& filePath);
 private:
 	static void ProcessModelNode(shade::SharedPointer<shade::Model>& model, const char* filePath, const aiNode* node, const aiScene* scene);
-	static void ProcessMeshNode(shade::SharedPointer<shade::Mesh>& mesh, const char* filePath, aiMesh* amesh, const aiScene* scene);
-	static void ProcessBones(shade::SharedPointer<shade::Mesh>& mesh, const char* filePath, aiMesh* amesh, const aiScene* scene);
-private:
-	static std::map<std::string, BoneInfo> m_sBoneInfoMap;
+	static void ProcessMeshNode(shade::SharedPointer<shade::Model>& model, shade::SharedPointer<shade::Mesh>& mesh, const char* filePath, aiMesh* amesh, const aiNode* node);
+	static void ProcessBones(shade::SharedPointer<shade::Mesh>& mesh, const char* filePath, aiMesh* amesh, const aiNode* node);
 };

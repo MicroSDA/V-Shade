@@ -5,6 +5,8 @@
 
 #include <glm/glm/gtx/hash.hpp>
 
+
+
 shade::SharedPointer<shade::SceneRenderer> shade::SceneRenderer::Create(bool swapChainAsMainTarget)
 {
 	return SharedPointer<SceneRenderer>::Create(swapChainAsMainTarget);
@@ -126,7 +128,7 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 	// TODO: Should it be like some internal part of renderer ?
 	m_VisibleSpotLightIndicesBuffer  = StorageBuffer::Create(StorageBuffer::Usage::GPU, RenderAPI::SPOT_LIGHT_INDINCES_BINDING, sizeof(std::uint32_t) * RenderAPI::MAX_SPOT_LIGHTS_COUNT, Renderer::GetFramesCount(), 20);
 	m_VisiblePointLightIndicesBuffer = StorageBuffer::Create(StorageBuffer::Usage::GPU, RenderAPI::POINT_LIGHT_INDINCES_BINDING, sizeof(std::uint32_t) * RenderAPI::MAX_POINT_LIGHTS_COUNT, Renderer::GetFramesCount(), 20);
-
+	m_BoneTranformation	= StorageBuffer::Create(StorageBuffer::Usage::CPU_GPU, 10, sizeof(glm::mat4) * 100, Renderer::GetFramesCount(), 0);
 	m_GlobalLightShadowDepthPipeline = shade::RenderPipeline::Create(
 		{
 			.Shader = ShaderLibrary::Create("GlobalShadowPreDepth", "./resources/assets/shaders/preprocess/Global-Light-Shadow-Pre-Depth.glsl"),
@@ -322,6 +324,21 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 
 				for (const auto& mesh : *model)
 				{
+					/// ANIMATION///
+					if (entity.HasComponent<AnimationStackComponent>())
+					{
+						for (auto& [name, animation] : entity.GetComponent<AnimationStackComponent>())
+						{
+							static Animator animator(&animation.Get(), &model->m_Skeleton.Get());
+							animator.UpdateAnimation(deltaTime.GetInSeconds<float>(), mesh);
+							auto& t = animator.GetFinalBoneMatrices();
+
+							m_BoneTranformation->SetData(sizeof(glm::mat4) * animator.GetFinalBoneMatrices().size(), animator.GetFinalBoneMatrices().data(), currentFrame);
+						}
+						
+					}
+					
+
 					if (frustum.IsInFrustum(pcTransform, mesh->GetMinHalfExt(), mesh->GetMaxHalfExt()))
 					{
 						// If mesh has bones
@@ -742,6 +759,7 @@ void shade::SceneRenderer::InstancedGeometryPass(SharedPointer<RenderPipeline>& 
 	pipeline->SetTexture(m_GlobalLightShadowFrameBuffer->GetDepthAttachment(), Pipeline::Set::PerInstance, RenderAPI::GLOBAL_SHADOW_MAP_BINDING, frameIndex);
 	pipeline->SetTexture(m_SpotLightShadowFrameBuffer->GetDepthAttachment(), Pipeline::Set::PerInstance, RenderAPI::SPOT_SHADOW_MAP_BINDING, frameIndex);
 	pipeline->SetTexture(m_PointLightShadowFrameBuffer->GetDepthAttachment(), Pipeline::Set::PerInstance, RenderAPI::POINT_SHADOW_MAP_BINDING, frameIndex);
+	pipeline->SetResource(m_BoneTranformation, Pipeline::Set::PerInstance, frameIndex);
 	// Loop over the instances and their materials, updating and drawing each submitted material with the rendered instance.
 	for (auto& [instance, materials] : instances.Instances)
 	{

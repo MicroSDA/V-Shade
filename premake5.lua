@@ -6,7 +6,7 @@ workspace "V-Shade"
 		"Release"
 	}
 
-output_dir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
+output_dir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}" 
 includeDir = {}
 includeDir["GLFW"]   	= "%{wks.name}/vendors/glfw/include"
 includeDir["SPDLOG"]  	= "%{wks.name}/vendors/spdlog/include"

@@ -1,5 +1,6 @@
 #pragma once
 #include <shade/core/render/drawable/Mesh.h>
+#include <shade/core/animation/Animation.h>
 
 namespace shade
 {
@@ -26,6 +27,10 @@ namespace shade
 	private:
 		static Model* Create(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
 		Model(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
+
+		// TODO: mby rework it
+	public:
+		SharedPointer<Skeleton> m_Skeleton;
 
 		friend class Asset<Model>;
 		friend class Serializer;

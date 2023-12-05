@@ -9,7 +9,7 @@
 #include <shade/core/environment/PointLight.h>
 #include <shade/core/environment/SpotLight.h>
 #include <shade/core/physics/RigidBody.h>
-
+#include <shade/core/animation/Animator.h>
 namespace shade
 {
 	using NativeScriptComponent = ecs::NativeScript;
@@ -23,4 +23,5 @@ namespace shade
 	using PointLightComponent = SharedPointer<PointLight>;
 	using SpotLightComponent = SharedPointer<SpotLight>;
 	using RigidBodyComponent = physic::RigidBody;
+	using AnimationStackComponent = std::unordered_map<std::string, shade::SharedPointer<shade::Animation>>;
 }

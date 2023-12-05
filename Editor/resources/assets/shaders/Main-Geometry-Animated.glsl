@@ -30,11 +30,31 @@ layout (std140, set = GLOBAL_SET, binding = CAMERA_BUFFER_BINDING) uniform UCame
 {
     Camera u_Camera;
 };
+//Storage buffer containing the direct light data
+layout (std430, set = 1, binding = 10) restrict readonly buffer SBoneTransform
+{
+	mat4 s_BoneTransform[];
+};
 //Vertex shader entry point
 void main() 
 {
+
+	vec4 totalPosition = vec4(0.0f);
+	for(int i = 0 ; i < 4 ; i++)
+	{
+		if(a_BoneId[i] == ~0) 
+				continue;
+		if(a_BoneId[i] >= 100) 
+		{
+				totalPosition = vec4(a_Position, 1.0f);
+				break;
+		}
+
+		vec4 localPosition = s_BoneTransform[a_BoneId[i]] * vec4(a_Position, 1.0f);
+		totalPosition += localPosition * a_BoneWeight[i];
+	}
    //Transform vertex to clip space
-   gl_Position = u_Camera.ViewProjectionMatrix * a_Transform * vec4(a_Position, 1.0);
+   gl_Position = u_Camera.ViewProjectionMatrix * a_Transform * totalPosition;
    //gl_Position.y = -gl_Position.y;	
    //Forward texture coordinates to fragment shader
    out_UV_Coordinates = vec2(a_UV_Coordinates.x, - a_UV_Coordinates.y);

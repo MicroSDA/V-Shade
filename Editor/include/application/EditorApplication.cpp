@@ -15,9 +15,9 @@ EditorApplication::EditorApplication(int argc, char* argv[]) :
 void EditorApplication::OnCreate()
 {
 	// Initialzie render.
-	shade::Renderer::Initialize(shade::RenderAPI::API::Vulkan, shade::SystemsRequirements{ .GPU { .Discrete = true }, .FramesInFlight = 3 });
+	shade::Renderer::Initialize(shade::RenderAPI::API::Vulkan, shade::SystemsRequirements{ .GPU { .Discrete = true }, .FramesInFlight = 1 });
 	// Crete window.
-	shade::Window::Create({"Editor", 1900, 900, false, false});
+	shade::Window::Create({"Editor", 1900, 900, false, true});
 
 	shade::ScriptManager::Initialize("./resources/scripts");
 

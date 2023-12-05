@@ -2,6 +2,8 @@
 #include "EditorLayer.h"
 #include <shade/core/event/Input.h>
 
+// TODO: Temporary
+
 EditorLayer::EditorLayer()
 {
 	ImGui::SetCurrentContext(GetImGuiContext());
@@ -163,7 +165,9 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 							auto selectedPath = shade::FileDialog::OpenFile("Supported formats(*.obj, *.fbx, *.dae) \0*.obj;*.fbx;*.dae\0");
 							if (!selectedPath.empty())
 							{
-								m_ImportedModel = IModel::Import(selectedPath.string());
+								auto [model, animation] = IModel::Import(selectedPath.string());
+								m_ImportedModel = model;
+								
 								if (m_ImportedModel)
 								{
 									// Temorary and actually wrong bcs we need to create imported model entity as part of editor layer!
@@ -171,6 +175,11 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 									imEntity.AddComponent<shade::TagComponent>("Improted model");
 									imEntity.AddComponent<shade::TransformComponent>();
 									imEntity.AddComponent<shade::ModelComponent>(m_ImportedModel);
+
+									if (animation.size())
+									{
+										imEntity.AddComponent<shade::AnimationStackComponent>(animation);
+									}
 								}
 
 								from = selectedPath.string();
@@ -1327,6 +1336,8 @@ void EditorLayer::EntityInspector(shade::ecs::Entity& entity)
 			[&](auto isTreeOpen)->bool { return EditComponent<shade::ModelComponent>(entity, {}, isTreeOpen); }, this, entity);
 		DrawComponent<shade::RigidBodyComponent>("Rigid Body", entity, &EditorLayer::RgidBodyComponent,
 			[&](auto isTreeOpen)->bool { return EditComponent<shade::RigidBodyComponent>(entity, {}, isTreeOpen); }, this, entity);
+		DrawComponent<shade::AnimationStackComponent>("Animations", entity, &EditorLayer::AnimationStackComponent,
+			[&](auto isTreeOpen)->bool { return EditComponent<shade::AnimationStackComponent>(entity, {}, isTreeOpen); }, this, entity);
 	}
 }
 
@@ -1641,6 +1652,17 @@ void EditorLayer::RgidBodyComponent(shade::ecs::Entity& entity)
 
 	if (DragFloat("Restitution", &restitution)) rigidBody.Restitution = restitution;
 
+}
+
+void EditorLayer::AnimationStackComponent(shade::ecs::Entity& entity)
+{
+	auto& animations = entity.GetComponent<shade::AnimationStackComponent>();
+
+	for (auto& [name, animation] : animations)
+	{
+		DragFloat("Duration", &animation->m_Duration);
+		//DragInt("TickPerSecond", &animation->m_TicksPerSecond);
+	}
 }
 
 void EditorLayer::MaterialEdit(shade::Material& material)
