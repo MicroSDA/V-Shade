@@ -21,3 +21,4 @@ V-Shade/vendors/ImGui
 V-Shade/vendors/ImGuizmo
 Editor/resources/Vulkan_cache
 Editor/resources/scripts
+Editor/vendors/assimp
