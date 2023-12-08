@@ -7,7 +7,6 @@ namespace utils
 	template<typename G, typename A>
 	static G FromAssimToToGLM(const A& value);
 
-
 	template<>
 	inline glm::mat4 FromAssimToToGLM(const aiMatrix4x4& aMatrix)
 	{
@@ -17,6 +16,7 @@ namespace utils
 		matrix[0][1] = aMatrix.b1; matrix[1][1] = aMatrix.b2; matrix[2][1] = aMatrix.b3; matrix[3][1] = aMatrix.b4;
 		matrix[0][2] = aMatrix.c1; matrix[1][2] = aMatrix.c2; matrix[2][2] = aMatrix.c3; matrix[3][2] = aMatrix.c4;
 		matrix[0][3] = aMatrix.d1; matrix[1][3] = aMatrix.d2; matrix[2][3] = aMatrix.d3; matrix[3][3] = aMatrix.d4;
+
 		
 		/*for (auto i = 0; i < 4; ++i) {
 			for (auto j = 0; j < 4; ++j) {
@@ -40,6 +40,10 @@ std::tuple<shade::SharedPointer<shade::Model>, std::unordered_map<std::string, s
 {
 	Assimp::Importer importer;
 	importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
+	importer.SetPropertyBool(AI_CONFIG_FBX_USE_SKELETON_BONE_CONTAINER, true);
+	importer.SetPropertyBool(AI_CONFIG_FBX_CONVERT_TO_M, true);
+
+	
 	const aiScene* pScene = importer.ReadFile(filePath,
 		aiProcess_FlipUVs |
 		aiProcess_Triangulate |
@@ -48,8 +52,11 @@ std::tuple<shade::SharedPointer<shade::Model>, std::unordered_map<std::string, s
 		aiProcess_FixInfacingNormals |
 		aiProcess_GenSmoothNormals |
 		aiProcess_ValidateDataStructure |
-		aiProcess_OptimizeGraph |
-		aiProcess_GlobalScale);
+		//aiProcess_GlobalScale|
+		aiProcess_FindInvalidData |
+		aiProcess_PopulateArmatureData |
+		aiProcess_OptimizeGraph
+	);
 	
 
 	if (!pScene)
@@ -63,8 +70,9 @@ std::tuple<shade::SharedPointer<shade::Model>, std::unordered_map<std::string, s
 	{
 		auto model = shade::Model::CreateEXP();
 		ProcessModelNode(model, filePath.c_str(), pScene->mRootNode, pScene);
-		auto animations = IAnimation::ImportAnimation(pScene);
 		shade::SharedPointer<shade::Skeleton> skeleton = ISkeleton::ExtractSkeleton(pScene);
+		auto animations = IAnimation::ImportAnimation(pScene, skeleton);
+		
 		model->m_Skeleton = skeleton;
 
 		
@@ -186,13 +194,13 @@ void IModel::ProcessBones(shade::SharedPointer<shade::Mesh>& mesh, const char* f
 
 std::set<std::string> ISkeleton::m_sBones;
 
-shade::SharedPointer<shade::Skeleton> ISkeleton::ExtractSkeleton(const aiScene* scene)
+shade::SharedPointer<shade::Skeleton> ISkeleton::ExtractSkeleton(const aiScene* pScene)
 {
 	m_sBones.clear();
 
-	for (uint32_t meshIndex = 0; meshIndex < scene->mNumMeshes; ++meshIndex)
+	for (uint32_t meshIndex = 0; meshIndex < pScene->mNumMeshes; ++meshIndex)
 	{
-		const aiMesh* mesh = scene->mMeshes[meshIndex];
+		const aiMesh* mesh = pScene->mMeshes[meshIndex];
 		for (uint32_t boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex)
 		{
 			m_sBones.emplace(mesh->mBones[boneIndex]->mName.C_Str());
@@ -203,7 +211,11 @@ shade::SharedPointer<shade::Skeleton> ISkeleton::ExtractSkeleton(const aiScene* 
 	{
 		shade::SharedPointer<shade::Skeleton> skeleton = shade::SharedPointer<shade::Skeleton>::Create();
 
-		ProcessBone(scene, scene->mRootNode, skeleton, nullptr);
+
+		//ProcessSkeleton(pScene, skeleton, nullptr);
+		skeleton->m_GlobalInverseTransform = glm::transpose(utils::FromAssimToToGLM<glm::mat4>(pScene->mRootNode->mTransformation));
+
+		ProcessBone(pScene, pScene->mRootNode, skeleton, nullptr);
 
 		return skeleton;
 	}
@@ -211,91 +223,146 @@ shade::SharedPointer<shade::Skeleton> ISkeleton::ExtractSkeleton(const aiScene* 
 	return nullptr;
 }
 
-void ISkeleton::ProcessNode(const aiScene* scene, aiNode* node, shade::SharedPointer<shade::Skeleton>& skeleton)
+void ISkeleton::ProcessNode(const aiScene* pScene, const aiNode* pNode, shade::SharedPointer<shade::Skeleton>& skeleton)
 {
-	ProcessBone(scene, node, skeleton, nullptr);
+	
 }
 
-void ISkeleton::ProcessBone(const aiScene* pScene, const aiNode* pNode, shade::SharedPointer<shade::Skeleton>& skeleton, shade::SharedPointer<shade::Skeleton::BoneNode> bone)
+void ISkeleton::ProcessBone(const aiScene* pScene, const aiNode* pNode, shade::SharedPointer<shade::Skeleton>& skeleton, shade::SharedPointer<shade::Skeleton::BoneNode> parent)
 {
-	bool channelFound = true;
+	bool BoneHasBeenFound = false;
 
-	for (std::uint32_t animationIndex = 0; animationIndex < pScene->mNumAnimations; ++animationIndex)
+	for (uint32_t meshIndex = 0; meshIndex < pScene->mNumMeshes; ++meshIndex)
 	{
-		for (std::uint32_t chanelIndex = 0; chanelIndex < pScene->mAnimations[animationIndex]->mNumChannels; ++chanelIndex)
+		const aiMesh* mesh = pScene->mMeshes[meshIndex];
+		for (uint32_t boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex)
 		{
-			if (strcmp(pNode->mName.C_Str(), pScene->mAnimations[animationIndex]->mChannels[chanelIndex]->mNodeName.C_Str()) == 0)
+			if (skeleton->GetArmature() == nullptr)
+				skeleton->AddArmature(utils::FromAssimToToGLM<glm::mat4>(mesh->mBones[boneIndex]->mArmature->mTransformation));
+
+			if (pNode == mesh->mBones[boneIndex]->mNode)
 			{
-				channelFound = true; break;
+				BoneHasBeenFound = true; break;
 			}
 		}
-		if (channelFound) break;
+
+		if (BoneHasBeenFound) break;
 	}
 
-	if (channelFound)
+	if (BoneHasBeenFound)
 	{
-		auto node = skeleton->AddBone(pNode->mName.C_Str(), utils::FromAssimToToGLM<glm::mat4>(pNode->mTransformation));
+		auto bone = skeleton->AddBone(pNode->mName.C_Str(), utils::FromAssimToToGLM<glm::mat4>(pNode->mTransformation));
 
-		if (bone != nullptr)
-			bone->Children.push_back(node);
+		if (parent != nullptr)
+			parent->Children.push_back(bone);
 
 		SHADE_CORE_DEBUG(pNode->mName.C_Str());
 
 		for (std::uint32_t nodeIndex = 0; nodeIndex < pNode->mNumChildren; ++nodeIndex)
-			ProcessBone(pScene, pNode->mChildren[nodeIndex], skeleton, node);
+			ProcessBone(pScene, pNode->mChildren[nodeIndex], skeleton, bone);
 	}
 	else
 	{
 		for (std::uint32_t nodeIndex = 0; nodeIndex < pNode->mNumChildren; ++nodeIndex)
 			ProcessBone(pScene, pNode->mChildren[nodeIndex], skeleton, nullptr);
 	}
-	
 }
 
-std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> IAnimation::ImportAnimation(const aiScene* pScene)
+void ISkeleton::ProcessSkeleton(const aiScene* pScene, shade::SharedPointer<shade::Skeleton>& skeleton, shade::SharedPointer<shade::Skeleton::BoneNode> bone)
+{
+	//for (std::uint32_t meshIndex = 0; meshIndex < pScene->mNumMeshes; ++meshIndex)
+	//{
+	//	const aiMesh* pMesh = pScene->mMeshes[meshIndex];
+
+	//	for (std::uint32_t boneIndex = 0; boneIndex < pMesh->mNumBones; ++boneIndex)
+	//	{
+	//		const aiBone* pBone = pMesh->mBones[boneIndex];
+
+	//		if (skeleton->m_RootBone != nullptr)
+	//		{
+	//			skeleton->AddBone(pBone->mName.C_Str(), utils::FromAssimToToGLM<glm::mat4>(pBone->mArmature->mTransformation));
+	//		}
+	//		
+	//		aiMatrix4x4 assimpMatrix = pBone->mNode->mTransformation;
+
+	//	/*	skeleton->AddBone(pBone->mName.C_Str(), utils::FromAssimToToGLM<glm::mat4>(pBone->mArmature->mTransformation));
+	//			skeleton->AddBone(pBone->mName.C_Str(), utils::FromAssimToToGLM<glm::mat4>(pBone->mArmature->mTransformation));*/
+	//		std::cout << "Assimp Matrix:" << std::endl;
+	//		std::cout << assimpMatrix.a1 << "\t" << assimpMatrix.a2 << "\t" << assimpMatrix.a3 << "\t" << assimpMatrix.a4 << std::endl;
+	//		std::cout << assimpMatrix.b1 << "\t" << assimpMatrix.b2 << "\t" << assimpMatrix.b3 << "\t" << assimpMatrix.b4 << std::endl;
+	//		std::cout << assimpMatrix.c1 << "\t" << assimpMatrix.c2 << "\t" << assimpMatrix.c3 << "\t" << assimpMatrix.c4 << std::endl;
+	//		std::cout << assimpMatrix.d1 << "\t" << assimpMatrix.d2 << "\t" << assimpMatrix.d3 << "\t" << assimpMatrix.d4 << std::endl;
+	//	}
+	//}
+	//
+
+	////for(std::uint32_t )
+
+	//auto b = pScene->mMeshes[0]->mBones[0];
+	//for (std::uint32_t skeletonIndex = 0; skeletonIndex < pScene->mNumSkeletons; ++skeletonIndex)
+	//{
+	//	auto* pSkeleton = pScene->mSkeletons[skeletonIndex];
+	//	for (std::uint32_t boneIndex = 0; boneIndex < pSkeleton->mNumBones; ++boneIndex)
+	//	{
+	//		const auto* pSkeletonBone = pSkeleton->mBones[boneIndex];
+	//		const auto* armature = pSkeletonBone->mArmature;
+
+	//	}
+	//}
+}
+
+std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> IAnimation::ImportAnimation(const aiScene* pScene, const shade::SharedPointer<shade::Skeleton>& skeleton)
 {
 	std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> Animations;
 
 	for (std::uint32_t animationIndex = 0; animationIndex < pScene->mNumAnimations; ++animationIndex)
 	{
-		shade::SharedPointer<shade::Animation>& animation = Animations.insert({ pScene->mAnimations[animationIndex]->mName.C_Str(), shade::SharedPointer<shade::Animation>::Create() }).first->second;
-		
-		animation->m_Duration = pScene->mAnimations[animationIndex]->mDuration;
-		animation->m_TicksPerSecond = pScene->mAnimations[animationIndex]->mTicksPerSecond;
+		const aiAnimation* pAnimation = pScene->mAnimations[animationIndex];
+		shade::SharedPointer<shade::Animation>& animation = Animations.insert({ pAnimation->mName.C_Str(), shade::SharedPointer<shade::Animation>::Create() }).first->second;
 
-		for (std::uint32_t chanelIndex = 0; chanelIndex < pScene->mAnimations[animationIndex]->mNumChannels; ++chanelIndex)
+		animation->m_Duration = pAnimation->mDuration;
+		animation->m_TicksPerSecond = pAnimation->mTicksPerSecond;
+
+		for (std::uint32_t channelIndex = 0; channelIndex < pAnimation->mNumChannels; ++channelIndex)
 		{
-			SHADE_CORE_DEBUG(pScene->mAnimations[animationIndex]->mChannels[chanelIndex]->mNodeName.C_Str());
-			auto* chanel = pScene->mAnimations[animationIndex]->mChannels[chanelIndex];
-
-			for (std::uint32_t positionIndex = 0; positionIndex < pScene->mAnimations[animationIndex]->mChannels[chanelIndex]->mNumPositionKeys; ++positionIndex)
+			const aiNodeAnim* channel = pAnimation->mChannels[channelIndex];
+			// We found bone related to this animation channel
+			if (skeleton->GetBone(channel->mNodeName.C_Str()) != nullptr)
 			{
-				animation->m_AnimationChanels[pScene->mAnimations[animationIndex]->mChannels[chanelIndex]->mNodeName.C_Str()].PositionKeys.emplace_back
-				(
-					utils::FromAssimToToGLM<glm::vec3>(pScene->mAnimations[animationIndex]->mChannels[chanelIndex]->mPositionKeys[positionIndex].mValue),
-					pScene->mAnimations[animationIndex]->mChannels[chanelIndex]->mPositionKeys[positionIndex].mTime
-				);
+				SHADE_CORE_INFO("Add new animation channel = {0}", channel->mNodeName.C_Str());
+
+				for (std::uint32_t positionIndex = 0; positionIndex < channel->mNumPositionKeys; ++positionIndex)
+				{
+					animation->m_AnimationChanels[channel->mNodeName.C_Str()].PositionKeys.emplace_back
+					(
+						utils::FromAssimToToGLM<glm::vec3>(channel->mPositionKeys[positionIndex].mValue),
+						channel->mPositionKeys[positionIndex].mTime
+					);
+				}
+
+				for (std::uint32_t rotationIndex = 0; rotationIndex < channel->mNumRotationKeys; ++rotationIndex)
+				{
+					animation->m_AnimationChanels[channel->mNodeName.C_Str()].RotationKeys.emplace_back
+					(
+						utils::FromAssimToToGLM<glm::quat>(channel->mRotationKeys[rotationIndex].mValue),
+						channel->mRotationKeys[rotationIndex].mTime
+					);
+				}
+
+				for (std::uint32_t scaleIndex = 0; scaleIndex < channel->mNumScalingKeys; ++scaleIndex)
+				{
+					animation->m_AnimationChanels[channel->mNodeName.C_Str()].ScaleKeys.emplace_back
+					(
+						utils::FromAssimToToGLM<glm::vec3>(channel->mScalingKeys[scaleIndex].mValue),
+						channel->mScalingKeys[scaleIndex].mTime
+					);
+				}
 			}
-
-			for (std::uint32_t rotationIndex = 0; rotationIndex < pScene->mAnimations[animationIndex]->mChannels[chanelIndex]->mNumRotationKeys; ++rotationIndex)
+			else
 			{
-				animation->m_AnimationChanels[pScene->mAnimations[animationIndex]->mChannels[chanelIndex]->mNodeName.C_Str()].RotationKeys.emplace_back
-				(
-					utils::FromAssimToToGLM<glm::quat>(pScene->mAnimations[animationIndex]->mChannels[chanelIndex]->mRotationKeys[rotationIndex].mValue),
-					pScene->mAnimations[animationIndex]->mChannels[chanelIndex]->mRotationKeys[rotationIndex].mTime
-				);
-			}
-
-			for (std::uint32_t scaleIndex = 0; scaleIndex < pScene->mAnimations[animationIndex]->mChannels[chanelIndex]->mNumScalingKeys; ++scaleIndex)
-			{
-				animation->m_AnimationChanels[pScene->mAnimations[animationIndex]->mChannels[chanelIndex]->mNodeName.C_Str()].ScaleKeys.emplace_back
-				(
-					utils::FromAssimToToGLM<glm::vec3>(pScene->mAnimations[animationIndex]->mChannels[chanelIndex]->mScalingKeys[scaleIndex].mValue),
-					pScene->mAnimations[animationIndex]->mChannels[chanelIndex]->mScalingKeys[scaleIndex].mTime
-				);
+				SHADE_CORE_WARNING("Couldn't find any bones related to this animation channel = {0}", channel->mNodeName.C_Str());
 			}
 		}
-
 	}
 
 	return Animations;

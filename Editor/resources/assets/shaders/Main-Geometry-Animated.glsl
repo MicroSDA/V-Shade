@@ -38,36 +38,28 @@ layout (std430, set = 1, binding = 10) restrict readonly buffer SBoneTransform
 //Vertex shader entry point
 void main() 
 {
+   mat4 BoneTransform = s_BoneTransform[a_BoneId[0]] * a_BoneWeight[0];
+   BoneTransform     += s_BoneTransform[a_BoneId[1]] * a_BoneWeight[1];
+   BoneTransform     += s_BoneTransform[a_BoneId[2]] * a_BoneWeight[2];
+   BoneTransform     += s_BoneTransform[a_BoneId[3]] * a_BoneWeight[3];
 
-	vec4 totalPosition = vec4(0.0f);
-	for(int i = 0 ; i < 4 ; i++)
-	{
-		if(a_BoneId[i] == ~0) 
-				continue;
-		if(a_BoneId[i] >= 100) 
-		{
-				totalPosition = vec4(a_Position, 1.0f);
-				break;
-		}
-
-		vec4 localPosition = s_BoneTransform[a_BoneId[i]] * vec4(a_Position, 1.0f);
-		totalPosition += localPosition * a_BoneWeight[i];
-	}
+   mat4 BoneTransformWorldSpace = a_Transform * BoneTransform;
+   vec4 VertexWorldSpace = BoneTransformWorldSpace * vec4(a_Position, 1.0);
    //Transform vertex to clip space
-   gl_Position = u_Camera.ViewProjectionMatrix * a_Transform * totalPosition;
+   gl_Position = u_Camera.ViewProjectionMatrix * VertexWorldSpace;
    //gl_Position.y = -gl_Position.y;	
    //Forward texture coordinates to fragment shader
    out_UV_Coordinates = vec2(a_UV_Coordinates.x, - a_UV_Coordinates.y);
    //Forward instance index to fragment shader
    out_InstanceId = gl_InstanceIndex;
   
-   out_NormalWorldSpace = normalize((a_Transform 	* vec4(a_Normal, 	0.0)).xyz);
-   out_NormalViewSpace  = ((mat3(u_Camera.ViewMatrix * a_Transform))) * a_Normal;
+   out_NormalWorldSpace = normalize((BoneTransformWorldSpace * vec4(a_Normal, 	0.0)).xyz);
+   out_NormalViewSpace  = ((mat3(u_Camera.ViewMatrix * BoneTransformWorldSpace))) * a_Normal;
    
-   out_VertexWorldSpace = vec3(a_Transform * vec4(a_Position, 	1.0));
-   out_VertexViewSpace  = vec3(u_Camera.ViewMatrix * a_Transform * vec4(a_Position.x, a_Position.y, a_Position.z, 1.0));
+   out_VertexWorldSpace = VertexWorldSpace.xyz;
+   out_VertexViewSpace  = vec3(u_Camera.ViewMatrix * VertexWorldSpace);
   
-   out_TBN_Matrix = GetTBN_Matrix(a_Transform, a_Normal, a_Tangent);
+   out_TBN_Matrix = GetTBN_Matrix(BoneTransformWorldSpace, a_Normal, a_Tangent);
 }
 //Fragment Shader
 #version 460 core

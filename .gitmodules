@@ -13,6 +13,3 @@
 [submodule "V-Shade/vendors/spdlog"]
 	path = V-Shade/vendors/spdlog
 	url = https://github.com/MicroSDA/spdlog
-[submodule "Editor/vendors/assimp"]
-	path = Editor/vendors/assimp
-	url = https://github.com/MicroSDA/assimp

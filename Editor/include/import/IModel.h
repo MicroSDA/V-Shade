@@ -11,8 +11,9 @@ class ISkeleton
 public:
 	static shade::SharedPointer<shade::Skeleton> ExtractSkeleton(const aiScene* scene);
 private:
-	static void ProcessNode(const aiScene* scene, aiNode* node, shade::SharedPointer<shade::Skeleton>& skeleton);
-	static void ProcessBone(const aiScene*, const aiNode* node, shade::SharedPointer<shade::Skeleton>& skeleton, shade::SharedPointer<shade::Skeleton::BoneNode> bone);
+	static void ProcessNode(const aiScene* pScene, const aiNode* pNode, shade::SharedPointer<shade::Skeleton>& skeleton);
+	static void ProcessBone(const aiScene* pScene, const aiNode* pNode, shade::SharedPointer<shade::Skeleton>& skeleton, shade::SharedPointer<shade::Skeleton::BoneNode> bone);
+	static void ProcessSkeleton(const aiScene* pScene, shade::SharedPointer<shade::Skeleton>& skeleton, shade::SharedPointer<shade::Skeleton::BoneNode> bone);
 private:
 	static std::set<std::string> m_sBones;
 };
@@ -20,7 +21,7 @@ private:
 class IAnimation
 {
 public:
-	static std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> ImportAnimation(const aiScene* scene);
+	static std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> ImportAnimation(const aiScene* scene, const shade::SharedPointer<shade::Skeleton>& skeleton);
 };
 
 class IModel
