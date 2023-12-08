@@ -10,16 +10,6 @@
 
 namespace shade
 {
-	// TODO: Need to refactor !
-	struct BoneInfo
-	{
-		/*id is index in finalBoneMatrices*/
-		std::uint32_t ID;
-		/*offset matrix transforms vertex from model space to bone space*/
-		glm::mat4 Offset;
-	};
-
-
 	class SHADE_API Mesh : public Drawable, public BaseAsset, public Asset<Mesh>
 	{
 	public:
@@ -29,7 +19,6 @@ namespace shade
 
 		Mesh() = default;
 		static SharedPointer<Mesh> CreateEXP();
-		std::map<std::string, BoneInfo> m_BoneInfoMap;
 	private:
 		Mesh(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
 		static Mesh* Create(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);

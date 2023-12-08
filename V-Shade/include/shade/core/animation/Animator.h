@@ -16,9 +16,9 @@ namespace shade
             m_CurrentAnimation = Animation;
             m_CurrentSkeleton = skeleton;
 
-            m_FinalBoneMatrices.reserve(100);
+            m_FinalBoneMatrices.reserve(250);
 
-            for (int i = 0; i < 100; i++)
+            for (int i = 0; i < 250; i++)
                 m_FinalBoneMatrices.push_back(glm::mat4(1.0f));
 
             PlayAnimation(m_CurrentAnimation);

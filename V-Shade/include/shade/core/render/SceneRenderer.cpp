@@ -128,7 +128,7 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 	// TODO: Should it be like some internal part of renderer ?
 	m_VisibleSpotLightIndicesBuffer  = StorageBuffer::Create(StorageBuffer::Usage::GPU, RenderAPI::SPOT_LIGHT_INDINCES_BINDING, sizeof(std::uint32_t) * RenderAPI::MAX_SPOT_LIGHTS_COUNT, Renderer::GetFramesCount(), 20);
 	m_VisiblePointLightIndicesBuffer = StorageBuffer::Create(StorageBuffer::Usage::GPU, RenderAPI::POINT_LIGHT_INDINCES_BINDING, sizeof(std::uint32_t) * RenderAPI::MAX_POINT_LIGHTS_COUNT, Renderer::GetFramesCount(), 20);
-	m_BoneTranformation	= StorageBuffer::Create(StorageBuffer::Usage::CPU_GPU, 10, sizeof(glm::mat4) * 100, Renderer::GetFramesCount(), 0);
+	m_BoneTranformation	= StorageBuffer::Create(StorageBuffer::Usage::CPU_GPU, 10, sizeof(glm::mat4) * 250, Renderer::GetFramesCount(), 0);
 	m_GlobalLightShadowDepthPipeline = shade::RenderPipeline::Create(
 		{
 			.Shader = ShaderLibrary::Create("GlobalShadowPreDepth", "./resources/assets/shaders/preprocess/Global-Light-Shadow-Pre-Depth.glsl"),

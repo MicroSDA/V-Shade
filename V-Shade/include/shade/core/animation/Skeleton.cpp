@@ -2,9 +2,12 @@
 #include "Skeleton.h"
 
 
-shade::SharedPointer<shade::Skeleton::BoneNode>& shade::Skeleton::AddBone(const std::string& name, const glm::mat4& transform)
+shade::SharedPointer<shade::Skeleton::BoneNode>& shade::Skeleton::AddBone(const std::string& name, const glm::mat4& transform, const glm::mat4& inverseBindPose)
 {
     auto& bone = m_BoneNodes.emplace(name, SharedPointer<BoneNode>::Create(m_BoneNodes.size(), name)).first->second;
+
+    bone->InverseBindPose = inverseBindPose;
+
     if (m_BoneNodes.size() == 1) m_RootNode = bone;
 
     math::DecomposeMatrix(transform, bone->Translation, bone->Rotation, bone->Scale);
@@ -40,4 +43,8 @@ const shade::SharedPointer<shade::Skeleton::BoneArmature>& shade::Skeleton::GetA
 const shade::SharedPointer<shade::Skeleton::BoneNode>& shade::Skeleton::GetRootNode() const
 {
     return m_RootNode;
+}
+const shade::Skeleton::BoneNodes& shade::Skeleton::GetBones() const
+{
+    return m_BoneNodes;
 }

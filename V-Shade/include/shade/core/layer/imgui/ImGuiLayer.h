@@ -161,6 +161,19 @@ namespace shade
 				}
 			}
 		}
+		static void HelpMarker(const char* desc)
+		{
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::BeginTooltip();
+				ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+				ImGui::TextUnformatted(desc);
+				ImGui::PopTextWrapPos();
+				ImGui::EndTooltip();
+			}
+		}
 		bool InputTextCol(const char* title, std::string& str, float cw1 = 0.0f, float cw2 = 0.0);
 		bool InputTextD(const char* title, std::string& str);
 		bool ComboCol(const char* id, std::string& selected, std::vector<std::string>& elements, ImGuiSelectableFlags selectedFlags, ImGuiComboFlags comboFlags, const float& cw1 = 0.0f, const float& cw2 = 0.0);

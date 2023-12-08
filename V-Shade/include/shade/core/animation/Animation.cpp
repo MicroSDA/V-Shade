@@ -1,46 +1,48 @@
 #include "shade_pch.h"
 #include "Animation.h"
 
-glm::mat4 shade::Animation::InterpolatePosition(const std::string& chanelName, float time)
+void shade::Animation::AddChannel(const std::string& name, const Channel& channel)
 {
-	const auto& chanel = m_AnimationChanels[chanelName];
-	if (chanel.PositionKeys.size() == 1)
-		return glm::translate(glm::mat4(1.0f), chanel.PositionKeys[0].Translation);
+	m_AnimationChannels.emplace(name, channel);
+}
+
+glm::mat4 shade::Animation::InterpolatePosition(const Channel& channel, float time)
+{
+	if (channel.PositionKeys.size() == 1)
+		return glm::translate(glm::mat4(1.0f), channel.PositionKeys[0].Translation);
 	
-	std::uint32_t firstKeyFrame = GetPositionKeyFrame(chanel, time), secondKeyFrame = firstKeyFrame++;
+	std::uint32_t firstKeyFrame = GetPositionKeyFrame(channel, time), secondKeyFrame = firstKeyFrame++;
 
-	float timeFactor = GetTimeFactor(chanel.PositionKeys[firstKeyFrame].TimeStamp, chanel.PositionKeys[secondKeyFrame].TimeStamp, time);
+	float timeFactor = GetTimeFactor(channel.PositionKeys[firstKeyFrame].TimeStamp, channel.PositionKeys[secondKeyFrame].TimeStamp, time);
 
-	return glm::translate(glm::mat4(1.0f), glm::mix(chanel.PositionKeys[firstKeyFrame].Translation, chanel.PositionKeys[secondKeyFrame].Translation, timeFactor));
+	return glm::translate(glm::mat4(1.0f), glm::mix(channel.PositionKeys[firstKeyFrame].Translation, channel.PositionKeys[secondKeyFrame].Translation, timeFactor));
 }
 
-glm::mat4 shade::Animation::InterpolateRotation(const std::string& chanelName, float time)
+glm::mat4 shade::Animation::InterpolateRotation(const Channel& channel, float time)
 {
-	const auto& chanel = m_AnimationChanels[chanelName];
-	if (chanel.RotationKeys.size() == 1)
-		return glm::toMat4(glm::normalize(chanel.RotationKeys[0].Orientation));
+	if (channel.RotationKeys.size() == 1)
+		return glm::toMat4(glm::normalize(channel.RotationKeys[0].Orientation));
 
-	std::uint32_t firstKeyFrame = GetRotationKeyFrame(chanel, time), secondKeyFrame = firstKeyFrame++;
+	std::uint32_t firstKeyFrame = GetRotationKeyFrame(channel, time), secondKeyFrame = firstKeyFrame++;
 
-	float timeFactor = GetTimeFactor(chanel.RotationKeys[firstKeyFrame].TimeStamp, chanel.RotationKeys[secondKeyFrame].TimeStamp, time);
+	float timeFactor = GetTimeFactor(channel.RotationKeys[firstKeyFrame].TimeStamp, channel.RotationKeys[secondKeyFrame].TimeStamp, time);
 
-	return glm::toMat4(glm::normalize(glm::slerp(chanel.RotationKeys[firstKeyFrame].Orientation, chanel.RotationKeys[secondKeyFrame].Orientation, timeFactor)));
+	return glm::toMat4(glm::normalize(glm::slerp(channel.RotationKeys[firstKeyFrame].Orientation, channel.RotationKeys[secondKeyFrame].Orientation, timeFactor)));
 }
 
-glm::mat4 shade::Animation::InterpolateScale(const std::string& chanelName, float time)
+glm::mat4 shade::Animation::InterpolateScale(const Channel& channel, float time)
 {
-	const auto& chanel = m_AnimationChanels[chanelName];
-	if (chanel.ScaleKeys.size() == 1)
-		return glm::scale(glm::mat4(1.f), chanel.ScaleKeys[0].Scale);
+	if (channel.ScaleKeys.size() == 1)
+		return glm::scale(glm::mat4(1.f), channel.ScaleKeys[0].Scale);
 
-	std::uint32_t firstKeyFrame = GetScaleKeyFrame(chanel, time), secondKeyFrame = firstKeyFrame++;
+	std::uint32_t firstKeyFrame = GetScaleKeyFrame(channel, time), secondKeyFrame = firstKeyFrame++;
 
-	float timeFactor = GetTimeFactor(chanel.ScaleKeys[firstKeyFrame].TimeStamp, chanel.ScaleKeys[secondKeyFrame].TimeStamp, time);
+	float timeFactor = GetTimeFactor(channel.ScaleKeys[firstKeyFrame].TimeStamp, channel.ScaleKeys[secondKeyFrame].TimeStamp, time);
 
-	return glm::scale(glm::mat4(1.0f), glm::mix(chanel.ScaleKeys[firstKeyFrame].Scale, chanel.ScaleKeys[secondKeyFrame].Scale, timeFactor));
+	return glm::scale(glm::mat4(1.0f), glm::mix(channel.ScaleKeys[firstKeyFrame].Scale, channel.ScaleKeys[secondKeyFrame].Scale, timeFactor));
 }
 
-std::size_t shade::Animation::GetPositionKeyFrame(const Chanel& chanel, float time) const
+std::size_t shade::Animation::GetPositionKeyFrame(const Channel& chanel, float time) const
 {
 	for (std::size_t index = 0; index < chanel.PositionKeys.size() - 1; ++index)
 	{
@@ -50,7 +52,7 @@ std::size_t shade::Animation::GetPositionKeyFrame(const Chanel& chanel, float ti
 	return 0;
 }
 
-std::size_t shade::Animation::GetRotationKeyFrame(const Chanel& chanel, float time) const
+std::size_t shade::Animation::GetRotationKeyFrame(const Channel& chanel, float time) const
 {
 	for (std::size_t index = 0; index < chanel.RotationKeys.size() - 1; ++index)
 	{
@@ -60,7 +62,7 @@ std::size_t shade::Animation::GetRotationKeyFrame(const Chanel& chanel, float ti
 	return 0;
 }
 
-std::size_t shade::Animation::GetScaleKeyFrame(const Chanel& chanel, float time) const
+std::size_t shade::Animation::GetScaleKeyFrame(const Channel& chanel, float time) const
 {
 	for (std::size_t index = 0; index < chanel.ScaleKeys.size() - 1; ++index)
 	{
@@ -73,4 +75,29 @@ std::size_t shade::Animation::GetScaleKeyFrame(const Chanel& chanel, float time)
 float shade::Animation::GetTimeFactor(float currentTime, float nextTime, float time)
 {
 	return (time - currentTime) / (nextTime - currentTime);
+}
+
+const shade::Animation::AnimationChannels& shade::Animation::GetAnimationCahnnels() const
+{
+	return m_AnimationChannels;
+}
+
+std::uint32_t shade::Animation::GetTiksPerSecond() const
+{
+	return m_TicksPerSecond;
+}
+
+float shade::Animation::GetDureation() const
+{
+	return m_Duration;
+}
+
+void shade::Animation::SetTicksPerSecond(std::uint32_t count)
+{
+	m_TicksPerSecond = count;
+}
+
+void shade::Animation::SetDuration(float duration)
+{
+	m_Duration = duration;
 }

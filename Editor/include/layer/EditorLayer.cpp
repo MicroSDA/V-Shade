@@ -55,8 +55,7 @@ void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shad
 		ShowWindowBar("Scene", &EditorLayer::Scene, this, scene);
 		ImGui::PopStyleColor();
 		
-
-
+		ImGui::ShowDemoWindow();
 	
 		ImGui::End();
 	}
@@ -149,14 +148,101 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 			static std::string from;
 			static std::string to;
 
+			static bool importModels = true,
+				importMeshes = true,
+				importSkeleton = true,
+				bakeBones = true,
+				importAnimations = true,
+				importMaterials = true,
+				validateAnimationChannels = false,
+				triangulate = true,
+				flipUvs = true,
+				joinVerties = true,
+				calcNormals = true,
+				calcTangents = true,
+				calcBitangent = true,
+				genSmoothNormals = true;
+
 			//if (!m_ImportedModel)
 			{
+				ImGui::Text("Import settings:");
+				ImGui::Separator();
+
+				if (ImGui::BeginTable("ImportSettings", 2, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg, { ImGui::GetContentRegionAvail().x, 0 }))
+				{
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn(); { ImGui::Text("Import Model"); HelpMarker("TODO");  }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotModelsCheckBox", &importModels); }
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn(); { ImGui::Text("Import Meshes"); HelpMarker("Import and convert meshes into valid engine file format."); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotMeshesCheckBox", &importMeshes); }
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn(); { ImGui::Text("Import Materials"); HelpMarker("Import and convert materials into valid engine file format."); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotMaterialsCheckBox", &importMaterials); }
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn(); { ImGui::Text("Try to import Skeleton"); HelpMarker("Try to find and convert skeleton into valid engine file format if skeleton is present."); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotSkeletonCheckBox", &importSkeleton); }
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn(); { ImGui::Text("Try to import Animations"); HelpMarker("Try to find and convert animations into valid engine file format if animations are present."); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotAnimationsCheckBox", &importAnimations); }
+
+					ImGui::TableNextRow();
+					(!importSkeleton || !importAnimations) ? ImGui::BeginDisabled() : void();
+						ImGui::TableNextColumn(); { ImGui::Text("	Validate animation channels"); HelpMarker("Remove animation channels if there are no specific bones present."); }
+						ImGui::TableNextColumn(); { ImGui::Checkbox("##ValidateAnimationsChannels", &validateAnimationChannels); }
+					(!importSkeleton || !importAnimations) ? ImGui::EndDisabled()   : void();
+
+					ImGui::EndTable();
+				}
+
+				ImGui::Text("Post process:"); ImGui::Separator();
+				if (ImGui::BeginTable("PostProcess", 2, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg, { ImGui::GetContentRegionAvail().x, 0 }))
+				{
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn(); { ImGui::Text("Triangulate"); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##TriangulateCheckBox", &triangulate); HelpMarker("Triangulates all faces of all meshes."); }
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn(); { ImGui::Text("FlipUVs"); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##FlipUVsCheckBox", &flipUvs); HelpMarker("Flips all UV coordinates along the y-axis and adjusts material settings and bitangents accordingly.");}
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn(); { ImGui::Text("Join identical vertices"); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##JoinVertiesCheckBox", &joinVerties);  HelpMarker("Identifies and joins identical vertex data sets within all imported meshes."); }
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn(); { ImGui::Text("Calculate normals"); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##CalculateNormalsCheckBox", &calcNormals); }
+
+					(!calcNormals) ? ImGui::BeginDisabled() : void();
+						ImGui::TableNextRow();
+						ImGui::TableNextColumn(); { ImGui::Text("	Generate smooth normals"); }
+						ImGui::TableNextColumn(); { ImGui::Checkbox("##GenerateSmoothNormalsCheckBox", &genSmoothNormals); }
+						ImGui::TableNextRow();
+						ImGui::TableNextColumn(); { ImGui::Text("	Calculate tangents"); }
+						ImGui::TableNextColumn(); { ImGui::Checkbox("##CalculateTangentsCheckBox", &calcTangents); }
+						ImGui::TableNextRow();
+						ImGui::TableNextColumn(); { ImGui::Text("	Calculate bitangents"); }
+						ImGui::TableNextColumn(); { ImGui::Checkbox("##CalculateBitangentsCheckBox", &calcBitangent); }
+					(!calcNormals) ? ImGui::EndDisabled() : void();
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn(); { ImGui::Text("Bake bones into mesh data"); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##BakeNormalsCheckBox", &bakeBones); }
+			
+					ImGui::EndTable();
+				}
+
+
 				if (ImGui::BeginTable("SelectFrom", 2, ImGuiTableFlags_SizingStretchProp, { ImGui::GetContentRegionAvail().x, 0 }))
 				{
 					ImGui::TableNextColumn();
 					{
 						InputTextCol("Select from", from);
-
 					}
 					ImGui::TableNextColumn();
 					{
@@ -165,7 +251,25 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 							auto selectedPath = shade::FileDialog::OpenFile("Supported formats(*.obj, *.fbx, *.dae) \0*.obj;*.fbx;*.dae\0");
 							if (!selectedPath.empty())
 							{
-								auto [model, animation] = IModel::Import(selectedPath.string());
+								IImportFlag importFlags =
+									((importModels) ? IImportFlags::ImportModel : 0) |
+									((importMeshes) ? IImportFlags::ImportMeshes : 0) |
+									((importMaterials) ? IImportFlags::ImportMaterials : 0) |
+									((importAnimations) ? IImportFlags::ImportAnimation : 0) |
+									((importSkeleton) ? IImportFlags::TryToImportSkeleton : 0) |
+									((validateAnimationChannels) ? IImportFlags::TryValidateAnimationChannels : 0) |
+
+									((triangulate) ? IImportFlags::Triangulate : 0) |
+									((bakeBones) ? IImportFlags::BakeBoneIdsWeightsIntoMesh : 0) |
+									((flipUvs) ? IImportFlags::FlipUVs : 0) |
+									((joinVerties) ? IImportFlags::JoinIdenticalVertices : 0) |
+									((calcNormals) ? IImportFlags::CalcNormals : 0) |
+									((genSmoothNormals) ? IImportFlags::GenSmoothNormals : 0) |
+									((calcBitangent) ? IImportFlags::CalcBitangents : 0) |
+									((calcTangents) ? IImportFlags::CalcTangentSpace : 0);
+
+								auto [model, animation] = IModel::Import(selectedPath.string(), importFlags);
+
 								m_ImportedModel = model;
 								
 								if (m_ImportedModel)
@@ -1660,7 +1764,7 @@ void EditorLayer::AnimationStackComponent(shade::ecs::Entity& entity)
 
 	for (auto& [name, animation] : animations)
 	{
-		DragFloat("Duration", &animation->m_Duration);
+		//DragFloat("Duration", &animation->m_Duration);
 		//DragInt("TickPerSecond", &animation->m_TicksPerSecond);
 	}
 }
