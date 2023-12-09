@@ -424,6 +424,7 @@ void shade::VulkanPipeline::BindDescriptorsSets(SharedPointer<RenderCommandBuffe
 	{
 		if (set != Pipeline::Set::Global)
 		{
+			// TODO: Try not use map, vector insted !
 			auto resourcesAtSetIndex = m_Resources.find(set);
 			if (resourcesAtSetIndex != m_Resources.end())
 			{

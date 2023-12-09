@@ -38,6 +38,7 @@ layout (std430, set = 1, binding = 10) restrict readonly buffer SBoneTransform
 //Vertex shader entry point
 void main() 
 {
+
    mat4 BoneTransform = s_BoneTransform[a_BoneId[0]] * a_BoneWeight[0];
    BoneTransform     += s_BoneTransform[a_BoneId[1]] * a_BoneWeight[1];
    BoneTransform     += s_BoneTransform[a_BoneId[2]] * a_BoneWeight[2];

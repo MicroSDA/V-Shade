@@ -32,6 +32,16 @@ std::vector<shade::Asset<shade::Mesh>>& shade::Model::GetMeshes()
 	return m_Meshes;
 }
 
+void shade::Model::SetSkeleton(const Asset<Skeleton>& skeleton)
+{
+	m_Skeleton = skeleton;
+}
+
+const shade::Asset<shade::Skeleton>& shade::Model::GetSkeleton() const
+{
+	return m_Skeleton;
+}
+
 shade::Model::Model(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour) : BaseAsset(assetData, lifeTime, behaviour)
 {
 	for (auto& dependency : assetData->GetDependencies())

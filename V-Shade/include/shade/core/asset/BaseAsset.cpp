@@ -11,9 +11,10 @@ std::string shade::AssetMeta::GetTypeAsString(AssetMeta::Type type)
 		case AssetMeta::Type::Mesh: return "Mesh";
 		case AssetMeta::Type::Material: return "Material";
 		case AssetMeta::Type::Texture: return "Texture";
-		case AssetMeta::Type::AnimationRig: return "AnimationRig";
-		case AssetMeta::Type::Sound: return "Sound";
+		case AssetMeta::Type::Animation: return "AnimationRig";
+		case AssetMeta::Type::Skeleton: return "Skeleton";
 		case AssetMeta::Type::CollisionShapes: return "CollisionShapes";
+		case AssetMeta::Type::Sound: return "Sound";
 		case AssetMeta::Type::Other: return "Other";
 		default: return "Undefined";
 	}
@@ -21,8 +22,6 @@ std::string shade::AssetMeta::GetTypeAsString(AssetMeta::Type type)
 
 shade::AssetMeta::Type shade::AssetMeta::GetTypeFromString(const std::string& type)
 {
-	if (type == "Asset")
-		return AssetMeta::Type::Asset;
 	if (type == "Model")
 		return AssetMeta::Type::Model;
 	if (type == "Mesh")
@@ -32,15 +31,17 @@ shade::AssetMeta::Type shade::AssetMeta::GetTypeFromString(const std::string& ty
 	if (type == "Texture")
 		return AssetMeta::Type::Texture;
 	if (type == "AnimationRig")
-		return AssetMeta::Type::AnimationRig;
-	if (type == "Sound")
-		return AssetMeta::Type::Sound;
+		return AssetMeta::Type::Animation;
+	if (type == "AnimationRig")
+		return AssetMeta::Type::Skeleton;
 	if (type == "CollisionShapes")
 		return AssetMeta::Type::CollisionShapes;
+	if (type == "Sound")
+		return AssetMeta::Type::Sound;
 	if (type == "Other")
 		return AssetMeta::Type::Other;
 
-	return AssetMeta::Type::Undefined;
+	return AssetMeta::Type::Asset;
 }
 
 std::string shade::AssetMeta::GetCategoryAsString(AssetMeta::Category category)
@@ -73,7 +74,7 @@ shade::AssetMeta::Category shade::AssetMeta::GetCategoryFromString(const std::st
 }
 
 shade::AssetData::AssetData() :
-	m_Category(AssetMeta::Category::None), m_Type(AssetMeta::Type::Undefined)
+	m_Category(AssetMeta::Category::None), m_Type(AssetMeta::Type::Asset)
 {
 }
 
@@ -211,7 +212,7 @@ shade::SharedPointer<shade::AssetData>& shade::BaseAsset::GetAssetData()
 
 shade::AssetMeta::Type shade::BaseAsset::GetAssetStaticType()
 {
-	return AssetMeta::Type::Undefined;
+	return AssetMeta::Type::Asset;
 }
 
 shade::AssetMeta::Type shade::BaseAsset::GetAssetType() const

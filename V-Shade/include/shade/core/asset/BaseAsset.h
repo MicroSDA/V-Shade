@@ -27,19 +27,27 @@ namespace shade
 
 		enum Type : std::uint32_t
 		{
-			Undefined,
 			Asset,
 			Model,
 			Mesh,
 			Material,
 			Texture,
-			AnimationRig,
-			Sound,
+			Animation,
+			Skeleton,
 			CollisionShapes,
-			Other,
+			Sound,
 
+			// Insert new here
+			Other,
 			ASSET_TYPE_MAX_ENUM
 		};
+
+		// Here we can keep texture's types and soo on
+		enum SubType : std::uint32_t
+		{
+			ImageDiffuse // and so on
+		};
+
 		static std::string GetTypeAsString(Type type);
 		static Type GetTypeFromString(const std::string& type);
 	};

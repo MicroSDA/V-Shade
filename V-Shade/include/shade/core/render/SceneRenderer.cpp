@@ -322,23 +322,24 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 			{
 				auto pcTransform = scene->ComputePCTransform(entity);
 
+				/// ANIMATION///
+				if (entity.HasComponent<AnimationStackComponent>())
+				{
+					for (auto& [name, animation] : entity.GetComponent<AnimationStackComponent>())
+					{
+						static Animator animator(animation);
+						animator.UpdateAnimation(deltaTime.GetInSeconds<float>(), model->GetSkeleton());
+						auto& t = animator.GetFinalBoneMatrices();
+
+						m_BoneTranformation->SetData(sizeof(glm::mat4) * animator.GetFinalBoneMatrices().size(), animator.GetFinalBoneMatrices().data(), currentFrame);
+					}
+
+				}
+
+
 				for (const auto& mesh : *model)
 				{
-					/// ANIMATION///
-					if (entity.HasComponent<AnimationStackComponent>())
-					{
-						for (auto& [name, animation] : entity.GetComponent<AnimationStackComponent>())
-						{
-							static Animator animator(&animation.Get(), &model->m_Skeleton.Get());
-							animator.UpdateAnimation(deltaTime.GetInSeconds<float>(), mesh);
-							auto& t = animator.GetFinalBoneMatrices();
-
-							m_BoneTranformation->SetData(sizeof(glm::mat4) * animator.GetFinalBoneMatrices().size(), animator.GetFinalBoneMatrices().data(), currentFrame);
-						}
-						
-					}
 					
-
 					if (frustum.IsInFrustum(pcTransform, mesh->GetMinHalfExt(), mesh->GetMaxHalfExt()))
 					{
 						// If mesh has bones

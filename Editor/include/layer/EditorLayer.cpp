@@ -171,29 +171,29 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 				if (ImGui::BeginTable("ImportSettings", 2, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg, { ImGui::GetContentRegionAvail().x, 0 }))
 				{
 					ImGui::TableNextRow();
-					ImGui::TableNextColumn(); { ImGui::Text("Import Model"); HelpMarker("TODO");  }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotModelsCheckBox", &importModels); }
+					ImGui::TableNextColumn(); { ImGui::Text("Import Model");}
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotModelsCheckBox", &importModels);  HelpMarker("TODO");   }
 
 					ImGui::TableNextRow();
-					ImGui::TableNextColumn(); { ImGui::Text("Import Meshes"); HelpMarker("Import and convert meshes into valid engine file format."); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotMeshesCheckBox", &importMeshes); }
+					ImGui::TableNextColumn(); { ImGui::Text("Import Meshes"); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotMeshesCheckBox", &importMeshes); HelpMarker("Import and convert meshes into valid engine file format.");  }
 
 					ImGui::TableNextRow();
-					ImGui::TableNextColumn(); { ImGui::Text("Import Materials"); HelpMarker("Import and convert materials into valid engine file format."); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotMaterialsCheckBox", &importMaterials); }
+					ImGui::TableNextColumn(); { ImGui::Text("Import Materials"); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotMaterialsCheckBox", &importMaterials); HelpMarker("Import and convert materials into valid engine file format."); }
 
 					ImGui::TableNextRow();
-					ImGui::TableNextColumn(); { ImGui::Text("Try to import Skeleton"); HelpMarker("Try to find and convert skeleton into valid engine file format if skeleton is present."); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotSkeletonCheckBox", &importSkeleton); }
+					ImGui::TableNextColumn(); { ImGui::Text("Try to import Skeleton"); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotSkeletonCheckBox", &importSkeleton); HelpMarker("Try to find and convert skeleton into valid engine file format if skeleton is present."); }
 
 					ImGui::TableNextRow();
-					ImGui::TableNextColumn(); { ImGui::Text("Try to import Animations"); HelpMarker("Try to find and convert animations into valid engine file format if animations are present."); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotAnimationsCheckBox", &importAnimations); }
+					ImGui::TableNextColumn(); { ImGui::Text("Try to import Animations"); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotAnimationsCheckBox", &importAnimations); HelpMarker("Try to find and convert animations into valid engine file format if animations are present."); }
 
 					ImGui::TableNextRow();
 					(!importSkeleton || !importAnimations) ? ImGui::BeginDisabled() : void();
-						ImGui::TableNextColumn(); { ImGui::Text("	Validate animation channels"); HelpMarker("Remove animation channels if there are no specific bones present."); }
-						ImGui::TableNextColumn(); { ImGui::Checkbox("##ValidateAnimationsChannels", &validateAnimationChannels); }
+						ImGui::TableNextColumn(); { ImGui::Text("	Validate animation channels"); }
+						ImGui::TableNextColumn(); { ImGui::Checkbox("##ValidateAnimationsChannels", &validateAnimationChannels); HelpMarker("Remove animation channels if there are no specific bones present."); }
 					(!importSkeleton || !importAnimations) ? ImGui::EndDisabled()   : void();
 
 					ImGui::EndTable();
@@ -860,7 +860,7 @@ void EditorLayer::AssetsExplorer()
 	ImGui::BeginChild("Types", ImVec2(width, height), true);
 	ImGui::Text("Types:");
 	ImGui::Separator();
-	for (shade::AssetMeta::Type type = shade::AssetMeta::Type::Undefined; type < shade::AssetMeta::Type::ASSET_TYPE_MAX_ENUM; ((std::uint32_t&)type)++)
+	for (shade::AssetMeta::Type type = shade::AssetMeta::Type::Asset; type < shade::AssetMeta::Type::ASSET_TYPE_MAX_ENUM; ((std::uint32_t&)type)++)
 	{
 		if (ImGui::Selectable(shade::AssetMeta::GetTypeAsString(type).c_str(), selectedType == type))
 			selectedType = type;
@@ -926,7 +926,7 @@ void EditorLayer::AssetsExplorer()
 				ImGui::TableNextColumn();
 				{
 					std::vector<std::string> items(shade::AssetMeta::Type::ASSET_TYPE_MAX_ENUM);
-					for (shade::AssetMeta::Type typ = shade::AssetMeta::Type::Undefined; typ < shade::AssetMeta::Type::ASSET_TYPE_MAX_ENUM; ((std::uint32_t&)typ)++)
+					for (shade::AssetMeta::Type typ = shade::AssetMeta::Type::Asset; typ < shade::AssetMeta::Type::ASSET_TYPE_MAX_ENUM; ((std::uint32_t&)typ)++)
 						items[typ] = shade::AssetMeta::GetTypeAsString(typ);
 					std::string currentItem = shade::AssetMeta::GetTypeAsString(selectedType);
 
@@ -1039,7 +1039,7 @@ void EditorLayer::Creator()
 	ImGui::BeginChild("##CreateorTypes", ImVec2(ImGui::GetContentRegionAvail().x, height), true);
 	ImGui::Text("Types:");
 	ImGui::Separator();
-	for (shade::AssetMeta::Type type = shade::AssetMeta::Type::Undefined; type < shade::AssetMeta::Type::ASSET_TYPE_MAX_ENUM; ((std::uint32_t&)type)++)
+	for (shade::AssetMeta::Type type = shade::AssetMeta::Type::Asset; type < shade::AssetMeta::Type::ASSET_TYPE_MAX_ENUM; ((std::uint32_t&)type)++)
 	{
 		if (ImGui::Selectable(shade::AssetMeta::GetTypeAsString(type).c_str(), selectedType == type))
 			selectedType = type;
@@ -1051,8 +1051,6 @@ void EditorLayer::Creator()
 
 		switch (selectedType)
 		{
-		case shade::AssetMeta::Undefined:
-			break;
 		case shade::AssetMeta::Asset:
 			break;
 		case shade::AssetMeta::Model:
@@ -1063,7 +1061,7 @@ void EditorLayer::Creator()
 			break;
 		case shade::AssetMeta::Texture:
 			break;
-		case shade::AssetMeta::AnimationRig:
+		case shade::AssetMeta::Animation:
 			break;
 		case shade::AssetMeta::Sound:
 			break;
@@ -1120,7 +1118,7 @@ void EditorLayer::EditAsset(shade::SharedPointer<shade::AssetData>& assetData)
 			ImGui::TableNextColumn();
 			{
 				std::vector<std::string> items(shade::AssetMeta::Type::ASSET_TYPE_MAX_ENUM);
-				for (shade::AssetMeta::Type typ = shade::AssetMeta::Type::Undefined; typ < shade::AssetMeta::Type::ASSET_TYPE_MAX_ENUM; ((std::uint32_t&)typ)++)
+				for (shade::AssetMeta::Type typ = shade::AssetMeta::Type::Asset; typ < shade::AssetMeta::Type::ASSET_TYPE_MAX_ENUM; ((std::uint32_t&)typ)++)
 					items[typ] = shade::AssetMeta::GetTypeAsString(typ);
 				std::string currentItem = shade::AssetMeta::GetTypeAsString(type);
 
@@ -1449,7 +1447,7 @@ void EditorLayer::AddNewAsset()
 {
 	auto width = ImGui::GetContentRegionAvail().x / 5;
 	static shade::AssetMeta::Category category = shade::AssetMeta::Category::None;
-	static shade::AssetMeta::Type type = shade::AssetMeta::Undefined;
+	static shade::AssetMeta::Type type = shade::AssetMeta::Asset;
 
 	std::string id;
 
@@ -1471,7 +1469,7 @@ void EditorLayer::AddNewAsset()
 
 	{
 		std::vector<std::string> items(shade::AssetMeta::Type::ASSET_TYPE_MAX_ENUM);
-		for (shade::AssetMeta::Type typ = shade::AssetMeta::Type::Undefined; typ < shade::AssetMeta::Type::ASSET_TYPE_MAX_ENUM; ((std::uint32_t&)typ)++)
+		for (shade::AssetMeta::Type typ = shade::AssetMeta::Type::Asset; typ < shade::AssetMeta::Type::ASSET_TYPE_MAX_ENUM; ((std::uint32_t&)typ)++)
 			items[typ] = shade::AssetMeta::GetTypeAsString(typ);
 		std::string currentItem = shade::AssetMeta::GetTypeAsString(type);
 

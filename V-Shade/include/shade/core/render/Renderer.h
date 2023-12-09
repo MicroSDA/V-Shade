@@ -58,7 +58,6 @@ namespace shade
 		static void UpdateSubmitedMaterial(SharedPointer<RenderCommandBuffer>& commandBuffer, SharedPointer<RenderPipeline>& pipeline, const Asset<Drawable>& instance, const Asset<Material>& material, std::uint32_t frameIndex, std::size_t lod = 0);
 		static void UpdateSubmitedMaterial(SharedPointer<RenderCommandBuffer>& commandBuffer, SharedPointer<RenderPipeline>& pipeline, std::size_t instance, const Asset<Material>& material, std::uint32_t frameIndex, std::size_t lod = 0);
 		
-
 		static const SpotLight::RenderData& GetSubmitedSpotLightRenderData(std::uint32_t lightIndex);
 		static const std::uint32_t GetSubmitedSpotLightCount();
 

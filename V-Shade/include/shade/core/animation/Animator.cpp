@@ -1,20 +1,20 @@
 #include "shade_pch.h"
 #include "Animator.h"
 
-void shade::Animator::UpdateAnimation(float dt, const Asset<shade::Mesh>& mesh)
+void shade::Animator::UpdateAnimation(float deltaTime, const Asset<Skeleton>& skeleton)
 {
-    m_DeltaTime = dt;
+    m_DeltaTime = deltaTime;
 
     if (m_CurrentAnimation)
     {
-        m_CurrentTime += static_cast<float>(m_CurrentAnimation->GetTiksPerSecond()) * dt;
+        m_CurrentTime += m_CurrentAnimation->GetTiksPerSecond() * deltaTime;
         m_CurrentTime = fmod(m_CurrentTime, m_CurrentAnimation->GetDureation());
 
-        CalculateBoneTransform(mesh, m_CurrentSkeleton->GetRootNode(), glm::mat4(1.0)); // Where root node is firt Bone
+        CalculateBoneTransform(skeleton->GetRootNode(), glm::mat4(1.0), skeleton->GetArmature()); // Where root node is firt Bone
     }
 
 }
-void shade::Animator::CalculateBoneTransform(const Asset<shade::Mesh>& mesh, const SharedPointer<Skeleton::BoneNode>& bone, const glm::mat4& parentTransform)
+void shade::Animator::CalculateBoneTransform(const SharedPointer<Skeleton::BoneNode>& bone, const glm::mat4& parentTransform, const SharedPointer<Skeleton::BoneArmature>& armature)
 {
     /*  The offsetMatrix of a bone is the inverse of that bone's global transform at bind pose. In other words, 
         if you traverse the bone/node hierarchy, applying the local transform (mTransformation in Assimp) of each bone/node hierarchically to its children,
@@ -33,14 +33,13 @@ void shade::Animator::CalculateBoneTransform(const Asset<shade::Mesh>& mesh, con
 
         globalMatrix                    *= interpolatedTransfom;
 
-        m_FinalBoneMatrices[bone->ID] = globalMatrix * bone->InverseBindPose * m_CurrentSkeleton->GetArmature()->Transform;
+        m_FinalBoneMatrices[bone->ID] = globalMatrix * bone->InverseBindPose * armature->Transform;
     }
     else
     {
-        //globalMatrix *= glm::translate(glm::mat4(1.0f), bone->Translation) * glm::toMat4(bone->Rotation) * glm::scale(glm::mat4(1.0f), bone->Scale);
+        globalMatrix *= glm::translate(glm::mat4(1.0f), bone->Translation) * glm::toMat4(bone->Rotation) * glm::scale(glm::mat4(1.0f), bone->Scale);
     }
 
     for (const auto& child : bone->Children)
-        CalculateBoneTransform(mesh, child, globalMatrix);
-
+        CalculateBoneTransform(child, globalMatrix, armature);
 }

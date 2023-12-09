@@ -22,15 +22,16 @@ namespace shade
 		void AddMesh(const Asset<Mesh>& mesh);
 		const std::vector<Asset<Mesh>>& GetMeshes() const;
 		std::vector<Asset<Mesh>>& GetMeshes();
+
+		void SetSkeleton(const Asset<Skeleton>& skeleton);
+		const Asset<Skeleton>& GetSkeleton() const;
+
 	private:
 		std::vector<Asset<Mesh>> m_Meshes;
+		Asset<Skeleton> m_Skeleton;
 	private:
 		static Model* Create(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
 		Model(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
-
-		// TODO: mby rework it
-	public:
-		SharedPointer<Skeleton> m_Skeleton;
 
 		friend class Asset<Model>;
 		friend class Serializer;

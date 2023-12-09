@@ -103,7 +103,7 @@ std::tuple<shade::SharedPointer<shade::Model>, std::unordered_map<std::string, s
 			animations = IAnimation::ImportAnimations(pScene, skeleton);
 		}
 		
-		model->m_Skeleton = skeleton;
+		model->SetSkeleton(skeleton);
 
 		return { model, animations };
 	}
@@ -189,7 +189,7 @@ void IModel::ProcessBones(shade::SharedPointer<shade::Mesh>& mesh, const char* f
 
 	for (std::size_t boneIndex = 0; boneIndex < aMesh->mNumBones; ++boneIndex)
 	{
-		std::uint32_t boneId = ~0;
+		std::uint32_t boneId = shade::Skeleton::NULL_BONE_ID;
 
 		std::string boneName = aMesh->mBones[boneIndex]->mName.C_Str();
 
@@ -204,7 +204,7 @@ void IModel::ProcessBones(shade::SharedPointer<shade::Mesh>& mesh, const char* f
 			boneId = boneList[boneName];
 		}
 
-		assert(boneId != ~0);
+		assert(boneId != shade::Skeleton::NULL_BONE_ID);
 
 		for (std::uint32_t weightIndex = 0; weightIndex < aMesh->mBones[boneIndex]->mNumWeights; ++weightIndex)
 		{
@@ -217,7 +217,7 @@ void IModel::ProcessBones(shade::SharedPointer<shade::Mesh>& mesh, const char* f
 			{
 				auto& bone = mesh->GetBones()[vertexId];
 
-				if (bone.IDs[i] == ~0)
+				if (bone.IDs[i] == shade::Skeleton::NULL_BONE_ID)
 				{
 					bone.IDs[i] = boneId;
 					bone.Weights[i] = weight;
@@ -230,7 +230,7 @@ void IModel::ProcessBones(shade::SharedPointer<shade::Mesh>& mesh, const char* f
 
 shade::SharedPointer<shade::Skeleton> ISkeleton::ExtractSkeleton(const aiScene* pScene)
 {
-	shade::SharedPointer<shade::Skeleton> skeleton = shade::SharedPointer<shade::Skeleton>::Create();
+	shade::SharedPointer<shade::Skeleton> skeleton = shade::Skeleton::CreateEXP();
 
 	ProcessBone(pScene, pScene->mRootNode, skeleton, nullptr);
 
@@ -291,7 +291,7 @@ std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> IAnimati
 
 		SHADE_INFO("-- Process '{0}' animation --", pAnimation->mName.C_Str());
 
-		shade::SharedPointer<shade::Animation>& animation = Animations.insert({ pAnimation->mName.C_Str(), shade::SharedPointer<shade::Animation>::Create() }).first->second;
+		shade::SharedPointer<shade::Animation>& animation = Animations.insert({ pAnimation->mName.C_Str(), shade::Animation::CreateEXP() }).first->second;
 
 		SHADE_INFO("Duration : {0}, Ticks per second : {1}", pAnimation->mDuration, pAnimation->mTicksPerSecond);
 

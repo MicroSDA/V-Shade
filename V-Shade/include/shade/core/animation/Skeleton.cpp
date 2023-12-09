@@ -1,6 +1,39 @@
 #include "shade_pch.h"
 #include "Skeleton.h"
 
+shade::Skeleton::Skeleton(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour) : BaseAsset(assetData, lifeTime, behaviour)
+{
+    const std::string filePath = assetData->GetAttribute<std::string>("Path");
+
+    shade::File file(filePath, shade::File::In, "@s_skeleton", shade::File::VERSION(0, 0, 1));
+    if (!file.IsOpen())
+        SHADE_CORE_WARNING("Failed to read file, wrong path = {0}", filePath)
+    else
+    {
+        file.Read(*this);
+        file.CloseFile();
+    }
+}
+
+shade::Skeleton* shade::Skeleton::Create(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour)
+{
+    return new Skeleton(assetData, lifeTime, behaviour);
+}
+
+shade::AssetMeta::Type shade::Skeleton::GetAssetStaticType()
+{
+    return AssetMeta::Type::Skeleton;
+}
+
+shade::AssetMeta::Type shade::Skeleton::GetAssetType() const
+{
+    return GetAssetStaticType();
+}
+
+shade::SharedPointer<shade::Skeleton> shade::Skeleton::CreateEXP()
+{
+    return SharedPointer<Skeleton>::Create();
+}
 
 shade::SharedPointer<shade::Skeleton::BoneNode>& shade::Skeleton::AddBone(const std::string& name, const glm::mat4& transform, const glm::mat4& inverseBindPose)
 {
@@ -47,4 +80,16 @@ const shade::SharedPointer<shade::Skeleton::BoneNode>& shade::Skeleton::GetRootN
 const shade::Skeleton::BoneNodes& shade::Skeleton::GetBones() const
 {
     return m_BoneNodes;
+}
+
+std::size_t shade::Skeleton::Serialize(std::ostream& stream) const
+{
+    assert(false);
+    return std::size_t();
+}
+
+std::size_t shade::Skeleton::Deserialize(std::istream& stream)
+{
+    assert(false);
+    return std::size_t();
 }

@@ -12,7 +12,7 @@ namespace shade
 		// Default constructor to create an empty Asset.
 		Asset() = default;
 		// Asset destructor.
-		virtual ~Asset() 
+		~Asset() // Virtual was removed need to test !!
 		{ 
 			// In case we have only two alive instances, one here and one in AssetManager 
 			// we need to run life time managment based on BaseAsset::LifeTime flag
