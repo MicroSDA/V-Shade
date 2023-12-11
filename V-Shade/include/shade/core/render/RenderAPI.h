@@ -48,6 +48,7 @@ namespace shade
 		static constexpr std::uint32_t POINT_SHADOW_MAP_BINDING			= 6;
 		static constexpr std::uint32_t SPOT_LIGHT_INDINCES_BINDING		= 7;
 		static constexpr std::uint32_t POINT_LIGHT_INDINCES_BINDING		= 8;
+		static constexpr std::uint32_t BONE_TRANSFORMS_BINDING			= 9;
 
 		static constexpr std::uint32_t MAX_GLOBAL_LIGHTS_COUNT			= 10;
 		static constexpr std::uint32_t MAX_GLOBAL_SHADOW_CASTERS		= 1;
@@ -55,6 +56,8 @@ namespace shade
 		static constexpr std::uint32_t MAX_POINT_SHADOW_CASTERS			= 50;
 		static constexpr std::uint32_t MAX_SPOT_LIGHTS_COUNT			= 1024;
 		static constexpr std::uint32_t MAX_SPOT_SHADOW_CASTERS			= 50;
+		static constexpr std::uint32_t MAX_ANIMATION_PLAY				= 1024;
+		static constexpr std::uint32_t MAX_BONES_PER_INSTANCE			= 100;
 
 		struct SceneRenderData
 		{
@@ -63,6 +66,7 @@ namespace shade
 			std::uint32_t	GlobalLightCount		= 0;
 			std::uint32_t	PointsLightCount		= 0;
 			std::uint32_t	SpotLightCount			= 0;
+			std::uint32_t	SubmitedBoneTransfroms  = 0;
 		public:
 			const std::uint32_t GetGlobalLightCount() { return GlobalLightCount; }
 			const std::uint32_t GetPointsLightCount() { return PointsLightCount; }

@@ -16,6 +16,7 @@
 #define POINT_SHADOW_MAP_BINDING       6
 #define SPOT_LIGHT_INDINCES_BINDING    7
 #define POINT_LIGHT_INDINCES_BINDING   8
+#define BONE_TRANSFORMS_BINDING        9
 
 // #define USER_SET                       2
 // #define POINT_LIGHT_INDINCES_BINDING   0

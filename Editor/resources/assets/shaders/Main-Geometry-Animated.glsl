@@ -31,19 +31,28 @@ layout (std140, set = GLOBAL_SET, binding = CAMERA_BUFFER_BINDING) uniform UCame
     Camera u_Camera;
 };
 //Storage buffer containing the direct light data
-layout (std430, set = 1, binding = 10) restrict readonly buffer SBoneTransform
+layout (std430, set = PER_INSTANCE_SET, binding = BONE_TRANSFORMS_BINDING) restrict readonly buffer SBoneTransform
 {
 	mat4 s_BoneTransform[];
 };
+
+layout(push_constant) uniform DrawInstance
+{
+	uint Index;
+} u_DrawInstance;
+
+#define MAX_BONES_PER_INSTANCE 100
+#define BONE_INFLUENCE 4
 //Vertex shader entry point
 void main() 
 {
+   uint DrawCallOffset = (u_DrawInstance.Index + gl_InstanceIndex) * MAX_BONES_PER_INSTANCE;
 
-   mat4 BoneTransform = s_BoneTransform[a_BoneId[0]] * a_BoneWeight[0];
-   BoneTransform     += s_BoneTransform[a_BoneId[1]] * a_BoneWeight[1];
-   BoneTransform     += s_BoneTransform[a_BoneId[2]] * a_BoneWeight[2];
-   BoneTransform     += s_BoneTransform[a_BoneId[3]] * a_BoneWeight[3];
+   mat4 BoneTransform = mat4(0.0);
 
+   for(uint i = 0; i < BONE_INFLUENCE; i++)
+   	   BoneTransform += (a_BoneId[i] != ~0) ? s_BoneTransform[DrawCallOffset + a_BoneId[i]] * a_BoneWeight[i] : mat4(0.0);
+   
    mat4 BoneTransformWorldSpace = a_Transform * BoneTransform;
    vec4 VertexWorldSpace = BoneTransformWorldSpace * vec4(a_Position, 1.0);
    //Transform vertex to clip space

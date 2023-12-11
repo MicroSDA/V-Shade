@@ -80,19 +80,28 @@ namespace shade
 			// Material offset within unique instance.
 			std::uint32_t MaterialOffset = 0;
 		};
-		
+		struct BoneSubmitedMetaData
+		{
+			// Bone transform per unique pipeline
+			std::vector<SharedPointer<std::vector<glm::mat4>>> BoneTransforms;
+			// Material offset within unique pipeline.
+			std::uint32_t BoneOffset = 0;
+		};
 		struct SubmitedSceneRenderData
 		{
 			// Where size_t is Asset<Drawable> hash - > Geometry buffers
 			std::unordered_map<std::size_t, std::array<render::GeometryBuffer, Drawable::MAX_LEVEL_OF_DETAIL>> GeometryBuffers;
 			// Where size_t is hash of (Pipeline, Drawable, Material) - > Transforms and materials with offset.
 			std::unordered_map<std::size_t, InstanceRawData> InstanceRawData;
+			// Where size_t hash of Pipeline -> std::uint32_t bone transforms data per with offset
+			std::unordered_map<std::size_t, BoneSubmitedMetaData> BoneOffsetsData;
 			// Where index is frame index.
 			std::vector<SharedPointer<VertexBuffer>> TransformBuffers;
 			SharedPointer<StorageBuffer> MaterialsBuffer;
 			SharedPointer<StorageBuffer> GlobalLightsBuffer;
 			SharedPointer<StorageBuffer> PointsLightsBuffer;
 			SharedPointer<StorageBuffer> SpotLightsBuffer;
+			SharedPointer<StorageBuffer> BoneTransfromsBuffer;
 			SharedPointer<UniformBuffer> CameraBuffer;
 			SharedPointer<UniformBuffer> SceneRenderDataBuffer;
 			SharedPointer<UniformBuffer> RenderSettingsDataBuffer;

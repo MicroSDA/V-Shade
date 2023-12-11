@@ -128,7 +128,6 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 	// TODO: Should it be like some internal part of renderer ?
 	m_VisibleSpotLightIndicesBuffer  = StorageBuffer::Create(StorageBuffer::Usage::GPU, RenderAPI::SPOT_LIGHT_INDINCES_BINDING, sizeof(std::uint32_t) * RenderAPI::MAX_SPOT_LIGHTS_COUNT, Renderer::GetFramesCount(), 20);
 	m_VisiblePointLightIndicesBuffer = StorageBuffer::Create(StorageBuffer::Usage::GPU, RenderAPI::POINT_LIGHT_INDINCES_BINDING, sizeof(std::uint32_t) * RenderAPI::MAX_POINT_LIGHTS_COUNT, Renderer::GetFramesCount(), 20);
-	m_BoneTranformation	= StorageBuffer::Create(StorageBuffer::Usage::CPU_GPU, 10, sizeof(glm::mat4) * 250, Renderer::GetFramesCount(), 0);
 	m_GlobalLightShadowDepthPipeline = shade::RenderPipeline::Create(
 		{
 			.Shader = ShaderLibrary::Create("GlobalShadowPreDepth", "./resources/assets/shaders/preprocess/Global-Light-Shadow-Pre-Depth.glsl"),
@@ -317,29 +316,21 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 					}
 				}
 			});
-
 		scene->View<Asset<Model>, TransformComponent>().Each([&](ecs::Entity& entity, Asset<Model>& model, TransformComponent& transform)
 			{
 				auto pcTransform = scene->ComputePCTransform(entity);
 
-				/// ANIMATION///
-				if (entity.HasComponent<AnimationStackComponent>())
+				/// ANIMATION ///
+				if (entity.HasComponent<AnimationControllerComponent>())
 				{
-					for (auto& [name, animation] : entity.GetComponent<AnimationStackComponent>())
-					{
-						static Animator animator(animation);
-						animator.UpdateAnimation(deltaTime.GetInSeconds<float>(), model->GetSkeleton());
-						auto& t = animator.GetFinalBoneMatrices();
-
-						m_BoneTranformation->SetData(sizeof(glm::mat4) * animator.GetFinalBoneMatrices().size(), animator.GetFinalBoneMatrices().data(), currentFrame);
-					}
-
+					auto controller = entity.GetComponent<AnimationControllerComponent>();
+					controller->UpdateCurrentAnimation(deltaTime, model->GetSkeleton());
+					
+					Renderer::SubmitBoneTransforms(m_MainGeometryPipelineAnimated, controller->GetBoneTransforms());
 				}
-
 
 				for (const auto& mesh : *model)
 				{
-					
 					if (frustum.IsInFrustum(pcTransform, mesh->GetMinHalfExt(), mesh->GetMaxHalfExt()))
 					{
 						// If mesh has bones
@@ -592,10 +583,11 @@ shade::SharedPointer<shade::Camera>& shade::SceneRenderer::GetActiveCamera()
 void shade::SceneRenderer::RecompileAllPipelines()
 {
 	m_MainGeometryPipelineStatic->Recompile();
-	m_ScreenSpaceAmbientOcclusionPipeline->Recompile();
+	m_MainGeometryPipelineAnimated->Recompile();
+	/*m_ScreenSpaceAmbientOcclusionPipeline->Recompile();
 	m_BloomPipeline->Recompile();
 	m_GridPipeline->Recompile();
-	m_AABB_OBB_Pipeline->Recompile();
+	m_AABB_OBB_Pipeline->Recompile();*/
 }
 
 void shade::SceneRenderer::LightCullingPreDepthPass(SharedPointer<RenderPipeline>& pipeline, const render::SubmitedInstances& instances, const render::SubmitedSceneRenderData& data, std::uint32_t frameIndex, bool isForceClear)
@@ -644,9 +636,9 @@ void shade::SceneRenderer::LightCullingComputePass(SharedPointer<ComputePipeline
 	// set resources needed by the compute shader
 	pipeline->SetResource(m_VisiblePointLightIndicesBuffer, Pipeline::Set::PerInstance, frameIndex);
 	pipeline->SetResource(m_VisibleSpotLightIndicesBuffer, Pipeline::Set::PerInstance, frameIndex);
-	pipeline->SetTexture(m_LightCullingPreDepthFrameBuffer->GetDepthAttachment(), Pipeline::Set::PerInstance, 9, frameIndex); // 9 need to create constan in RenderAPI
+	pipeline->SetTexture(m_LightCullingPreDepthFrameBuffer->GetDepthAttachment(), Pipeline::Set::PerInstance, 9, frameIndex); // TODO: 9 need to create constan in RenderAPI
 
-	m_MainGeometryPipelineStatic->SetUniform(m_MainCommandBuffer, sizeof(std::uint32_t), &tilesCountX, frameIndex);
+	m_MainGeometryPipelineStatic->SetUniform(m_MainCommandBuffer, sizeof(std::uint32_t), &tilesCountX, frameIndex, Shader::Type::Fragment);
 
 	// update resources, dispatch the compute shader and set a memory barrier
 	pipeline->UpdateResources(m_MainCommandBuffer, frameIndex);
@@ -669,7 +661,7 @@ void shade::SceneRenderer::GlobalLightShadowPreDepthPass(SharedPointer<RenderPip
 		{
 			for (std::uint32_t cascade = 0; cascade < GlobalLight::SHADOW_CASCADES_COUNT; cascade++)
 			{
-				pipeline->SetUniform(m_MainCommandBuffer, sizeof(std::uint32_t), &cascade, frameIndex);
+				pipeline->SetUniform(m_MainCommandBuffer, sizeof(std::uint32_t), &cascade, frameIndex, Shader::Type::Vertex);
 				// Draw the submitted instance
 				Renderer::DrawSubmitedInstanced(m_MainCommandBuffer, pipeline, instance, material, frameIndex, lod);
 			}
@@ -696,7 +688,7 @@ void shade::SceneRenderer::SpotLightShadowPreDepthPass(SharedPointer<RenderPipel
 		{
 			for (std::uint32_t index = 0; index < Renderer::GetSubmitedSpotLightCount(); index++)
 			{
-				pipeline->SetUniform(m_MainCommandBuffer, sizeof(std::uint32_t), &index, frameIndex);
+				pipeline->SetUniform(m_MainCommandBuffer, sizeof(std::uint32_t), &index, frameIndex, Shader::Type::Vertex);
 				// Draw the submitted instance
 				Renderer::DrawSubmitedInstanced(m_MainCommandBuffer, pipeline, instance, material, frameIndex, lod, index);
 			}
@@ -722,7 +714,7 @@ void shade::SceneRenderer::PointLightShadowPreDepthPass(SharedPointer<RenderPipe
 		{
 			for (std::uint32_t index = 0; index < Renderer::GetSubmitedPointLightCount(); index++)
 			{
-				pipeline->SetUniform(m_MainCommandBuffer, sizeof(std::uint32_t), &index, frameIndex);
+				pipeline->SetUniform(m_MainCommandBuffer, sizeof(std::uint32_t), &index, frameIndex, Shader::Type::Vertex);
 
 				for (std::uint32_t side = 0; side < 6; side++)
 				{
@@ -760,10 +752,15 @@ void shade::SceneRenderer::InstancedGeometryPass(SharedPointer<RenderPipeline>& 
 	pipeline->SetTexture(m_GlobalLightShadowFrameBuffer->GetDepthAttachment(), Pipeline::Set::PerInstance, RenderAPI::GLOBAL_SHADOW_MAP_BINDING, frameIndex);
 	pipeline->SetTexture(m_SpotLightShadowFrameBuffer->GetDepthAttachment(), Pipeline::Set::PerInstance, RenderAPI::SPOT_SHADOW_MAP_BINDING, frameIndex);
 	pipeline->SetTexture(m_PointLightShadowFrameBuffer->GetDepthAttachment(), Pipeline::Set::PerInstance, RenderAPI::POINT_SHADOW_MAP_BINDING, frameIndex);
-	pipeline->SetResource(m_BoneTranformation, Pipeline::Set::PerInstance, frameIndex);
+	
+	// Mby we need separate it from static pipeline
+	Renderer::UpdateSubmitedBonesData(m_MainCommandBuffer, pipeline, frameIndex);
+	std::uint32_t drawInstane = 0;
+	
 	// Loop over the instances and their materials, updating and drawing each submitted material with the rendered instance.
 	for (auto& [instance, materials] : instances.Instances)
 	{
+		pipeline->SetUniform(m_MainCommandBuffer, sizeof(std::uint32_t), &drawInstane, frameIndex, Shader::Type::Vertex | Shader::Type::Fragment);
 		// For each material
 		for (auto& [lod, material] : materials)
 		{
@@ -772,6 +769,8 @@ void shade::SceneRenderer::InstancedGeometryPass(SharedPointer<RenderPipeline>& 
 			// Draw the submitted instance
 			Renderer::DrawSubmitedInstanced(m_MainCommandBuffer, pipeline, instance, material, frameIndex, lod);
 		}
+
+		++drawInstane;
 	}
 	// End rendering
 	Renderer::EndRender(m_MainCommandBuffer, frameIndex);

@@ -274,7 +274,7 @@ void shade::VulkanComputePipeline::SetResource(SharedPointer<UniformBuffer> stor
 void shade::VulkanComputePipeline::SetUniform(SharedPointer<RenderCommandBuffer>& commandBuffer, std::size_t size, const void* data, std::uint32_t frameIndex, std::uint32_t offset)
 {
 	vkCmdPushConstants(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(frameIndex),
-		m_PipelineLayout, m_Specification.Shader->As<VulkanShader>().GetStages(), offset, size, data);
+		m_PipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, offset, size, data);
 }
 
 void shade::VulkanComputePipeline::SetBarrier(SharedPointer<RenderCommandBuffer>& commandBuffer, SharedPointer<StorageBuffer> buffer, Stage srcStage, Stage dstStage, Access srcAccess, Access dstAccces, std::uint32_t frameIndex)

@@ -81,7 +81,7 @@ void shade::VulkanPipeline::Invalidate()
 			{
 				VkPushConstantRange range
 				{
-					.stageFlags = GetSpecification().Shader->As<VulkanShader>().GetStages(),
+					.stageFlags = constant.ShaderType,
 					.offset = 0,
 					.size = constant.Size
 				};
@@ -98,11 +98,35 @@ void shade::VulkanPipeline::Invalidate()
 		std::vector<VkDescriptorSetLayout> descriptorSetLayouts(1, VulkanRenderAPI::GetGlobalDescriptorSetLayout()->GetDescriptorSetLayout());
 		std::vector<VkPushConstantRange> pushConstanRanges = VulkanRenderAPI::GlobalPushConstantRanges();
 
-		for (std::size_t i = 1; i < pushConstants.size(); i++)
-			pushConstants[i].offset = pushConstants[i - 1].size;
+		std::map<VkShaderStageFlagBits, uint32_t> stagesOffsets;
 
-		/*for (auto& constant : pushConstants)
-			pushConstanRanges.emplace_back(constant);*/
+		for (auto& pushConstant : pushConstants) {
+			VkShaderStageFlags stageFlags = pushConstant.stageFlags;
+
+			// Iterate through all possible shader stages
+			for (VkShaderStageFlagBits stageBit = VK_SHADER_STAGE_VERTEX_BIT;
+				stageBit <= VK_SHADER_STAGE_COMPUTE_BIT;
+				stageBit = static_cast<VkShaderStageFlagBits>(stageBit << 1)) {
+				if (stageFlags & stageBit) {
+					// Find the offset for the current stage in the map
+					auto stage = stagesOffsets.find(stageBit);
+
+					// If the stage is not found, add it to the map with an initial offset of 0
+					if (stage == stagesOffsets.end()) {
+						stagesOffsets[stageBit] = 0;
+					}
+					else {
+						// Increment the offset for the current stage
+						stage->second += pushConstant.size;
+					}
+
+					// Update the offset in the pushConstant structure
+					pushConstant.offset = stagesOffsets[stageBit];
+				}
+			}
+		}
+		/*for (std::size_t i = 1; i < pushConstants.size(); i++)
+			pushConstants[i].offset = pushConstants[i - 1].size;*/
 
 		for (auto& [set, layout] : m_DescriptorsLayouts)
 			descriptorSetLayouts.emplace_back(layout.GetDescriptorSetLayout());
@@ -258,26 +282,7 @@ void shade::VulkanPipeline::Invalidate()
 				++elementIndex;
 			}
 		}
-		//for (std::uint32_t i = 0; i < vertexInputAttributeDescription.size(); i++)
-		//{
-
-
-		//	for (const auto& description : vertexInputBindingDescriptions)
-		//	{
-		//		description.inputRate
-		//		// Per vertex binding
-		//		if (description.inputRate == VK_VERTEX_INPUT_RATE_VERTEX && m_Specification.VertexLayout.GetElements()[i].Usage == VertexBuffer::Layout::Usage::PerVertex)
-		//			vertexInputAttributeDescription[i].binding = description.binding;
-		//		// Per instance binding
-		//		if (description.inputRate == VK_VERTEX_INPUT_RATE_INSTANCE && m_Specification.VertexLayout.GetElements()[i].Usage == VertexBuffer::Layout::Usage::PerInstance)
-		//			vertexInputAttributeDescription[i].binding = description.binding;
-		//	}
-
-		//	vertexInputAttributeDescription[i].location = i;
-		//	vertexInputAttributeDescription[i].format = VulkanShader::GetShaderDataToVulkanFormat(m_Specification.VertexLayout.GetElements()[i].Type);
-		//	vertexInputAttributeDescription[i].offset = m_Specification.VertexLayout.GetElements()[i].Offset;
-		//}
-
+		
 		/* Contains the information for vertex buffers and vertex formats.
 		   This is equivalent to the VAO configuration on opengl.*/
 		VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo
@@ -381,7 +386,6 @@ void shade::VulkanPipeline::Invalidate()
 			.basePipelineIndex = 0
 		};
 
-		
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &graphicsPipelineCreateInfo, instance.AllocationCallbaks, &m_Pipeline), "Failed to create graphics pipeline!");
 		VKUtils::SetDebugObjectName(instance.Instance, "Pipeline", device, VK_OBJECT_TYPE_PIPELINE, m_Pipeline); // TODO Get From Shader Name or somewhere else 
 	}
@@ -531,10 +535,10 @@ void shade::VulkanPipeline::SetMaterial(SharedPointer<StorageBuffer> buffer, std
 	SetTexture((material) ? material->TextureNormals  : nullptr,  Pipeline::Set::PerInstance, RenderAPI::NORMAL_TEXTURE_BINDING, frameIndex);
 }
 
-void shade::VulkanPipeline::SetUniform(SharedPointer<RenderCommandBuffer>& commandBuffer, std::size_t size, const void* data, std::uint32_t frameIndex, std::uint32_t offset)
+void shade::VulkanPipeline::SetUniform(SharedPointer<RenderCommandBuffer>& commandBuffer, std::size_t size, const void* data, std::uint32_t frameIndex, Shader::TypeFlags shaderStage, std::uint32_t offset)
 {
 	vkCmdPushConstants(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(frameIndex),
-		GetPipelineLayout(), GetSpecification().Shader->As<VulkanShader>().GetStages(), offset, size, data);
+		GetPipelineLayout(), VulkanShader::FromShaderTypeFlagsToVkShaderTypeFlags(shaderStage), offset, size, data);
 }
 
 void shade::VulkanPipeline::SetBarrier(SharedPointer<RenderCommandBuffer>& commandBuffer, Stage srcStage, Stage dstStage, Access srcAccess, Access dstAccces, std::uint32_t frameIndex)

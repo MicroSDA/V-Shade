@@ -3,6 +3,8 @@
 #include <GLFW/glfw3.h>
 #include <shade/core/application/Application.h>
 #include <shade/utils/Utils.h>
+// For BONE_TRANSFORMS DATA SIZE
+#include <shade/core/animation/Animation.h>
 
 shade::UniquePointer<shade::RenderAPI> shade::Renderer::m_sRenderAPI;
 shade::UniquePointer<shade::RenderContext> shade::Renderer::m_sRenderContext;
@@ -44,6 +46,8 @@ void shade::Renderer::Initialize(const RenderAPI::API& api, const SystemsRequire
 	// Make max 100 poit lights at this moment. 
 	m_sRenderAPI->m_sSubmitedSceneRenderData.PointsLightsBuffer			= StorageBuffer::Create(StorageBuffer::Usage::CPU_GPU, RenderAPI::POINT_LIGHT_BINDING,	POINT_LIGHTS_DATA_SIZE(RenderAPI::MAX_POINT_LIGHTS_COUNT), GetFramesCount(), 100);
 	m_sRenderAPI->m_sSubmitedSceneRenderData.SpotLightsBuffer			= StorageBuffer::Create(StorageBuffer::Usage::CPU_GPU, RenderAPI::SPOT_LIGHT_BINDING,	SPOT_LIGHTS_DATA_SIZE(RenderAPI::MAX_SPOT_LIGHTS_COUNT), GetFramesCount(),   100);
+
+	m_sRenderAPI->m_sSubmitedSceneRenderData.BoneTransfromsBuffer       = StorageBuffer::Create(StorageBuffer::Usage::CPU_GPU, RenderAPI::BONE_TRANSFORMS_BINDING,	BONE_TRANSFORM_DATA_SIZE, GetFramesCount(),  50);
 	
 
 	for (std::uint32_t i = 0; i < GetFramesCount(); i++)
@@ -95,6 +99,7 @@ void shade::Renderer::ShutDown()
 	m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.clear();
 	m_sRenderAPI->m_sSubmitedSceneRenderData.TransformBuffers.clear();
 	m_sRenderAPI->m_sSubmitedSceneRenderData.InstanceRawData.clear();
+	m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.clear();
 
 	m_sRenderAPI->m_sSubmitedSceneRenderData.MaterialsBuffer			= nullptr;
 	m_sRenderAPI->m_sSubmitedSceneRenderData.CameraBuffer				= nullptr;
@@ -103,6 +108,7 @@ void shade::Renderer::ShutDown()
 	m_sRenderAPI->m_sSubmitedSceneRenderData.GlobalLightsBuffer			= nullptr;
 	m_sRenderAPI->m_sSubmitedSceneRenderData.PointsLightsBuffer			= nullptr;
 	m_sRenderAPI->m_sSubmitedSceneRenderData.SpotLightsBuffer			= nullptr;
+	m_sRenderAPI->m_sSubmitedSceneRenderData.BoneTransfromsBuffer		= nullptr;
 
 	m_sDefaultDiffuseTexture	= nullptr;
 	m_sDefaultMaterial			= nullptr;
@@ -149,6 +155,17 @@ void shade::Renderer::BeginFrame(std::uint32_t frameIndex)
 		}
 	}
 
+	for (auto boneTransform = m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.begin(); boneTransform != m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.end();)
+	{
+		// Try to find pipline, if pipline has not been found then wne need to erase bone transform buffer 
+		const auto entry = m_sRenderAPI->m_sSubmitedPipelines.find(boneTransform->first);
+
+		if (entry == m_sRenderAPI->m_sSubmitedPipelines.end())
+			boneTransform = boneTransform = m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.erase(boneTransform);
+		else
+			++boneTransform;
+	}
+
 	// Iterate over through all submitted transform and material data and calculate offset.
 	std::uint32_t count = 0;
 	for (auto& [hash, instance] : m_sRenderAPI->m_sSubmitedSceneRenderData.InstanceRawData)
@@ -157,10 +174,10 @@ void shade::Renderer::BeginFrame(std::uint32_t frameIndex)
 		instance.TransformOffset = TRANSFORMS_DATA_SIZE(count);
 		instance.MaterialOffset = MATERIALS_DATA_SIZE(count);
 
-		for (auto i = 0; i < instance.Transforms.size(); i++)
+		for (auto i = 0; i < instance.Transforms.size(); ++i)
 		{
 			// Increment the count of transforms and materials.
-			count++;
+			++count;
 		}
 	}
 	// Resize the transform and materials buffers based on the number instances.
@@ -175,6 +192,30 @@ void shade::Renderer::BeginFrame(std::uint32_t frameIndex)
 		m_sRenderAPI->m_sSubmitedSceneRenderData.MaterialsBuffer->SetData(MATERIALS_DATA_SIZE(instance.Materials.size()), instance.Materials.data(), frameIndex, instance.MaterialOffset);
 	}
 
+	std::uint32_t bonesCount = 0;
+	for (auto& [hash, boneData] : m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData)
+	{
+		boneData.BoneOffset = BONE_TRANSFORMS_DATA_SIZE(bonesCount);
+
+		for (auto i = 0; i < boneData.BoneTransforms.size(); ++i)
+		{
+			++bonesCount;
+		}
+	}
+
+	// CHECK IN RENDER DOC
+	m_sRenderAPI->m_sSubmitedSceneRenderData.BoneTransfromsBuffer->Resize(BONE_TRANSFORMS_DATA_SIZE(bonesCount));
+
+	for (auto& [hash, boneData] : m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData)
+	{
+		for (std::uint32_t instance = 0; instance < boneData.BoneTransforms.size(); ++instance)
+		{
+			auto value = boneData.BoneOffset + BONE_TRANSFORMS_DATA_SIZE(instance);
+
+			m_sRenderAPI->m_sSubmitedSceneRenderData.BoneTransfromsBuffer->SetData(BONE_TRANSFORM_DATA_SIZE,
+				boneData.BoneTransforms[instance]->data(), frameIndex, boneData.BoneOffset + BONE_TRANSFORMS_DATA_SIZE(instance));
+		}
+	}
 }
 
 void shade::Renderer::EndFrame(std::uint32_t frameIndex)
@@ -222,6 +263,7 @@ void shade::Renderer::EndFrame(std::uint32_t frameIndex)
 
 	// Clear all transform and material data.
 	m_sRenderAPI->m_sSubmitedSceneRenderData.InstanceRawData.clear();
+	m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.clear();
 
 	m_sSubmitedPointLightRenderData.clear();
 	m_sSubmitedSpotLightRenderData.clear();
@@ -233,7 +275,6 @@ void shade::Renderer::EndFrame(std::uint32_t frameIndex)
 	// If no one will be submited again, so we remove instance geometry buffer at begin of the frame.
 	for (auto& [pipeline, istnaces] : m_sRenderAPI->m_sSubmitedPipelines)
 		istnaces.Instances.clear();
-
 }
 
 // TODO ADD FRAME INDEX INTO IT
@@ -466,14 +507,12 @@ void shade::Renderer::SubmitLight(const SharedPointer<PointLight>& light, const 
 }
 
 void shade::Renderer::SubmitLight(const SharedPointer<SpotLight>& light, const glm::mat4& transform, const SharedPointer<Camera>& camera)
-{
-																																				/* Forward direction */
+{																																/* Forward direction */
 	auto renderData = light->GetRenderData(Transform::GetTransformFromMatrix(transform).GetPosition(), glm::normalize(glm::mat3(transform) * glm::vec3(0.f, 0.f, 1.f)), camera);
 
 	assert(RenderAPI::MAX_SPOT_LIGHTS_COUNT >= m_sRenderAPI->m_sSceneRenderData.SpotLightCount + 1, "Current spot light count > RenderAPI::MAX_SPOT_LIGHTS_COUNT");
 	m_sSubmitedSpotLightRenderData.emplace_back(renderData);
 	m_sRenderAPI->m_sSceneRenderData.SpotLightCount++;
-
 }
 
 void shade::Renderer::UpdateSubmitedMaterial(SharedPointer<RenderCommandBuffer>& commandBuffer, SharedPointer<RenderPipeline>& pipeline, const Asset<Drawable>& instance, const Asset<Material>& material, std::uint32_t frameIndex, std::size_t lod)
@@ -495,6 +534,32 @@ void shade::Renderer::UpdateSubmitedMaterial(SharedPointer<RenderCommandBuffer>&
 		pipeline->SetMaterial(m_sRenderAPI->m_sSubmitedSceneRenderData.MaterialsBuffer, rawData->second.MaterialOffset, material, frameIndex);
 		// Updates graphics resources associated with the pipeline
 		pipeline->UpdateResources(commandBuffer, frameIndex);
+	}
+}
+
+void shade::Renderer::SubmitBoneTransforms(const SharedPointer<RenderPipeline>& pipeline, const SharedPointer<std::vector<glm::mat4>>& transform)
+{
+	m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData[pipeline].BoneTransforms.emplace_back(transform);
+
+	/*auto rawData = m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.find(pipeline);
+	if (rawData != m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.end())
+	{
+
+	}*/
+
+	/*auto renderData = light->GetRenderData(Transform::GetTransformFromMatrix(transform).GetPosition(), glm::normalize(glm::mat3(transform) * glm::vec3(0.f, 0.f, 1.f)), camera);
+
+	assert(RenderAPI::MAX_SPOT_LIGHTS_COUNT >= m_sRenderAPI->m_sSceneRenderData.SpotLightCount + 1, "Current spot light count > RenderAPI::MAX_SPOT_LIGHTS_COUNT");
+	m_sSubmitedSpotLightRenderData.emplace_back(renderData);
+	m_sRenderAPI->m_sSceneRenderData.SpotLightCount++;*/
+}
+
+void shade::Renderer::UpdateSubmitedBonesData(SharedPointer<RenderCommandBuffer>& commandBuffer, SharedPointer<RenderPipeline>& pipeline, std::uint32_t frameIndex)
+{
+	auto rawData = m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.find(pipeline);
+	if (rawData != m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.end())
+	{
+		pipeline->SetResource(m_sRenderAPI->m_sSubmitedSceneRenderData.BoneTransfromsBuffer, Pipeline::Set::PerInstance, frameIndex, rawData->second.BoneOffset);
 	}
 }
 

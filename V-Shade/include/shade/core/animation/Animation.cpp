@@ -121,7 +121,7 @@ float shade::Animation::GetTiksPerSecond() const
 	return m_TicksPerSecond;
 }
 
-float shade::Animation::GetDureation() const
+float shade::Animation::GetDuration() const
 {
 	return m_Duration;
 }

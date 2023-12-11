@@ -9,15 +9,18 @@ namespace shade
 	{
 	public:
 		// Shader type.
-		enum class Type : std::uint32_t
+		enum Type : std::uint32_t
 		{
-			Undefined,
-			Vertex,
-			Fragment,
-			Geometry,
-			Compute,
+			Undefined = (1u << 0),
+			Vertex    = (1u << 1),
+			Fragment  = (1u << 2),
+			Geometry  = (1u << 3),
+			Compute   = (1u << 4),
 			SHADER_TYPE_MAX_ENUM
 		};
+
+		using TypeFlags = std::uint32_t;
+
 		enum class DataType
 		{
 			// TODO: Need from Hazel need to refactor 
@@ -37,6 +40,7 @@ namespace shade
 		static std::uint32_t GetDataTypeSize(const DataType& type);
 
 		static Shader::Type GetTypeFromString(std::string& str);
+	
 		static std::string GetTypeAsString(Shader::Type type);
 
 		virtual void Recompile() = 0;

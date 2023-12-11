@@ -1,6 +1,18 @@
 #include "shade_pch.h"
 #include "Animator.h"
 
+shade::Animator::Animator(const Asset<Animation>& animation)
+{
+    m_CurrentTime = 0.0;
+    m_CurrentAnimation = animation;
+
+    m_BoneTransforms = SharedPointer<std::vector<glm::mat4>>::Create();
+    m_BoneTransforms->reserve(RenderAPI::MAX_BONES_PER_INSTANCE);
+
+    for (int i = 0; i < RenderAPI::MAX_BONES_PER_INSTANCE; i++)
+        m_BoneTransforms->push_back(glm::mat4(1.0f));
+}
+
 void shade::Animator::UpdateAnimation(float deltaTime, const Asset<Skeleton>& skeleton)
 {
     m_DeltaTime = deltaTime;
@@ -8,7 +20,7 @@ void shade::Animator::UpdateAnimation(float deltaTime, const Asset<Skeleton>& sk
     if (m_CurrentAnimation)
     {
         m_CurrentTime += m_CurrentAnimation->GetTiksPerSecond() * deltaTime;
-        m_CurrentTime = fmod(m_CurrentTime, m_CurrentAnimation->GetDureation());
+        m_CurrentTime = fmod(m_CurrentTime, m_CurrentAnimation->GetDuration());
 
         CalculateBoneTransform(skeleton->GetRootNode(), glm::mat4(1.0), skeleton->GetArmature()); // Where root node is firt Bone
     }
@@ -33,7 +45,7 @@ void shade::Animator::CalculateBoneTransform(const SharedPointer<Skeleton::BoneN
 
         globalMatrix                    *= interpolatedTransfom;
 
-        m_FinalBoneMatrices[bone->ID] = globalMatrix * bone->InverseBindPose * armature->Transform;
+        m_BoneTransforms.Get()[bone->ID] = globalMatrix * bone->InverseBindPose * armature->Transform;
     }
     else
     {
@@ -42,4 +54,9 @@ void shade::Animator::CalculateBoneTransform(const SharedPointer<Skeleton::BoneN
 
     for (const auto& child : bone->Children)
         CalculateBoneTransform(child, globalMatrix, armature);
+}
+
+const shade::SharedPointer<std::vector<glm::mat4>>& shade::Animator::GetFinalBoneMatrices() const
+{
+    return m_BoneTransforms;
 }

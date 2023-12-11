@@ -3,12 +3,20 @@
 #include <shade/core/math/Math.h>
 #include <glm/glm/gtx/quaternion.hpp>
 #include <shade/core/asset/Asset.h>
+#include <shade/core/render/RenderAPI.h>
+
 // TODO: add namespace animation
 namespace shade
 {
 	class SHADE_API Animation : public BaseAsset, public Asset<Animation>
 	{
 	public:
+		enum class State
+		{
+			Stop,
+			Play,
+			Pause
+		};
 
 		template<typename T>
 		struct AnimationKey
@@ -49,7 +57,7 @@ namespace shade
 		const AnimationChannels& GetAnimationCahnnels() const;	
 
 		float GetTiksPerSecond() const;
-		float GetDureation() const;
+		float GetDuration() const;
 
 		void SetTicksPerSecond(float count);
 		void SetDuration(float duration);
@@ -92,4 +100,14 @@ namespace shade
 	{
 		return animation->Deserialize(stream);
 	}
+
+
+#ifndef BONE_TRANSFORM_DATA_SIZE
+	#define BONE_TRANSFORM_DATA_SIZE (sizeof(glm::mat4) * RenderAPI::MAX_BONES_PER_INSTANCE)
+#endif // !BONE_TRANSFORM_DATA_SIZE
+
+#ifndef BONE_TRANSFORMS_DATA_SIZE
+	#define BONE_TRANSFORMS_DATA_SIZE(count) (BONE_TRANSFORM_DATA_SIZE * static_cast<std::uint32_t>(count))
+#endif // !BONE_TRANSFORMS_DATA_SIZE
 }
+

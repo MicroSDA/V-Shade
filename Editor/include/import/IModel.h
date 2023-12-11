@@ -1,8 +1,9 @@
+#pragma once
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-#pragma once
+
 #include <shade/core/layer/Layer.h>
 
 enum IImportFlags : std::uint32_t
@@ -36,7 +37,7 @@ private:
 class IAnimation
 {
 public:
-	static std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> ImportAnimations(const aiScene* scene, const shade::SharedPointer<shade::Skeleton>& skeleton = nullptr);
+	static shade::AnimationControllerComponent ImportAnimations(const aiScene* scene, const shade::SharedPointer<shade::Skeleton>& skeleton = nullptr);
 };
 
 class IModel
@@ -45,7 +46,7 @@ public:
 	IModel() = default;
 	virtual ~IModel() = default;
 public:
-	static std::tuple<shade::SharedPointer<shade::Model>, std::unordered_map<std::string, shade::SharedPointer<shade::Animation>>> Import(const std::string& filePath, IImportFlag flags);
+	static std::pair<shade::SharedPointer<shade::Model>, shade::AnimationControllerComponent> Import(const std::string& filePath, IImportFlag flags);
 private:
 	static void ProcessModelNode(shade::SharedPointer<shade::Model>& model, const char* filePath, const aiNode* node, const aiScene* scene, IImportFlag flags);
 	static void ProcessMeshNode(shade::SharedPointer<shade::Model>& model, shade::SharedPointer<shade::Mesh>& mesh, const char* filePath, aiMesh* amesh, const aiNode* node, IImportFlag flags);

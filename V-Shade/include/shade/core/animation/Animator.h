@@ -10,27 +10,15 @@ namespace shade
 	class SHADE_API Animator
 	{
 	public:
-        Animator(const Asset<Animation>& animation)
-        {
-            m_CurrentTime = 0.0;
-            m_CurrentAnimation = animation;
-
-            m_FinalBoneMatrices.reserve(250);
-
-            for (int i = 0; i < 250; i++)
-                m_FinalBoneMatrices.push_back(glm::mat4(1.0f));
-        }
-
+		Animator(const Asset<Animation>& animation);
         void UpdateAnimation(float deltaTime, const Asset<Skeleton>& skeleton);
         void CalculateBoneTransform(const SharedPointer<Skeleton::BoneNode>& bone, const glm::mat4& parentTransform, const SharedPointer<Skeleton::BoneArmature>& armature);
 
       
-		std::vector<glm::mat4>& GetFinalBoneMatrices()
-		{
-			return m_FinalBoneMatrices;
-		}
+        const SharedPointer<std::vector<glm::mat4>>& GetFinalBoneMatrices() const;
+
 	private:
-		std::vector<glm::mat4> m_FinalBoneMatrices;
+        SharedPointer<std::vector<glm::mat4>> m_BoneTransforms;
         Asset<Animation> m_CurrentAnimation;
 		float m_CurrentTime;
 		float m_DeltaTime;

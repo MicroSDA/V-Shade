@@ -16,7 +16,7 @@ namespace shade
 			std::uint32_t Set;
 			std::uint32_t Size = 1;
 			std::string Name;
-			VkShaderStageFlagBits ShaderType = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
+			VkShaderStageFlags ShaderType = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
 		};
 		struct UniformBuffer
 		{
@@ -24,7 +24,7 @@ namespace shade
 			std::uint32_t Set;
 			std::uint32_t Size = 1;
 			std::string Name;
-			VkShaderStageFlagBits ShaderType = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
+			VkShaderStageFlags ShaderType = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
 		};
 		struct ImageSampler
 		{
@@ -32,7 +32,7 @@ namespace shade
 			std::uint32_t Set;
 			std::uint32_t Size = 1;
 			std::string Name;
-			VkShaderStageFlagBits ShaderType = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
+			VkShaderStageFlags ShaderType = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
 		};
 		struct ImageStorage
 		{
@@ -40,14 +40,14 @@ namespace shade
 			std::uint32_t Set;
 			std::uint32_t Size = 1;
 			std::string Name;
-			VkShaderStageFlagBits ShaderType = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
+			VkShaderStageFlags ShaderType = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
 		};
 		struct PushConstant
 		{
 			std::uint32_t Set;
 			std::uint32_t Size = 1;
 			std::string Name;
-			VkShaderStageFlagBits ShaderType = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
+			VkShaderStageFlags ShaderType = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
 		};
 	};
 	class VulkanShader : public Shader
@@ -79,6 +79,7 @@ namespace shade
 		static VkFormat GetShaderDataToVulkanFormat(const Shader::DataType& type);
 		std::map<std::uint32_t, ShaderResources>& GetReflectedData();
 		static VkShaderStageFlagBits FromShaderTypeToVkShaderType(const shade::Shader::Type& type);
+		static VkShaderStageFlags    FromShaderTypeFlagsToVkShaderTypeFlags(Shader::TypeFlags falgs);
 
 		virtual void Recompile() override;
 

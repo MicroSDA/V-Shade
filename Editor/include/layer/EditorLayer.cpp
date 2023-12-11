@@ -275,14 +275,23 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 								if (m_ImportedModel)
 								{
 									// Temorary and actually wrong bcs we need to create imported model entity as part of editor layer!
-									auto imEntity = scene->CreateEntity();
-									imEntity.AddComponent<shade::TagComponent>("Improted model");
-									imEntity.AddComponent<shade::TransformComponent>();
-									imEntity.AddComponent<shade::ModelComponent>(m_ImportedModel);
+									auto entity1 = scene->CreateEntity();
+									entity1.AddComponent<shade::TagComponent>("Improted model 1");
+									entity1.AddComponent<shade::TransformComponent>();
+									entity1.AddComponent<shade::ModelComponent>(m_ImportedModel);
 
-									if (animation.size())
+									auto entity2 = scene->CreateEntity();
+									entity2.AddComponent<shade::TagComponent>("Improted model 2");
+									entity2.AddComponent<shade::TransformComponent>();
+									entity2.AddComponent<shade::ModelComponent>(m_ImportedModel);
+
+									if (animation)
 									{
-										imEntity.AddComponent<shade::AnimationStackComponent>(animation);
+										auto newController = shade::AnimationControllerComponent::Create();
+										newController->AddAnimation(animation->GetCurentAnimation().Animation);
+										
+										entity1.AddComponent<shade::AnimationControllerComponent>(animation);
+										entity2.AddComponent<shade::AnimationControllerComponent>(newController);
 									}
 								}
 
@@ -1438,8 +1447,8 @@ void EditorLayer::EntityInspector(shade::ecs::Entity& entity)
 			[&](auto isTreeOpen)->bool { return EditComponent<shade::ModelComponent>(entity, {}, isTreeOpen); }, this, entity);
 		DrawComponent<shade::RigidBodyComponent>("Rigid Body", entity, &EditorLayer::RgidBodyComponent,
 			[&](auto isTreeOpen)->bool { return EditComponent<shade::RigidBodyComponent>(entity, {}, isTreeOpen); }, this, entity);
-		DrawComponent<shade::AnimationStackComponent>("Animations", entity, &EditorLayer::AnimationStackComponent,
-			[&](auto isTreeOpen)->bool { return EditComponent<shade::AnimationStackComponent>(entity, {}, isTreeOpen); }, this, entity);
+		DrawComponent<shade::AnimationControllerComponent>("Animations", entity, &EditorLayer::AnimationControllerComponent,
+			[&](auto isTreeOpen)->bool { return EditComponent<shade::AnimationControllerComponent>(entity, {}, isTreeOpen); }, this, entity);
 	}
 }
 
@@ -1756,15 +1765,13 @@ void EditorLayer::RgidBodyComponent(shade::ecs::Entity& entity)
 
 }
 
-void EditorLayer::AnimationStackComponent(shade::ecs::Entity& entity)
+void EditorLayer::AnimationControllerComponent(shade::ecs::Entity& entity)
 {
-	auto& animations = entity.GetComponent<shade::AnimationStackComponent>();
+	auto& animations = entity.GetComponent<shade::AnimationControllerComponent>();
 
-	for (auto& [name, animation] : animations)
-	{
-		//DragFloat("Duration", &animation->m_Duration);
-		//DragInt("TickPerSecond", &animation->m_TicksPerSecond);
-	}
+	DragFloat("Duration", &animations->GetCurentAnimation().Duration);
+	DragFloat("TiksPer second", &animations->GetCurentAnimation().TiksPerSecond);
+	
 }
 
 void EditorLayer::MaterialEdit(shade::Material& material)

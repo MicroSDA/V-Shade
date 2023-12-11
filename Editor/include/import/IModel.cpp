@@ -36,7 +36,7 @@ namespace utils
 		return { aQuat.w, aQuat.x, aQuat.y, aQuat.z };
 	}
 }
-std::tuple<shade::SharedPointer<shade::Model>, std::unordered_map<std::string, shade::SharedPointer<shade::Animation>>> IModel::Import(const std::string& filePath, IImportFlag flags)
+std::pair<shade::SharedPointer<shade::Model>, shade::AnimationControllerComponent> IModel::Import(const std::string& filePath, IImportFlag flags)
 {
 	Assimp::Importer importer;
 	importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
@@ -92,7 +92,7 @@ std::tuple<shade::SharedPointer<shade::Model>, std::unordered_map<std::string, s
 			skeleton = ISkeleton::ExtractSkeleton(pScene);
 		}
 
-		shade::AnimationStackComponent animations;
+		shade::AnimationControllerComponent animations;
 
 		if (flags & ImportAnimation)
 		{
@@ -279,9 +279,9 @@ void ISkeleton::ProcessBone(const aiScene* pScene, const aiNode* pNode, shade::S
 	}
 }
 
-std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> IAnimation::ImportAnimations(const aiScene* pScene, const shade::SharedPointer<shade::Skeleton>& skeleton)
+shade::AnimationControllerComponent IAnimation::ImportAnimations(const aiScene* pScene, const shade::SharedPointer<shade::Skeleton>& skeleton)
 {
-	std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> Animations;
+	shade::AnimationControllerComponent Animations = shade::AnimationControllerComponent::Create();
 
 	SHADE_INFO("Animation count : {}", pScene->mNumAnimations);
 
@@ -291,7 +291,14 @@ std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> IAnimati
 
 		SHADE_INFO("-- Process '{0}' animation --", pAnimation->mName.C_Str());
 
-		shade::SharedPointer<shade::Animation>& animation = Animations.insert({ pAnimation->mName.C_Str(), shade::Animation::CreateEXP() }).first->second;
+		shade::SharedPointer<shade::Animation> animation = shade::Animation::CreateEXP();
+
+
+		shade::SharedPointer<shade::AssetData> assetData = shade::SharedPointer<shade::AssetData>::Create();
+		assetData->SetId(pAnimation->mName.C_Str());
+		animation->SetAssetData(assetData);
+
+
 
 		SHADE_INFO("Duration : {0}, Ticks per second : {1}", pAnimation->mDuration, pAnimation->mTicksPerSecond);
 
@@ -299,7 +306,6 @@ std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> IAnimati
 
 		SHADE_INFO("Channels : {}", pAnimation->mNumChannels);
 
-		
 		for (std::uint32_t channelIndex = 0; channelIndex < pAnimation->mNumChannels; ++channelIndex)
 		{
 			const aiNodeAnim* pChannel = pAnimation->mChannels[channelIndex];
@@ -344,6 +350,9 @@ std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> IAnimati
 
 			animation->AddChannel(pChannel->mNodeName.C_Str(), channel);
 		}
+
+		Animations->AddAnimation(animation);
+		Animations->SetCurrentAnimation(animation);
 	}
 
 	return Animations;

@@ -57,7 +57,7 @@ private:
 	void CameraComponent(shade::ecs::Entity& entity);
 	void ModelComponent(shade::ecs::Entity& entity);
 	void RgidBodyComponent(shade::ecs::Entity& entity);
-	void AnimationStackComponent(shade::ecs::Entity& entity);
+	void AnimationControllerComponent(shade::ecs::Entity& entity);
 	///////
 	void MaterialEdit(shade::Material& material);
 	void CreateMaterial();
