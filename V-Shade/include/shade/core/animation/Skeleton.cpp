@@ -5,7 +5,7 @@ shade::Skeleton::Skeleton(SharedPointer<AssetData> assetData, LifeTime lifeTime,
 {
     const std::string filePath = assetData->GetAttribute<std::string>("Path");
 
-    shade::File file(filePath, shade::File::In, "@s_skeleton", shade::File::VERSION(0, 0, 1));
+    shade::File file(filePath, shade::File::In, "@s_skel", shade::File::VERSION(0, 0, 1));
     if (!file.IsOpen())
         SHADE_CORE_WARNING("Failed to read file, wrong path = {0}", filePath)
     else
@@ -47,6 +47,13 @@ shade::SharedPointer<shade::Skeleton::BoneNode>& shade::Skeleton::AddBone(const 
     return bone;
 }
 
+void shade::Skeleton::AddNode(const shade::SharedPointer<shade::Skeleton::BoneNode>& node)
+{
+    m_BoneNodes.emplace(node->Name, node).first->second;
+    if (m_BoneNodes.size() == 1) 
+        m_RootNode = node;
+}
+
 const shade::SharedPointer<shade::Skeleton::BoneNode>& shade::Skeleton::GetBone(const std::string& name) const
 {
     const auto bone = m_BoneNodes.find(name);
@@ -84,12 +91,30 @@ const shade::Skeleton::BoneNodes& shade::Skeleton::GetBones() const
 
 std::size_t shade::Skeleton::Serialize(std::ostream& stream) const
 {
-    assert(false);
-    return std::size_t();
+    std::size_t size = Serializer::Serialize<glm::mat4>(stream, m_Armature->Transform);
+    size += Serializer::Serialize<SharedPointer<BoneNode>>(stream, m_RootNode); 
+    return size;
+}
+
+void AddNodeRecursively(const shade::SharedPointer<shade::Skeleton::BoneNode>& node, shade::Skeleton skeleton)
+{
+    skeleton.AddNode(node);
+
+    for (const auto& child : node->Children)
+        AddNodeRecursively(child, skeleton);
 }
 
 std::size_t shade::Skeleton::Deserialize(std::istream& stream)
 {
-    assert(false);
-    return std::size_t();
+    if (!m_Armature) m_Armature = SharedPointer<BoneArmature>::Create();
+
+    std::size_t totalSize = Serializer::Deserialize<glm::mat4>(stream, m_Armature->Transform);
+
+    if(!m_RootNode) m_RootNode = SharedPointer<Skeleton::BoneNode>::Create();
+       
+    totalSize += Serializer::Deserialize<SharedPointer<Skeleton::BoneNode>>(stream, m_RootNode);
+
+    AddNodeRecursively(m_RootNode, *this);
+
+    return totalSize;
 }

@@ -85,7 +85,7 @@ namespace shade
 			// Bone transform per unique pipeline
 			std::vector<SharedPointer<std::vector<glm::mat4>>> BoneTransforms;
 			// Material offset within unique pipeline.
-			std::uint32_t BoneOffset = 0;
+			std::uint32_t PipelineOffset = 0;
 		};
 		struct SubmitedSceneRenderData
 		{

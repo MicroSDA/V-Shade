@@ -5,7 +5,7 @@ shade::Animation::Animation(SharedPointer<AssetData> assetData, LifeTime lifeTim
 {
 	const std::string filePath = assetData->GetAttribute<std::string>("Path");
 
-	shade::File file(filePath, shade::File::In, "@s_anim", shade::File::VERSION(0, 0, 1));
+	shade::File file(filePath, shade::File::In, "@s_sanim", shade::File::VERSION(0, 0, 1));
 	if (!file.IsOpen())
 		SHADE_CORE_WARNING("Failed to read file, wrong path = {0}", filePath)
 	else
@@ -22,7 +22,7 @@ shade::Animation* shade::Animation::Create(SharedPointer<AssetData> assetData, L
 
 shade::AssetMeta::Type shade::Animation::GetAssetStaticType()
 {
-	return AssetMeta::Type::Animation;
+	return AssetMeta::Type::SkeletonAnimation;
 }
 
 shade::AssetMeta::Type shade::Animation::GetAssetType() const
@@ -136,15 +136,19 @@ void shade::Animation::SetDuration(float duration)
 	m_Duration = duration;
 }
 
-
 std::size_t shade::Animation::Serialize(std::ostream& stream) const
 {
-	assert(false);
-	return std::size_t();
+	std::size_t size = Serializer::Serialize(stream, m_Duration);
+	size += Serializer::Serialize(stream, m_TicksPerSecond);
+	size += Serializer::Serialize(stream, m_AnimationChannels);
+
+	return size;
 }
 
 std::size_t shade::Animation::Deserialize(std::istream& stream)
 {
-	assert(false);
-	return std::size_t();
+	std::size_t size = Serializer::Deserialize(stream, m_Duration);
+	size += Serializer::Deserialize(stream, m_TicksPerSecond);
+	size += Serializer::Deserialize(stream, m_AnimationChannels);
+	return size;
 }

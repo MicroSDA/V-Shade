@@ -6,7 +6,7 @@
 
 static void GLFWErrorCallback(int error, const char* description)
 {
-	SHADE_CORE_ERROR("GLFW Error ({0}): {1}", error, description);
+	SHADE_CORE_WARNING("GLFW Error ({0}): {1}", error, description);
 }
 
 

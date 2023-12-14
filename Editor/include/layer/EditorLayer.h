@@ -23,6 +23,7 @@ private:
 	shade::MeshComponent		m_SelectedMesh;
 
 	shade::SharedPointer<shade::Model> m_ImportedModel;
+	shade::ecs::Entity m_ImportedEntity;
 
 	shade::SharedPointer<shade::SceneRenderer>  m_SceneRenderer;
 
@@ -32,6 +33,7 @@ private:
 	bool m_IsAddCollisionShapeModal = false;
 	bool m_ImportModelModal = false;
 	bool m_PackFilesModal	= false;
+	bool m_IsAddSkeletalAnimationModal = false;
 
 	// TEST !
 	bool m_IsScenePlaying = false;

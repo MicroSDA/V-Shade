@@ -33,7 +33,7 @@ void main()
    gl_Position = u_Camera.ViewProjectionMatrix * a_Transform * vec4(a_Position, 1.0);
    //gl_Position.y = -gl_Position.y;	
    //Forward texture coordinates to fragment shader
-   out_UV_Coordinates = vec2(a_UV_Coordinates.x, - a_UV_Coordinates.y);
+   out_UV_Coordinates = vec2(a_UV_Coordinates.x, a_UV_Coordinates.y);
    //Forward instance index to fragment shader
    out_InstanceId = gl_InstanceIndex;
   

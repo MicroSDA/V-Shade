@@ -18,6 +18,8 @@
 #define POINT_LIGHT_INDINCES_BINDING   8
 #define BONE_TRANSFORMS_BINDING        9
 
+#define MAX_BONES_PER_INSTANCE 100
+#define BONE_INFLUENCE 4
 // #define USER_SET                       2
 // #define POINT_LIGHT_INDINCES_BINDING   0
 // #define SPOT_LIGHT_INDINCES_BINDING    1

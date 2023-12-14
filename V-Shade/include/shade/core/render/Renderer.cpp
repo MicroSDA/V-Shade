@@ -193,9 +193,10 @@ void shade::Renderer::BeginFrame(std::uint32_t frameIndex)
 	}
 
 	std::uint32_t bonesCount = 0;
+
 	for (auto& [hash, boneData] : m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData)
 	{
-		boneData.BoneOffset = BONE_TRANSFORMS_DATA_SIZE(bonesCount);
+		boneData.PipelineOffset = BONE_TRANSFORMS_DATA_SIZE(bonesCount);
 
 		for (auto i = 0; i < boneData.BoneTransforms.size(); ++i)
 		{
@@ -203,17 +204,16 @@ void shade::Renderer::BeginFrame(std::uint32_t frameIndex)
 		}
 	}
 
-	// CHECK IN RENDER DOC
 	m_sRenderAPI->m_sSubmitedSceneRenderData.BoneTransfromsBuffer->Resize(BONE_TRANSFORMS_DATA_SIZE(bonesCount));
 
 	for (auto& [hash, boneData] : m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData)
 	{
 		for (std::uint32_t instance = 0; instance < boneData.BoneTransforms.size(); ++instance)
 		{
-			auto value = boneData.BoneOffset + BONE_TRANSFORMS_DATA_SIZE(instance);
+			auto value = boneData.PipelineOffset + BONE_TRANSFORMS_DATA_SIZE(instance);
 
 			m_sRenderAPI->m_sSubmitedSceneRenderData.BoneTransfromsBuffer->SetData(BONE_TRANSFORM_DATA_SIZE,
-				boneData.BoneTransforms[instance]->data(), frameIndex, boneData.BoneOffset + BONE_TRANSFORMS_DATA_SIZE(instance));
+				boneData.BoneTransforms[instance]->data(), frameIndex, boneData.PipelineOffset + BONE_TRANSFORMS_DATA_SIZE(instance));
 		}
 	}
 }
@@ -341,7 +341,7 @@ void shade::Renderer::DrawInstanced(SharedPointer<RenderCommandBuffer>& commandB
 {
 	m_sRenderAPI->DrawInstanced(commandBuffer, vertices, indices, transforms, count, transformOffset);
 }
-
+//DrawSubmitedInstancedAnimated
 void shade::Renderer::DrawSubmitedInstanced(SharedPointer<RenderCommandBuffer>& commandBuffer, const SharedPointer<RenderPipeline>& pipeline, std::size_t instance, std::size_t material, std::uint32_t frameIndex, std::size_t lod, std::uint32_t splitOffset)
 {
 	const std::size_t hashCombined = render::PointerHashCombine(pipeline, instance, material, lod, splitOffset);
@@ -351,27 +351,29 @@ void shade::Renderer::DrawSubmitedInstanced(SharedPointer<RenderCommandBuffer>& 
 	// In case we are iterating through split offsets this is ok when there is no entry
 	if (rawData != m_sRenderAPI->m_sSubmitedSceneRenderData.InstanceRawData.end())
 	{
-		auto& i = m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.at(instance)[lod].VB;
+		m_sRenderAPI->DrawInstanced(commandBuffer,
+			m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.at(instance)[lod].VB,
+			m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.at(instance)[lod].IB,
+			m_sRenderAPI->m_sSubmitedSceneRenderData.TransformBuffers[frameIndex],
+			rawData->second.Transforms.size(), rawData->second.TransformOffset);
+	}
+}
+void shade::Renderer::DrawSubmitedInstancedAnimated(SharedPointer<RenderCommandBuffer>& commandBuffer, const SharedPointer<RenderPipeline>& pipeline, std::size_t instance, std::size_t material, std::uint32_t frameIndex, std::size_t lod, std::uint32_t splitOffset)
+{
+	const std::size_t hashCombined = render::PointerHashCombine(pipeline, instance, material, lod, splitOffset);
 
-		if (m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.at(instance)[lod].BW)
-		{
-			// Draw as animated with bone data.
-			m_sRenderAPI->DrawInstancedAnimated(commandBuffer,
-				m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.at(instance)[lod].VB,
-				m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.at(instance)[lod].IB,
-				m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.at(instance)[lod].BW,
-				m_sRenderAPI->m_sSubmitedSceneRenderData.TransformBuffers[frameIndex],
-				rawData->second.Transforms.size(), rawData->second.TransformOffset);
-		}
-		else
-		{
-			// Draw as static without bone data.
-			m_sRenderAPI->DrawInstanced(commandBuffer,
-				m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.at(instance)[lod].VB,
-				m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.at(instance)[lod].IB,
-				m_sRenderAPI->m_sSubmitedSceneRenderData.TransformBuffers[frameIndex],
-				rawData->second.Transforms.size(), rawData->second.TransformOffset);
-		}
+	auto rawData = m_sRenderAPI->m_sSubmitedSceneRenderData.InstanceRawData.find(hashCombined);
+
+	// In case we are iterating through split offsets this is ok when there is no entry
+	if (rawData != m_sRenderAPI->m_sSubmitedSceneRenderData.InstanceRawData.end())
+	{
+		// Draw as animated with bone data.
+		m_sRenderAPI->DrawInstancedAnimated(commandBuffer,
+			m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.at(instance)[lod].VB,
+			m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.at(instance)[lod].IB,
+			m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.at(instance)[lod].BW,
+			m_sRenderAPI->m_sSubmitedSceneRenderData.TransformBuffers[frameIndex],
+			rawData->second.Transforms.size(), rawData->second.TransformOffset);
 	}
 }
 
@@ -540,18 +542,6 @@ void shade::Renderer::UpdateSubmitedMaterial(SharedPointer<RenderCommandBuffer>&
 void shade::Renderer::SubmitBoneTransforms(const SharedPointer<RenderPipeline>& pipeline, const SharedPointer<std::vector<glm::mat4>>& transform)
 {
 	m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData[pipeline].BoneTransforms.emplace_back(transform);
-
-	/*auto rawData = m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.find(pipeline);
-	if (rawData != m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.end())
-	{
-
-	}*/
-
-	/*auto renderData = light->GetRenderData(Transform::GetTransformFromMatrix(transform).GetPosition(), glm::normalize(glm::mat3(transform) * glm::vec3(0.f, 0.f, 1.f)), camera);
-
-	assert(RenderAPI::MAX_SPOT_LIGHTS_COUNT >= m_sRenderAPI->m_sSceneRenderData.SpotLightCount + 1, "Current spot light count > RenderAPI::MAX_SPOT_LIGHTS_COUNT");
-	m_sSubmitedSpotLightRenderData.emplace_back(renderData);
-	m_sRenderAPI->m_sSceneRenderData.SpotLightCount++;*/
 }
 
 void shade::Renderer::UpdateSubmitedBonesData(SharedPointer<RenderCommandBuffer>& commandBuffer, SharedPointer<RenderPipeline>& pipeline, std::uint32_t frameIndex)
@@ -559,7 +549,7 @@ void shade::Renderer::UpdateSubmitedBonesData(SharedPointer<RenderCommandBuffer>
 	auto rawData = m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.find(pipeline);
 	if (rawData != m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.end())
 	{
-		pipeline->SetResource(m_sRenderAPI->m_sSubmitedSceneRenderData.BoneTransfromsBuffer, Pipeline::Set::PerInstance, frameIndex, rawData->second.BoneOffset);
+		pipeline->SetResource(m_sRenderAPI->m_sSubmitedSceneRenderData.BoneTransfromsBuffer, Pipeline::Set::PerInstance, frameIndex, rawData->second.PipelineOffset);
 	}
 }
 

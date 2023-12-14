@@ -66,26 +66,26 @@ shade::VulkanShader::VulkanShader(const std::string& filePath):
 
     auto& shaderData = m_VulkanSPIRV;
 
-    //if (m_SourceCode.empty())
-    //{
-    //    SHADE_CORE_INFO("Trying to load shader form cache or packet, path = {}", filePath);
-    //    // Try to find in cache or in packet
-    //    for (Shader::Type stage = Type::Vertex; stage < Type::SHADER_TYPE_MAX_ENUM; ((std::uint32_t&)stage)++)
-    //    {
-    //        std::filesystem::path cachedPath = cacheDirectory / (GetFileName() + utils::GetCachedFileExtension(stage));
+    if (m_SourceCode.empty())
+    {
+        SHADE_CORE_INFO("Trying to load shader form cache or packet, path = {}", filePath);
+        // Try to find in cache or in packet
+        for (Shader::Type stage = Type::Vertex; stage < Type::SHADER_TYPE_MAX_ENUM; ((std::uint32_t&)stage)++)
+        {
+            std::filesystem::path cachedPath = cacheDirectory / (GetFileName() + utils::GetCachedFileExtension(stage));
 
-    //        File in(cachedPath.string(), File::In | File::SkipMagic | File::SkipChecksum, "", File::VERSION(0, 0, 1));
+            File in(cachedPath.string(), File::In | File::SkipMagic | File::SkipChecksum, "", File::VERSION(0, 0, 1));
 
-    //        if (in.IsOpen())
-    //        {
-    //            auto& data = shaderData[stage];
-    //            auto size = in.GetHeader().Size; // in case the sahder can be as part of packet !
-    //            data.resize(size / sizeof(std::uint32_t));
-    //            in.GetStream().read((char*)data.data(), size);
-    //        }
-    //    }
-    //}
-    //else
+            if (in.IsOpen())
+            {
+                auto& data = shaderData[stage];
+                auto size = in.GetHeader().Size; // in case the sahder can be as part of packet !
+                data.resize(size / sizeof(std::uint32_t));
+                in.GetStream().read((char*)data.data(), size);
+            }
+        }
+    }
+    else
     {
         for (auto&& [stage, source] : m_SourceCode)
         {
@@ -93,7 +93,7 @@ shade::VulkanShader::VulkanShader(const std::string& filePath):
 
             std::filesystem::path cachedPath = cacheDirectory / (GetFileName() + utils::GetCachedFileExtension(stage));
 
-            /*File in(cachedPath.string(), File::In | File::SkipMagic | File::SkipChecksum, "", File::VERSION(0, 0, 1));
+            File in(cachedPath.string(), File::In | File::SkipMagic | File::SkipChecksum, "", File::VERSION(0, 0, 1));
 
             if (in.IsOpen())
             {
@@ -103,7 +103,7 @@ shade::VulkanShader::VulkanShader(const std::string& filePath):
 
                 in.GetStream().read((char*)data.data(), size);
             }
-            else*/
+            else
             {
                 shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, utils::ToShaderCShaderType(stage), GetFilePath().c_str(), options);
 

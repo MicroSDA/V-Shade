@@ -6,6 +6,10 @@
 
 namespace shade
 {
+	bool IsAllowedCharacter(const char c);
+	//void RemoveNotAllowedCharacters(std::string& input) { input.erase(std::remove_if(input.begin(), input.end(), IsAllowedCharacter), input.end());}
+	std::string RemoveNotAllowedCharacters(const std::string& input);
+	
 	class SHADE_API Serializer
 	{
 	public:
@@ -267,7 +271,7 @@ namespace shade
 	template<>
 	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::uint32_t& value, std::size_t count)
 	{
-		return stream.write(reinterpret_cast<const char*>(&value), sizeof(std::uint32_t)).tellp();
+		return stream.write(reinterpret_cast<const char*>(&value), sizeof(std::uint32_t) * count).tellp();
 	}
 	/* Deserialize std::uint32_t.*/
 	template<>
@@ -280,7 +284,7 @@ namespace shade
 	template<>
 	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::uint64_t& value, std::size_t count)
 	{
-		return stream.write(reinterpret_cast<const char*>(&value), sizeof(std::uint64_t)).tellp();
+		return stream.write(reinterpret_cast<const char*>(&value), sizeof(std::uint64_t) * count).tellp();
 	}
 	/* Deserialize std::uint64_t.*/
 	template<>
@@ -306,7 +310,7 @@ namespace shade
 	template<>
 	inline std::size_t Serializer::Serialize(std::ostream& stream, const float& value, std::size_t count)
 	{
-		return stream.write(reinterpret_cast<const char*>(&value), sizeof(float)).tellp();
+		return stream.write(reinterpret_cast<const char*>(&value), sizeof(float) * count).tellp();
 	}
 	/* Deserialize float.*/
 	template<>

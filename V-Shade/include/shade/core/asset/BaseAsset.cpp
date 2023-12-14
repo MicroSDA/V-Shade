@@ -11,7 +11,7 @@ std::string shade::AssetMeta::GetTypeAsString(AssetMeta::Type type)
 		case AssetMeta::Type::Mesh: return "Mesh";
 		case AssetMeta::Type::Material: return "Material";
 		case AssetMeta::Type::Texture: return "Texture";
-		case AssetMeta::Type::Animation: return "AnimationRig";
+		case AssetMeta::Type::SkeletonAnimation: return "SkeletonAnimation";
 		case AssetMeta::Type::Skeleton: return "Skeleton";
 		case AssetMeta::Type::CollisionShapes: return "CollisionShapes";
 		case AssetMeta::Type::Sound: return "Sound";
@@ -30,9 +30,9 @@ shade::AssetMeta::Type shade::AssetMeta::GetTypeFromString(const std::string& ty
 		return AssetMeta::Type::Material;
 	if (type == "Texture")
 		return AssetMeta::Type::Texture;
-	if (type == "AnimationRig")
-		return AssetMeta::Type::Animation;
-	if (type == "AnimationRig")
+	if (type == "SkeletonAnimation")
+		return AssetMeta::Type::SkeletonAnimation;
+	if (type == "Skeleton")
 		return AssetMeta::Type::Skeleton;
 	if (type == "CollisionShapes")
 		return AssetMeta::Type::CollisionShapes;
@@ -77,7 +77,11 @@ shade::AssetData::AssetData() :
 	m_Category(AssetMeta::Category::None), m_Type(AssetMeta::Type::Asset)
 {
 }
+shade::AssetData::AssetData(const std::string& id, AssetMeta::Category category, AssetMeta::Type type)
+	:m_Id(id), m_Category(category), m_Type(type)
+{
 
+}
 void shade::AssetData::SetCategory(AssetMeta::Category category)
 {
 	m_Category = category;
@@ -100,7 +104,7 @@ shade::AssetMeta::Type shade::AssetData::GetType() const
 
 void shade::AssetData::SetId(const std::string& id)
 {
-	m_Id = id;
+	m_Id = RemoveNotAllowedCharacters(id);
 }
 
 const std::string& shade::AssetData::GetId() const
@@ -195,7 +199,7 @@ shade::BaseAsset::LifeTime shade::BaseAsset::GetLifeTime()
 	return m_LifeTime;
 }
 
-void shade::BaseAsset::SetAssetData(SharedPointer<AssetData>& data)
+void shade::BaseAsset::SetAssetData(const SharedPointer<AssetData>& data)
 {
 	m_AssetData = data;
 }

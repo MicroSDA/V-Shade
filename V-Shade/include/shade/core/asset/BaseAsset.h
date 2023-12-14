@@ -32,7 +32,7 @@ namespace shade
 			Mesh,
 			Material,
 			Texture,
-			Animation,
+			SkeletonAnimation,
 			Skeleton,
 			CollisionShapes,
 			Sound,
@@ -56,6 +56,7 @@ namespace shade
 	{
 	public:
 		AssetData();
+		AssetData(const std::string& id, AssetMeta::Category category = AssetMeta::Category::None, AssetMeta::Type type = AssetMeta::Type::Asset);
 		virtual ~AssetData() = default;
 
 		template<typename T>
@@ -257,7 +258,7 @@ namespace shade
 		virtual ~BaseAsset();
 		LifeTime GetLifeTime();
 
-		void SetAssetData(SharedPointer<AssetData>& data);
+		void SetAssetData(const SharedPointer<AssetData>& data);
 		const SharedPointer<AssetData>& GetAssetData() const;
 		SharedPointer<AssetData>& GetAssetData();
 		// Define static method GetAssetStaticType which returns AssetMeta::Type::Undefined

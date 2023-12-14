@@ -58,6 +58,18 @@ shade::Model::Model(SharedPointer<AssetData> assetData, LifeTime lifeTime, Insta
 			else
 				AssetManager::GetAsset<Mesh, InstantiationBehaviour::Aynchronous>(dependency->GetId(), AssetMeta::Category::Primary, BaseAsset::LifeTime::KeepAlive, callback);	
 		}
+		if (dependency->GetType() == AssetMeta::Type::Skeleton)
+		{
+			auto callback = [&](auto& skeleton) mutable
+				{
+					SetSkeleton(skeleton);
+				};
+
+			if (behaviour == InstantiationBehaviour::Synchronous)
+				AssetManager::GetAsset<Skeleton, InstantiationBehaviour::Synchronous>(dependency->GetId(), AssetMeta::Category::Secondary, BaseAsset::LifeTime::KeepAlive, callback);
+			else
+				AssetManager::GetAsset<Skeleton, InstantiationBehaviour::Aynchronous>(dependency->GetId(), AssetMeta::Category::Secondary, BaseAsset::LifeTime::KeepAlive, callback);
+		}
 	}
 }
 

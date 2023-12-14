@@ -79,4 +79,5 @@ namespace shade
 		std::array<T, Size> m_Array;
 		std::size_t m_Size = 0u;
 	};
+
 }

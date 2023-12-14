@@ -71,13 +71,16 @@ std::pair<shade::SharedPointer<shade::Model>, shade::AnimationControllerComponen
 	else
 	{
 		auto model = shade::Model::CreateEXP();
+		model->SetAssetData(shade::SharedPointer<shade::AssetData>::Create(pScene->mName.C_Str(), shade::AssetMeta::Category::Primary, shade::AssetMeta::Type::Model));
 
+		
 		if (flags & ImportModel)
 		{
 			SHADE_INFO("******************************************************************");
 			SHADE_INFO("Start to extractin model");
 			SHADE_INFO("******************************************************************");
 
+			
 			ProcessModelNode(model, filePath.c_str(), pScene->mRootNode, pScene, flags);
 		}
 
@@ -130,9 +133,7 @@ void IModel::ProcessMeshNode(shade::SharedPointer<shade::Model>& model, shade::S
 {
 	SHADE_INFO("-- Process new mesh : {} --", aMesh->mName.C_Str());
 
-	shade::SharedPointer<shade::AssetData> assetData = shade::SharedPointer<shade::AssetData>::Create();
-	assetData->SetId(aMesh->mName.C_Str());
-	mesh->SetAssetData(assetData);
+	mesh->SetAssetData(shade::SharedPointer<shade::AssetData>::Create(aMesh->mName.C_Str(), shade::AssetMeta::Category::Primary, shade::AssetMeta::Type::Mesh));
 
 	SHADE_INFO("Vertex count : {}", aMesh->mNumVertices);
 
@@ -215,7 +216,7 @@ void IModel::ProcessBones(shade::SharedPointer<shade::Mesh>& mesh, const char* f
 
 			for (std::uint32_t i = 0; i < shade::MAX_BONES_PER_VERTEX; ++i)
 			{
-				auto& bone = mesh->GetBones()[vertexId];
+				auto& bone = mesh->GetLod(0).Bones[vertexId];
 
 				if (bone.IDs[i] == shade::Skeleton::NULL_BONE_ID)
 				{
@@ -232,6 +233,7 @@ shade::SharedPointer<shade::Skeleton> ISkeleton::ExtractSkeleton(const aiScene* 
 {
 	shade::SharedPointer<shade::Skeleton> skeleton = shade::Skeleton::CreateEXP();
 
+	skeleton->SetAssetData(shade::SharedPointer<shade::AssetData>::Create(pScene->mName.C_Str(), shade::AssetMeta::Category::Secondary, shade::AssetMeta::Type::Skeleton));
 	ProcessBone(pScene, pScene->mRootNode, skeleton, nullptr);
 
 	return (skeleton->GetBones().size()) ? skeleton : nullptr;
@@ -293,12 +295,10 @@ shade::AnimationControllerComponent IAnimation::ImportAnimations(const aiScene* 
 
 		shade::SharedPointer<shade::Animation> animation = shade::Animation::CreateEXP();
 
-
 		shade::SharedPointer<shade::AssetData> assetData = shade::SharedPointer<shade::AssetData>::Create();
+
 		assetData->SetId(pAnimation->mName.C_Str());
 		animation->SetAssetData(assetData);
-
-
 
 		SHADE_INFO("Duration : {0}, Ticks per second : {1}", pAnimation->mDuration, pAnimation->mTicksPerSecond);
 

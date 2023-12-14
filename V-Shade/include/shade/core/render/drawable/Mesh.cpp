@@ -63,12 +63,14 @@ shade::Mesh* shade::Mesh::Create(SharedPointer<AssetData> assetData, LifeTime li
 
 std::size_t shade::Mesh::Serialize(std::ostream& stream) const
 {
+	// NEED TO SERRIALIZE BONE DATA INTO MESH AND DESSIRIALIZE !
 	Serializer::Serialize(stream, Drawable::MAX_LEVEL_OF_DETAIL);
 
 	for (auto& lod : GetLods())
 	{
 		Serializer::Serialize(stream, std::uint32_t(lod.Vertices.size()));
 		Serializer::Serialize(stream, std::uint32_t(lod.Indices.size()));
+		Serializer::Serialize(stream, std::uint32_t(lod.Bones.size()));
 
 		for (auto& vertex : lod.Vertices)
 		{
@@ -90,6 +92,12 @@ std::size_t shade::Mesh::Serialize(std::ostream& stream) const
 
 		for (auto& index : lod.Indices)
 			Serializer::Serialize(stream, index);
+
+		for (auto& bone : lod.Bones)
+		{
+			Serializer::Serialize(stream, *bone.IDs.data(), MAX_BONES_PER_VERTEX);
+			Serializer::Serialize(stream, *bone.Weights.data(), MAX_BONES_PER_VERTEX);
+		}
 	}
 
 	/* AABB */
@@ -126,8 +134,14 @@ std::size_t shade::Mesh::Deserialize(std::istream& stream)
 			if (indicesCount == UINT32_MAX)
 				throw std::exception("Invalide indices count!");
 
+			std::uint32_t bonesCount = 0;
+			Serializer::Deserialize(stream, bonesCount);
+			if (bonesCount == UINT32_MAX)
+				throw std::exception("Invalide indices count!");
+
 			Vertices vertices(verticesCount);
 			Indices indices(indicesCount);
+			Bones bones(bonesCount);
 
 			for (auto& vertex : vertices)
 			{
@@ -150,8 +164,15 @@ std::size_t shade::Mesh::Deserialize(std::istream& stream)
 			for (auto& index : indices)
 				Serializer::Deserialize(stream, index);
 
-			SetVertices(vertices, i); SetIndices(indices, i);
+			for (auto& bone : bones)
+			{
+				Serializer::Deserialize(stream, *bone.IDs.data(), MAX_BONES_PER_VERTEX);
+				Serializer::Deserialize(stream, *bone.Weights.data(), MAX_BONES_PER_VERTEX);
+			}
 
+			SetVertices(vertices, i); SetIndices(indices, i); SetBones(bones, i);
+
+			
 		}
 
 		/* AABB */

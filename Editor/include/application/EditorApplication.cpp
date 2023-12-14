@@ -33,6 +33,53 @@ void EditorApplication::OnCreate()
 		cameraEntity.GetComponent<shade::CameraComponent>()->SetDirection(glm::vec3(-0.011512465, -0.33462766, 0.94228005));
 		cameraEntity.GetComponent<shade::CameraComponent>()->SetPosition(glm::vec3(0, 10, -20));
 	}
+	
+	/*auto entity2 = shade::Scene::GetActiveScene()->CreateEntity();
+	auto entity1 = shade::Scene::GetActiveScene()->CreateEntity();
+	
+	entity1.AddComponent<shade::TagComponent>("Animated 1");
+	entity2.AddComponent<shade::TagComponent>("Animated 2");
+	entity1.AddComponent<shade::TransformComponent>();
+	entity2.AddComponent<shade::TransformComponent>();
+
+	shade::AssetManager::GetAsset<shade::Model>("Stormtrooper.Model", shade::AssetMeta::Category::Primary, shade::BaseAsset::LifeTime::KeepAlive, [=](auto& model) mutable
+		{
+			entity1.AddComponent<shade::ModelComponent>(model);
+		});
+
+	shade::AssetManager::GetAsset<shade::Model>("Cowboy.Model", shade::AssetMeta::Category::Primary, shade::BaseAsset::LifeTime::KeepAlive, [=](auto& model) mutable
+		{
+			entity2.AddComponent<shade::ModelComponent>(model);
+		});
+	shade::AssetManager::GetAsset<shade::Animation>("Stormtrooper.Animation.Dance", shade::AssetMeta::Category::Secondary, shade::BaseAsset::LifeTime::KeepAlive, [=](auto& animation) mutable
+		{
+			if (entity1.HasComponent<shade::AnimationControllerComponent>())
+			{
+				auto& controller = entity1.GetComponent<shade::AnimationControllerComponent>();
+				controller->AddAnimation(animation);
+			}
+			else
+			{
+				auto& controller = entity1.AddComponent<shade::AnimationControllerComponent>(shade::AnimationControllerComponent::Create());
+				controller->AddAnimation(animation);
+
+			}
+		}); 
+	shade::AssetManager::GetAsset<shade::Animation>("Cowboy.Animation.Running", shade::AssetMeta::Category::Secondary, shade::BaseAsset::LifeTime::KeepAlive, [=](auto& animation) mutable
+		{
+			if (entity2.HasComponent<shade::AnimationControllerComponent>())
+			{
+				auto& controller = entity2.GetComponent<shade::AnimationControllerComponent>();
+				controller->AddAnimation(animation);
+			}
+			else
+			{
+				auto& controller = entity2.AddComponent<shade::AnimationControllerComponent>(shade::AnimationControllerComponent::Create());
+				controller->AddAnimation(animation);
+
+			}
+		});*/
+
 	/*auto entity = shade::Scene::GetActiveScene()->CreateEntity();
 	auto& transform = entity.AddComponent<shade::TransformComponent>();
 

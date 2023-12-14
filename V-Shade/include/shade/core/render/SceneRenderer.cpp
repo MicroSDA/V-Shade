@@ -320,21 +320,19 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 			{
 				auto pcTransform = scene->ComputePCTransform(entity);
 
-				/// ANIMATION ///
-				if (entity.HasComponent<AnimationControllerComponent>())
-				{
-					auto controller = entity.GetComponent<AnimationControllerComponent>();
-					controller->UpdateCurrentAnimation(deltaTime, model->GetSkeleton());
-					
-					Renderer::SubmitBoneTransforms(m_MainGeometryPipelineAnimated, controller->GetBoneTransforms());
-				}
+				AnimationControllerComponent animationController = (entity.HasComponent<AnimationControllerComponent>()) ? entity.GetComponent<AnimationControllerComponent>() : nullptr;
 
+				if (animationController && &animationController->GetCurentAnimation() && model->GetSkeleton())
+				{
+					animationController->UpdateCurrentAnimation(deltaTime, model->GetSkeleton());
+					Renderer::SubmitBoneTransforms(m_MainGeometryPipelineAnimated, animationController->GetBoneTransforms());
+				}
+				
 				for (const auto& mesh : *model)
 				{
 					if (frustum.IsInFrustum(pcTransform, mesh->GetMinHalfExt(), mesh->GetMaxHalfExt()))
 					{
-						// If mesh has bones
-						if (mesh->GetBones().size())
+						if (animationController && &animationController->GetCurentAnimation())
 						{
 							Renderer::SubmitStaticMeshDynamicLOD(m_MainGeometryPipelineAnimated, mesh, mesh->GetMaterial(), pcTransform); m_Statistic.SubmitedInstances++;
 						}
@@ -342,10 +340,13 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 						{
 							Renderer::SubmitStaticMeshDynamicLOD(m_MainGeometryPipelineStatic, mesh, mesh->GetMaterial(), pcTransform); m_Statistic.SubmitedInstances++;
 						}
-							
+						
 						if (m_Settings.RenderSettings.LightCulling)
 							Renderer::SubmitStaticMeshDynamicLOD(m_LightCullingPreDepthPipeline, mesh, nullptr, pcTransform);
 					}
+
+
+
 					// Check if mesh inside point light for shadow pass  
 					if (m_Settings.RenderSettings.PointShadowEnabled)
 					{
@@ -753,21 +754,24 @@ void shade::SceneRenderer::InstancedGeometryPass(SharedPointer<RenderPipeline>& 
 	pipeline->SetTexture(m_SpotLightShadowFrameBuffer->GetDepthAttachment(), Pipeline::Set::PerInstance, RenderAPI::SPOT_SHADOW_MAP_BINDING, frameIndex);
 	pipeline->SetTexture(m_PointLightShadowFrameBuffer->GetDepthAttachment(), Pipeline::Set::PerInstance, RenderAPI::POINT_SHADOW_MAP_BINDING, frameIndex);
 	
-	// Mby we need separate it from static pipeline
-	Renderer::UpdateSubmitedBonesData(m_MainCommandBuffer, pipeline, frameIndex);
+	if(m_MainGeometryPipelineAnimated.Raw() == pipeline.Raw())
+		Renderer::UpdateSubmitedBonesData(m_MainCommandBuffer, m_MainGeometryPipelineAnimated, frameIndex);
+
 	std::uint32_t drawInstane = 0;
-	
+
 	// Loop over the instances and their materials, updating and drawing each submitted material with the rendered instance.
 	for (auto& [instance, materials] : instances.Instances)
-	{
-		pipeline->SetUniform(m_MainCommandBuffer, sizeof(std::uint32_t), &drawInstane, frameIndex, Shader::Type::Vertex | Shader::Type::Fragment);
+	{		
+																													/* For some reasosns we need to overlap all stages */
+		m_MainGeometryPipelineAnimated->SetUniform(m_MainCommandBuffer, sizeof(std::uint32_t), &drawInstane, frameIndex, Shader::Type::Vertex | Shader::Type::Fragment); 
 		// For each material
 		for (auto& [lod, material] : materials)
 		{
 			// Update the submitted material
 			Renderer::UpdateSubmitedMaterial(m_MainCommandBuffer, pipeline, instance, material, frameIndex, lod);
+
 			// Draw the submitted instance
-			Renderer::DrawSubmitedInstanced(m_MainCommandBuffer, pipeline, instance, material, frameIndex, lod);
+			(m_MainGeometryPipelineAnimated.Raw() == pipeline.Raw()) ? Renderer::DrawSubmitedInstancedAnimated(m_MainCommandBuffer, pipeline, instance, material, frameIndex, lod) : Renderer::DrawSubmitedInstanced(m_MainCommandBuffer, pipeline, instance, material, frameIndex, lod);			
 		}
 
 		++drawInstane;

@@ -37,19 +37,24 @@ shade::Material::Material(SharedPointer<AssetData> assetData, LifeTime lifeTime,
 	}
 
 	auto material = assetData->GetReference();
-	if (!material)
-		throw std::exception("Material doens't have secondary reference!");
+	if (material)
+	{
+		auto filePath = material->GetAttribute<std::string>("Path");
 
-	auto filePath = material->GetAttribute<std::string>("Path");
+		File file(filePath, File::In, "@s_mat", File::VERSION(0, 0, 1));
 
-	File file(filePath, File::In, "@s_mat", File::VERSION(0, 0, 1));
+		if (!file.IsOpen())
+			SHADE_CORE_WARNING("Failed to read file, wrong path = {0}", filePath)
+		else
+			file.Read(*this);
 
-	if (!file.IsOpen())
-		SHADE_CORE_WARNING("Failed to read file, wrong path = {0}", filePath)
+		file.CloseFile();
+	}
 	else
-		file.Read(*this);
-
-	file.CloseFile();
+	{
+		SHADE_CORE_WARNING("Material '{0}' dosen't have secondary reference!", assetData->GetId());
+	}
+		
 }
 
 shade::AssetMeta::Type shade::Material::GetAssetStaticType()

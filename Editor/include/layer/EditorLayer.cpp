@@ -55,8 +55,6 @@ void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shad
 		ShowWindowBar("Scene", &EditorLayer::Scene, this, scene);
 		ImGui::PopStyleColor();
 		
-		ImGui::ShowDemoWindow();
-	
 		ImGui::End();
 	}
 }
@@ -275,23 +273,16 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 								if (m_ImportedModel)
 								{
 									// Temorary and actually wrong bcs we need to create imported model entity as part of editor layer!
-									auto entity1 = scene->CreateEntity();
-									entity1.AddComponent<shade::TagComponent>("Improted model 1");
-									entity1.AddComponent<shade::TransformComponent>();
-									entity1.AddComponent<shade::ModelComponent>(m_ImportedModel);
-
-									auto entity2 = scene->CreateEntity();
-									entity2.AddComponent<shade::TagComponent>("Improted model 2");
-									entity2.AddComponent<shade::TransformComponent>();
-									entity2.AddComponent<shade::ModelComponent>(m_ImportedModel);
+									
+									m_ImportedEntity = scene->CreateEntity();
+									// TODO: MAKE PROPARE NAME 
+									m_ImportedEntity.AddComponent<shade::TagComponent>("Improted model 1");
+									m_ImportedEntity.AddComponent<shade::TransformComponent>();
+									m_ImportedEntity.AddComponent<shade::ModelComponent>(m_ImportedModel);
 
 									if (animation)
 									{
-										auto newController = shade::AnimationControllerComponent::Create();
-										newController->AddAnimation(animation->GetCurentAnimation().Animation);
-										
-										entity1.AddComponent<shade::AnimationControllerComponent>(animation);
-										entity2.AddComponent<shade::AnimationControllerComponent>(newController);
+										m_ImportedEntity.AddComponent<shade::AnimationControllerComponent>(animation);
 									}
 								}
 
@@ -384,6 +375,20 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 				{
 					if (ImGui::Button("Save", { ImGui::GetContentRegionAvail().x, 0.f }))
 					{
+						if (m_ImportedModel->GetSkeleton())
+						{
+							const std::string path(to + m_ImportedModel->GetSkeleton()->GetAssetData()->GetId() + ".s_skel");
+							shade::File file(path, shade::File::Out, "@s_skel", shade::File::VERSION(0, 0, 1));
+							if (file.IsOpen())
+							{
+								file.Write(m_ImportedModel->GetSkeleton());
+							}
+							else
+							{
+								SHADE_CORE_WARNING("Failed to save skeleton, path = {}", path);
+							}
+						}
+						
 						for (const auto& mesh : *m_ImportedModel)
 						{
 							const std::string path(to + mesh->GetAssetData()->GetId() + ".s_mesh");
@@ -395,6 +400,20 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 							else
 							{
 								SHADE_CORE_WARNING("Failed to save mesh, path = {}", path);
+							}
+						}
+
+						if (m_ImportedEntity.HasComponent<shade::AnimationControllerComponent>())
+						{
+							for (const auto& [name, animation] : *m_ImportedEntity.GetComponent<shade::AnimationControllerComponent>())
+							{
+								const std::string path(to + animation.Animation->GetAssetData()->GetId() + ".s_sanim");
+								shade::File file(path, shade::File::Out, "@s_sanim", shade::File::VERSION(0, 0, 1));
+
+								if (file.IsOpen())
+									file.Write(animation.Animation);
+								else
+									SHADE_CORE_WARNING("Failed to save animation, path = {}", path);
 							}
 						}
 
@@ -770,6 +789,10 @@ void EditorLayer::Entities(shade::SharedPointer<shade::Scene>& scene)
 							}
 						}
 					}, m_SelectedEntity);
+				AddComponent<shade::AnimationControllerComponent>("Animation controller", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
+					{
+						entity.AddComponent<shade::AnimationControllerComponent>(shade::AnimationControllerComponent::Create());
+					}, m_SelectedEntity);
 
 				ImGui::Separator();
 				if (ImGui::MenuItem("New entity as child"))
@@ -1070,7 +1093,7 @@ void EditorLayer::Creator()
 			break;
 		case shade::AssetMeta::Texture:
 			break;
-		case shade::AssetMeta::Animation:
+		case shade::AssetMeta::SkeletonAnimation:
 			break;
 		case shade::AssetMeta::Sound:
 			break;
@@ -1120,7 +1143,7 @@ void EditorLayer::EditAsset(shade::SharedPointer<shade::AssetData>& assetData)
 				std::string currentItem = shade::AssetMeta::GetCategoryAsString(category);
 
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				DrawCombo(" ##Category", currentItem, items, ImGuiSelectableFlags_Disabled, ImGuiComboFlags_None);
+				DrawCombo(" ##Category", currentItem, items, ImGuiSelectableFlags_None, ImGuiComboFlags_None);
 			}
 			ImGui::TableNextRow();
 			ImGui::TableNextColumn(); { ImGui::Text("Type"); }
@@ -1132,7 +1155,7 @@ void EditorLayer::EditAsset(shade::SharedPointer<shade::AssetData>& assetData)
 				std::string currentItem = shade::AssetMeta::GetTypeAsString(type);
 
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				DrawCombo(" ##Type", currentItem, items, ImGuiSelectableFlags_Disabled, ImGuiComboFlags_None);
+				DrawCombo(" ##Type", currentItem, items, ImGuiSelectableFlags_None, ImGuiComboFlags_None);
 			}
 			if (assetData->GetCategory() == shade::AssetMeta::Category::Primary)
 			{
@@ -1674,25 +1697,6 @@ void EditorLayer::RgidBodyComponent(shade::ecs::Entity& entity)
 
 		if (meshes.size() && !rigidBody.GetCollidersCount())
 		{
-			// TODO: Make coversion between SharedPoonter and Asset<>
-			/*if (ImGui::Button("Add mesh shapes from all meshes", { ImGui::GetContentRegionAvail().x, 0 }))
-			{
-				for (auto& mesh : meshes)
-				{
-					auto collider = shade::SharedPointer<shade::physic::MeshShape>::Create();
-					collider->SetMinMaxHalfExt(mesh->GetMinHalfExt(), mesh->GetMaxHalfExt());
-
-					auto lod = mesh->GetLod(9);
-
-					auto [hull, indices] = shade::physic::algo::GenerateConvexHull(lod.Vertices, 0.0001);
-
-					for (auto& point : hull)
-						collider->AddVertex(point);
-
-					rigidBody.AddCollider(collider);
-				}
-			}*/
-
 			ImGui::SetNextWindowSize(ImGui::GetContentRegionAvail());
 			DrawModal("Sellect collision shape asset", m_IsAddCollisionShapeModal, [&]()
 				{
@@ -1767,11 +1771,42 @@ void EditorLayer::RgidBodyComponent(shade::ecs::Entity& entity)
 
 void EditorLayer::AnimationControllerComponent(shade::ecs::Entity& entity)
 {
-	auto& animations = entity.GetComponent<shade::AnimationControllerComponent>();
+	auto& controller = entity.GetComponent<shade::AnimationControllerComponent>();
 
-	DragFloat("Duration", &animations->GetCurentAnimation().Duration);
-	DragFloat("TiksPer second", &animations->GetCurentAnimation().TiksPerSecond);
-	
+	for (auto& [name, animation] : *controller)
+	{
+		DragFloat("Duration", &animation.Duration);
+		DragFloat("TiksPer second", &animation.TiksPerSecond);
+	}
+
+	ImGui::SetNextWindowSize(ImGui::GetContentRegionAvail());
+	DrawModal("Add skeletal animation asset", m_IsAddSkeletalAnimationModal, [&]()
+		{
+			static std::string id;
+			static std::string search;
+
+			InputTextCol("Search:", search);
+			ImGui::Separator();
+
+			for (const auto& assetData : shade::AssetManager::GetAssetDataList(shade::AssetMeta::Category::Secondary))
+			{
+				if (assetData.second->GetType() == shade::AssetMeta::Type::SkeletonAnimation && assetData.first.find(search) != std::string::npos)
+				{
+					if (ImGui::Selectable(assetData.first.c_str(), id == assetData.first))
+					{
+						shade::AssetManager::GetAsset<shade::Animation>(assetData.first, shade::AssetMeta::Category::Secondary, shade::BaseAsset::LifeTime::KeepAlive, [=](auto& animation) mutable
+							{
+								controller->AddAnimation(animation);
+							});
+
+						m_IsAddSkeletalAnimationModal = false;
+					}
+				}
+			}
+		});
+
+	if (ImGui::Button("Add skeletal animation asset", { ImGui::GetContentRegionAvail().x, 0 }))
+		m_IsAddSkeletalAnimationModal = true;
 }
 
 void EditorLayer::MaterialEdit(shade::Material& material)

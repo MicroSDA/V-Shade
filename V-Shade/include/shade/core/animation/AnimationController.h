@@ -47,13 +47,18 @@ namespace shade
 		const SharedPointer<std::vector<glm::mat4>>& GetBoneTransforms() const;
 
 		static SharedPointer<AnimationController> Create();
+	public:
+		std::unordered_map<std::string, AnimationControllData>::iterator begin() noexcept { return m_Animations.begin(); };
+		std::unordered_map<std::string, AnimationControllData>::iterator end() noexcept { return m_Animations.end(); };
+		std::unordered_map<std::string, AnimationControllData>::const_iterator cbegin() const noexcept { return m_Animations.begin(); };
+		std::unordered_map<std::string, AnimationControllData>::const_iterator cend() const noexcept { return m_Animations.end(); };
 	private:
 		AnimationController() = default;
 
 		void CalculateBoneTransform(const SharedPointer<Skeleton::BoneNode>& bone, const glm::mat4& parentTransform, const SharedPointer<Skeleton::BoneArmature>& armature);
 
 		// Where std::string is asset id
-		std::unordered_map<std::string, AnimationControllData> m_Animation;
+		std::unordered_map<std::string, AnimationControllData> m_Animations;
 		AnimationControllData* m_CurrentAnimation = nullptr;
 	private:
 		friend class SharedPointer<AnimationController>;

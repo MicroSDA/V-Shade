@@ -41,15 +41,12 @@ layout(push_constant) uniform DrawInstance
 	uint Index;
 } u_DrawInstance;
 
-#define MAX_BONES_PER_INSTANCE 100
-#define BONE_INFLUENCE 4
 //Vertex shader entry point
 void main() 
 {
    uint DrawCallOffset = (u_DrawInstance.Index + gl_InstanceIndex) * MAX_BONES_PER_INSTANCE;
-
+   // TODO: Mby refactor this step wit + matrices
    mat4 BoneTransform = mat4(0.0);
-
    for(uint i = 0; i < BONE_INFLUENCE; i++)
    	   BoneTransform += (a_BoneId[i] != ~0) ? s_BoneTransform[DrawCallOffset + a_BoneId[i]] * a_BoneWeight[i] : mat4(0.0);
    
@@ -59,7 +56,7 @@ void main()
    gl_Position = u_Camera.ViewProjectionMatrix * VertexWorldSpace;
    //gl_Position.y = -gl_Position.y;	
    //Forward texture coordinates to fragment shader
-   out_UV_Coordinates = vec2(a_UV_Coordinates.x, - a_UV_Coordinates.y);
+   out_UV_Coordinates = vec2(a_UV_Coordinates.x, a_UV_Coordinates.y);
    //Forward instance index to fragment shader
    out_InstanceId = gl_InstanceIndex;
   

@@ -4,71 +4,71 @@
 void shade::AnimationController::AddAnimation(const Asset<Animation>& animation)
 {
     // TODO: Check if exist 
-    m_Animation[animation->GetAssetData()->GetId()] =
+    m_Animations[animation->GetAssetData()->GetId()] =
     {
         .Animation = animation,
         .Duration = animation->GetDuration(),
         .TiksPerSecond = animation->GetTiksPerSecond()
     };
-    m_Animation[animation->GetAssetData()->GetId()].BoneTransforms = SharedPointer<std::vector<glm::mat4>>::Create();
-    m_Animation[animation->GetAssetData()->GetId()].BoneTransforms->resize(RenderAPI::MAX_BONES_PER_INSTANCE, glm::mat4(1.f));
-    m_CurrentAnimation = &m_Animation[animation->GetAssetData()->GetId()];
+    m_Animations[animation->GetAssetData()->GetId()].BoneTransforms = SharedPointer<std::vector<glm::mat4>>::Create();
+    m_Animations[animation->GetAssetData()->GetId()].BoneTransforms->resize(RenderAPI::MAX_BONES_PER_INSTANCE, glm::mat4(1.f));
+    m_CurrentAnimation = &m_Animations[animation->GetAssetData()->GetId()];
 }
 
 void shade::AnimationController::SetCurrentAnimation(const Asset<Animation>& animation, Animation::State state)
 {
     // TODO: Check if exist 
-    m_Animation[animation->GetAssetData()->GetId()].State = state;
+    m_Animations[animation->GetAssetData()->GetId()].State = state;
     // TODO: Need to check if addres changed after resizing or something
-    m_CurrentAnimation = &m_Animation[animation->GetAssetData()->GetId()];
+    m_CurrentAnimation = &m_Animations[animation->GetAssetData()->GetId()];
 }
 
 void shade::AnimationController::SetCurrentAnimation(const std::string& name, Animation::State state)
 {
     // TODO: Check if exist 
-    m_Animation[name].State = state;
+    m_Animations[name].State = state;
     // TODO: Need to check if addres changed after resizing or something
-    m_CurrentAnimation = &m_Animation.at(name);
+    m_CurrentAnimation = &m_Animations.at(name);
 }
 
 void shade::AnimationController::SetAnimationDuration(const Asset<Animation>& animation, float duration)
 {
-    m_Animation[animation->GetAssetData()->GetId()].Duration = duration;
+    m_Animations[animation->GetAssetData()->GetId()].Duration = duration;
 }
 
 void shade::AnimationController::SetAnimationDuration(const std::string& name, float duration)
 {
-    m_Animation[name].Duration = duration;
+    m_Animations[name].Duration = duration;
 }
 
 float shade::AnimationController::GetAnimationDuration(const Asset<Animation>& animation) const
 {
-    return m_Animation.at(animation->GetAssetData()->GetId()).Duration;
+    return m_Animations.at(animation->GetAssetData()->GetId()).Duration;
 }
 
 float shade::AnimationController::GetAnimationDuration(const std::string& name) const
 {
-    return m_Animation.at(name).Duration;
+    return m_Animations.at(name).Duration;
 }
 
 void shade::AnimationController::SetAnimationTiks(const Asset<Animation>& animation, float tiksPerSekond)
 {
-    m_Animation[animation->GetAssetData()->GetId()].TiksPerSecond = tiksPerSekond;
+    m_Animations[animation->GetAssetData()->GetId()].TiksPerSecond = tiksPerSekond;
 }
 
 void shade::AnimationController::SetAnimationTiks(const std::string& name, float tiksPerSekond)
 {
-    m_Animation[name].TiksPerSecond = tiksPerSekond;
+    m_Animations[name].TiksPerSecond = tiksPerSekond;
 }
 
 float shade::AnimationController::GetAnimationTiks(const Asset<Animation>& animation) const
 {
-    return m_Animation.at(animation->GetAssetData()->GetId()).TiksPerSecond;
+    return m_Animations.at(animation->GetAssetData()->GetId()).TiksPerSecond;
 }
 
 float shade::AnimationController::GetAnimationTiks(const std::string& name) const
 {
-    return m_Animation.at(name).TiksPerSecond;
+    return m_Animations.at(name).TiksPerSecond;
 }
 
 shade::AnimationController::AnimationControllData& shade::AnimationController::GetCurentAnimation()
@@ -84,7 +84,11 @@ void shade::AnimationController::UpdateCurrentAnimation(const FrameTimer& deltaT
         m_CurrentAnimation->CurrentPlayTime += m_CurrentAnimation->TiksPerSecond * deltaTime.GetInSeconds<float>();
         m_CurrentAnimation->CurrentPlayTime = fmod(m_CurrentAnimation->CurrentPlayTime, m_CurrentAnimation->Duration);
 
+      /*  for (auto& transform : *m_CurrentAnimation->BoneTransforms)
+            transform = glm::mat4(1.f);*/
+
         CalculateBoneTransform(skeleton->GetRootNode(), glm::mat4(1.0), skeleton->GetArmature());
+       
     }
 }
 
@@ -112,6 +116,7 @@ void shade::AnimationController::CalculateBoneTransform(const SharedPointer<Skel
         globalMatrix *= interpolatedTransfom;
 
         m_CurrentAnimation->BoneTransforms.Get()[bone->ID] = globalMatrix * bone->InverseBindPose * armature->Transform;
+        //m_CurrentAnimation->BoneTransforms.Get()[bone->ID] = globalMatrix * bone->InverseBindPose;
     }
     else
     {

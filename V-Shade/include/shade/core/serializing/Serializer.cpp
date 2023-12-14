@@ -385,3 +385,16 @@ shade::File::checksum_t shade::File::GetChecksum()
 {
 	return GenerateCheckSum<checksum_t>(m_Stream);
 }
+
+bool shade::IsAllowedCharacter(const char c)
+{
+	const std::string unsupportedCharacters = "\\/:*?\"<>|";
+	return std::find(unsupportedCharacters.begin(), unsupportedCharacters.end(), c) == unsupportedCharacters.end();
+}
+
+std::string shade::RemoveNotAllowedCharacters(const std::string& input)
+{
+	std::string result;
+	std::copy_if(input.begin(), input.end(), std::back_inserter(result), IsAllowedCharacter);
+	return result;
+}
