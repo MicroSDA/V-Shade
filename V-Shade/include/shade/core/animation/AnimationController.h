@@ -7,8 +7,9 @@ namespace shade
 {
 	class SHADE_API AnimationController
 	{
+	public:
 		struct AnimationControllData
-		{
+		{	
 			Asset<Animation> Animation;
 			Animation::State State = Animation::State::Stop;
 			float CurrentPlayTime = 0.0;
@@ -16,7 +17,6 @@ namespace shade
 			float TiksPerSecond = 0.0;
 			SharedPointer<std::vector<glm::mat4>> BoneTransforms;
 		};
-
 	public:
 		
 	public:
@@ -30,16 +30,24 @@ namespace shade
 		void SetAnimationDuration(const Asset<Animation>& animation, float duration);
 		void SetAnimationDuration(const std::string& name, float duration);
 
-		float GetAnimationDuration(const Asset<Animation>& animation) const;
-		float GetAnimationDuration(const std::string& name) const ;
+		float& GetAnimationDuration(const Asset<Animation>& animation);
+		float& GetAnimationDuration(const std::string& name);
 
 		void SetAnimationTiks(const Asset<Animation>& animation, float tiksPerSekond);
 		void SetAnimationTiks(const std::string& name, float tiksPerSekond);
 
-		float GetAnimationTiks(const Asset<Animation>& animation) const;
-		float GetAnimationTiks(const std::string& name) const;
+		float& GetAnimationTiks(const Asset<Animation>& animation);
+		float& GetAnimationTiks(const std::string& name);
 
-		AnimationControllData& GetCurentAnimation();
+		void SetAnimationState(const Asset<Animation>& animation, Animation::State state);
+		void SetAnimationState(const std::string& name, Animation::State state);
+
+		Animation::State GetAnimationState(const Asset<Animation>& animation) const;
+		Animation::State GetAnimationState(const std::string& name) const;
+
+		Asset<Animation> GetCurentAnimation();
+
+		std::unordered_map<Asset<Animation>, AnimationControllData>& GetAnimations();
 
 		void UpdateCurrentAnimation(const FrameTimer& deltaTime, const Asset<Skeleton>& skeleton);
 
@@ -48,17 +56,17 @@ namespace shade
 
 		static SharedPointer<AnimationController> Create();
 	public:
-		std::unordered_map<std::string, AnimationControllData>::iterator begin() noexcept { return m_Animations.begin(); };
-		std::unordered_map<std::string, AnimationControllData>::iterator end() noexcept { return m_Animations.end(); };
-		std::unordered_map<std::string, AnimationControllData>::const_iterator cbegin() const noexcept { return m_Animations.begin(); };
-		std::unordered_map<std::string, AnimationControllData>::const_iterator cend() const noexcept { return m_Animations.end(); };
+		std::unordered_map<Asset<Animation>, AnimationControllData>::iterator begin() noexcept { return m_Animations.begin(); };
+		std::unordered_map<Asset<Animation>, AnimationControllData>::iterator end() noexcept { return m_Animations.end(); };
+		std::unordered_map<Asset<Animation>, AnimationControllData>::const_iterator cbegin() const noexcept { return m_Animations.begin(); };
+		std::unordered_map<Asset<Animation>, AnimationControllData>::const_iterator cend() const noexcept { return m_Animations.end(); };
 	private:
 		AnimationController() = default;
 
 		void CalculateBoneTransform(const SharedPointer<Skeleton::BoneNode>& bone, const glm::mat4& parentTransform, const SharedPointer<Skeleton::BoneArmature>& armature);
 
 		// Where std::string is asset id
-		std::unordered_map<std::string, AnimationControllData> m_Animations;
+		std::unordered_map<Asset<Animation>, AnimationControllData> m_Animations;
 		AnimationControllData* m_CurrentAnimation = nullptr;
 	private:
 		friend class SharedPointer<AnimationController>;

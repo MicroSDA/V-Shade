@@ -297,7 +297,7 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 					{
 						/* In case we want to use point light sphere during instance rendering we need reuse deafult sphere and apply changes only to transform matrix.*/
 						pcTransform = glm::scale(pcTransform, glm::vec3(light->Distance));
-						Renderer::SubmitStaticMesh(m_PointLightVisualizationPipeline, m_Sphere, nullptr, pcTransform);
+						Renderer::SubmitStaticMesh(m_PointLightVisualizationPipeline, m_Sphere, nullptr, nullptr, pcTransform);
 					}
 				}
 			});
@@ -312,7 +312,7 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 					{
 						/* In case we want to use spot light cone during instance rendering we need reuse deafult cone and apply changes only to transform matrix.*/
 						pcTransform = glm::scale(pcTransform, glm::vec3(radius, radius, light->Distance));
-						Renderer::SubmitStaticMesh(m_SpotLightVisualizationPipeline, m_Cone, nullptr, pcTransform);
+						Renderer::SubmitStaticMesh(m_SpotLightVisualizationPipeline, m_Cone, nullptr, nullptr, pcTransform);
 					}
 				}
 			});
@@ -322,27 +322,25 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 
 				AnimationControllerComponent animationController = (entity.HasComponent<AnimationControllerComponent>()) ? entity.GetComponent<AnimationControllerComponent>() : nullptr;
 
-				if (animationController && &animationController->GetCurentAnimation() && model->GetSkeleton())
-				{
-					animationController->UpdateCurrentAnimation(deltaTime, model->GetSkeleton());
-					Renderer::SubmitBoneTransforms(m_MainGeometryPipelineAnimated, animationController->GetBoneTransforms());
-				}
+				bool isModelInFrustrum = false;
 				
 				for (const auto& mesh : *model)
 				{
 					if (frustum.IsInFrustum(pcTransform, mesh->GetMinHalfExt(), mesh->GetMaxHalfExt()))
 					{
-						if (animationController && &animationController->GetCurentAnimation())
+						isModelInFrustrum = true;
+
+						if (animationController && animationController->GetCurentAnimation())
 						{
-							Renderer::SubmitStaticMeshDynamicLOD(m_MainGeometryPipelineAnimated, mesh, mesh->GetMaterial(), pcTransform); m_Statistic.SubmitedInstances++;
+							Renderer::SubmitStaticMeshDynamicLOD(m_MainGeometryPipelineAnimated, mesh, mesh->GetMaterial(), model, pcTransform); m_Statistic.SubmitedInstances++;
 						}
 						else
 						{
-							Renderer::SubmitStaticMeshDynamicLOD(m_MainGeometryPipelineStatic, mesh, mesh->GetMaterial(), pcTransform); m_Statistic.SubmitedInstances++;
+							Renderer::SubmitStaticMeshDynamicLOD(m_MainGeometryPipelineStatic, mesh, mesh->GetMaterial(), model, pcTransform); m_Statistic.SubmitedInstances++;
 						}
 						
 						if (m_Settings.RenderSettings.LightCulling)
-							Renderer::SubmitStaticMeshDynamicLOD(m_LightCullingPreDepthPipeline, mesh, nullptr, pcTransform);
+							Renderer::SubmitStaticMeshDynamicLOD(m_LightCullingPreDepthPipeline, mesh, nullptr, model, pcTransform);
 					}
 
 
@@ -362,14 +360,14 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 									if (PointLight::IsMeshInside(renderData.Cascades[side].ViewProjectionMatrix, pcTransform, mesh->GetMinHalfExt(), mesh->GetMaxHalfExt()))
 									{
 										std::size_t seed = index; glm::detail::hash_combine(seed, side);
-										Renderer::SubmitStaticMeshDynamicLOD(m_PointLightShadowDepthPipeline, mesh, nullptr, pcTransform, seed);
+										Renderer::SubmitStaticMeshDynamicLOD(m_PointLightShadowDepthPipeline, mesh, nullptr, model, pcTransform, seed);
 									}
 								}
 							}
 							else
 							{
 								if (PointLight::IsMeshInside(renderData.Position, renderData.Distance, pcTransform, mesh->GetMinHalfExt(), mesh->GetMaxHalfExt()))
-									Renderer::SubmitStaticMeshDynamicLOD(m_PointLightShadowDepthPipeline, mesh, mesh->GetMaterial(), pcTransform, index);
+									Renderer::SubmitStaticMeshDynamicLOD(m_PointLightShadowDepthPipeline, mesh, mesh->GetMaterial(), model, pcTransform, index);
 							}
 						}
 					}
@@ -383,13 +381,13 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 							float radius = glm::acos(glm::radians(renderData.MaxAngle)) * renderData.Distance;
 							if (SpotLight::IsMeshInside(renderData.Cascade.ViewProjectionMatrix, pcTransform, mesh->GetMinHalfExt(), mesh->GetMaxHalfExt()))
 							{
-								Renderer::SubmitStaticMeshDynamicLOD(m_SpotLightShadowDepthPipeline, mesh, mesh->GetMaterial(), pcTransform, index);
+								Renderer::SubmitStaticMeshDynamicLOD(m_SpotLightShadowDepthPipeline, mesh, mesh->GetMaterial(), model, pcTransform, index);
 							}
 						}
 					}
 
 					if (m_Settings.RenderSettings.GlobalShadowsEnabled)
-						Renderer::SubmitStaticMeshDynamicLOD(m_GlobalLightShadowDepthPipeline, mesh, mesh->GetMaterial(), pcTransform);
+						Renderer::SubmitStaticMeshDynamicLOD(m_GlobalLightShadowDepthPipeline, mesh, mesh->GetMaterial(), model, pcTransform);
 
 					// OBB Visualization
 					if (m_Settings.IsAABB_OBBShow)
@@ -400,9 +398,16 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 						// Scale the cpTransform matrix using the ratio of the half extents of the mesh and the bounding box
 						permeshTransform = glm::scale(permeshTransform, (mesh->GetMaxHalfExt() - mesh->GetMinHalfExt()) / (m_OBB->GetMaxHalfExt() - m_OBB->GetMinHalfExt()));
 						// Submit aabb for rendering 
-						Renderer::SubmitStaticMesh(m_AABB_OBB_Pipeline, m_OBB, m_OBBMaterial, permeshTransform);
+						Renderer::SubmitStaticMesh(m_AABB_OBB_Pipeline, m_OBB, m_OBBMaterial, nullptr, permeshTransform);
 					}
 				}
+
+				if (isModelInFrustrum && animationController && animationController->GetCurentAnimation() && model->GetSkeleton())
+				{
+					animationController->UpdateCurrentAnimation(deltaTime, model->GetSkeleton());
+					Renderer::SubmitBoneTransforms(m_MainGeometryPipelineAnimated, model, animationController->GetBoneTransforms());
+				}
+
 
 				// AABB Visualization
 				if (entity.HasComponent<RigidBodyComponent>())
@@ -419,7 +424,7 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 							(maxExt - minExt) / glm::vec<3, physic::scalar_t>(m_OBB->GetMaxHalfExt() - m_OBB->GetMinHalfExt())
 						);
 
-						Renderer::SubmitStaticMesh(m_AABB_OBB_Pipeline, m_OBB, m_AABBMaterial, permeshTransform);
+						Renderer::SubmitStaticMesh(m_AABB_OBB_Pipeline, m_OBB, m_AABBMaterial, nullptr, permeshTransform);
 					}
 					
 					//for (auto& contactPoint : rigidBody.GetCollisionContacts())
@@ -477,7 +482,7 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 
 		// Submit grid for rendering
 		if (m_Settings.IsGridShow)
-			Renderer::SubmitStaticMesh(m_GridPipeline, m_Plane, nullptr, glm::mat4(1.f));
+			Renderer::SubmitStaticMesh(m_GridPipeline, m_Plane, nullptr, nullptr, glm::mat4(1.f));
 	}
 	else
 	{
@@ -601,7 +606,7 @@ void shade::SceneRenderer::LightCullingPreDepthPass(SharedPointer<RenderPipeline
 	// For each instance and its materials in the Instances container
 	for (auto& [instance, materials] : instances.Instances)
 	{
-		for (auto& [lod, material] : materials)
+		for (auto& [lod, material] : materials.Materials)
 		{
 			// Draw the submitted instance
 			Renderer::DrawSubmitedInstanced(m_MainCommandBuffer, pipeline, instance, material, frameIndex, lod);
@@ -658,7 +663,7 @@ void shade::SceneRenderer::GlobalLightShadowPreDepthPass(SharedPointer<RenderPip
 	pipeline->UpdateResources(m_MainCommandBuffer, frameIndex);
 	for (auto& [instance, materials] : instances.Instances)
 	{
-		for (auto& [lod, material] : materials)
+		for (auto& [lod, material] : materials.Materials)
 		{
 			for (std::uint32_t cascade = 0; cascade < GlobalLight::SHADOW_CASCADES_COUNT; cascade++)
 			{
@@ -685,7 +690,7 @@ void shade::SceneRenderer::SpotLightShadowPreDepthPass(SharedPointer<RenderPipel
 
 	for (auto& [instance, materials] : instances.Instances)
 	{
-		for (auto& [lod, material] : materials)
+		for (auto& [lod, material] : materials.Materials)
 		{
 			for (std::uint32_t index = 0; index < Renderer::GetSubmitedSpotLightCount(); index++)
 			{
@@ -711,7 +716,7 @@ void shade::SceneRenderer::PointLightShadowPreDepthPass(SharedPointer<RenderPipe
 
 	for (auto& [instance, materials] : instances.Instances)
 	{
-		for (auto& [lod, material] : materials)
+		for (auto& [lod, material] : materials.Materials)
 		{
 			for (std::uint32_t index = 0; index < Renderer::GetSubmitedPointLightCount(); index++)
 			{
@@ -754,18 +759,18 @@ void shade::SceneRenderer::InstancedGeometryPass(SharedPointer<RenderPipeline>& 
 	pipeline->SetTexture(m_SpotLightShadowFrameBuffer->GetDepthAttachment(), Pipeline::Set::PerInstance, RenderAPI::SPOT_SHADOW_MAP_BINDING, frameIndex);
 	pipeline->SetTexture(m_PointLightShadowFrameBuffer->GetDepthAttachment(), Pipeline::Set::PerInstance, RenderAPI::POINT_SHADOW_MAP_BINDING, frameIndex);
 	
-	if(m_MainGeometryPipelineAnimated.Raw() == pipeline.Raw())
-		Renderer::UpdateSubmitedBonesData(m_MainCommandBuffer, m_MainGeometryPipelineAnimated, frameIndex);
+	
 
 	std::uint32_t drawInstane = 0;
 
 	// Loop over the instances and their materials, updating and drawing each submitted material with the rendered instance.
 	for (auto& [instance, materials] : instances.Instances)
-	{		
-																													/* For some reasosns we need to overlap all stages */
-		m_MainGeometryPipelineAnimated->SetUniform(m_MainCommandBuffer, sizeof(std::uint32_t), &drawInstane, frameIndex, Shader::Type::Vertex | Shader::Type::Fragment); 
+	{											
+		if (m_MainGeometryPipelineAnimated.Raw() == pipeline.Raw())
+			Renderer::UpdateSubmitedBonesData(m_MainCommandBuffer, m_MainGeometryPipelineAnimated, materials.ModelHash, frameIndex);
+
 		// For each material
-		for (auto& [lod, material] : materials)
+		for (auto& [lod, material] : materials.Materials)
 		{
 			// Update the submitted material
 			Renderer::UpdateSubmitedMaterial(m_MainCommandBuffer, pipeline, instance, material, frameIndex, lod);
@@ -792,7 +797,7 @@ void shade::SceneRenderer::GridPass(SharedPointer<RenderPipeline>& pipeline, con
 	for (auto& [instance, materials] : instances.Instances)
 	{
 		// For each material
-		for (auto& [lod, material] : materials)
+		for (auto& [lod, material] : materials.Materials)
 		{
 			// Draw the submitted instance
 			Renderer::DrawSubmitedInstanced(m_MainCommandBuffer, pipeline, instance, material, frameIndex);
@@ -811,7 +816,7 @@ void shade::SceneRenderer::LightVisualizationPass(SharedPointer<RenderPipeline>&
 	// For each instance and its materials in the Instances container
 	for (auto& [instance, materials] : instances.Instances)
 	{
-		for (auto& [lod, material] : materials)
+		for (auto& [lod, material] : materials.Materials)
 		{
 			// Draw the submitted instance
 			Renderer::DrawSubmitedInstanced(m_MainCommandBuffer, pipeline, instance, material, frameIndex);
@@ -830,7 +835,7 @@ void shade::SceneRenderer::FlatPipeline(SharedPointer<RenderPipeline>& pipeline,
 	// For each instance and its materials in the Instances container
 	for (auto& [instance, materials] : instances.Instances)
 	{
-		for (auto& [lod, material] : materials)
+		for (auto& [lod, material] : materials.Materials)
 		{
 			// Update the submitted material
 			Renderer::UpdateSubmitedMaterial(m_MainCommandBuffer, pipeline, instance, material, frameIndex, lod);

@@ -124,6 +124,36 @@ void shade::Renderer::BeginFrame(std::uint32_t frameIndex)
 {
 	m_sRenderAPI->BeginFrame(frameIndex);
 
+	//// Don't work as expected !!
+	//for (auto boneTransform = m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.begin(); boneTransform != m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.end();)
+	//{
+	//	bool hasFound = false;
+
+	//	for (auto& [pipeline, instances] : m_sRenderAPI->m_sSubmitedPipelines)
+	//	{
+	//		std::size_t modelHash = boneTransform->first ^ pipeline;
+
+	//		for (auto& [combinedHash, instance] : instances.Instances)
+	//		{
+	//			if (instance.second == modelHash)
+	//			{
+	//				hasFound = true; break;
+	//			}
+	//		}
+
+	//		if (hasFound) break;
+	//	}
+
+	//	if (!hasFound)
+	//	{
+	//		boneTransform = m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.erase(boneTransform);
+	//	}
+	//	else
+	//	{
+	//		++boneTransform;
+	//	}
+	//}
+
 	// Iterate over GeometryBuffers inside the object m_sSubmitedSceneRenderData.
 	for (auto drawable = m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.begin(); drawable != m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.end();)
 	{
@@ -155,17 +185,6 @@ void shade::Renderer::BeginFrame(std::uint32_t frameIndex)
 		}
 	}
 
-	for (auto boneTransform = m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.begin(); boneTransform != m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.end();)
-	{
-		// Try to find pipline, if pipline has not been found then wne need to erase bone transform buffer 
-		const auto entry = m_sRenderAPI->m_sSubmitedPipelines.find(boneTransform->first);
-
-		if (entry == m_sRenderAPI->m_sSubmitedPipelines.end())
-			boneTransform = boneTransform = m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.erase(boneTransform);
-		else
-			++boneTransform;
-	}
-
 	// Iterate over through all submitted transform and material data and calculate offset.
 	std::uint32_t count = 0;
 	for (auto& [hash, instance] : m_sRenderAPI->m_sSubmitedSceneRenderData.InstanceRawData)
@@ -193,10 +212,9 @@ void shade::Renderer::BeginFrame(std::uint32_t frameIndex)
 	}
 
 	std::uint32_t bonesCount = 0;
-
 	for (auto& [hash, boneData] : m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData)
 	{
-		boneData.PipelineOffset = BONE_TRANSFORMS_DATA_SIZE(bonesCount);
+		boneData.PipelineModelOffset = BONE_TRANSFORMS_DATA_SIZE(bonesCount);
 
 		for (auto i = 0; i < boneData.BoneTransforms.size(); ++i)
 		{
@@ -210,10 +228,10 @@ void shade::Renderer::BeginFrame(std::uint32_t frameIndex)
 	{
 		for (std::uint32_t instance = 0; instance < boneData.BoneTransforms.size(); ++instance)
 		{
-			auto value = boneData.PipelineOffset + BONE_TRANSFORMS_DATA_SIZE(instance);
+			auto value = boneData.PipelineModelOffset + BONE_TRANSFORMS_DATA_SIZE(instance);
 
 			m_sRenderAPI->m_sSubmitedSceneRenderData.BoneTransfromsBuffer->SetData(BONE_TRANSFORM_DATA_SIZE,
-				boneData.BoneTransforms[instance]->data(), frameIndex, boneData.PipelineOffset + BONE_TRANSFORMS_DATA_SIZE(instance));
+				boneData.BoneTransforms[instance]->data(), frameIndex, boneData.PipelineModelOffset + BONE_TRANSFORMS_DATA_SIZE(instance));
 		}
 	}
 }
@@ -377,21 +395,43 @@ void shade::Renderer::DrawSubmitedInstancedAnimated(SharedPointer<RenderCommandB
 	}
 }
 
-void shade::Renderer::SubmitStaticMesh(const SharedPointer<RenderPipeline>& pipeline, const Asset<Drawable>& drawable, const Asset<Material>& material, const glm::mat4& transform, std::uint32_t splitOffset)
+void shade::Renderer::SubmitStaticMesh(const SharedPointer<RenderPipeline>& pipeline, const Asset<Drawable>& drawable, const Asset<Material>& material, const Asset<Model>& model, const glm::mat4& transform, std::uint32_t splitOffset)
 {
 	const std::size_t lod = 0;
-
 	// Calculates a hash value based on the pipeline, drawable, and material and stores it in a variable
 	const std::size_t combinedHash = render::PointerHashCombine(pipeline, drawable, material, lod, splitOffset);
 
-	// Transforms and materials are added to the instance raw data corresponding to the hash value calculated above
+	// Add transform and material to the instance raw data for the given combined hash
 	m_sRenderAPI->m_sSubmitedSceneRenderData.InstanceRawData[combinedHash].Transforms.emplace_back(transform);
 	m_sRenderAPI->m_sSubmitedSceneRenderData.InstanceRawData[combinedHash].Materials.emplace_back((material) ? material->GetRenderData() : GetDefaultMaterial()->GetRenderData());
 
-	// Materials are inserted into the instances belonging to the submitted pipeline and drawable
-	m_sRenderAPI->m_sSubmitedPipelines[pipeline].Instances[drawable].insert({ lod, material });
-	
-	// If the geometry buffer does not exist for the submitted drawable, create it
+	// Add the material and model hash to the instances for the given pipeline and drawable
+	m_sRenderAPI->m_sSubmitedPipelines[pipeline].Instances[drawable].Materials.insert({ lod, material });
+	m_sRenderAPI->m_sSubmitedPipelines[pipeline].Instances[drawable].ModelHash = (model) ? model : 0u;
+
+	// If the drawable is not already in the geometry buffers, create instanced geometry buffers for each level of detail
+	if (m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.find(drawable) == m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.end()) 
+	{
+		for (std::size_t i = 0; i < Drawable::MAX_LEVEL_OF_DETAIL; i++)
+			CreateInstancedGeometryBuffer(drawable, i);
+	}
+}
+
+void shade::Renderer::SubmitStaticMesh(const SharedPointer<RenderPipeline>& pipeline, const SharedPointer<Drawable>& drawable, const Asset<Material>& material, const SharedPointer<Model>& model, const glm::mat4& transform, std::uint32_t splitOffset)
+{
+	const std::size_t lod = 0;
+	// Calculates a hash value based on the pipeline, drawable, and material and stores it in a variable
+	const std::size_t combinedHash = render::PointerHashCombine(pipeline, drawable, material, lod, splitOffset);
+
+	// Add transform and material to the instance raw data for the given combined hash
+	m_sRenderAPI->m_sSubmitedSceneRenderData.InstanceRawData[combinedHash].Transforms.emplace_back(transform);
+	m_sRenderAPI->m_sSubmitedSceneRenderData.InstanceRawData[combinedHash].Materials.emplace_back((material) ? material->GetRenderData() : GetDefaultMaterial()->GetRenderData());
+
+	// Add the material and model hash to the instances for the given pipeline and drawable
+	m_sRenderAPI->m_sSubmitedPipelines[pipeline].Instances[drawable].Materials.insert({ lod, material });
+	m_sRenderAPI->m_sSubmitedPipelines[pipeline].Instances[drawable].ModelHash = (model) ? model : 0u;
+
+	// If the drawable is not already in the geometry buffers, create instanced geometry buffers for each level of detail
 	if (m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.find(drawable) == m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.end())
 	{
 		for (std::size_t i = 0; i < Drawable::MAX_LEVEL_OF_DETAIL; i++)
@@ -399,42 +439,21 @@ void shade::Renderer::SubmitStaticMesh(const SharedPointer<RenderPipeline>& pipe
 	}
 }
 
-void shade::Renderer::SubmitStaticMesh(const SharedPointer<RenderPipeline>& pipeline, const SharedPointer<Drawable>& drawable, const Asset<Material>& material, const glm::mat4& transform, std::uint32_t splitOffset)
-{
-	const std::size_t lod = 0;
-
-	// Calculates a hash value based on the pipeline, drawable, and material and stores it in a variable
-	const std::size_t combinedHash = render::PointerHashCombine(pipeline, drawable, material, lod, splitOffset) ;
-
-	// Transforms and materials are added to the instance raw data corresponding to the hash value calculated above
-	m_sRenderAPI->m_sSubmitedSceneRenderData.InstanceRawData[combinedHash].Transforms.emplace_back(transform);
-	m_sRenderAPI->m_sSubmitedSceneRenderData.InstanceRawData[combinedHash].Materials.emplace_back((material) ? material->GetRenderData() : GetDefaultMaterial()->GetRenderData());
-
-	// Materials are inserted into the instances belonging to the submitted pipeline and drawable
-	m_sRenderAPI->m_sSubmitedPipelines[pipeline].Instances[drawable].insert({ lod, material });
-
-	// If the geometry buffer does not exist for the submitted drawable, create it
-	if (m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.find(drawable) == m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.end())
-	{
-		for(std::size_t i = 0; i < Drawable::MAX_LEVEL_OF_DETAIL; i++)
-			CreateInstancedGeometryBuffer(drawable, i);
-	}
-}
-
-void shade::Renderer::SubmitStaticMeshDynamicLOD(const SharedPointer<RenderPipeline>& pipeline, const Asset<Drawable>& drawable, const Asset<Material>& material, const glm::mat4& transform, std::uint32_t splitOffset)
+void shade::Renderer::SubmitStaticMeshDynamicLOD(const SharedPointer<RenderPipeline>& pipeline, const Asset<Drawable>& drawable, const Asset<Material>& material, const Asset<Model>& model, const glm::mat4& transform, std::uint32_t splitOffset)
 {
 	const std::size_t lod = m_sRenderAPI->m_sSubmitedSceneRenderData.Camera ? GetLodLevelBasedOnDistance(m_sRenderAPI->m_sSubmitedSceneRenderData.Camera, Drawable::MAX_LEVEL_OF_DETAIL, transform, glm::vec3(0), glm::vec3(0)) : 0;
 	// Calculates a hash value based on the pipeline, drawable, and material and stores it in a variable
 	const std::size_t combinedHash = render::PointerHashCombine(pipeline, drawable, material, lod, splitOffset);
 
-	// Transforms and materials are added to the instance raw data corresponding to the hash value calculated above
+	// Add transform and material to the instance raw data for the given combined hash
 	m_sRenderAPI->m_sSubmitedSceneRenderData.InstanceRawData[combinedHash].Transforms.emplace_back(transform);
 	m_sRenderAPI->m_sSubmitedSceneRenderData.InstanceRawData[combinedHash].Materials.emplace_back((material) ? material->GetRenderData() : GetDefaultMaterial()->GetRenderData());
 
-	// Materials are inserted into the instances belonging to the submitted pipeline and drawable
-	m_sRenderAPI->m_sSubmitedPipelines[pipeline].Instances[drawable].insert({ lod, material });
+	// Add the material and model hash to the instances for the given pipeline and drawable
+	m_sRenderAPI->m_sSubmitedPipelines[pipeline].Instances[drawable].Materials.insert({ lod, material });
+	m_sRenderAPI->m_sSubmitedPipelines[pipeline].Instances[drawable].ModelHash = (model) ? model : 0u;
 
-	// If the geometry buffer does not exist for the submitted drawable, create it
+	// If the drawable is not already in the geometry buffers, create instanced geometry buffers for each level of detail
 	if (m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.find(drawable) == m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.end())
 	{
 		for (std::size_t i = 0; i < Drawable::MAX_LEVEL_OF_DETAIL; i++)
@@ -442,20 +461,21 @@ void shade::Renderer::SubmitStaticMeshDynamicLOD(const SharedPointer<RenderPipel
 	}
 }
 
-void shade::Renderer::SubmitStaticMeshDynamicLOD(const SharedPointer<RenderPipeline>& pipeline, const SharedPointer<Drawable>& drawable, const Asset<Material>& material, const glm::mat4& transform, std::uint32_t splitOffset)
+void shade::Renderer::SubmitStaticMeshDynamicLOD(const SharedPointer<RenderPipeline>& pipeline, const SharedPointer<Drawable>& drawable, const Asset<Material>& material, const SharedPointer<Model>& model, const glm::mat4& transform, std::uint32_t splitOffset)
 {
 	const std::size_t lod = m_sRenderAPI->m_sSubmitedSceneRenderData.Camera ? GetLodLevelBasedOnDistance(m_sRenderAPI->m_sSubmitedSceneRenderData.Camera, Drawable::MAX_LEVEL_OF_DETAIL, transform, glm::vec3(0), glm::vec3(0)) : 0;
 	// Calculates a hash value based on the pipeline, drawable, and material and stores it in a variable
 	const std::size_t combinedHash = render::PointerHashCombine(pipeline, drawable, material, lod, splitOffset);
 
-	// Transforms and materials are added to the instance raw data corresponding to the hash value calculated above
+	// Add transform and material to the instance raw data for the given combined hash
 	m_sRenderAPI->m_sSubmitedSceneRenderData.InstanceRawData[combinedHash].Transforms.emplace_back(transform);
 	m_sRenderAPI->m_sSubmitedSceneRenderData.InstanceRawData[combinedHash].Materials.emplace_back((material) ? material->GetRenderData() : GetDefaultMaterial()->GetRenderData());
 
-	// Materials are inserted into the instances belonging to the submitted pipeline and drawable
-	m_sRenderAPI->m_sSubmitedPipelines[pipeline].Instances[drawable].insert({ lod, material });
+	// Add the material and model hash to the instances for the given pipeline and drawable
+	m_sRenderAPI->m_sSubmitedPipelines[pipeline].Instances[drawable].Materials.insert({ lod, material });
+	m_sRenderAPI->m_sSubmitedPipelines[pipeline].Instances[drawable].ModelHash = (model) ? model : 0u;
 
-	// If the geometry buffer does not exist for the submitted drawable, create it
+	// If the drawable is not already in the geometry buffers, create instanced geometry buffers for each level of detail
 	if (m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.find(drawable) == m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.end())
 	{
 		for (std::size_t i = 0; i < Drawable::MAX_LEVEL_OF_DETAIL; i++)
@@ -539,17 +559,19 @@ void shade::Renderer::UpdateSubmitedMaterial(SharedPointer<RenderCommandBuffer>&
 	}
 }
 
-void shade::Renderer::SubmitBoneTransforms(const SharedPointer<RenderPipeline>& pipeline, const SharedPointer<std::vector<glm::mat4>>& transform)
+void shade::Renderer::SubmitBoneTransforms(const SharedPointer<RenderPipeline>& pipeline, const Asset<Model>& instance, const SharedPointer<std::vector<glm::mat4>>& transform)
 {
-	m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData[pipeline].BoneTransforms.emplace_back(transform);
+	std::size_t combinedHash = render::PointerHashCombine(pipeline, instance);
+	m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData[combinedHash].BoneTransforms.emplace_back(transform);
 }
 
-void shade::Renderer::UpdateSubmitedBonesData(SharedPointer<RenderCommandBuffer>& commandBuffer, SharedPointer<RenderPipeline>& pipeline, std::uint32_t frameIndex)
+void shade::Renderer::UpdateSubmitedBonesData(SharedPointer<RenderCommandBuffer>& commandBuffer, SharedPointer<RenderPipeline>& pipeline, std::size_t modelInstance, std::uint32_t frameIndex)
 {
-	auto rawData = m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.find(pipeline);
+	std::size_t combinedHash = render::PointerHashCombine(pipeline, modelInstance);
+	auto rawData = m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.find(combinedHash);
 	if (rawData != m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.end())
 	{
-		pipeline->SetResource(m_sRenderAPI->m_sSubmitedSceneRenderData.BoneTransfromsBuffer, Pipeline::Set::PerInstance, frameIndex, rawData->second.PipelineOffset);
+		pipeline->SetResource(m_sRenderAPI->m_sSubmitedSceneRenderData.BoneTransfromsBuffer, Pipeline::Set::PerInstance, frameIndex, rawData->second.PipelineModelOffset);
 	}
 }
 

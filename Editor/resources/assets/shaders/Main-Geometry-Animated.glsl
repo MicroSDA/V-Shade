@@ -44,11 +44,11 @@ layout(push_constant) uniform DrawInstance
 //Vertex shader entry point
 void main() 
 {
-   uint DrawCallOffset = (u_DrawInstance.Index + gl_InstanceIndex) * MAX_BONES_PER_INSTANCE;
+   uint BoneInstanceOffset = gl_InstanceIndex * MAX_BONES_PER_INSTANCE;
    // TODO: Mby refactor this step wit + matrices
    mat4 BoneTransform = mat4(0.0);
    for(uint i = 0; i < BONE_INFLUENCE; i++)
-   	   BoneTransform += (a_BoneId[i] != ~0) ? s_BoneTransform[DrawCallOffset + a_BoneId[i]] * a_BoneWeight[i] : mat4(0.0);
+   	   BoneTransform += (a_BoneId[i] != ~0) ? s_BoneTransform[BoneInstanceOffset + a_BoneId[i]] * a_BoneWeight[i] : mat4(0.0);
    
    mat4 BoneTransformWorldSpace = a_Transform * BoneTransform;
    vec4 VertexWorldSpace = BoneTransformWorldSpace * vec4(a_Position, 1.0);

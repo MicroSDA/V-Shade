@@ -37,6 +37,9 @@ shade::SharedPointer<shade::Animation> shade::Animation::CreateEXP()
 
 void shade::Animation::AddChannel(const std::string& name, const Channel& channel)
 {
+	if (m_AnimationChannels.find(name) != m_AnimationChannels.end())
+		SHADE_CORE_ERROR("Animation channel '{0}' already exists in '{1}' animation!");
+
 	m_AnimationChannels.emplace(name, channel);
 }
 
@@ -83,7 +86,7 @@ std::size_t shade::Animation::GetPositionKeyFrame(const Channel& chanel, float t
 		if (chanel.PositionKeys[index + 1].TimeStamp > time)
 			return index;
 	}
-	return 0;
+	return 0u;
 }
 
 std::size_t shade::Animation::GetRotationKeyFrame(const Channel& chanel, float time) const
@@ -93,7 +96,7 @@ std::size_t shade::Animation::GetRotationKeyFrame(const Channel& chanel, float t
 		if (chanel.RotationKeys[index + 1].TimeStamp > time)
 			return index;
 	}
-	return 0;
+	return 0u;
 }
 
 std::size_t shade::Animation::GetScaleKeyFrame(const Channel& chanel, float time) const
@@ -103,7 +106,7 @@ std::size_t shade::Animation::GetScaleKeyFrame(const Channel& chanel, float time
 		if (chanel.ScaleKeys[index + 1].TimeStamp > time)
 			return index;
 	}
-	return 0;
+	return 0u;
 }
 
 float shade::Animation::GetTimeFactor(float currentTime, float nextTime, float time)

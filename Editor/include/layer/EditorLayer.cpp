@@ -1773,12 +1773,6 @@ void EditorLayer::AnimationControllerComponent(shade::ecs::Entity& entity)
 {
 	auto& controller = entity.GetComponent<shade::AnimationControllerComponent>();
 
-	for (auto& [name, animation] : *controller)
-	{
-		DragFloat("Duration", &animation.Duration);
-		DragFloat("TiksPer second", &animation.TiksPerSecond);
-	}
-
 	ImGui::SetNextWindowSize(ImGui::GetContentRegionAvail());
 	DrawModal("Add skeletal animation asset", m_IsAddSkeletalAnimationModal, [&]()
 		{
@@ -1807,6 +1801,51 @@ void EditorLayer::AnimationControllerComponent(shade::ecs::Entity& entity)
 
 	if (ImGui::Button("Add skeletal animation asset", { ImGui::GetContentRegionAvail().x, 0 }))
 		m_IsAddSkeletalAnimationModal = true;
+
+	// Set Current animation
+	{
+		std::vector<std::string> items;
+		for (auto& [animation, data] : *controller)
+			items.emplace_back(animation->GetAssetData()->GetId());
+
+		auto currentAnimation = controller->GetCurentAnimation();
+
+		std::string currentItem = (currentAnimation) ? currentAnimation->GetAssetData()->GetId() : "NONE";
+
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+		if (DrawCombo(" ##Animations", currentItem, items, ImGuiSelectableFlags_None, ImGuiComboFlags_None))
+		{
+			if (currentItem != "NONE")
+				controller->SetCurrentAnimation(currentItem);
+		}
+
+		if (currentAnimation)
+		{
+			std::vector<std::string> items({ "Stop", "Play", "Pause" });
+			std::string currentItem;
+
+			switch (controller->GetAnimationState(currentAnimation))
+			{
+				case shade::Animation::State::Stop:  currentItem = "Stop";  break;		
+				case shade::Animation::State::Play:  currentItem = "Play";  break;
+				case shade::Animation::State::Pause: currentItem = "Pause"; break;
+			}
+
+			//ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+			DrawCombo(" ##State", currentItem, items, ImGuiSelectableFlags_None, ImGuiComboFlags_None);
+
+			if (currentItem == "Stop")
+				controller->SetAnimationState(currentAnimation, shade::Animation::State::Stop);
+			if (currentItem == "Play")
+				controller->SetAnimationState(currentAnimation, shade::Animation::State::Play);
+			if (currentItem == "Pause")
+				controller->SetAnimationState(currentAnimation, shade::Animation::State::Pause);
+
+			// Set State of Current animation
+			DragFloat("Duration", &controller->GetAnimationDuration(currentAnimation));
+			DragFloat("TiksPer second", &controller->GetAnimationTiks(currentAnimation));
+		}
+	}
 }
 
 void EditorLayer::MaterialEdit(shade::Material& material)

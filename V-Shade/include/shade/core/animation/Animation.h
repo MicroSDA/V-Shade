@@ -4,8 +4,8 @@
 #include <glm/glm/gtx/quaternion.hpp>
 #include <shade/core/asset/Asset.h>
 #include <shade/core/render/RenderAPI.h>
+#include <shade/core/animation/Skeleton.h>
 
-// TODO: add namespace animation
 namespace shade
 {
 	class SHADE_API Animation : public BaseAsset, public Asset<Animation>
@@ -27,41 +27,54 @@ namespace shade
 		
 		struct Channel
 		{
-			std::uint32_t ID = ~0;
-			std::vector<AnimationKey<glm::vec3>>	PositionKeys;
-			std::vector<AnimationKey<glm::quat>>	RotationKeys;
-			std::vector<AnimationKey<glm::vec3>>	ScaleKeys;
+			// The ID of the channel
+			std::uint32_t ID = Skeleton::BONE_NULL_ID; 
+			// The position animation keys
+			std::vector<AnimationKey<glm::vec3>> PositionKeys;
+			// The rotation animation keys
+			std::vector<AnimationKey<glm::quat>> RotationKeys; 
+			// The scale animation keys
+			std::vector<AnimationKey<glm::vec3>> ScaleKeys;
 		};
 
 		using AnimationChannels = std::unordered_map<std::string, Channel>;
 
 	public: 
 		virtual ~Animation() = default;
+
 		static AssetMeta::Type GetAssetStaticType();
+
 		virtual AssetMeta::Type GetAssetType() const override;
 
-		Animation() = default;
-		static SharedPointer<Animation> CreateEXP();
+		Animation() = default; 
 
+		static SharedPointer<Animation> CreateEXP(); 
+		// Add a channel to the animation
 		void AddChannel(const std::string& name, const Channel& channel);
-
+		// Interpolate the position of the channel at the given time
 		glm::mat4 InterpolatePosition(const Channel& chanel, float time);
+		// Interpolate the rotation of the channel at the given time
 		glm::mat4 InterpolateRotation(const Channel& chanel, float time);
+		// Interpolate the scale of the channel at the given time
 		glm::mat4 InterpolateScale(const Channel& chanel, float time);
-
+		// Get the keyframe index of the position at the given time
 		std::size_t GetPositionKeyFrame(const Channel& chanel, float time) const;
+		// Get the keyframe index of the rotation at the given time
 		std::size_t GetRotationKeyFrame(const Channel& chanel, float time) const;
-		std::size_t GetScaleKeyFrame(const Channel& chanel, float time) const;
-
+		// Get the keyframe index of the scale at the given time
+		std::size_t GetScaleKeyFrame(const Channel& chanel, float time) const; 
+		// Get the time factor for interpolation
 		float GetTimeFactor(float currentTime, float nextTime, float time);
-		const AnimationChannels& GetAnimationCahnnels() const;	
-
-		float GetTiksPerSecond() const;
-		float GetDuration() const;
-
-		void SetTicksPerSecond(float count);
+		// Get the animation channels
+		const AnimationChannels& GetAnimationCahnnels() const; 
+		// Get the ticks per second of the animation
+		float GetTiksPerSecond() const; 
+		// Get the duration of the animation
+		float GetDuration() const; 
+		// Set the ticks per second of the animation
+		void SetTicksPerSecond(float count); 
+		// Set the duration of the animation
 		void SetDuration(float duration);
-
 	private:
 		Animation(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
 		static Animation* Create(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);

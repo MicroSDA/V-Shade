@@ -65,7 +65,10 @@ const shade::SharedPointer<shade::Skeleton::BoneNode>& shade::Skeleton::GetBone(
 
 const shade::SharedPointer<shade::Skeleton::BoneNode>& shade::Skeleton::GetBone(std::size_t id) const
 {
-    assert(false);
+    for (const auto& [name, node] : m_BoneNodes)
+        if (node->ID == id)  
+            return node;
+
     return nullptr;
 }
 
@@ -96,7 +99,7 @@ std::size_t shade::Skeleton::Serialize(std::ostream& stream) const
     return size;
 }
 
-void AddNodeRecursively(const shade::SharedPointer<shade::Skeleton::BoneNode>& node, shade::Skeleton skeleton)
+void AddNodeRecursively(const shade::SharedPointer<shade::Skeleton::BoneNode>& node, shade::Skeleton& skeleton)
 {
     skeleton.AddNode(node);
 

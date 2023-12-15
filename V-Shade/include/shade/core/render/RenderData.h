@@ -52,10 +52,16 @@ namespace shade
 				return std::hash<T>()(x.first) ^ std::hash<U>()(x.second);
 			}
 		};
+		struct MaterialModelPair
+		{
+			std::unordered_set<std::pair<std::size_t, Asset<Material>>, PairHash> Materials;
+			std::size_t ModelHash = 0u;
+		};
+
 		struct SubmitedInstances
 		{
-			// Where size_t is Asset<Drawable>.
-			std::unordered_map<std::size_t, std::unordered_set<std::pair<std::size_t, Asset<Material>>, PairHash>> Instances;
+			// Where size_t is Asset<Drawable> 		
+			std::unordered_map <std::size_t, MaterialModelPair> Instances;
 		};
 
 		struct GeometryBuffer
@@ -84,8 +90,8 @@ namespace shade
 		{
 			// Bone transform per unique pipeline
 			std::vector<SharedPointer<std::vector<glm::mat4>>> BoneTransforms;
-			// Material offset within unique pipeline.
-			std::uint32_t PipelineOffset = 0;
+			// Material offset within unique pipeline + model.
+			std::uint32_t PipelineModelOffset = 0;
 		};
 		struct SubmitedSceneRenderData
 		{

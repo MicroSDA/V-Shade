@@ -190,7 +190,7 @@ void IModel::ProcessBones(shade::SharedPointer<shade::Mesh>& mesh, const char* f
 
 	for (std::size_t boneIndex = 0; boneIndex < aMesh->mNumBones; ++boneIndex)
 	{
-		std::uint32_t boneId = shade::Skeleton::NULL_BONE_ID;
+		std::uint32_t boneId = shade::Skeleton::BONE_NULL_ID;
 
 		std::string boneName = aMesh->mBones[boneIndex]->mName.C_Str();
 
@@ -205,7 +205,7 @@ void IModel::ProcessBones(shade::SharedPointer<shade::Mesh>& mesh, const char* f
 			boneId = boneList[boneName];
 		}
 
-		assert(boneId != shade::Skeleton::NULL_BONE_ID);
+		assert(boneId != shade::Skeleton::BONE_NULL_ID);
 
 		for (std::uint32_t weightIndex = 0; weightIndex < aMesh->mBones[boneIndex]->mNumWeights; ++weightIndex)
 		{
@@ -218,7 +218,7 @@ void IModel::ProcessBones(shade::SharedPointer<shade::Mesh>& mesh, const char* f
 			{
 				auto& bone = mesh->GetLod(0).Bones[vertexId];
 
-				if (bone.IDs[i] == shade::Skeleton::NULL_BONE_ID)
+				if (bone.IDs[i] == shade::Skeleton::BONE_NULL_ID)
 				{
 					bone.IDs[i] = boneId;
 					bone.Weights[i] = weight;
