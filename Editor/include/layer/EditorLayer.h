@@ -38,7 +38,6 @@ private:
 	// TEST !
 	bool m_IsScenePlaying = false;
 
-
 	void MainMenu(shade::SharedPointer<shade::Scene>& scene);
 	void Scene(shade::SharedPointer<shade::Scene>& scene);
 	void EntitiesList(const char* search, shade::SharedPointer<shade::Scene>& scene);
@@ -64,6 +63,7 @@ private:
 	void MaterialEdit(shade::Material& material);
 	void CreateMaterial();
 	void Material(shade::Material& material);
+	void AnimationSequencer();
 	//////
 	void CreateCollisionShapes();
 };

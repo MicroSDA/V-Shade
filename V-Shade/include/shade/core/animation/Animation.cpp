@@ -83,7 +83,7 @@ std::size_t shade::Animation::GetPositionKeyFrame(const Channel& chanel, float t
 {
 	for (std::size_t index = 0; index < chanel.PositionKeys.size() - 1; ++index)
 	{
-		if (chanel.PositionKeys[index + 1].TimeStamp > time) 
+		if (chanel.PositionKeys[index + 1].TimeStamp >= time) 
 			return index;
 	}
 	return 0u;
@@ -93,7 +93,7 @@ std::size_t shade::Animation::GetRotationKeyFrame(const Channel& chanel, float t
 {
 	for (std::size_t index = 0; index < chanel.RotationKeys.size() - 1; ++index)
 	{
-		if (chanel.RotationKeys[index + 1].TimeStamp > time)
+		if (chanel.RotationKeys[index + 1].TimeStamp >= time)
 			return index;
 	}
 	return 0u;
@@ -103,7 +103,7 @@ std::size_t shade::Animation::GetScaleKeyFrame(const Channel& chanel, float time
 {
 	for (std::size_t index = 0; index < chanel.ScaleKeys.size() - 1; ++index)
 	{
-		if (chanel.ScaleKeys[index + 1].TimeStamp > time)
+		if (chanel.ScaleKeys[index + 1].TimeStamp >= time)
 			return index;
 	}
 	return 0u;
