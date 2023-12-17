@@ -19,9 +19,9 @@ enum IImportFlags : std::uint32_t
 	FlipUVs							= (1u << 8),
 	JoinIdenticalVertices			= (1u << 9),
 	CalcTangentSpace				= (1u << 10),
-	CalcBitangents					= (1u << 11),
-	CalcNormals						= (1u << 12),
-	GenSmoothNormals				= (1u << 13)
+	CalcNormals						= (1u << 11),
+	GenSmoothNormals				= (1u << 12),
+	UseScale						= (1u << 13)
 };
 
 using IImportFlag = std::uint32_t;

@@ -330,17 +330,17 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 					{
 						isModelInFrustrum = true;
 
-						if (animationController && animationController->GetCurentAnimation())
+						if (animationController && animationController->GetCurentAnimation() && mesh->GetLod(0).Bones.size())
 						{
-							Renderer::SubmitStaticMeshDynamicLOD(m_MainGeometryPipelineAnimated, mesh, mesh->GetMaterial(), model, pcTransform); m_Statistic.SubmitedInstances++;
+							Renderer::SubmitStaticMesh(m_MainGeometryPipelineAnimated, mesh, mesh->GetMaterial(), model, pcTransform); m_Statistic.SubmitedInstances++;
 						}
 						else
 						{
-							Renderer::SubmitStaticMeshDynamicLOD(m_MainGeometryPipelineStatic, mesh, mesh->GetMaterial(), model, pcTransform); m_Statistic.SubmitedInstances++;
+							Renderer::SubmitStaticMesh(m_MainGeometryPipelineStatic, mesh, mesh->GetMaterial(), model, pcTransform); m_Statistic.SubmitedInstances++;
 						}
 						
 						if (m_Settings.RenderSettings.LightCulling)
-							Renderer::SubmitStaticMeshDynamicLOD(m_LightCullingPreDepthPipeline, mesh, nullptr, model, pcTransform);
+							Renderer::SubmitStaticMesh(m_LightCullingPreDepthPipeline, mesh, nullptr, model, pcTransform);
 					}
 
 
@@ -360,14 +360,14 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 									if (PointLight::IsMeshInside(renderData.Cascades[side].ViewProjectionMatrix, pcTransform, mesh->GetMinHalfExt(), mesh->GetMaxHalfExt()))
 									{
 										std::size_t seed = index; glm::detail::hash_combine(seed, side);
-										Renderer::SubmitStaticMeshDynamicLOD(m_PointLightShadowDepthPipeline, mesh, nullptr, model, pcTransform, seed);
+										Renderer::SubmitStaticMesh(m_PointLightShadowDepthPipeline, mesh, nullptr, model, pcTransform, seed);
 									}
 								}
 							}
 							else
 							{
 								if (PointLight::IsMeshInside(renderData.Position, renderData.Distance, pcTransform, mesh->GetMinHalfExt(), mesh->GetMaxHalfExt()))
-									Renderer::SubmitStaticMeshDynamicLOD(m_PointLightShadowDepthPipeline, mesh, mesh->GetMaterial(), model, pcTransform, index);
+									Renderer::SubmitStaticMesh(m_PointLightShadowDepthPipeline, mesh, mesh->GetMaterial(), model, pcTransform, index);
 							}
 						}
 					}
@@ -381,13 +381,13 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 							float radius = glm::acos(glm::radians(renderData.MaxAngle)) * renderData.Distance;
 							if (SpotLight::IsMeshInside(renderData.Cascade.ViewProjectionMatrix, pcTransform, mesh->GetMinHalfExt(), mesh->GetMaxHalfExt()))
 							{
-								Renderer::SubmitStaticMeshDynamicLOD(m_SpotLightShadowDepthPipeline, mesh, mesh->GetMaterial(), model, pcTransform, index);
+								Renderer::SubmitStaticMesh(m_SpotLightShadowDepthPipeline, mesh, mesh->GetMaterial(), model, pcTransform, index);
 							}
 						}
 					}
 
 					if (m_Settings.RenderSettings.GlobalShadowsEnabled)
-						Renderer::SubmitStaticMeshDynamicLOD(m_GlobalLightShadowDepthPipeline, mesh, mesh->GetMaterial(), model, pcTransform);
+						Renderer::SubmitStaticMesh(m_GlobalLightShadowDepthPipeline, mesh, mesh->GetMaterial(), model, pcTransform);
 
 					// OBB Visualization
 					if (m_Settings.IsAABB_OBBShow)

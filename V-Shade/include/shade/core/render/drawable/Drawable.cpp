@@ -83,11 +83,9 @@ void shade::Drawable::RecalculateAllLods(std::size_t levelCount, std::size_t max
 {
     std::vector<std::size_t> faceCounts = shade::algo::CalculateFaceCountLodLevel(levelCount, maxFaces, minFaces, splitLambda);
 
-    Lod highPolyLod = GetLod(0);
-
     for (std::size_t i = 1; i < levelCount; i++)
     {
-        Lod simlyfied = highPolyLod;
+        Lod simlyfied = GetLod(i - 1);
         algo::SimplifyMesh(simlyfied.Vertices, simlyfied.Indices, faceCounts[i]);
         GetLod(i) = simlyfied;
     }

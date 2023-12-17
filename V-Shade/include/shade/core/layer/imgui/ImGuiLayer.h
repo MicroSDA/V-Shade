@@ -4,6 +4,7 @@
 #include <shade/core/layer/imgui/ImGuiRender.h>
 #include <shade/core/layer/imgui/ImGuiThemeEditor.h>
 #include <ImGuizmo/ImGuizmo.h>
+#include <ImGuizmo/ImSequencer.h>
 
 namespace shade
 {

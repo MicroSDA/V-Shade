@@ -1,4 +1,4 @@
-#include "shade_pch.h"
+﻿#include "shade_pch.h"
 #include "EditorLayer.h"
 #include <shade/core/event/Input.h>
 
@@ -50,11 +50,12 @@ void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shad
 			ShowWindowBar("Material", &EditorLayer::MaterialEdit, this, (m_SelectedMaterial != nullptr) ? *m_SelectedMaterial : *shade::Renderer::GetDefaultMaterial());
 			ShowWindowBar("Render settings", &EditorLayer::RenderSettings, this, m_SceneRenderer);
 		}
-		
+
 		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 1));
 		ShowWindowBar("Scene", &EditorLayer::Scene, this, scene);
 		ImGui::PopStyleColor();
-		
+
+		//ImGui::ShowDemoWindow();
 		ImGui::End();
 	}
 }
@@ -158,8 +159,8 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 				joinVerties = true,
 				calcNormals = true,
 				calcTangents = true,
-				calcBitangent = true,
-				genSmoothNormals = true;
+				genSmoothNormals = true,
+				useScale = false;
 
 			//if (!m_ImportedModel)
 			{
@@ -169,7 +170,7 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 				if (ImGui::BeginTable("ImportSettings", 2, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg, { ImGui::GetContentRegionAvail().x, 0 }))
 				{
 					ImGui::TableNextRow();
-					ImGui::TableNextColumn(); { ImGui::Text("Import Model");}
+					ImGui::TableNextColumn(); { ImGui::Text("Import Model"); }
 					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotModelsCheckBox", &importModels);  HelpMarker("TODO");   }
 
 					ImGui::TableNextRow();
@@ -190,9 +191,9 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 
 					ImGui::TableNextRow();
 					(!importSkeleton || !importAnimations) ? ImGui::BeginDisabled() : void();
-						ImGui::TableNextColumn(); { ImGui::Text("	Validate animation channels"); }
-						ImGui::TableNextColumn(); { ImGui::Checkbox("##ValidateAnimationsChannels", &validateAnimationChannels); HelpMarker("Remove animation channels if there are no specific bones present."); }
-					(!importSkeleton || !importAnimations) ? ImGui::EndDisabled()   : void();
+					ImGui::TableNextColumn(); { ImGui::Text("	Validate animation channels"); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##ValidateAnimationsChannels", &validateAnimationChannels); HelpMarker("Remove animation channels if there are no specific bones present."); }
+					(!importSkeleton || !importAnimations) ? ImGui::EndDisabled() : void();
 
 					ImGui::EndTable();
 				}
@@ -201,12 +202,16 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 				if (ImGui::BeginTable("PostProcess", 2, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg, { ImGui::GetContentRegionAvail().x, 0 }))
 				{
 					ImGui::TableNextRow();
+					ImGui::TableNextColumn(); { ImGui::Text("Global scale"); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##GlobalScale", &useScale); HelpMarker("This step will perform a global scale of the model."); }
+
+					ImGui::TableNextRow();
 					ImGui::TableNextColumn(); { ImGui::Text("Triangulate"); }
 					ImGui::TableNextColumn(); { ImGui::Checkbox("##TriangulateCheckBox", &triangulate); HelpMarker("Triangulates all faces of all meshes."); }
 
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn(); { ImGui::Text("FlipUVs"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##FlipUVsCheckBox", &flipUvs); HelpMarker("Flips all UV coordinates along the y-axis and adjusts material settings and bitangents accordingly.");}
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##FlipUVsCheckBox", &flipUvs); HelpMarker("Flips all UV coordinates along the y-axis and adjusts material settings and bitangents accordingly."); }
 
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn(); { ImGui::Text("Join identical vertices"); }
@@ -217,21 +222,18 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 					ImGui::TableNextColumn(); { ImGui::Checkbox("##CalculateNormalsCheckBox", &calcNormals); }
 
 					(!calcNormals) ? ImGui::BeginDisabled() : void();
-						ImGui::TableNextRow();
-						ImGui::TableNextColumn(); { ImGui::Text("	Generate smooth normals"); }
-						ImGui::TableNextColumn(); { ImGui::Checkbox("##GenerateSmoothNormalsCheckBox", &genSmoothNormals); }
-						ImGui::TableNextRow();
-						ImGui::TableNextColumn(); { ImGui::Text("	Calculate tangents"); }
-						ImGui::TableNextColumn(); { ImGui::Checkbox("##CalculateTangentsCheckBox", &calcTangents); }
-						ImGui::TableNextRow();
-						ImGui::TableNextColumn(); { ImGui::Text("	Calculate bitangents"); }
-						ImGui::TableNextColumn(); { ImGui::Checkbox("##CalculateBitangentsCheckBox", &calcBitangent); }
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn(); { ImGui::Text("	Generate smooth normals"); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##GenerateSmoothNormalsCheckBox", &genSmoothNormals); }
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn(); { ImGui::Text("	Calculate tangents"); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##CalculateTangentsCheckBox", &calcTangents); }
 					(!calcNormals) ? ImGui::EndDisabled() : void();
 
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn(); { ImGui::Text("Bake bones into mesh data"); }
 					ImGui::TableNextColumn(); { ImGui::Checkbox("##BakeNormalsCheckBox", &bakeBones); }
-			
+
 					ImGui::EndTable();
 				}
 
@@ -263,17 +265,17 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 									((joinVerties) ? IImportFlags::JoinIdenticalVertices : 0) |
 									((calcNormals) ? IImportFlags::CalcNormals : 0) |
 									((genSmoothNormals) ? IImportFlags::GenSmoothNormals : 0) |
-									((calcBitangent) ? IImportFlags::CalcBitangents : 0) |
-									((calcTangents) ? IImportFlags::CalcTangentSpace : 0);
+									((calcTangents) ? IImportFlags::CalcTangentSpace : 0) |
+									((useScale) ? IImportFlags::UseScale : 0);
 
 								auto [model, animation] = IModel::Import(selectedPath.string(), importFlags);
 
 								m_ImportedModel = model;
-								
+
 								if (m_ImportedModel)
 								{
 									// Temorary and actually wrong bcs we need to create imported model entity as part of editor layer!
-									
+
 									m_ImportedEntity = scene->CreateEntity();
 									// TODO: MAKE PROPARE NAME 
 									m_ImportedEntity.AddComponent<shade::TagComponent>("Improted model 1");
@@ -388,7 +390,7 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 								SHADE_CORE_WARNING("Failed to save skeleton, path = {}", path);
 							}
 						}
-						
+
 						for (const auto& mesh : *m_ImportedModel)
 						{
 							const std::string path(to + mesh->GetAssetData()->GetId() + ".s_mesh");
@@ -586,7 +588,7 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 	m_SceneViewPort.ViewPort.y = ImGui::GetWindowPos().x + ImGui::GetCursorPos().x; // With tab size
 	m_SceneViewPort.ViewPort.x = ImGui::GetWindowPos().y + ImGui::GetCursorPos().y; // With tab size
 
-	DrawImage(m_SceneRenderer->GetMainTargetFrameBuffer()[frameIndex]->GetTextureAttachment(0), {m_SceneViewPort.ViewPort.z, m_SceneViewPort.ViewPort.w}, focusColor);
+	DrawImage(m_SceneRenderer->GetMainTargetFrameBuffer()[frameIndex]->GetTextureAttachment(0), { m_SceneViewPort.ViewPort.z, m_SceneViewPort.ViewPort.w }, focusColor);
 
 	ImGui::SetNextWindowSize(ImVec2{ ImGui::GetWindowSize().x - 20.0f,0 }, ImGuiCond_Always);
 	ShowWindowBarOverlay("Overlay", ImGui::GetWindowViewport(), [&]()
@@ -602,8 +604,8 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 					}
 					ImGui::TableNextColumn();
 					{
-						if (ImGui::Button("Play")) 
-						{ 
+						if (ImGui::Button("Play"))
+						{
 							m_IsScenePlaying = (m_IsScenePlaying) ? false : true;
 						}
 					}
@@ -615,6 +617,7 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 
 	// Geometry
 	{
+		//ImSequencer::Sequencer()
 		if (m_SelectedEntity && m_SelectedEntity.HasComponent<shade::TransformComponent>())
 		{
 			auto& transform = m_SelectedEntity.GetComponent<shade::TransformComponent>();
@@ -854,9 +857,9 @@ void EditorLayer::AssetsExplorer()
 			{
 				if (assetMetaPath.empty())
 					shade::AssetManager::Save();
-				else 
+				else
 					shade::AssetManager::Save(assetMetaPath);
-			}	
+			}
 		}
 
 		ImGui::EndTable();
@@ -963,8 +966,9 @@ void EditorLayer::AssetsExplorer()
 					std::string currentItem = shade::AssetMeta::GetTypeAsString(selectedType);
 
 					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-					if (DrawCombo(" ##Type", currentItem, items, ImGuiSelectableFlags_None, ImGuiComboFlags_None))
-						selectedType = shade::AssetMeta::GetTypeFromString(currentItem);
+					DrawCombo(" ##Type", currentItem, items, ImGuiSelectableFlags_None, ImGuiComboFlags_None);
+
+					selectedType = shade::AssetMeta::GetTypeFromString(currentItem);
 
 					assetData->SetType(selectedType);
 				}
@@ -1001,7 +1005,7 @@ void EditorLayer::AssetsExplorer()
 											path = selectedPath.string();
 											assetData->SetAttribute<std::string>("Path", path);
 										}
-											
+
 									}
 								}
 								ImGui::EndTable();
@@ -1772,9 +1776,139 @@ void EditorLayer::RgidBodyComponent(shade::ecs::Entity& entity)
 void EditorLayer::AnimationControllerComponent(shade::ecs::Entity& entity)
 {
 	auto& controller = entity.GetComponent<shade::AnimationControllerComponent>();
+	auto currentAnimation = controller->GetCurentAnimation();
+
+	if (ImGui::BeginTable("##SelectOrAddNewAnimation", 3, ImGuiTableFlags_None | ImGuiTableFlags_SizingStretchProp))
+	{
+		ImGui::TableNextRow();
+		{
+			ImGui::TableNextColumn();
+			{
+				ImGui::Text("Current");
+			}
+			ImGui::TableNextColumn();
+			{
+
+				std::vector<std::string> animationsNames;
+
+				for (auto& [animation, data] : *controller)
+					animationsNames.emplace_back(animation->GetAssetData()->GetId());
+
+				int comboFlags = ImGuiSelectableFlags_None;
+
+				std::string currentAnimationName = (currentAnimation) ? currentAnimation->GetAssetData()->GetId() : "";
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+
+				(currentAnimationName.empty()) ? ImGui::BeginDisabled() : void();
+				if (DrawCombo(" ##Animations", currentAnimationName, animationsNames, comboFlags, ImGuiComboFlags_None))
+				{
+					if (currentAnimationName.size()) controller->SetCurrentAnimation(currentAnimationName, shade::Animation::State::Play);
+				}
+				(currentAnimationName.empty()) ? ImGui::EndDisabled() : void();
+			}
+
+			ImGui::TableNextColumn();
+			{
+				if (ImGui::Button("+"))
+					m_IsAddSkeletalAnimationModal = true;
+				ImGui::SameLine();
+				if (ImGui::Button("-"))
+				{
+					controller->RemoveAnimation(currentAnimation); currentAnimation = nullptr;
+
+				}
+			}
+		}
+		ImGui::TableNextRow();
+		{
+			ImGui::TableNextColumn();
+			{
+				ImGui::Text("Timeline");
+			}
+			ImGui::TableNextColumn();
+			{
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+
+				if (currentAnimation)
+				{
+					ImGui::SliderFloat("##Timeline", &controller->GetCurrentAnimationTime(currentAnimation), 0.f,
+						controller->GetAnimationDuration(currentAnimation));
+				}
+				else
+				{
+					static float cur = 0.0f, max = 100.0f;
+
+					ImGui::BeginDisabled();
+					ImGui::SliderFloat("##Timeline", &cur, 0.f, max);
+					ImGui::EndDisabled();
+				}
+			}
+		}
+		ImGui::EndTable();
+	}
+	ImGui::Separator();
+	if (ImGui::BeginTable("##Play/Pause/StopAnimation", 3, ImGuiTableFlags_None | ImGuiTableFlags_SizingStretchProp))
+	{
+		(!currentAnimation) ? ImGui::BeginDisabled() : void();
+
+		ImGui::TableNextRow();
+		{
+			ImGui::TableNextColumn();	
+			if (ImGui::Button("Play", { ImGui::GetContentRegionAvail().x, 0 })) controller->SetAnimationState(currentAnimation, shade::Animation::State::Play);
+			ImGui::TableNextColumn();	
+			if (ImGui::Button("Pause", { ImGui::GetContentRegionAvail().x, 0 })) controller->SetAnimationState(currentAnimation, shade::Animation::State::Pause);
+			ImGui::TableNextColumn();	
+			if (ImGui::Button("Stop", { ImGui::GetContentRegionAvail().x, 0 })) controller->SetAnimationState(currentAnimation,  shade::Animation::State::Stop);
+		}
+		(!currentAnimation) ? ImGui::EndDisabled() : void();
+		ImGui::EndTable();
+	}
+	ImGui::Separator();
+	(!currentAnimation) ? ImGui::BeginDisabled() : void();
+	if (ImGui::BeginTable("##Play/Pause/StopAnimationSS", 3 , ImGuiTableFlags_None | ImGuiTableFlags_SizingStretchProp))
+	{
+		float defaultValue = 0.f;
+
+		ImGui::TableNextRow();
+		{
+			ImGui::TableNextColumn(); {ImGui::Text("Duration"); }
+		
+			ImGui::TableNextColumn(); { ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x); ImGui::DragFloat("##Duration", (currentAnimation) ? &controller->GetAnimationDuration(currentAnimation) : &defaultValue, 0.001f); }
+
+			ImGui::TableNextColumn(); { if (ImGui::Button("R##D")) { controller->GetAnimationDuration(currentAnimation) = currentAnimation->GetDuration(); } }
+		}
+		ImGui::TableNextRow();
+		{
+			ImGui::TableNextColumn(); {ImGui::Text("Tiks per seccond"); }
+			
+			ImGui::TableNextColumn(); { ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x); ImGui::DragFloat("##TiksPerSeccond", (currentAnimation) ? &controller->GetAnimationTiks(currentAnimation) : &defaultValue, 0.001f); }
+
+			ImGui::TableNextColumn(); { if (ImGui::Button("R##T")) { controller->GetAnimationTiks(currentAnimation) = currentAnimation->GetTiksPerSecond(); } }
+		}
+
+		ImGui::EndTable();
+	}
+	(!currentAnimation) ? ImGui::EndDisabled() : void();
+
+	
+
+
+	//ImGui::TableNextColumn();
+	/*{
+		if (currentAnimation && controller->GetAnimationState(currentAnimation) == shade::Animation::State::Pause || controller->GetAnimationState(currentAnimation) == shade::Animation::State::Stop)
+		{
+			if (ImGui::Button("Play")) controller->SetAnimationState(currentAnimation, shade::Animation::State::Play);
+		}
+
+		if (currentAnimation && controller->GetAnimationState(currentAnimation) == shade::Animation::State::Play)
+		{
+			if (ImGui::Button("Pause")) controller->SetAnimationState(currentAnimation, shade::Animation::State::Pause);
+		}
+	}*/
+
 
 	ImGui::SetNextWindowSize(ImGui::GetContentRegionAvail());
-	DrawModal("Add skeletal animation asset", m_IsAddSkeletalAnimationModal, [&]()
+	DrawModal("Add animation's asset:", m_IsAddSkeletalAnimationModal, [&]()
 		{
 			static std::string id;
 			static std::string search;
@@ -1799,53 +1933,50 @@ void EditorLayer::AnimationControllerComponent(shade::ecs::Entity& entity)
 			}
 		});
 
-	if (ImGui::Button("Add skeletal animation asset", { ImGui::GetContentRegionAvail().x, 0 }))
-		m_IsAddSkeletalAnimationModal = true;
-
 	// Set Current animation
-	{
-		std::vector<std::string> items;
-		for (auto& [animation, data] : *controller)
-			items.emplace_back(animation->GetAssetData()->GetId());
+	//{
+	//	std::vector<std::string> items;
+	//	for (auto& [animation, data] : *controller)
+	//		items.emplace_back(animation->GetAssetData()->GetId());
 
-		auto currentAnimation = controller->GetCurentAnimation();
+	//	auto currentAnimation = controller->GetCurentAnimation();
 
-		std::string currentItem = (currentAnimation) ? currentAnimation->GetAssetData()->GetId() : "NONE";
+	//	std::string currentItem = (currentAnimation) ? currentAnimation->GetAssetData()->GetId() : "NONE";
 
-		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-		if (DrawCombo(" ##Animations", currentItem, items, ImGuiSelectableFlags_None, ImGuiComboFlags_None))
-		{
-			if (currentItem != "NONE")
-				controller->SetCurrentAnimation(currentItem);
-		}
+	//	ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+	//	if (DrawCombo(" ##Animations", currentItem, items, ImGuiSelectableFlags_None, ImGuiComboFlags_None))
+	//	{
+	//		if (currentItem != "NONE")
+	//			controller->SetCurrentAnimation(currentItem);
+	//	}
 
-		if (currentAnimation)
-		{
-			std::vector<std::string> items({ "Stop", "Play", "Pause" });
-			std::string currentItem;
+	//	if (currentAnimation)
+	//	{
+	//		std::vector<std::string> items({ "Stop", "Play", "Pause" });
+	//		std::string currentItem;
 
-			switch (controller->GetAnimationState(currentAnimation))
-			{
-				case shade::Animation::State::Stop:  currentItem = "Stop";  break;		
-				case shade::Animation::State::Play:  currentItem = "Play";  break;
-				case shade::Animation::State::Pause: currentItem = "Pause"; break;
-			}
+	//		switch (controller->GetAnimationState(currentAnimation))
+	//		{
+	//			case shade::Animation::State::Stop:  currentItem = "Stop";  break;		
+	//			case shade::Animation::State::Play:  currentItem = "Play";  break;
+	//			case shade::Animation::State::Pause: currentItem = "Pause"; break;
+	//		}
 
-			//ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-			DrawCombo(" ##State", currentItem, items, ImGuiSelectableFlags_None, ImGuiComboFlags_None);
+	//		//ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+	//		DrawCombo(" ##State", currentItem, items, ImGuiSelectableFlags_None, ImGuiComboFlags_None);
 
-			if (currentItem == "Stop")
-				controller->SetAnimationState(currentAnimation, shade::Animation::State::Stop);
-			if (currentItem == "Play")
-				controller->SetAnimationState(currentAnimation, shade::Animation::State::Play);
-			if (currentItem == "Pause")
-				controller->SetAnimationState(currentAnimation, shade::Animation::State::Pause);
+	//		if (currentItem == "Stop")
+	//			controller->SetAnimationState(currentAnimation, shade::Animation::State::Stop);
+	//		if (currentItem == "Play")
+	//			controller->SetAnimationState(currentAnimation, shade::Animation::State::Play);
+	//		if (currentItem == "Pause")
+	//			controller->SetAnimationState(currentAnimation, shade::Animation::State::Pause);
 
-			// Set State of Current animation
-			DragFloat("Duration", &controller->GetAnimationDuration(currentAnimation));
-			DragFloat("TiksPer second", &controller->GetAnimationTiks(currentAnimation));
-		}
-	}
+	//		// Set State of Current animation
+	//		DragFloat("Duration", &controller->GetAnimationDuration(currentAnimation));
+	//		DragFloat("TiksPer second", &controller->GetAnimationTiks(currentAnimation));
+	//	}
+	//}
 }
 
 void EditorLayer::MaterialEdit(shade::Material& material)

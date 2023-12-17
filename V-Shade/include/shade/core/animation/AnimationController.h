@@ -42,6 +42,14 @@ namespace shade
 		void SetAnimationState(const Asset<Animation>& animation, Animation::State state);
 		void SetAnimationState(const std::string& name, Animation::State state);
 
+		float& GetCurrentAnimationTime(const Asset<Animation>& animation);
+		float& GetCurrentAnimationTime(const std::string& name);
+
+		void RemoveAnimation(const Asset<Animation>& animation);
+		void RemoveAnimation(const std::string& name);
+
+		bool IsAnimationExists(const Asset<Animation>& animation) const;
+
 		Animation::State GetAnimationState(const Asset<Animation>& animation) const;
 		Animation::State GetAnimationState(const std::string& name) const;
 

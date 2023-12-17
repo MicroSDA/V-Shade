@@ -40,26 +40,28 @@ std::pair<shade::SharedPointer<shade::Model>, shade::AnimationControllerComponen
 {
 	Assimp::Importer importer;
 	importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
-	//importer.SetPropertyBool(AI_CONFIG_FBX_USE_SKELETON_BONE_CONTAINER, true);
-	importer.SetPropertyBool(AI_CONFIG_FBX_CONVERT_TO_M, true);
+	importer.SetPropertyBool(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 1.f); // Add as settings
+	importer.SetPropertyBool(AI_CONFIG_FBX_CONVERT_TO_M, false);
 
 	unsigned int ImportFagls =
 		aiProcess_OptimizeGraph |
-		aiProcess_PopulateArmatureData;
-		aiProcess_FindInvalidData |
 		aiProcess_ValidateDataStructure |
+		aiProcess_PopulateArmatureData |
+		aiProcess_FindInvalidData |
+		aiProcess_OptimizeMeshes |
 		aiProcess_FixInfacingNormals;
 
-	ImportFagls |= ((flags & Triangulate) ? aiProcess_Triangulate : 0) |
-		((flags & FlipUVs) ? aiProcess_FlipUVs : 0) |
-		((flags & JoinIdenticalVertices) ? aiProcess_JoinIdenticalVertices : 0) |
-		((flags & CalcTangentSpace) ? aiProcess_CalcTangentSpace : 0) |
-		((flags & CalcBitangents) ? aiProcess_CalcTangentSpace : 0) |
-		((flags & CalcNormals) ? aiProcess_CalcTangentSpace : 0) |
-		((flags & GenSmoothNormals) ? aiProcess_GenSmoothNormals : 0);
+		ImportFagls |= 
+			((flags & Triangulate) ? aiProcess_Triangulate : 0) |
+			((flags & FlipUVs) ? aiProcess_FlipUVs : 0) |
+			((flags & JoinIdenticalVertices) ? aiProcess_JoinIdenticalVertices : 0) |
+			((flags & CalcTangentSpace) ? aiProcess_CalcTangentSpace : 0) |
+			((flags & CalcNormals) ? aiProcess_ForceGenNormals : 0) |
+			((flags & GenSmoothNormals) ? aiProcess_GenSmoothNormals : 0) | 
+			((flags & UseScale) ? aiProcess_GlobalScale : 0);
 
-	const aiScene* pScene = importer.ReadFile(filePath, ImportFagls );
-
+	//const aiScene* pScene = importer.ReadFile(filePath, ImportFagls);
+	const aiScene* pScene = importer.ReadFile(filePath, ImportFagls);
 
 	if (!pScene)
 	{
@@ -157,7 +159,7 @@ void IModel::ProcessMeshNode(shade::SharedPointer<shade::Model>& model, shade::S
 		mesh->AddVertex(vertex);
 	}
 
-	SHADE_INFO("Faces count : {}", aMesh->mNumVertices);
+	SHADE_INFO("Faces count : {}", aMesh->mNumFaces);
 
 	for (std::size_t i = 0; i < aMesh->mNumFaces; i++)
 	{

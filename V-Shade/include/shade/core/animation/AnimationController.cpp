@@ -3,31 +3,41 @@
 
 void shade::AnimationController::AddAnimation(const Asset<Animation>& animation)
 {
-    if(m_Animations.find(animation) != m_Animations.end())
-        SHADE_CORE_ERROR("Animation '{0}' already exists in Animation controller!");
+    if (IsAnimationExists(animation))
+    {
+        SHADE_CORE_ERROR("Animation '{}' already exists in Animation controller!", animation->GetAssetData()->GetId());
+        assert(false);
+    }
+    else
+    {
+        m_Animations.insert({ animation,
+                   {
+                       .Animation = animation,
+                       .Duration = animation->GetDuration(),
+                       .TiksPerSecond = animation->GetTiksPerSecond(),
+                       .BoneTransforms = SharedPointer<std::vector<glm::mat4>>::Create(RenderAPI::MAX_BONES_PER_INSTANCE, glm::mat4(1.f))
+                   }
+            });
 
-    m_Animations.insert({ animation,
-            {
-                .Animation      = animation,
-                .Duration       = animation->GetDuration(),
-                .TiksPerSecond  = animation->GetTiksPerSecond(),
-                .BoneTransforms = SharedPointer<std::vector<glm::mat4>>::Create(RenderAPI::MAX_BONES_PER_INSTANCE, glm::mat4(1.f))
-            } 
-        });
-
-    m_CurrentAnimation = &m_Animations.at(animation);
+        m_CurrentAnimation = &m_Animations.at(animation);
+    }  
 }
 
 void shade::AnimationController::SetCurrentAnimation(const Asset<Animation>& animation, Animation::State state)
 {
-    if (m_Animations.find(animation) == m_Animations.end())
-        SHADE_CORE_ERROR("Animation '{0}' doesn't exist in Animation controller!", animation->GetAssetData()->GetId());
+    if (!IsAnimationExists(animation))
+    {
+        SHADE_CORE_WARNING("Animation '{0}' doesn't exist in Animation controller!", animation->GetAssetData()->GetId());
+        assert(false); 
+    }
+    else
+    {
+        m_CurrentAnimation = &m_Animations.at(animation);
+        m_CurrentAnimation->State = state;
 
-    m_CurrentAnimation = &m_Animations.at(animation);
-    m_CurrentAnimation->State = state;
-
-    if (state == Animation::State::Stop)
-        m_CurrentAnimation->CurrentPlayTime = 0.f;
+        if (state == Animation::State::Stop)
+            m_CurrentAnimation->CurrentPlayTime = 0.f;
+    }
 }
 
 void shade::AnimationController::SetCurrentAnimation(const std::string& name, Animation::State state)
@@ -50,10 +60,15 @@ void shade::AnimationController::SetCurrentAnimation(const std::string& name, An
 
 void shade::AnimationController::SetAnimationDuration(const Asset<Animation>& animation, float duration)
 {
-    if (m_Animations.find(animation) == m_Animations.end())
-        SHADE_CORE_ERROR("Animation '{0}' already exists in Animation controller!", animation->GetAssetData()->GetId());
-
-    m_Animations.at(animation).Duration = duration;
+    if (!IsAnimationExists(animation))
+    {
+        SHADE_CORE_WARNING("Animation '{0}' doesn't exist in Animation controller!", animation->GetAssetData()->GetId());
+        assert(false);
+    }
+    else
+    {
+        m_Animations.at(animation).Duration = duration;
+    }
 }
 
 void shade::AnimationController::SetAnimationDuration(const std::string& name, float duration)
@@ -71,10 +86,15 @@ void shade::AnimationController::SetAnimationDuration(const std::string& name, f
 
 float& shade::AnimationController::GetAnimationDuration(const Asset<Animation>& animation)
 {
-    if (m_Animations.find(animation) == m_Animations.end())
-        SHADE_CORE_ERROR("Animation '{0}' doesn't exist in Animation controller!", animation->GetAssetData()->GetId());
-
-    return m_Animations.at(animation).Duration;
+    if (!IsAnimationExists(animation))
+    {
+        SHADE_CORE_WARNING("Animation '{0}' doesn't exist in Animation controller!", animation->GetAssetData()->GetId());
+        assert(false); // you cannot return default value by reference
+    }
+    else 
+    {
+        return m_Animations.at(animation).Duration;
+    }
 }
 
 float& shade::AnimationController::GetAnimationDuration(const std::string& name)
@@ -92,10 +112,15 @@ float& shade::AnimationController::GetAnimationDuration(const std::string& name)
 
 void shade::AnimationController::SetAnimationTiks(const Asset<Animation>& animation, float tiksPerSekond)
 {
-    if (m_Animations.find(animation) == m_Animations.end())
-        SHADE_CORE_ERROR("Animation '{0}' doesn't exist in Animation controller!", animation->GetAssetData()->GetId());
-
-    m_Animations.at(animation).TiksPerSecond = tiksPerSekond;
+    if (!IsAnimationExists(animation))
+    {
+        SHADE_CORE_WARNING("Animation '{0}' doesn't exist in Animation controller!", animation->GetAssetData()->GetId());
+        assert(false);
+    }
+    else
+    {
+        m_Animations.at(animation).TiksPerSecond = tiksPerSekond;
+    }
 }
 
 void shade::AnimationController::SetAnimationTiks(const std::string& name, float tiksPerSekond)
@@ -113,10 +138,15 @@ void shade::AnimationController::SetAnimationTiks(const std::string& name, float
 
 float& shade::AnimationController::GetAnimationTiks(const Asset<Animation>& animation)
 {
-    if (m_Animations.find(animation) == m_Animations.end())
-        SHADE_CORE_ERROR("Animation '{0}' doesn't exist in Animation controller!", animation->GetAssetData()->GetId());
-
-    return m_Animations.at(animation).TiksPerSecond;
+    if (!IsAnimationExists(animation))
+    {
+        SHADE_CORE_WARNING("Animation '{0}' doesn't exist in Animation controller!", animation->GetAssetData()->GetId());
+        assert(false); // you cannot return default value by reference
+    }
+    else 
+    {
+        return m_Animations.at(animation).TiksPerSecond;
+    }
 }
 
 float& shade::AnimationController::GetAnimationTiks(const std::string& name)
@@ -134,15 +164,22 @@ float& shade::AnimationController::GetAnimationTiks(const std::string& name)
 
 void shade::AnimationController::SetAnimationState(const Asset<Animation>& animation, Animation::State state)
 {
-    if (m_Animations.find(animation) == m_Animations.end())
-        SHADE_CORE_ERROR("Animation '{0}' doesn't exist in Animation controller!", animation->GetAssetData()->GetId());
-
-    m_Animations.at(animation).State = state;
-
-    if (state == Animation::State::Stop)
+    if (!IsAnimationExists(animation))
     {
-        for (auto& transform : *m_Animations.at(animation).BoneTransforms)
-            transform = glm::mat4(1.f);  
+        SHADE_CORE_WARNING("Animation '{0}' doesn't exist in Animation controller!", animation->GetAssetData()->GetId());
+        assert(false);
+    }
+    else
+    {
+        m_Animations.at(animation).State = state;
+
+        if (state == Animation::State::Stop)
+        {
+            m_Animations.at(animation).CurrentPlayTime = 0.f;
+
+            for (auto& transform : *m_Animations.at(animation).BoneTransforms)
+                transform = glm::mat4(1.f);
+        }
     }
 }
 
@@ -155,6 +192,8 @@ void shade::AnimationController::SetAnimationState(const std::string& name, Anim
            data.State = state; 
            if (state == Animation::State::Stop)
            {
+               data.CurrentPlayTime = 0.f;
+
                for (auto& transform : *m_Animations.at(animation).BoneTransforms)
                    transform = glm::mat4(1.f);
            }
@@ -167,10 +206,15 @@ void shade::AnimationController::SetAnimationState(const std::string& name, Anim
 
 shade::Animation::State shade::AnimationController::GetAnimationState(const Asset<Animation>& animation) const
 {
-    if (m_Animations.find(animation) == m_Animations.end())
-        SHADE_CORE_ERROR("Animation '{0}' doesn't exist in Animation controller!", animation->GetAssetData()->GetId());
-
-    return m_Animations.at(animation).State;
+    if (!IsAnimationExists(animation))
+    {
+        SHADE_CORE_WARNING("Animation '{0}' doesn't exist in Animation controller!", animation->GetAssetData()->GetId());
+        assert(false); return shade::Animation::State::Stop;
+    }
+    else 
+    {
+        return m_Animations.at(animation).State;
+    }
 }
 
 shade::Animation::State shade::AnimationController::GetAnimationState(const std::string& name) const
@@ -204,7 +248,9 @@ void shade::AnimationController::UpdateCurrentAnimation(const FrameTimer& deltaT
         {
             m_CurrentAnimation->CurrentPlayTime += m_CurrentAnimation->TiksPerSecond * deltaTime.GetInSeconds<float>();
             m_CurrentAnimation->CurrentPlayTime = fmod(m_CurrentAnimation->CurrentPlayTime, m_CurrentAnimation->Duration);
-
+        }
+        if (m_CurrentAnimation->State != Animation::State::Stop)
+        {
             CalculateBoneTransform(skeleton->GetRootNode(), glm::mat4(1.0), skeleton->GetArmature());
         }
     }
@@ -233,7 +279,7 @@ void shade::AnimationController::CalculateBoneTransform(const SharedPointer<Skel
 
         globalMatrix *= interpolatedTransfom;
 
-        m_CurrentAnimation->BoneTransforms.Get()[bone->ID] = globalMatrix * bone->InverseBindPose * armature->Transform;
+        m_CurrentAnimation->BoneTransforms.Get()[bone->ID] = globalMatrix * bone->InverseBindPose * armature->Transform; 
         //m_CurrentAnimation->BoneTransforms.Get()[bone->ID] = globalMatrix * bone->InverseBindPose;
     }
     else
@@ -243,4 +289,64 @@ void shade::AnimationController::CalculateBoneTransform(const SharedPointer<Skel
 
     for (const auto& child : bone->Children)
         CalculateBoneTransform(child, globalMatrix, armature);
+}
+
+bool shade::AnimationController::IsAnimationExists(const Asset<Animation>& animation) const
+{
+    return (m_Animations.find(animation) != m_Animations.end());
+}
+
+float& shade::AnimationController::GetCurrentAnimationTime(const Asset<Animation>& animation)
+{
+    if (!IsAnimationExists(animation))
+    {
+        SHADE_CORE_WARNING("Animation '{0}' doesn't exist in Animation controller!", animation->GetAssetData()->GetId());
+        assert(false); // you cannot return default value by reference;
+    }
+    else 
+    {
+        return m_Animations.at(animation).CurrentPlayTime;
+    }
+}
+float& shade::AnimationController::GetCurrentAnimationTime(const std::string& name)
+{
+    for (auto& [animation, data] : m_Animations)
+    {
+        if (animation->GetAssetData()->GetId() == name)
+        {
+            return data.CurrentPlayTime;
+        }
+    }
+
+    SHADE_CORE_ERROR("Animation '{0}' doesn't exist in Animation controller!", name);
+}
+
+void shade::AnimationController::RemoveAnimation(const Asset<Animation>& animation)
+{
+    if (!IsAnimationExists(animation))
+    {
+        SHADE_CORE_WARNING("Animation '{0}' doesn't exist in Animation controller!", animation->GetAssetData()->GetId());
+        assert(false);
+    }
+    else
+    {
+        if (m_CurrentAnimation->Animation.Raw() == animation.Raw())
+            m_CurrentAnimation = nullptr;
+
+        m_Animations.erase(animation);
+    }
+}
+
+void shade::AnimationController::RemoveAnimation(const std::string& name)
+{
+    for (auto& [animation, data] : m_Animations)
+    {
+        if (animation->GetAssetData()->GetId() == name)
+        {
+            if (m_CurrentAnimation->Animation.Raw() == animation.Raw())
+                m_CurrentAnimation = nullptr;
+
+            m_Animations.erase(animation); break;
+        }
+    }
 }
