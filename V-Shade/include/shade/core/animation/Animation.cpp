@@ -43,7 +43,7 @@ void shade::Animation::AddChannel(const std::string& name, const Channel& channe
 	m_AnimationChannels.emplace(name, channel);
 }
 
-glm::mat4 shade::Animation::InterpolatePosition(const Channel& channel, float time)
+glm::mat4 shade::Animation::InterpolatePosition(const Channel& channel, float time) const
 {
 	if (channel.PositionKeys.size() == 1)
 		return glm::translate(glm::mat4(1.0f), channel.PositionKeys[0].Key);
@@ -55,7 +55,7 @@ glm::mat4 shade::Animation::InterpolatePosition(const Channel& channel, float ti
 	return glm::translate(glm::mat4(1.0f), glm::mix(channel.PositionKeys[firstKeyFrame].Key, channel.PositionKeys[secondKeyFrame].Key, timeFactor));
 }
 
-glm::mat4 shade::Animation::InterpolateRotation(const Channel& channel, float time)
+glm::mat4 shade::Animation::InterpolateRotation(const Channel& channel, float time) const
 {
 	if (channel.RotationKeys.size() == 1)
 		return glm::toMat4(glm::normalize(channel.RotationKeys[0].Key));
@@ -67,7 +67,7 @@ glm::mat4 shade::Animation::InterpolateRotation(const Channel& channel, float ti
 	return glm::toMat4(glm::normalize(glm::slerp(channel.RotationKeys[firstKeyFrame].Key, channel.RotationKeys[secondKeyFrame].Key, timeFactor)));
 }
 
-glm::mat4 shade::Animation::InterpolateScale(const Channel& channel, float time)
+glm::mat4 shade::Animation::InterpolateScale(const Channel& channel, float time) const
 {
 	if (channel.ScaleKeys.size() == 1)
 		return glm::scale(glm::mat4(1.f), channel.ScaleKeys[0].Key);
@@ -109,7 +109,7 @@ std::size_t shade::Animation::GetScaleKeyFrame(const Channel& chanel, float time
 	return 0u;
 }
 
-float shade::Animation::GetTimeFactor(float currentTime, float nextTime, float time)
+float shade::Animation::GetTimeFactor(float currentTime, float nextTime, float time) const
 {
 	return (time - currentTime) / (nextTime - currentTime);
 }
@@ -119,7 +119,7 @@ const shade::Animation::AnimationChannels& shade::Animation::GetAnimationCahnnel
 	return m_AnimationChannels;
 }
 
-float shade::Animation::GetTiksPerSecond() const
+float shade::Animation::GetTiksPerSecond() const // TODO: Rename Tics
 {
 	return m_TicksPerSecond;
 }

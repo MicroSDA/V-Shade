@@ -404,7 +404,13 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 
 				if (isModelInFrustrum && animationController && animationController->GetCurentAnimation() && model->GetSkeleton())
 				{
-					animationController->UpdateCurrentAnimation(deltaTime, model->GetSkeleton());
+					if (animationController->GetAnimations().size() >= 2)
+					{
+						animationController->Blend(model->GetSkeleton(), animationController->GetAnimations().begin()->first, (++animationController->GetAnimations().begin())->first, 0.0, deltaTime);
+					}
+
+
+					//animationController->UpdateCurrentAnimation(model->GetSkeleton(), deltaTime);
 					Renderer::SubmitBoneTransforms(m_MainGeometryPipelineAnimated, model, animationController->GetBoneTransforms());
 				}
 

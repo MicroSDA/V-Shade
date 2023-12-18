@@ -1,5 +1,6 @@
 #include "shade_pch.h"
 #include "AnimationController.h"
+#include <glm/glm/gtx/common.hpp>
 
 void shade::AnimationController::AddAnimation(const Asset<Animation>& animation)
 {
@@ -240,18 +241,65 @@ std::unordered_map<shade::Asset<shade::Animation>, shade::AnimationController::A
     return m_Animations;
 }
 
-void shade::AnimationController::UpdateCurrentAnimation(const FrameTimer& deltaTime, const Asset<Skeleton>& skeleton)
+void shade::AnimationController::UpdateCurrentAnimation(const Asset<Skeleton>& skeleton, const FrameTimer& deltaTime)
 {
+    assert(skeleton != nullptr && "Skeleton is nullptr!");
+
     if (m_CurrentAnimation)
     {
         if (m_CurrentAnimation->State == Animation::State::Play)
         {
             m_CurrentAnimation->CurrentPlayTime += m_CurrentAnimation->TiksPerSecond * deltaTime.GetInSeconds<float>();
-            m_CurrentAnimation->CurrentPlayTime = fmod(m_CurrentAnimation->CurrentPlayTime, m_CurrentAnimation->Duration);
+            m_CurrentAnimation->CurrentPlayTime = glm::fmod(m_CurrentAnimation->CurrentPlayTime, m_CurrentAnimation->Duration);
         }
         if (m_CurrentAnimation->State != Animation::State::Stop)
         {
             CalculateBoneTransform(skeleton->GetRootNode(), glm::mat4(1.0), skeleton->GetArmature());
+        }
+    }
+}
+
+void shade::AnimationController::Blend(const Asset<Skeleton>& skeleton, const Asset<Animation>& sourceAnimation, const Asset<Animation>& targetAnimation, float blendFactor, const FrameTimer& deltaTime)
+{
+    assert(sourceAnimation != nullptr && targetAnimation != nullptr);
+    auto sourceData = m_Animations.find(sourceAnimation), targetData = m_Animations.find(targetAnimation);
+  
+    if (sourceData != m_Animations.end() && targetData != m_Animations.end())
+    {
+        if (sourceData->second.State == Animation::State::Play)
+        {
+            //float difference = sourceData->second.Duration / targetData->second.Duration;
+            //const float animSpeedMultiplierUp = (1.0f - BlendFactor) * 1.0f + difference * BlendFactor; // Lerp 
+
+            //difference = targetData->second.Duration / sourceData->second.Duration;
+            //const float animSpeedMultiplierDown = (1.0f - BlendFactor) * difference + 1.0f * BlendFactor; // Lerp
+
+            //sourceData->second.CurrentPlayTime += sourceData->second.TiksPerSecond * deltaTime.GetInSeconds<float>() * animSpeedMultiplierUp;
+            //sourceData->second.CurrentPlayTime = glm::fmod(sourceData->second.CurrentPlayTime, sourceData->second.Duration);
+
+            //targetData->second.CurrentPlayTime += targetData->second.TiksPerSecond * deltaTime.GetInSeconds<float>() * animSpeedMultiplierDown;
+            //targetData->second.CurrentPlayTime = fmod(targetData->second.CurrentPlayTime, targetData->second.Duration);
+
+
+            sourceData->second.CurrentPlayTime += sourceData->second.TiksPerSecond * deltaTime.GetInSeconds<float>() * GetTimeMultiplier(sourceData->second, targetData->second, blendFactor);
+            sourceData->second.CurrentPlayTime = glm::fmod(sourceData->second.CurrentPlayTime, sourceData->second.Duration);
+
+            targetData->second.CurrentPlayTime += targetData->second.TiksPerSecond * deltaTime.GetInSeconds<float>() * GetTimeMultiplier(targetData->second, sourceData->second, blendFactor);
+            targetData->second.CurrentPlayTime = fmod(targetData->second.CurrentPlayTime, targetData->second.Duration);
+
+        }
+        if (sourceData->second.State != Animation::State::Stop)
+        {
+            CalculateBlendedBoneTransform(skeleton->GetRootNode(),
+                sourceData->second,
+                sourceData->second.CurrentPlayTime,
+
+                targetData->second,
+                targetData->second.CurrentPlayTime,
+
+                glm::mat4(1.0),
+                skeleton->GetArmature(),
+                BlendFactor);
         }
     }
 }
@@ -272,10 +320,10 @@ void shade::AnimationController::CalculateBoneTransform(const SharedPointer<Skel
     const auto animationChannel = m_CurrentAnimation->Animation->GetAnimationCahnnels().find(bone->Name);
     if (animationChannel != m_CurrentAnimation->Animation->GetAnimationCahnnels().end())
     {
-        glm::mat4 translation = m_CurrentAnimation->Animation->InterpolatePosition(animationChannel->second, m_CurrentAnimation->CurrentPlayTime);
-        glm::mat4 rotation = m_CurrentAnimation->Animation->InterpolateRotation(animationChannel->second, m_CurrentAnimation->CurrentPlayTime);
-        glm::mat4 scale = m_CurrentAnimation->Animation->InterpolateScale(animationChannel->second, m_CurrentAnimation->CurrentPlayTime);
-        glm::mat4 interpolatedTransfom = translation * rotation * scale;
+        glm::mat4 translation           = m_CurrentAnimation->Animation->InterpolatePosition(animationChannel->second, m_CurrentAnimation->CurrentPlayTime);
+        glm::mat4 rotation              = m_CurrentAnimation->Animation->InterpolateRotation(animationChannel->second, m_CurrentAnimation->CurrentPlayTime);
+        glm::mat4 scale                 = m_CurrentAnimation->Animation->InterpolateScale(animationChannel->second, m_CurrentAnimation->CurrentPlayTime);
+        glm::mat4 interpolatedTransfom  = translation * rotation * scale;
 
         globalMatrix *= interpolatedTransfom;
 
@@ -289,6 +337,63 @@ void shade::AnimationController::CalculateBoneTransform(const SharedPointer<Skel
 
     for (const auto& child : bone->Children)
         CalculateBoneTransform(child, globalMatrix, armature);
+}
+
+void shade::AnimationController::CalculateBlendedBoneTransform(const SharedPointer<Skeleton::BoneNode>& bone,
+    const AnimationControllData& sourceAnimation,
+    float sourceAnimationTime, 
+    const AnimationControllData& targetAnimation,
+    float targetAnimationTime,
+    const glm::mat4& parentTransform, 
+    const SharedPointer<Skeleton::BoneArmature>& armature, 
+    float blendFactor)
+{
+    glm::mat4 sourceGlobalMaxtrix = glm::mat4(1.f), targetGlobalMaxtrix = glm::mat4(1.f);
+
+    const auto sourceChinnels = sourceAnimation.Animation->GetAnimationCahnnels().find(bone->Name);
+    const auto targetChannels = targetAnimation.Animation->GetAnimationCahnnels().find(bone->Name);
+
+    if (sourceChinnels != sourceAnimation.Animation->GetAnimationCahnnels().end() && targetChannels != targetAnimation.Animation->GetAnimationCahnnels().end())
+    {
+        {
+            glm::mat4 translation   = sourceAnimation.Animation->InterpolatePosition(sourceChinnels->second, sourceAnimationTime);
+            glm::mat4 rotation      = sourceAnimation.Animation->InterpolateRotation(sourceChinnels->second, sourceAnimationTime);
+            glm::mat4 scale         = sourceAnimation.Animation->InterpolateScale(sourceChinnels->second, sourceAnimationTime);
+            glm::mat4 interpolatedTransfom = translation * rotation * scale;
+
+            sourceGlobalMaxtrix = interpolatedTransfom;
+        }
+        {
+            glm::mat4 translation = targetAnimation.Animation->InterpolatePosition(targetChannels->second, targetAnimationTime);
+            glm::mat4 rotation = targetAnimation.Animation->InterpolateRotation(targetChannels->second, targetAnimationTime);
+            glm::mat4 scale = targetAnimation.Animation->InterpolateScale(targetChannels->second, targetAnimationTime);
+            glm::mat4 interpolatedTransfom = translation * rotation * scale;
+
+            targetGlobalMaxtrix = interpolatedTransfom;
+        }
+
+
+        // Blend two matrices
+        const glm::quat sourceRotation = glm::quat_cast(sourceGlobalMaxtrix);
+        const glm::quat targetRotation = glm::quat_cast(targetGlobalMaxtrix);
+      
+        glm::mat4 combined = glm::mat4_cast(glm::slerp(sourceRotation, targetRotation, blendFactor));
+
+        //combined[3] = sourceGlobalMaxtrix[3] * blendFactor + targetGlobalMaxtrix[3] * (1.f - blendFactor);
+        combined[3] = (1.0f - blendFactor) * sourceGlobalMaxtrix[3] + targetGlobalMaxtrix[3] * blendFactor;
+      
+        sourceGlobalMaxtrix = parentTransform * combined;
+
+        m_CurrentAnimation->BoneTransforms.Get()[bone->ID] = sourceGlobalMaxtrix * bone->InverseBindPose * armature->Transform;
+    }
+
+    for (const auto& child : bone->Children)
+        CalculateBlendedBoneTransform(child, sourceAnimation, sourceAnimationTime, targetAnimation, targetAnimationTime, sourceGlobalMaxtrix, armature, blendFactor);
+}
+
+float shade::AnimationController::GetTimeMultiplier(const AnimationControllData& first, const AnimationControllData& second, float blendFactor) const
+{
+    return (1.0f - blendFactor) + (first.Duration / second.Duration) * blendFactor; // Lerp 
 }
 
 bool shade::AnimationController::IsAnimationExists(const Asset<Animation>& animation) const

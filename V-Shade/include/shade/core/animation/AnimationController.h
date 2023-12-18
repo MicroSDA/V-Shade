@@ -57,12 +57,17 @@ namespace shade
 
 		std::unordered_map<Asset<Animation>, AnimationControllData>& GetAnimations();
 
-		void UpdateCurrentAnimation(const FrameTimer& deltaTime, const Asset<Skeleton>& skeleton);
+		void UpdateCurrentAnimation(const Asset<Skeleton>& skeleton, const FrameTimer& deltaTime);
 
 		// return bone transforms at current animation
 		const SharedPointer<std::vector<glm::mat4>>& GetBoneTransforms() const;
 
+		void Blend(const Asset<Skeleton>& skeleton, const Asset<Animation>& sourceAnimation, const Asset<Animation>& targetAnimation, float blendFactor, const FrameTimer& deltaTime);
+
 		static SharedPointer<AnimationController> Create();
+
+		float BlendFactor = 0.0f;
+
 	public:
 		std::unordered_map<Asset<Animation>, AnimationControllData>::iterator begin() noexcept { return m_Animations.begin(); };
 		std::unordered_map<Asset<Animation>, AnimationControllData>::iterator end() noexcept { return m_Animations.end(); };
@@ -72,11 +77,14 @@ namespace shade
 		AnimationController() = default;
 
 		void CalculateBoneTransform(const SharedPointer<Skeleton::BoneNode>& bone, const glm::mat4& parentTransform, const SharedPointer<Skeleton::BoneArmature>& armature);
+		void CalculateBlendedBoneTransform(const SharedPointer<Skeleton::BoneNode>& bone, const AnimationControllData& sourceAnimation, float sourceAnimationTime, const AnimationControllData& targetAnimation, float targetAnimationTime, const glm::mat4& parentTransform, const SharedPointer<Skeleton::BoneArmature>& armature, float blendFactor);
 
+		float GetTimeMultiplier(const AnimationControllData& sourceAnimation, const AnimationControllData& targetAnimation, float blendFactor) const;
 		// Where std::string is asset id
 		std::unordered_map<Asset<Animation>, AnimationControllData> m_Animations;
 		AnimationControllData* m_CurrentAnimation = nullptr;
 	private:
 		friend class SharedPointer<AnimationController>;
+		
 	};
 }

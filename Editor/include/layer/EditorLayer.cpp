@@ -1788,7 +1788,6 @@ void EditorLayer::AnimationControllerComponent(shade::ecs::Entity& entity)
 			}
 			ImGui::TableNextColumn();
 			{
-
 				std::vector<std::string> animationsNames;
 
 				for (auto& [animation, data] : *controller)
@@ -1799,12 +1798,12 @@ void EditorLayer::AnimationControllerComponent(shade::ecs::Entity& entity)
 				std::string currentAnimationName = (currentAnimation) ? currentAnimation->GetAssetData()->GetId() : "";
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 
-				(currentAnimationName.empty()) ? ImGui::BeginDisabled() : void();
+				(controller->GetAnimations().empty()) ? ImGui::BeginDisabled() : void();
 				if (DrawCombo(" ##Animations", currentAnimationName, animationsNames, comboFlags, ImGuiComboFlags_None))
 				{
 					if (currentAnimationName.size()) controller->SetCurrentAnimation(currentAnimationName, shade::Animation::State::Play);
 				}
-				(currentAnimationName.empty()) ? ImGui::EndDisabled() : void();
+				(controller->GetAnimations().empty()) ? ImGui::EndDisabled() : void();
 			}
 
 			ImGui::TableNextColumn();
@@ -1903,7 +1902,15 @@ void EditorLayer::AnimationControllerComponent(shade::ecs::Entity& entity)
 
 			ImGui::TableNextColumn(); { if (ImGui::Button("R##T")) { controller->GetAnimationTiks(currentAnimation) = currentAnimation->GetTiksPerSecond(); } }
 		}
-
+		ImGui::TableNextRow();
+		{
+			ImGui::TableNextColumn(); {ImGui::Text("Blend Factor"); }
+			ImGui::TableNextColumn();
+			{
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				ImGui::SliderFloat("##Blend", &controller->BlendFactor, 0.0f, 1.0f);
+			}
+		}
 		ImGui::EndTable();
 	}
 	(!currentAnimation) ? ImGui::EndDisabled() : void();
@@ -1934,6 +1941,7 @@ void EditorLayer::AnimationControllerComponent(shade::ecs::Entity& entity)
 			}
 		});
 
+	
 	// Set Current animation
 	//{
 	//	std::vector<std::string> items;

@@ -52,11 +52,11 @@ namespace shade
 		// Add a channel to the animation
 		void AddChannel(const std::string& name, const Channel& channel);
 		// Interpolate the position of the channel at the given time
-		glm::mat4 InterpolatePosition(const Channel& chanel, float time);
+		glm::mat4 InterpolatePosition(const Channel& chanel, float time) const;
 		// Interpolate the rotation of the channel at the given time
-		glm::mat4 InterpolateRotation(const Channel& chanel, float time);
+		glm::mat4 InterpolateRotation(const Channel& chanel, float time) const;
 		// Interpolate the scale of the channel at the given time
-		glm::mat4 InterpolateScale(const Channel& chanel, float time);
+		glm::mat4 InterpolateScale(const Channel& chanel, float time) const;
 		// Get the keyframe index of the position at the given time
 		std::size_t GetPositionKeyFrame(const Channel& chanel, float time) const;
 		// Get the keyframe index of the rotation at the given time
@@ -64,7 +64,7 @@ namespace shade
 		// Get the keyframe index of the scale at the given time
 		std::size_t GetScaleKeyFrame(const Channel& chanel, float time) const; 
 		// Get the time factor for interpolation
-		float GetTimeFactor(float currentTime, float nextTime, float time);
+		float GetTimeFactor(float currentTime, float nextTime, float time) const;
 		// Get the animation channels
 		const AnimationChannels& GetAnimationCahnnels() const; 
 		// Get the ticks per second of the animation
