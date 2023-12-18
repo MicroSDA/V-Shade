@@ -259,7 +259,7 @@ void shade::AnimationController::UpdateCurrentAnimation(const Asset<Skeleton>& s
     }
 }
 
-void shade::AnimationController::Blend(const Asset<Skeleton>& skeleton, const Asset<Animation>& sourceAnimation, const Asset<Animation>& targetAnimation, float blendFactor, const FrameTimer& deltaTime)
+void shade::AnimationController::Blend(const Asset<Skeleton>& skeleton, const Asset<Animation>& sourceAnimation, const Asset<Animation>& targetAnimation, const FrameTimer& deltaTime)
 {
     assert(sourceAnimation != nullptr && targetAnimation != nullptr);
     auto sourceData = m_Animations.find(sourceAnimation), targetData = m_Animations.find(targetAnimation);
@@ -268,26 +268,16 @@ void shade::AnimationController::Blend(const Asset<Skeleton>& skeleton, const As
     {
         if (sourceData->second.State == Animation::State::Play)
         {
-            //float difference = sourceData->second.Duration / targetData->second.Duration;
-            //const float animSpeedMultiplierUp = (1.0f - BlendFactor) * 1.0f + difference * BlendFactor; // Lerp 
+            auto [source, target] = GetTimeMultiplier(sourceData->second, targetData->second, BlendFactor);
 
-            //difference = targetData->second.Duration / sourceData->second.Duration;
-            //const float animSpeedMultiplierDown = (1.0f - BlendFactor) * difference + 1.0f * BlendFactor; // Lerp
-
-            //sourceData->second.CurrentPlayTime += sourceData->second.TiksPerSecond * deltaTime.GetInSeconds<float>() * animSpeedMultiplierUp;
-            //sourceData->second.CurrentPlayTime = glm::fmod(sourceData->second.CurrentPlayTime, sourceData->second.Duration);
-
-            //targetData->second.CurrentPlayTime += targetData->second.TiksPerSecond * deltaTime.GetInSeconds<float>() * animSpeedMultiplierDown;
-            //targetData->second.CurrentPlayTime = fmod(targetData->second.CurrentPlayTime, targetData->second.Duration);
-
-
-            sourceData->second.CurrentPlayTime += sourceData->second.TiksPerSecond * deltaTime.GetInSeconds<float>() * GetTimeMultiplier(sourceData->second, targetData->second, blendFactor);
+            sourceData->second.CurrentPlayTime += sourceData->second.TiksPerSecond * deltaTime.GetInSeconds<float>() * ((IsSync) ? source : 1.0);
             sourceData->second.CurrentPlayTime = glm::fmod(sourceData->second.CurrentPlayTime, sourceData->second.Duration);
 
-            targetData->second.CurrentPlayTime += targetData->second.TiksPerSecond * deltaTime.GetInSeconds<float>() * GetTimeMultiplier(targetData->second, sourceData->second, blendFactor);
+            targetData->second.CurrentPlayTime += targetData->second.TiksPerSecond * deltaTime.GetInSeconds<float>() * ((IsSync) ? target : 1.0);
             targetData->second.CurrentPlayTime = fmod(targetData->second.CurrentPlayTime, targetData->second.Duration);
 
         }
+
         if (sourceData->second.State != Animation::State::Stop)
         {
             CalculateBlendedBoneTransform(skeleton->GetRootNode(),
@@ -391,9 +381,15 @@ void shade::AnimationController::CalculateBlendedBoneTransform(const SharedPoint
         CalculateBlendedBoneTransform(child, sourceAnimation, sourceAnimationTime, targetAnimation, targetAnimationTime, sourceGlobalMaxtrix, armature, blendFactor);
 }
 
-float shade::AnimationController::GetTimeMultiplier(const AnimationControllData& first, const AnimationControllData& second, float blendFactor) const
+std::pair<float, float> shade::AnimationController::GetTimeMultiplier(const AnimationControllData& first, const AnimationControllData& second, float blendFactor) const
 {
-    return (1.0f - blendFactor) + (first.Duration / second.Duration) * blendFactor; // Lerp 
+    float difference = first.Duration / second.Duration;
+    const float up = (1.0f - BlendFactor) * 1.0f + difference * blendFactor;
+
+    difference = second.Duration / first.Duration;
+    const float down = (1.0f - BlendFactor) * difference + 1.0f * blendFactor;
+
+    return { up, down }; 
 }
 
 bool shade::AnimationController::IsAnimationExists(const Asset<Animation>& animation) const

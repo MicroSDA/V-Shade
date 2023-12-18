@@ -1910,6 +1910,10 @@ void EditorLayer::AnimationControllerComponent(shade::ecs::Entity& entity)
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 				ImGui::SliderFloat("##Blend", &controller->BlendFactor, 0.0f, 1.0f);
 			}
+			ImGui::TableNextColumn();
+			{
+				ImGui::Checkbox("Sync", &controller->IsSync);
+			}
 		}
 		ImGui::EndTable();
 	}

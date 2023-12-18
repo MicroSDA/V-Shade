@@ -406,7 +406,7 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 				{
 					if (animationController->GetAnimations().size() >= 2)
 					{
-						animationController->Blend(model->GetSkeleton(), animationController->GetAnimations().begin()->first, (++animationController->GetAnimations().begin())->first, 0.0, deltaTime);
+						animationController->Blend(model->GetSkeleton(), animationController->GetAnimations().begin()->first, (++animationController->GetAnimations().begin())->first, deltaTime);
 					}
 
 
