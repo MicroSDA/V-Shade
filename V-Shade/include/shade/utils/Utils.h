@@ -14,7 +14,7 @@ namespace shade
 
 	// T suppos to be some sort of std::chrono::seconds or microseconds and so on.
 	template<typename T> 
-	std::size_t GetCurrentTimeStemp()
+	std::size_t GetCurrentTimeStamp()
 	{
 		return static_cast<size_t>(std::chrono::duration_cast<T>(std::chrono::system_clock::now().time_since_epoch()).count());
 	}

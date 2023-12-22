@@ -19,7 +19,7 @@ namespace shade
 		template<typename ...Args>
 		static SharedPointer<T> Create(Args&&... args)
 		{
-			return SharedPointer(new T(std::forward<Args>(args)...), std::make_shared<std::size_t>(GetCurrentTimeStemp<std::chrono::microseconds>()));
+			return SharedPointer(new T(std::forward<Args>(args)...), std::make_shared<std::size_t>(GetCurrentTimeStamp<std::chrono::microseconds>()));
 		}
 		// @brief Copy constructor to create a new SharedPointer from an existing one.
 		SharedPointer(const SharedPointer<T>& other)

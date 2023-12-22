@@ -1778,6 +1778,9 @@ void EditorLayer::AnimationControllerComponent(shade::ecs::Entity& entity)
 	auto& controller = entity.GetComponent<shade::AnimationControllerComponent>();
 	auto currentAnimation = controller->GetCurentAnimation();
 
+	static float blendFactor = 0.f;
+	static bool isSync = false;
+
 	if (ImGui::BeginTable("##SelectOrAddNewAnimation", 3, ImGuiTableFlags_None | ImGuiTableFlags_SizingStretchProp))
 	{
 		ImGui::TableNextRow();
@@ -1804,6 +1807,19 @@ void EditorLayer::AnimationControllerComponent(shade::ecs::Entity& entity)
 					if (currentAnimationName.size()) controller->SetCurrentAnimation(currentAnimationName, shade::Animation::State::Play);
 				}
 				(controller->GetAnimations().empty()) ? ImGui::EndDisabled() : void();
+
+				if(controller->GetAnimations().size() == 2)
+				{
+					auto first  =  controller->GetAnimations().begin();
+					auto second = (++controller->GetAnimations().begin());
+
+					controller->ProcessPose(first->first, 0, 0, second->first, 0,0, blendFactor, isSync);
+				}
+				else if(currentAnimation)
+				{
+					if (currentAnimation)
+						controller->ProcessPose(currentAnimation, 0, 10);
+				}
 			}
 
 			ImGui::TableNextColumn();
@@ -1908,12 +1924,14 @@ void EditorLayer::AnimationControllerComponent(shade::ecs::Entity& entity)
 			ImGui::TableNextColumn();
 			{
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				ImGui::SliderFloat("##Blend", &controller->BlendFactor, 0.0f, 1.0f);
+				ImGui::SliderFloat("##Blend", &blendFactor, 0.0f, 1.0f);
 			}
 			ImGui::TableNextColumn();
 			{
-				ImGui::Checkbox("Sync", &controller->IsSync);
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+				ImGui::Checkbox("##Sync", &isSync);
 			}
+			
 		}
 		ImGui::EndTable();
 	}

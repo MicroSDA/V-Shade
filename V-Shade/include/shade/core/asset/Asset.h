@@ -12,7 +12,7 @@ namespace shade
 		// Default constructor to create an empty Asset.
 		Asset() = default;
 		// Asset destructor.
-		~Asset() // Virtual was removed need to test !!
+		~Asset() // TIP: Virtual was removed need to test !!
 		{ 
 			// In case we have only two alive instances, one here and one in AssetManager 
 			// we need to run life time managment based on BaseAsset::LifeTime flag
@@ -25,7 +25,7 @@ namespace shade
 		static Asset<T> Create(Args&& ...args)
 		{
 			//static_assert(std::is_same<decltype(&T::Create), decltype(&T::Create)>::value, "T::Create is not a member function.");
-			return Asset<T>(T::Create(std::forward<Args>(args)...), std::make_shared<std::size_t>(GetCurrentTimeStemp<std::chrono::microseconds>()));
+			return Asset<T>(T::Create(std::forward<Args>(args)...), std::make_shared<std::size_t>(GetCurrentTimeStamp<std::chrono::microseconds>()));
 		}
 		// @brief Copy constructor to create a new Asset from an existing one.
 		Asset(const Asset<T>& other)

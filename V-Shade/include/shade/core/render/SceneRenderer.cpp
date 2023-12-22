@@ -330,7 +330,7 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 					{
 						isModelInFrustrum = true;
 
-						if (animationController && animationController->GetCurentAnimation() && mesh->GetLod(0).Bones.size())
+						if (animationController && animationController->GetCurentAnimation() &&  mesh->GetLod(0).Bones.size())
 						{
 							Renderer::SubmitStaticMesh(m_MainGeometryPipelineAnimated, mesh, mesh->GetMaterial(), model, pcTransform); m_Statistic.SubmitedInstances++;
 						}
@@ -342,8 +342,6 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 						if (m_Settings.RenderSettings.LightCulling)
 							Renderer::SubmitStaticMesh(m_LightCullingPreDepthPipeline, mesh, nullptr, model, pcTransform);
 					}
-
-
 
 					// Check if mesh inside point light for shadow pass  
 					if (m_Settings.RenderSettings.PointShadowEnabled)
@@ -402,17 +400,23 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 					}
 				}
 
-				if (isModelInFrustrum && animationController && animationController->GetCurentAnimation() && model->GetSkeleton())
+
+				if (isModelInFrustrum && animationController && model->GetSkeleton())
+				{
+					Renderer::SubmitBoneTransforms(m_MainGeometryPipelineAnimated, model, animationController->QuerryPose(model->GetSkeleton(), deltaTime)->GetBoneGlobalTransforms());
+				}
+
+				/*if (isModelInFrustrum && animationController && animationController->GetCurentAnimation() && model->GetSkeleton())
 				{
 					if (animationController->GetAnimations().size() >= 2)
 					{
 						animationController->Blend(model->GetSkeleton(), animationController->GetAnimations().begin()->first, (++animationController->GetAnimations().begin())->first, deltaTime);
 					}
 
-
-					//animationController->UpdateCurrentAnimation(model->GetSkeleton(), deltaTime);
+					animationController->UpdateCurrentAnimation(model->GetSkeleton(), deltaTime);
 					Renderer::SubmitBoneTransforms(m_MainGeometryPipelineAnimated, model, animationController->GetBoneTransforms());
-				}
+				}*/
+
 
 
 				// AABB Visualization
