@@ -87,6 +87,25 @@ namespace shade
 			State m_State;
 			float m_CurrentPlayTime = 0.f;
 		};
+
+		struct BoneMask
+		{
+			BoneMask(const Asset<Skeleton>& skeleton)
+			{
+				if (skeleton)
+				{
+					for (auto& [name, bone] : skeleton->GetBones())
+						Weights.emplace(bone->ID, std::pair<std::string, float>{ name, 1.0f });
+				}
+			}
+			~BoneMask() = default;
+			void Reset() 
+			{
+				for (auto& [id, mask] : Weights)
+					mask.second = 1.0f;
+			}
+			std::unordered_map<std::size_t, std::pair<std::string,float>> Weights;
+		};
 	}
 
 	class SHADE_API AnimationController
@@ -158,7 +177,7 @@ namespace shade
 		std::unordered_map<Asset<Animation>, AnimationControllData>& GetAnimations();
 
 		void ProcessPose(const Asset<Animation>& animation, float from, float till);
-		void ProcessPose(const Asset<Animation>& first, float firstFrom, float firstTill, const Asset<Animation>& second, float secondFrom, float secondTill, float blendFactor, bool isSync = false);
+		void ProcessPose(const Asset<Animation>& first, float firstFrom, float firstTill, const Asset<Animation>& second, float secondFrom, float secondTill, float blendFactor, bool isSync = false, const animation::BoneMask& boneMask = animation::BoneMask{nullptr});
 		SharedPointer<animation::Pose> QuerryPose(const Asset<Skeleton>& skeleton, const FrameTimer& deltaTime);
 	public:
 		std::unordered_map<Asset<Animation>, AnimationControllData>::iterator begin() noexcept { return m_Animations.begin(); };
@@ -179,7 +198,7 @@ namespace shade
 			const shade::SharedPointer<shade::Skeleton::BoneNode>& bone,
 			shade::SharedPointer<shade::animation::Pose>& targetPose,
 			const shade::SharedPointer<shade::animation::Pose>& first,
-			const shade::SharedPointer<shade::animation::Pose>& second, const glm::mat4& parrentTransform, float blendFactor);
+			const shade::SharedPointer<shade::animation::Pose>& second, const glm::mat4& parrentTransform, float blendFactor, const animation::BoneMask& boneMask);
 
 		std::pair<float, float> GetTimeMultiplier(float firstDuration, float secondDuration, float blendFactor) const;
 
@@ -191,6 +210,7 @@ namespace shade
 
 		// Animation combintion hash - > animation pose 
 		std::unordered_map<std::size_t, SharedPointer<animation::Pose>> m_Poses;
+	
 		SharedPointer<animation::Pose> m_DefaultPose;
 
 		std::function<SharedPointer<animation::Pose>(const Asset<Skeleton>&, const FrameTimer&)> m_QuerryPose;
@@ -200,7 +220,7 @@ namespace shade
 		SharedPointer<animation::Pose>& CreatePose(std::size_t hash, const Asset<Skeleton>& skeleton);
 		SharedPointer<animation::Pose>& ReceiveAnimationPose(const Asset<Skeleton>& skeleton, const Asset<Animation>& animation);
 		SharedPointer<animation::Pose>& CalculatePose(SharedPointer<animation::Pose>& targetPose, const Asset<Animation>& animation, float from, float till, const FrameTimer& deltaTime, float timeMultiplier = 1.f);
-		SharedPointer<animation::Pose>& Blend(SharedPointer<animation::Pose>& targetPose, SharedPointer<animation::Pose>& first, SharedPointer<animation::Pose>& second, float blendFactor);
+		SharedPointer<animation::Pose>& Blend(SharedPointer<animation::Pose>& targetPose, SharedPointer<animation::Pose>& first, SharedPointer<animation::Pose>& second, float blendFactor, const animation::BoneMask& boneMask);
 		template<typename... Args>
 		inline SharedPointer<animation::Pose>& ReceiveAnimationPose(const Asset<Skeleton>& skeleton, Args&... args)
 		{

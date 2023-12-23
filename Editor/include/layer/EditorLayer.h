@@ -61,6 +61,7 @@ private:
 	void AnimationControllerComponent(shade::ecs::Entity& entity);
 	///////
 	void MaterialEdit(shade::Material& material);
+	void BoneMaskEdnitor(const shade::SharedPointer<shade::Skeleton::BoneNode>& node, shade::animation::BoneMask& boneMask);
 	void CreateMaterial();
 	void Material(shade::Material& material);
 	void AnimationSequencer();

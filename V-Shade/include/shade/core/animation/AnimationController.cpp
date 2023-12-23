@@ -280,14 +280,16 @@ void shade::AnimationController::CalculateBoneTransforms(SharedPointer<animation
         CalculateBoneTransforms(pose, animation, child, globalMatrix, armature);
 }
 
-void shade::AnimationController::CalculateBoneTransformsBlend(const shade::SharedPointer<shade::Skeleton::BoneNode>& bone, shade::SharedPointer<shade::animation::Pose>& targetPose, const shade::SharedPointer<shade::animation::Pose>& first, const shade::SharedPointer<shade::animation::Pose>& second, const glm::mat4& parrentTransform, float blendFactor)
+void shade::AnimationController::CalculateBoneTransformsBlend(const shade::SharedPointer<shade::Skeleton::BoneNode>& bone, shade::SharedPointer<shade::animation::Pose>& targetPose, const shade::SharedPointer<shade::animation::Pose>& first, const shade::SharedPointer<shade::animation::Pose>& second, const glm::mat4& parrentTransform, float blendFactor, const animation::BoneMask& boneMask)
 {
     const glm::mat4& firstPose = first->GetBoneLocalTransform(bone->ID);
     const glm::mat4& secondPose = second->GetBoneLocalTransform(bone->ID);
 
-    glm::mat4 combined = glm::mat4_cast(glm::slerp(glm::quat_cast(firstPose), glm::quat_cast(secondPose), blendFactor));
+    float blendFactorWithBoneMask = blendFactor * ((boneMask.Weights.find(bone->ID) != boneMask.Weights.end()) ? boneMask.Weights.at(bone->ID).second : 1.0);
 
-    combined[3] = (1.0f - blendFactor) * firstPose[3] + secondPose[3] * blendFactor;
+    glm::mat4 combined = glm::mat4_cast(glm::slerp(glm::quat_cast(firstPose), glm::quat_cast(secondPose), blendFactorWithBoneMask));
+
+    combined[3] = (1.0f - blendFactorWithBoneMask) * firstPose[3] + secondPose[3] * blendFactorWithBoneMask;
 
     glm::mat4 locallMatrix = combined, globalMatrix = parrentTransform * combined;
 
@@ -295,7 +297,7 @@ void shade::AnimationController::CalculateBoneTransformsBlend(const shade::Share
     targetPose->GetBoneGlobalTransform(bone->ID) = globalMatrix * bone->InverseBindPose * targetPose->GetSkeleton()->GetArmature()->Transform;
 
     for (const auto& child : bone->Children)
-        CalculateBoneTransformsBlend(child, targetPose, first, second, globalMatrix, blendFactor);
+        CalculateBoneTransformsBlend(child, targetPose, first, second, globalMatrix, blendFactor, boneMask);
 }
 
 std::pair<float, float> shade::AnimationController::GetTimeMultiplier(float firstDuration, float secondDuration, float blendFactor) const
@@ -383,9 +385,9 @@ shade::SharedPointer<shade::animation::Pose>& shade::AnimationController::Calcul
     return targetPose;
 }
 
-shade::SharedPointer<shade::animation::Pose>& shade::AnimationController::Blend(SharedPointer<animation::Pose>& targetPose, SharedPointer<animation::Pose>& first, SharedPointer<animation::Pose>& second, float blendFactor)
+shade::SharedPointer<shade::animation::Pose>& shade::AnimationController::Blend(SharedPointer<animation::Pose>& targetPose, SharedPointer<animation::Pose>& first, SharedPointer<animation::Pose>& second, float blendFactor, const animation::BoneMask& boneMask)
 {
-    CalculateBoneTransformsBlend(targetPose->GetSkeleton()->GetRootNode(), targetPose, first, second, glm::identity<glm::mat4>(), blendFactor);
+    CalculateBoneTransformsBlend(targetPose->GetSkeleton()->GetRootNode(), targetPose, first, second, glm::identity<glm::mat4>(), blendFactor, boneMask);
     return targetPose;
 }
 
@@ -406,7 +408,7 @@ void shade::AnimationController::ProcessPose(const Asset<Animation>& animation, 
         };
 }
 
-void shade::AnimationController::ProcessPose(const Asset<Animation>& first, float firstFrom, float firstTill, const Asset<Animation>& second, float secondFrom, float secondTill, float blendFactor, bool isSync)
+void shade::AnimationController::ProcessPose(const Asset<Animation>& first, float firstFrom, float firstTill, const Asset<Animation>& second, float secondFrom, float secondTill, float blendFactor, bool isSync, const animation::BoneMask& boneMask)
 {
     assert(first != nullptr || second != nullptr);
 
@@ -429,7 +431,7 @@ void shade::AnimationController::ProcessPose(const Asset<Animation>& first, floa
                 CalculatePose(secondPose, second, secondFrom, secondTill, deltaTime);
             }
            
-            return Blend(ReceiveAnimationPose(skeleton, first, second), firstPose, secondPose, blendFactor);
+            return Blend(ReceiveAnimationPose(skeleton, first, second), firstPose, secondPose, blendFactor, boneMask);
         };
 }
 

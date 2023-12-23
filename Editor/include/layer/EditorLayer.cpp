@@ -1781,6 +1781,18 @@ void EditorLayer::AnimationControllerComponent(shade::ecs::Entity& entity)
 	static float blendFactor = 0.f;
 	static bool isSync = false;
 
+	static shade::animation::BoneMask boneMask(entity.GetComponent<shade::ModelComponent>()->GetSkeleton());
+
+	/*if (entity.HasComponent<shade::ModelComponent>())
+	{
+		auto& model = entity.GetComponent<shade::ModelComponent>();
+
+		if (model->GetSkeleton())
+		{
+			boneMask = shade::animation::BoneMask(model->GetSkeleton());
+		}
+	}*/
+
 	if (ImGui::BeginTable("##SelectOrAddNewAnimation", 3, ImGuiTableFlags_None | ImGuiTableFlags_SizingStretchProp))
 	{
 		ImGui::TableNextRow();
@@ -1813,7 +1825,7 @@ void EditorLayer::AnimationControllerComponent(shade::ecs::Entity& entity)
 					auto first  =  controller->GetAnimations().begin();
 					auto second = (++controller->GetAnimations().begin());
 
-					controller->ProcessPose(first->first, 0, 0, second->first, 0,0, blendFactor, isSync);
+					controller->ProcessPose(first->first, 0, 0, second->first, 0,0, blendFactor, isSync, boneMask);
 				}
 				else if(currentAnimation)
 				{
@@ -1937,6 +1949,21 @@ void EditorLayer::AnimationControllerComponent(shade::ecs::Entity& entity)
 	}
 	(!currentAnimation) ? ImGui::EndDisabled() : void();
 
+	static std::string searchBone;
+
+	InputTextCol("Search:", searchBone);
+	ImGui::Separator();
+
+	if (entity.HasComponent<shade::ModelComponent>())
+	{
+		auto& model = entity.GetComponent<shade::ModelComponent>();
+
+		if (model->GetSkeleton())
+		{
+			BoneMaskEdnitor(model->GetSkeleton()->GetRootNode(), boneMask);
+		}
+	}
+	
 	ImGui::SetNextWindowSize(ImGui::GetContentRegionAvail());
 	DrawModal("Add animation's asset:", m_IsAddSkeletalAnimationModal, [&]()
 		{
@@ -1962,52 +1989,6 @@ void EditorLayer::AnimationControllerComponent(shade::ecs::Entity& entity)
 				}
 			}
 		});
-
-	
-	// Set Current animation
-	//{
-	//	std::vector<std::string> items;
-	//	for (auto& [animation, data] : *controller)
-	//		items.emplace_back(animation->GetAssetData()->GetId());
-
-	//	auto currentAnimation = controller->GetCurentAnimation();
-
-	//	std::string currentItem = (currentAnimation) ? currentAnimation->GetAssetData()->GetId() : "NONE";
-
-	//	ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-	//	if (DrawCombo(" ##Animations", currentItem, items, ImGuiSelectableFlags_None, ImGuiComboFlags_None))
-	//	{
-	//		if (currentItem != "NONE")
-	//			controller->SetCurrentAnimation(currentItem);
-	//	}
-
-	//	if (currentAnimation)
-	//	{
-	//		std::vector<std::string> items({ "Stop", "Play", "Pause" });
-	//		std::string currentItem;
-
-	//		switch (controller->GetAnimationState(currentAnimation))
-	//		{
-	//			case shade::Animation::State::Stop:  currentItem = "Stop";  break;		
-	//			case shade::Animation::State::Play:  currentItem = "Play";  break;
-	//			case shade::Animation::State::Pause: currentItem = "Pause"; break;
-	//		}
-
-	//		//ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-	//		DrawCombo(" ##State", currentItem, items, ImGuiSelectableFlags_None, ImGuiComboFlags_None);
-
-	//		if (currentItem == "Stop")
-	//			controller->SetAnimationState(currentAnimation, shade::Animation::State::Stop);
-	//		if (currentItem == "Play")
-	//			controller->SetAnimationState(currentAnimation, shade::Animation::State::Play);
-	//		if (currentItem == "Pause")
-	//			controller->SetAnimationState(currentAnimation, shade::Animation::State::Pause);
-
-	//		// Set State of Current animation
-	//		DragFloat("Duration", &controller->GetAnimationDuration(currentAnimation));
-	//		DragFloat("TiksPer second", &controller->GetAnimationTiks(currentAnimation));
-	//	}
-	//}
 }
 
 void EditorLayer::MaterialEdit(shade::Material& material)
@@ -2057,6 +2038,52 @@ void EditorLayer::MaterialEdit(shade::Material& material)
 			}
 		}
 	}
+}
+
+void EditorLayer::BoneMaskEdnitor(const shade::SharedPointer<shade::Skeleton::BoneNode>& node, shade::animation::BoneMask& boneMask)
+{
+	bool overrideByParrent = false;
+
+	if(ImGui::TreeNodeEx(node->Name.c_str(), ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_Framed))
+	{
+		if (ImGui::BeginTable("##BoneMask", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp))
+		{
+			ImGui::TableNextRow();
+			{
+				ImGui::TableNextColumn();
+				{
+					ImGui::Text("Weight");
+				}
+				ImGui::TableNextColumn();
+				{
+					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+					ImGui::DragFloat(std::string("##" + node->Name).c_str(), &boneMask.Weights.at(node->ID).second, 0.01f, 0.f, 1.f);
+				}
+				ImGui::TableNextColumn();
+				{
+					ImGui::Checkbox("P##", &overrideByParrent);
+				}
+			}
+			ImGui::EndTable();
+		}
+
+		for (auto& child : node->Children)
+			BoneMaskEdnitor(child, boneMask);
+
+		ImGui::TreePop();
+	}
+	
+
+	//auto& sekelton = entity.GetComponent<shade::ModelComponent>()->GetSkeleton();
+
+	//for (const auto& [name, bone] : sekelton->GetBones())
+	//{
+	//	for (auto& [id, weight] : boneMask.Weights)
+	//	{
+	//		if (name == weight.first && weight.first.find(searchBone) != std::string::npos)
+	//			ImGui::DragFloat(weight.first.c_str(), &weight.second, 0.001f, 0.0f);
+	//	}
+	//}
 }
 
 void EditorLayer::Material(shade::Material& material)
