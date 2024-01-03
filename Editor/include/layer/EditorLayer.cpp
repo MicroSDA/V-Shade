@@ -20,7 +20,6 @@ void EditorLayer::OnCreate()
 void EditorLayer::OnUpdate(shade::SharedPointer<shade::Scene>& scene, const shade::FrameTimer& deltaTime)
 {
 	shade::physic::PhysicsManager::Step(scene, deltaTime);
-
 	m_SceneRenderer->OnUpdate(scene, deltaTime);
 }
 
@@ -70,7 +69,6 @@ void EditorLayer::OnEvent(shade::SharedPointer<shade::Scene>& scene, const shade
 		m_ImGuizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
 	if (shade::Input::IsKeyPressed(shade::Key::Y))
 		m_ImGuizmoOperation = ImGuizmo::OPERATION::SCALE;
-
 }
 
 void EditorLayer::OnDestroy()
@@ -282,10 +280,10 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 									m_ImportedEntity.AddComponent<shade::TransformComponent>();
 									m_ImportedEntity.AddComponent<shade::ModelComponent>(m_ImportedModel);
 
-									if (animation)
+									/*if (animation)
 									{
-										m_ImportedEntity.AddComponent<shade::AnimationControllerComponent>(animation);
-									}
+										m_ImportedEntity.AddComponent<shade::AnimationGraphComponent>(animation);
+									}*/
 								}
 
 								from = selectedPath.string();
@@ -405,9 +403,9 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 							}
 						}
 
-						if (m_ImportedEntity.HasComponent<shade::AnimationControllerComponent>())
+						if (m_ImportedEntity.HasComponent<shade::AnimationGraphComponent>())
 						{
-							for (const auto& [name, animation] : *m_ImportedEntity.GetComponent<shade::AnimationControllerComponent>())
+							/*for (const auto& [name, animation] : *m_ImportedEntity.GetComponent<shade::AnimationControllerComponent>())
 							{
 								const std::string path(to + animation.Animation->GetAssetData()->GetId() + ".s_sanim");
 								shade::File file(path, shade::File::Out, "@s_sanim", shade::File::VERSION(0, 0, 1));
@@ -416,7 +414,7 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 									file.Write(animation.Animation);
 								else
 									SHADE_CORE_WARNING("Failed to save animation, path = {}", path);
-							}
+							}*/
 						}
 
 						m_ImportedModel = nullptr;
@@ -792,9 +790,10 @@ void EditorLayer::Entities(shade::SharedPointer<shade::Scene>& scene)
 							}
 						}
 					}, m_SelectedEntity);
-				AddComponent<shade::AnimationControllerComponent>("Animation controller", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
+				AddComponent<shade::AnimationGraphComponent>("Animation graph", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
 					{
-						entity.AddComponent<shade::AnimationControllerComponent>(shade::AnimationControllerComponent::Create());
+						// WRONG ASSET Creation !!
+						entity.AddComponent<shade::AnimationGraphComponent>();
 					}, m_SelectedEntity);
 
 				ImGui::Separator();
@@ -1097,7 +1096,7 @@ void EditorLayer::Creator()
 			break;
 		case shade::AssetMeta::Texture:
 			break;
-		case shade::AssetMeta::SkeletonAnimation:
+		case shade::AssetMeta::Animation:
 			break;
 		case shade::AssetMeta::Sound:
 			break;
@@ -1474,8 +1473,8 @@ void EditorLayer::EntityInspector(shade::ecs::Entity& entity)
 			[&](auto isTreeOpen)->bool { return EditComponent<shade::ModelComponent>(entity, {}, isTreeOpen); }, this, entity);
 		DrawComponent<shade::RigidBodyComponent>("Rigid Body", entity, &EditorLayer::RgidBodyComponent,
 			[&](auto isTreeOpen)->bool { return EditComponent<shade::RigidBodyComponent>(entity, {}, isTreeOpen); }, this, entity);
-		DrawComponent<shade::AnimationControllerComponent>("Animations", entity, &EditorLayer::AnimationControllerComponent,
-			[&](auto isTreeOpen)->bool { return EditComponent<shade::AnimationControllerComponent>(entity, {}, isTreeOpen); }, this, entity);
+		DrawComponent<shade::AnimationGraphComponent>("Animations", entity, &EditorLayer::AnimationGraphComponent,
+			[&](auto isTreeOpen)->bool { return EditComponent<shade::AnimationGraphComponent>(entity, {}, isTreeOpen); }, this, entity);
 	}
 }
 
@@ -1773,222 +1772,270 @@ void EditorLayer::RgidBodyComponent(shade::ecs::Entity& entity)
 
 }
 
-void EditorLayer::AnimationControllerComponent(shade::ecs::Entity& entity)
+void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 {
-	auto& controller = entity.GetComponent<shade::AnimationControllerComponent>();
-	auto currentAnimation = controller->GetCurentAnimation();
+	auto& animationGraph = entity.GetComponent<shade::AnimationGraphComponent>();
 
 	static float blendFactor = 0.f;
 	static bool isSync = false;
 
 	static shade::animation::BoneMask boneMask(entity.GetComponent<shade::ModelComponent>()->GetSkeleton());
+	static shade::SharedPointer<shade::animation::PoseNode>			pose1;
+	static shade::SharedPointer<shade::animation::PoseNode>			pose2;
 
-	/*if (entity.HasComponent<shade::ModelComponent>())
+	static shade::SharedPointer<shade::animation::BlendNode2D>		blend;
+
+	if (!animationGraph)
 	{
-		auto& model = entity.GetComponent<shade::ModelComponent>();
-
-		if (model->GetSkeleton())
+		if (ImGui::Button("Add Graph"))
 		{
-			boneMask = shade::animation::BoneMask(model->GetSkeleton());
-		}
-	}*/
-
-	if (ImGui::BeginTable("##SelectOrAddNewAnimation", 3, ImGuiTableFlags_None | ImGuiTableFlags_SizingStretchProp))
-	{
-		ImGui::TableNextRow();
-		{
-			ImGui::TableNextColumn();
-			{
-				ImGui::Text("Current");
-			}
-			ImGui::TableNextColumn();
-			{
-				std::vector<std::string> animationsNames;
-
-				for (auto& [animation, data] : *controller)
-					animationsNames.emplace_back(animation->GetAssetData()->GetId());
-
-				int comboFlags = ImGuiSelectableFlags_None;
-
-				std::string currentAnimationName = (currentAnimation) ? currentAnimation->GetAssetData()->GetId() : "";
-				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-
-				(controller->GetAnimations().empty()) ? ImGui::BeginDisabled() : void();
-				if (DrawCombo(" ##Animations", currentAnimationName, animationsNames, comboFlags, ImGuiComboFlags_None))
-				{
-					if (currentAnimationName.size()) controller->SetCurrentAnimation(currentAnimationName, shade::Animation::State::Play);
-				}
-				(controller->GetAnimations().empty()) ? ImGui::EndDisabled() : void();
-
-				if(controller->GetAnimations().size() == 2)
-				{
-					auto first  =  controller->GetAnimations().begin();
-					auto second = (++controller->GetAnimations().begin());
-
-					controller->ProcessPose(first->first, 0, 0, second->first, 0,0, blendFactor, isSync, boneMask);
-				}
-				else if(currentAnimation)
-				{
-					if (currentAnimation)
-						controller->ProcessPose(currentAnimation, 0, 10);
-				}
-			}
-
-			ImGui::TableNextColumn();
-			{
-				if (ImGui::Button("+"))
-					m_IsAddSkeletalAnimationModal = true;
-				ImGui::SameLine();
-				if (ImGui::Button("-"))
-				{
-					controller->RemoveAnimation(currentAnimation); currentAnimation = nullptr;
-
-				}
-			}
-		}
-		ImGui::TableNextRow();
-		{
-			ImGui::TableNextColumn();
-			{
-				ImGui::Text("Timeline");
-			}
-			ImGui::TableNextColumn();
-			{
-				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-
-				if (currentAnimation)
-				{
-					ImGui::SliderFloat("##Timeline", &controller->GetCurrentAnimationTime(currentAnimation), 0.f,
-						controller->GetAnimationDuration(currentAnimation));
-				}
-				else
-				{
-					static float cur = 0.0f, max = 100.0f;
-
-					ImGui::BeginDisabled();
-					ImGui::SliderFloat("##Timeline", &cur, 0.f, max);
-					ImGui::EndDisabled();
-				}
-			}
-		}
-		ImGui::EndTable();
-	}
-	ImGui::Separator();
-	if (ImGui::BeginTable("##Play/Pause/StopAnimation", 3, ImGuiTableFlags_None | ImGuiTableFlags_SizingStretchProp))
-	{
-		(!currentAnimation) ? ImGui::BeginDisabled() : void();
-
-		ImGui::TableNextRow();
-		{
-			ImGui::TableNextColumn();	
-
-			bool isPlay = (currentAnimation && (controller->GetAnimationState(currentAnimation) == shade::Animation::State::Play));
-
-			(isPlay) ? ImGui::BeginDisabled() : void();
-			if (ImGui::Button("Play", { ImGui::GetContentRegionAvail().x, 0 })) controller->SetAnimationState(currentAnimation, shade::Animation::State::Play);
-			(isPlay) ? ImGui::EndDisabled() : void();
-
-			ImGui::TableNextColumn();
-
-			bool isPauseStop = (currentAnimation && (controller->GetAnimationState(currentAnimation) == shade::Animation::State::Pause || controller->GetAnimationState(currentAnimation) == shade::Animation::State::Stop));
-
-			(isPauseStop) ? ImGui::BeginDisabled() : void();
-			if (ImGui::Button("Pause", { ImGui::GetContentRegionAvail().x, 0 })) controller->SetAnimationState(currentAnimation, shade::Animation::State::Pause);
-			(isPauseStop) ? ImGui::EndDisabled() : void();
-
-
-			bool isPlayPause = (currentAnimation && (controller->GetAnimationState(currentAnimation) == shade::Animation::State::Stop));
-
-			ImGui::TableNextColumn();	
-
-			(isPlayPause) ? ImGui::BeginDisabled() : void();
-			if (ImGui::Button("Stop", { ImGui::GetContentRegionAvail().x, 0 })) controller->SetAnimationState(currentAnimation,  shade::Animation::State::Stop);
-			(isPlayPause) ? ImGui::EndDisabled() : void();
-		}
-		(!currentAnimation) ? ImGui::EndDisabled() : void();
-		ImGui::EndTable();
-	}
-	ImGui::Separator();
-	(!currentAnimation) ? ImGui::BeginDisabled() : void();
-	if (ImGui::BeginTable("##Play/Pause/StopAnimationSS", 3 , ImGuiTableFlags_None | ImGuiTableFlags_SizingStretchProp))
-	{
-		float defaultValue = 0.f;
-
-		ImGui::TableNextRow();
-		{
-			ImGui::TableNextColumn(); {ImGui::Text("Duration"); }
 		
-			ImGui::TableNextColumn(); { ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x); ImGui::DragFloat("##Duration", (currentAnimation) ? &controller->GetAnimationDuration(currentAnimation) : &defaultValue, 0.001f); }
 
-			ImGui::TableNextColumn(); { if (ImGui::Button("R##D")) { controller->GetAnimationDuration(currentAnimation) = currentAnimation->GetDuration(); } }
-		}
-		ImGui::TableNextRow();
-		{
-			ImGui::TableNextColumn(); {ImGui::Text("Tiks per seccond"); }
-			
-			ImGui::TableNextColumn(); { ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x); ImGui::DragFloat("##TiksPerSeccond", (currentAnimation) ? &controller->GetAnimationTiks(currentAnimation) : &defaultValue, 0.001f); }
+			// 1. Create Animation graph with empty context
+			// 2. Add function initialize after context was set ! or someting like that
+			// 3. Remove Skeleton from Model, submit animated only when graph component on entity when we create serrialization for graph
+			// 4. Take a look at Query pose and reafactor this if it posible !
+			// 5. Skeleton shoudl be only in context !
+			animationGraph = shade::animation::AnimationGraph::CreateEXP(entity.GetComponent<shade::ModelComponent>()->GetSkeleton());
 
-			ImGui::TableNextColumn(); { if (ImGui::Button("R##T")) { controller->GetAnimationTiks(currentAnimation) = currentAnimation->GetTiksPerSecond(); } }
+			pose1 = animationGraph->CreateNode<shade::animation::PoseNode>();
+			pose2 = animationGraph->CreateNode<shade::animation::PoseNode>();
+
+			blend = animationGraph->CreateNode<shade::animation::BlendNode2D>();
+
+			auto is1 = animationGraph->AddConnection(pose1->GetNodeIndex(), 0, blend->GetNodeIndex(), 1);
+			auto is2 = animationGraph->AddConnection(pose2->GetNodeIndex(), 0, blend->GetNodeIndex(), 2);
+
+			auto is3 = animationGraph->AddRootConnection(blend->GetNodeIndex(), 0);
 		}
-		ImGui::TableNextRow();
-		{
-			ImGui::TableNextColumn(); {ImGui::Text("Blend Factor"); }
-			ImGui::TableNextColumn();
-			{
-				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				ImGui::SliderFloat("##Blend", &blendFactor, 0.0f, 1.0f);
-			}
-			ImGui::TableNextColumn();
-			{
-				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				ImGui::Checkbox("##Sync", &isSync);
-			}
-			
-		}
-		ImGui::EndTable();
 	}
-	(!currentAnimation) ? ImGui::EndDisabled() : void();
 
-	static std::string searchBone;
-
-	InputTextCol("Search:", searchBone);
-	ImGui::Separator();
-
-	if (entity.HasComponent<shade::ModelComponent>())
+	if (animationGraph &&
+		pose1 &&
+		pose2 && 
+		blend && 
+		!pose1->AnimationData.Animation &&
+		!pose2->AnimationData.Animation)
 	{
-		auto& model = entity.GetComponent<shade::ModelComponent>();
+		const std::string animation1 = "Boy.Animation.Idel";
+		const std::string animation2 = "Boy.Animation.Running";
 
-		if (model->GetSkeleton())
-		{
-			BoneMaskEdnitor(model->GetSkeleton()->GetRootNode(), boneMask);
-		}
-	}
-	
-	ImGui::SetNextWindowSize(ImGui::GetContentRegionAvail());
-	DrawModal("Add animation's asset:", m_IsAddSkeletalAnimationModal, [&]()
-		{
-			static std::string id;
-			static std::string search;
-
-			InputTextCol("Search:", search);
-			ImGui::Separator();
-
-			for (const auto& assetData : shade::AssetManager::GetAssetDataList(shade::AssetMeta::Category::Secondary))
+		shade::AssetManager::GetAsset<shade::Animation, shade::BaseAsset::InstantiationBehaviour::Synchronous>(animation1, shade::AssetMeta::Category::Secondary, shade::BaseAsset::LifeTime::KeepAlive, [=](auto& animation) mutable
 			{
-				if (assetData.second->GetType() == shade::AssetMeta::Type::SkeletonAnimation && assetData.first.find(search) != std::string::npos)
-				{
-					if (ImGui::Selectable(assetData.first.c_str(), id == assetData.first))
-					{
-						shade::AssetManager::GetAsset<shade::Animation>(assetData.first, shade::AssetMeta::Category::Secondary, shade::BaseAsset::LifeTime::KeepAlive, [=](auto& animation) mutable
-							{
-								controller->AddAnimation(animation);
-							});
+				pose1->AnimationData.Animation = animation;
+			});
+		shade::AssetManager::GetAsset<shade::Animation, shade::BaseAsset::InstantiationBehaviour::Synchronous>(animation2, shade::AssetMeta::Category::Secondary, shade::BaseAsset::LifeTime::KeepAlive, [=](auto& animation) mutable
+			{
+				pose2->AnimationData.Animation = animation;
+			});
 
-						m_IsAddSkeletalAnimationModal = false;
-					}
-				}
-			}
-		});
+		
+	}
+	if (animationGraph && blend)
+	{
+		ImGui::DragFloat("Bledn weight", animationGraph->GetNode<shade::animation::BlendNode2D>(2)->GetInputEndpointRaw<shade::animation::NodeValueType::FLOAT>(0), 0.001);
+	}
+	//if (ImGui::BeginTable("##SelectOrAddNewAnimation", 3, ImGuiTableFlags_None | ImGuiTableFlags_SizingStretchProp))
+	//{
+	//	ImGui::TableNextRow();
+	//	{
+	//		ImGui::TableNextColumn();
+	//		{
+	//			ImGui::Text("Current");
+	//		}
+	//		ImGui::TableNextColumn();
+	//		{
+	//			std::vector<std::string> animationsNames;
+
+	//			/*for (auto& [animation, data] : *controller)
+	//				animationsNames.emplace_back(animation->GetAssetData()->GetId());
+
+	//			int comboFlags = ImGuiSelectableFlags_None;
+
+	//			std::string currentAnimationName = (currentAnimation) ? currentAnimation->GetAssetData()->GetId() : "";
+	//			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+
+	//			(controller->GetAnimations().empty()) ? ImGui::BeginDisabled() : void();
+	//			if (DrawCombo(" ##Animations", currentAnimationName, animationsNames, comboFlags, ImGuiComboFlags_None))
+	//			{
+	//				if (currentAnimationName.size()) controller->SetCurrentAnimation(currentAnimationName, shade::Animation::State::Play);
+	//			}
+	//			(controller->GetAnimations().empty()) ? ImGui::EndDisabled() : void();
+
+	//			if(controller->GetAnimations().size() == 2)
+	//			{
+	//				auto first  =  controller->GetAnimations().begin();
+	//				auto second = (++controller->GetAnimations().begin());
+
+	//				controller->ProcessPose(first->first, 0, 0, second->first, 0,0, blendFactor, isSync, boneMask);
+	//			}
+	//			else if(currentAnimation)
+	//			{
+	//				if (currentAnimation)
+	//					controller->ProcessPose(currentAnimation, 0, 10);
+	//			}*/
+	//		}
+
+	//		ImGui::TableNextColumn();
+	//		{
+	//			if (ImGui::Button("+"))
+	//				m_IsAddSkeletalAnimationModal = true;
+	//			ImGui::SameLine();
+	//			if (ImGui::Button("-"))
+	//			{
+	//				controller->RemoveAnimation(currentAnimation); currentAnimation = nullptr;
+
+	//			}
+	//		}
+	//	}
+	//	ImGui::TableNextRow();
+	//	{
+	//		ImGui::TableNextColumn();
+	//		{
+	//			ImGui::Text("Timeline");
+	//		}
+	//		ImGui::TableNextColumn();
+	//		{
+	//			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+
+	//			if (currentAnimation)
+	//			{
+	//				ImGui::SliderFloat("##Timeline", &controller->GetCurrentAnimationTime(currentAnimation), 0.f,
+	//					controller->GetAnimationDuration(currentAnimation));
+	//			}
+	//			else
+	//			{
+	//				static float cur = 0.0f, max = 100.0f;
+
+	//				ImGui::BeginDisabled();
+	//				ImGui::SliderFloat("##Timeline", &cur, 0.f, max);
+	//				ImGui::EndDisabled();
+	//			}
+	//		}
+	//	}
+	//	ImGui::EndTable();
+	//}
+	//ImGui::Separator();
+	//if (ImGui::BeginTable("##Play/Pause/StopAnimation", 3, ImGuiTableFlags_None | ImGuiTableFlags_SizingStretchProp))
+	//{
+	//	(!currentAnimation) ? ImGui::BeginDisabled() : void();
+
+	//	ImGui::TableNextRow();
+	//	{
+	//		ImGui::TableNextColumn();	
+
+	//		bool isPlay = (currentAnimation && (controller->GetAnimationState(currentAnimation) == shade::Animation::State::Play));
+
+	//		(isPlay) ? ImGui::BeginDisabled() : void();
+	//		if (ImGui::Button("Play", { ImGui::GetContentRegionAvail().x, 0 })) controller->SetAnimationState(currentAnimation, shade::Animation::State::Play);
+	//		(isPlay) ? ImGui::EndDisabled() : void();
+
+	//		ImGui::TableNextColumn();
+
+	//		bool isPauseStop = (currentAnimation && (controller->GetAnimationState(currentAnimation) == shade::Animation::State::Pause || controller->GetAnimationState(currentAnimation) == shade::Animation::State::Stop));
+
+	//		(isPauseStop) ? ImGui::BeginDisabled() : void();
+	//		if (ImGui::Button("Pause", { ImGui::GetContentRegionAvail().x, 0 })) controller->SetAnimationState(currentAnimation, shade::Animation::State::Pause);
+	//		(isPauseStop) ? ImGui::EndDisabled() : void();
+
+
+	//		bool isPlayPause = (currentAnimation && (controller->GetAnimationState(currentAnimation) == shade::Animation::State::Stop));
+
+	//		ImGui::TableNextColumn();	
+
+	//		(isPlayPause) ? ImGui::BeginDisabled() : void();
+	//		if (ImGui::Button("Stop", { ImGui::GetContentRegionAvail().x, 0 })) controller->SetAnimationState(currentAnimation,  shade::Animation::State::Stop);
+	//		(isPlayPause) ? ImGui::EndDisabled() : void();
+	//	}
+	//	(!currentAnimation) ? ImGui::EndDisabled() : void();
+	//	ImGui::EndTable();
+	//}
+	//ImGui::Separator();
+	//(!currentAnimation) ? ImGui::BeginDisabled() : void();
+	//if (ImGui::BeginTable("##Play/Pause/StopAnimationSS", 3 , ImGuiTableFlags_None | ImGuiTableFlags_SizingStretchProp))
+	//{
+	//	float defaultValue = 0.f;
+
+	//	ImGui::TableNextRow();
+	//	{
+	//		ImGui::TableNextColumn(); {ImGui::Text("Duration"); }
+	//	
+	//		ImGui::TableNextColumn(); { ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x); ImGui::DragFloat("##Duration", (currentAnimation) ? &controller->GetAnimationDuration(currentAnimation) : &defaultValue, 0.001f); }
+
+	//		ImGui::TableNextColumn(); { if (ImGui::Button("R##D")) { controller->GetAnimationDuration(currentAnimation) = currentAnimation->GetDuration(); } }
+	//	}
+	//	ImGui::TableNextRow();
+	//	{
+	//		ImGui::TableNextColumn(); {ImGui::Text("Tiks per seccond"); }
+	//		
+	//		ImGui::TableNextColumn(); { ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x); ImGui::DragFloat("##TiksPerSeccond", (currentAnimation) ? &controller->GetAnimationTiks(currentAnimation) : &defaultValue, 0.001f); }
+
+	//		ImGui::TableNextColumn(); { if (ImGui::Button("R##T")) { controller->GetAnimationTiks(currentAnimation) = currentAnimation->GetTiksPerSecond(); } }
+	//	}
+	//	ImGui::TableNextRow();
+	//	{
+	//		ImGui::TableNextColumn(); {ImGui::Text("Blend Factor"); }
+	//		ImGui::TableNextColumn();
+	//		{
+	//			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+	//			ImGui::SliderFloat("##Blend", &blendFactor, 0.0f, 1.0f);
+	//		}
+	//		ImGui::TableNextColumn();
+	//		{
+	//			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+	//			ImGui::Checkbox("##Sync", &isSync);
+	//		}
+	//		
+	//	}
+	//	ImGui::EndTable();
+	//}
+	//(!currentAnimation) ? ImGui::EndDisabled() : void();
+
+	//static std::string searchBone;
+
+	//InputTextCol("Search:", searchBone);
+	//ImGui::Separator();
+
+	//if (entity.HasComponent<shade::ModelComponent>())
+	//{
+	//	auto& model = entity.GetComponent<shade::ModelComponent>();
+
+	//	if (model->GetSkeleton())
+	//	{
+	//		if (ImGui::TreeNodeEx("Bone's weights:", ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_Framed))
+	//		{
+	//			BoneMaskEdnitor(model->GetSkeleton()->GetRootNode(), boneMask);
+	//			ImGui::TreePop();
+	//		}
+	//		
+	//	}
+	//}
+	//
+	//ImGui::SetNextWindowSize(ImGui::GetContentRegionAvail());
+	//DrawModal("Add animation's asset:", m_IsAddSkeletalAnimationModal, [&]()
+	//	{
+	//		static std::string id;
+	//		static std::string search;
+
+	//		InputTextCol("Search:", search);
+	//		ImGui::Separator();
+
+	//		for (const auto& assetData : shade::AssetManager::GetAssetDataList(shade::AssetMeta::Category::Secondary))
+	//		{
+	//			if (assetData.second->GetType() == shade::AssetMeta::Type::Animation && assetData.first.find(search) != std::string::npos)
+	//			{
+	//				if (ImGui::Selectable(assetData.first.c_str(), id == assetData.first))
+	//				{
+	//					shade::AssetManager::GetAsset<shade::Animation>(assetData.first, shade::AssetMeta::Category::Secondary, shade::BaseAsset::LifeTime::KeepAlive, [=](auto& animation) mutable
+	//						{
+	//							controller->AddAnimation(animation);
+	//						});
+
+	//					m_IsAddSkeletalAnimationModal = false;
+	//				}
+	//			}
+	//		}
+	//	});
 }
 
 void EditorLayer::MaterialEdit(shade::Material& material)
@@ -2040,7 +2087,7 @@ void EditorLayer::MaterialEdit(shade::Material& material)
 	}
 }
 
-void EditorLayer::BoneMaskEdnitor(const shade::SharedPointer<shade::Skeleton::BoneNode>& node, shade::animation::BoneMask& boneMask)
+void EditorLayer::BoneMaskEdnitor(const shade::Skeleton::BoneNode* node, shade::animation::BoneMask& boneMask)
 {
 	bool overrideByParrent = false;
 
@@ -2072,18 +2119,6 @@ void EditorLayer::BoneMaskEdnitor(const shade::SharedPointer<shade::Skeleton::Bo
 
 		ImGui::TreePop();
 	}
-	
-
-	//auto& sekelton = entity.GetComponent<shade::ModelComponent>()->GetSkeleton();
-
-	//for (const auto& [name, bone] : sekelton->GetBones())
-	//{
-	//	for (auto& [id, weight] : boneMask.Weights)
-	//	{
-	//		if (name == weight.first && weight.first.find(searchBone) != std::string::npos)
-	//			ImGui::DragFloat(weight.first.c_str(), &weight.second, 0.001f, 0.0f);
-	//	}
-	//}
 }
 
 void EditorLayer::Material(shade::Material& material)
@@ -2298,7 +2333,7 @@ void EditorLayer::CreateCollisionShapes()
 			{
 				if (!path.empty())
 				{
-					static shade::physic::CollisionShapes shapes;
+					static auto shapes = shade::physic::CollisionShapes::CreateEXP();
 
 					shade::AssetManager::GetAsset<shade::Model, shade::BaseAsset::InstantiationBehaviour::Synchronous>(selectedAssetData->GetId(), shade::AssetMeta::Category::Primary, shade::BaseAsset::LifeTime::DontKeepAlive, [&](auto& asset) mutable
 						{
@@ -2314,7 +2349,7 @@ void EditorLayer::CreateCollisionShapes()
 								for (auto& point : hull)
 									collider->AddVertex(point);
 
-								shapes.AddShape(collider);
+								shapes->AddShape(collider);
 							}
 						});
 

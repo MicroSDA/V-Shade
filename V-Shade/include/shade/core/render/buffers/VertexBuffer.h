@@ -8,6 +8,9 @@ namespace shade
 {
 	class SHADE_API VertexBuffer
 	{
+
+		SHADE_CAST_HELPER(VertexBuffer)
+
 	public:
 		class Layout
 		{
@@ -65,9 +68,6 @@ namespace shade
 		
 		virtual void Bind(SharedPointer<RenderCommandBuffer>& commandBuffer, std::uint32_t frameIndex, std::uint32_t binding, std::uint32_t offset = 0) const = 0;
 		virtual std::uint32_t GetSize() const;
-
-		template<typename T>
-		T& As();
 	protected:
 		Usage m_Usage = Usage::GPU;
 		std::uint32_t m_Size = 0;
@@ -75,10 +75,4 @@ namespace shade
 
 		bool HasToBeResized(std::uint32_t oldSize, std::uint32_t newSize, std::uint32_t threshold);
 	};
-	template<typename T>
-	inline T& VertexBuffer::As()
-	{
-		static_assert(std::is_base_of<VertexBuffer, T>::value, "");
-		return static_cast<T&>(*this);
-	}
 }

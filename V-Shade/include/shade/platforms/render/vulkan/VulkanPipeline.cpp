@@ -211,7 +211,7 @@ void shade::VulkanPipeline::Invalidate()
 			.pDynamicStates = dynamicStates.data()
 		};
 		// Depth stencil
-		// Actually we need check evereting from shader that we neet to create becouse we can no create stensil or sometning.!
+		// Actually we need check evereting from shader that we need to create bcs we can no create stensil or sometning.!
 		VkPipelineDepthStencilStateCreateInfo pipelineDepthStencilStateCreateInfo
 		{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,

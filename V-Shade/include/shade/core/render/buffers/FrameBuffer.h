@@ -10,6 +10,9 @@ namespace shade
 {
 	class SHADE_API FrameBuffer
 	{
+
+		SHADE_CAST_HELPER(FrameBuffer)
+
 	public:
 		struct TextureSpecification
 		{
@@ -48,16 +51,7 @@ namespace shade
 
 		virtual SharedPointer<Texture2D>& GetTextureAttachment(std::uint32_t index = 0)= 0;
 		virtual SharedPointer<Texture2D>& GetDepthAttachment(std::uint32_t index = 0) = 0;
-
-		template<typename T>
-		T& As();
 	protected:
 		FrameBuffer::Specification m_Specification;
 	};
-	template<typename T>
-	inline T& FrameBuffer::As()
-	{
-		static_assert(std::is_base_of<FrameBuffer, T>::value, "");
-		return static_cast<T&>(*this);
-	}
 }

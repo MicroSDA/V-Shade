@@ -4,36 +4,24 @@
 
 namespace shade
 {
-	class SHADE_API		Model : public BaseAsset, public Asset<Model>
+	class SHADE_API	Model : ASSET_INHERITANCE(Model)
 	{
-	public:
-		virtual ~Model();
-		static AssetMeta::Type GetAssetStaticType();
-		virtual AssetMeta::Type GetAssetType() const override;
+		ASSET_DEFINITION_HELPER(Model)
+		VECTOR_BASE_ITERATOR_HELPER(Asset<Mesh>, m_Meshes)
 
-		Model() = default;
-		static SharedPointer<Model> CreateEXP();
 	public:
-		std::vector<Asset<Mesh>>::iterator begin() noexcept { return m_Meshes.begin(); };
-		std::vector<Asset<Mesh>>::iterator end() noexcept { return m_Meshes.end(); };
-		std::vector<Asset<Mesh>>::const_iterator cbegin() const noexcept { return m_Meshes.begin(); };
-		std::vector<Asset<Mesh>>::const_iterator cend() const noexcept { return m_Meshes.end(); };
+		virtual ~Model() = default;
 	public:
 		void AddMesh(const Asset<Mesh>& mesh);
 		const std::vector<Asset<Mesh>>& GetMeshes() const;
 		std::vector<Asset<Mesh>>& GetMeshes();
-
 		void SetSkeleton(const Asset<Skeleton>& skeleton);
 		const Asset<Skeleton>& GetSkeleton() const;
-
 	private:
 		std::vector<Asset<Mesh>> m_Meshes;
-		Asset<Skeleton> m_Skeleton;
+		Asset<Skeleton> m_Skeleton; // Remove from here and add to Animation Graph
 	private:
-		static Model* Create(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
 		Model(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
-
-		friend class Asset<Model>;
 		friend class Serializer;
 	private:
 		friend class SceneComponentSerializer;

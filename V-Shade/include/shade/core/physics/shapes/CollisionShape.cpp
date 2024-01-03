@@ -153,16 +153,6 @@ const glm::vec<3, shade::physic::scalar_t>& shade::physic::CollisionShape::GetMa
 	return m_MaxHalfExt;
 }
 
-shade::AssetMeta::Type shade::physic::CollisionShapes::GetAssetStaticType()
-{
-	return AssetMeta::Type::CollisionShapes;
-}
-
-shade::AssetMeta::Type shade::physic::CollisionShapes::GetAssetType() const
-{
-	return GetAssetStaticType();
-}
-
 shade::physic::CollisionShapes::CollisionShapes(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour) : BaseAsset(assetData, lifeTime, behaviour)
 {
 	auto filePath = assetData->GetAttribute<std::string>("Path");
@@ -176,11 +166,6 @@ shade::physic::CollisionShapes::CollisionShapes(SharedPointer<AssetData> assetDa
 		file.Read(*this);
 	}
 	file.CloseFile();
-}
-
-shade::physic::CollisionShapes* shade::physic::CollisionShapes::Create(SharedPointer<AssetData> assetData, BaseAsset::LifeTime lifeTime, InstantiationBehaviour behaviour)
-{
-	return new CollisionShapes(assetData, lifeTime, behaviour);
 }
 
 std::size_t shade::physic::CollisionShapes::Serialize(std::ostream& stream) const

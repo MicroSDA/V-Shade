@@ -10,23 +10,18 @@
 
 namespace shade
 {
-	class SHADE_API Mesh : public Drawable, public BaseAsset, public Asset<Mesh>
+	class SHADE_API Mesh : public Drawable, ASSET_INHERITANCE(Mesh)
 	{
+		ASSET_DEFINITION_HELPER(Mesh)
+
 	public:
 		virtual ~Mesh() = default;
-		static AssetMeta::Type GetAssetStaticType();
-		virtual AssetMeta::Type GetAssetType() const override;
-
-		Mesh() = default;
-		static SharedPointer<Mesh> CreateEXP();
 	private:
 		Mesh(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
-		static Mesh* Create(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
 		std::size_t Serialize(std::ostream& stream) const;
 		std::size_t Deserialize(std::istream& stream);
 	private:
 		friend class Serializer;
-		friend class Asset<Mesh>;
 	};
 
 	/* Serialize Mesh.*/

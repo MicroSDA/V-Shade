@@ -15,26 +15,6 @@ shade::Animation::Animation(SharedPointer<AssetData> assetData, LifeTime lifeTim
 	}
 }
 
-shade::Animation* shade::Animation::Create(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour)
-{
-	return new Animation(assetData, lifeTime, behaviour);
-}
-
-shade::AssetMeta::Type shade::Animation::GetAssetStaticType()
-{
-	return AssetMeta::Type::SkeletonAnimation;
-}
-
-shade::AssetMeta::Type shade::Animation::GetAssetType() const
-{
-	return GetAssetStaticType();
-}
-
-shade::SharedPointer<shade::Animation> shade::Animation::CreateEXP()
-{
-	return SharedPointer<shade::Animation>::Create();
-}
-
 void shade::Animation::AddChannel(const std::string& name, const Channel& channel)
 {
 	if (m_AnimationChannels.find(name) != m_AnimationChannels.end())

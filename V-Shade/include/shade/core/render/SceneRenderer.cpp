@@ -5,8 +5,6 @@
 
 #include <glm/glm/gtx/hash.hpp>
 
-
-
 shade::SharedPointer<shade::SceneRenderer> shade::SceneRenderer::Create(bool swapChainAsMainTarget)
 {
 	return SharedPointer<SceneRenderer>::Create(swapChainAsMainTarget);
@@ -320,7 +318,9 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 			{
 				auto pcTransform = scene->ComputePCTransform(entity);
 
-				AnimationControllerComponent animationController = (entity.HasComponent<AnimationControllerComponent>()) ? entity.GetComponent<AnimationControllerComponent>() : nullptr;
+				AnimationGraphComponent animationGraph = (entity.HasComponent<AnimationGraphComponent>()) ? entity.GetComponent<AnimationGraphComponent>() : nullptr;
+				const animation::Pose* finalPose = (animationGraph) ? animationGraph->GetOutputPoseNode()->GetFinalPose() : nullptr;
+
 
 				bool isModelInFrustrum = false;
 				
@@ -330,7 +330,7 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 					{
 						isModelInFrustrum = true;
 
-						if (animationController && animationController->GetCurentAnimation() &&  mesh->GetLod(0).Bones.size())
+						if (animationGraph && finalPose && mesh->GetLod(0).Bones.size())
 						{
 							Renderer::SubmitStaticMesh(m_MainGeometryPipelineAnimated, mesh, mesh->GetMaterial(), model, pcTransform); m_Statistic.SubmitedInstances++;
 						}
@@ -401,9 +401,9 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 				}
 
 
-				if (isModelInFrustrum && animationController && model->GetSkeleton())
+				if (isModelInFrustrum && animationGraph && finalPose && model->GetSkeleton())
 				{
-					Renderer::SubmitBoneTransforms(m_MainGeometryPipelineAnimated, model, animationController->QuerryPose(model->GetSkeleton(), deltaTime)->GetBoneGlobalTransforms());
+					 Renderer::SubmitBoneTransforms(m_MainGeometryPipelineAnimated, model, finalPose->GetBoneGlobalTransforms()); 		
 				}
 
 				/*if (isModelInFrustrum && animationController && animationController->GetCurentAnimation() && model->GetSkeleton())

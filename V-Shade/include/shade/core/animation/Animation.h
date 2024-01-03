@@ -8,8 +8,10 @@
 
 namespace shade
 {
-	class SHADE_API Animation : public BaseAsset, public Asset<Animation>
+	class SHADE_API Animation : ASSET_INHERITANCE(Animation)
 	{
+		ASSET_DEFINITION_HELPER(Animation)
+
 	public:
 		enum class State
 		{
@@ -41,14 +43,6 @@ namespace shade
 
 	public: 
 		virtual ~Animation() = default;
-
-		static AssetMeta::Type GetAssetStaticType();
-
-		virtual AssetMeta::Type GetAssetType() const override;
-
-		Animation() = default; 
-
-		static SharedPointer<Animation> CreateEXP(); 
 		// Add a channel to the animation
 		void AddChannel(const std::string& name, const Channel& channel);
 		// Interpolate the position of the channel at the given time
@@ -77,12 +71,10 @@ namespace shade
 		void SetDuration(float duration);
 	private:
 		Animation(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
-		static Animation* Create(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
 		std::size_t Serialize(std::ostream& stream) const;
 		std::size_t Deserialize(std::istream& stream);
 	private:
 		friend class Serializer;
-		friend class Asset<Animation>;
 	private:
 		AnimationChannels m_AnimationChannels;
 		float m_TicksPerSecond = 0.f;

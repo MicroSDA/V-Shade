@@ -2,11 +2,16 @@
 #include <shade/config/ShadeAPI.h>
 #include <shade/core/memory/Memory.h>
 #include <iostream>
+#include <shade/utils/Utils.h>
+
 namespace shade
 {
 	// Shader class.
 	class SHADE_API Shader
 	{
+
+		SHADE_CAST_HELPER(Shader)
+
 	public:
 		// Shader type.
 		enum Type : std::uint32_t
@@ -44,9 +49,6 @@ namespace shade
 		static std::string GetTypeAsString(Shader::Type type);
 
 		virtual void Recompile() = 0;
-		// For internal convert.
-		template<typename T>
-		T& As();
 	protected:
 		std::unordered_map<Shader::Type, std::string> m_SourceCode;
 		virtual void TryToFindInCacheAndCompile() = 0;
@@ -64,10 +66,4 @@ namespace shade
 		std::unordered_map<Shader::Type, std::string> PreProcess(std::string& source, const std::string& origin);
 		void Includer(std::string& source, Shader::Type stage, const std::string& filePath, const std::string& origin);
 	};
-	template<typename T>
-	inline T& Shader::As()
-	{
-		static_assert(std::is_base_of<Shader, T>::value, "");
-		return static_cast<T&>(*this);
-	}
 }

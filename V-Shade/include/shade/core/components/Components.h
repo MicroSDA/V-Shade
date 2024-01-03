@@ -9,7 +9,7 @@
 #include <shade/core/environment/PointLight.h>
 #include <shade/core/environment/SpotLight.h>
 #include <shade/core/physics/RigidBody.h>
-#include <shade/core/animation/AnimationController.h>
+#include <shade/core/animation/graph/AnimationGraph.h>
 
 namespace shade
 {
@@ -24,5 +24,5 @@ namespace shade
 	using PointLightComponent = SharedPointer<PointLight>;
 	using SpotLightComponent = SharedPointer<SpotLight>;
 	using RigidBodyComponent = physic::RigidBody;
-	using AnimationControllerComponent = SharedPointer<AnimationController>;
+	using AnimationGraphComponent = Asset<animation::AnimationGraph>;
 }

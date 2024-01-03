@@ -7,6 +7,9 @@ namespace shade
 {
 	class SHADE_API SwapChain
 	{
+
+		SHADE_CAST_HELPER(SwapChain)
+
 	public:
 		virtual~SwapChain() = default;
 		static UniquePointer<SwapChain> Create();
@@ -26,18 +29,9 @@ namespace shade
 		SharedPointer<RenderCommandBuffer> GetCommandBuffer();
 		virtual std::vector<SharedPointer<FrameBuffer>>& GetFrameBuffers() { return m_FrameBuffers; };
 		virtual SharedPointer<FrameBuffer>& GetFrameBuffer() = 0;
-		template<typename T>
-		T& As();
 	protected:
 		SharedPointer<RenderCommandBuffer> m_CommandBuffer;
 		std::uint32_t m_FramesCount;
 		std::vector<SharedPointer<FrameBuffer>> m_FrameBuffers;
 	};
-	template<typename T>
-	inline T& SwapChain::As()
-	{
-		static_assert(std::is_base_of<SwapChain, T>::value, "");
-		return static_cast<T&>(*this);
-	}
-
 }

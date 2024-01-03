@@ -9,8 +9,10 @@
 
 namespace shade
 {
-	class SHADE_API Material : public BaseAsset, public Asset<Material>
+	class SHADE_API Material : ASSET_INHERITANCE(Material)
 	{
+		ASSET_DEFINITION_HELPER(Material)
+
 	public:
 		// An enumeration class to represent different shading models available
 		enum class ShadingModel : std::uint32_t
@@ -35,45 +37,40 @@ namespace shade
 			alignas(16) glm::vec3	ColorSpecular;
 			alignas(16) glm::vec3	ColorTransparent;
 
-			float			Emmisive;
-			float			Opacity;
-			float			Shininess;
-			float			ShininessStrength;
-			float			Refracti;
-			ShadingModel	Shading;
+			float					Emmisive;
+			float					Opacity;
+			float					Shininess;
+			float					ShininessStrength;
+			float					Refracti;
+			ShadingModel			Shading;
 
-			alignas(4) bool	NormalMapEnabled;
-			alignas(4) bool	BumpMapEnabled;
+			alignas(4) bool			NormalMapEnabled;
+			alignas(4) bool			BumpMapEnabled;
 		};
 	public:
-		// For Creation as SharedPointer
-		Material() = default;
 		virtual ~Material() = default;
 	public:
 
-		glm::vec3				ColorAmbient		= glm::vec3(0.f);
-		glm::vec3				ColorDiffuse		= glm::vec3(1.f);
-		glm::vec3				ColorSpecular		= glm::vec3(1.f);
-		glm::vec3				ColorTransparent	= glm::vec3(-1.f); // Miuse one, so defualt transparent color doesnt exist
+		glm::vec3					ColorAmbient		= glm::vec3(0.f);
+		glm::vec3					ColorDiffuse		= glm::vec3(1.f);
+		glm::vec3					ColorSpecular		= glm::vec3(1.f);
+		glm::vec3					ColorTransparent	= glm::vec3(-1.f); // Minus one, so defualt transparent color doesn't exist
 
-		float					Emmisive = 0.0f;
-		float					Opacity = 1.0f;
-		float					Shininess = 50.0f;
-		float					ShininessStrength = 1.0f;
-		float					Refracti = 0.0f;
-		ShadingModel			Shading = ShadingModel::NonShading;
-		bool					NormalMapEnabled = false;
-		bool					BumpMapEnabled = false;
+		float						Emmisive = 0.0f;
+		float						Opacity = 1.0f;
+		float						Shininess = 50.0f;
+		float						ShininessStrength = 1.0f;
+		float						Refracti = 0.0f;
+		ShadingModel				Shading = ShadingModel::NonShading;
+		bool						NormalMapEnabled = false;
+		bool						BumpMapEnabled = false;
 
-		Asset<Texture2D>		TextureDiffuse;
-		Asset<Texture2D>		TextureSpecular;
-		Asset<Texture2D>		TextureNormals;
-		Asset<Texture2D>		TextureRoughness;
-		Asset<Texture2D>		TextureAlbedo;
-		Asset<Texture2D>		TextureMetallic;
-
-		static AssetMeta::Type GetAssetStaticType();
-		virtual AssetMeta::Type GetAssetType() const override;
+		Asset<Texture2D>			TextureDiffuse;
+		Asset<Texture2D>			TextureSpecular;
+		Asset<Texture2D>			TextureNormals;
+		Asset<Texture2D>			TextureRoughness;
+		Asset<Texture2D>			TextureAlbedo;
+		Asset<Texture2D>			TextureMetallic;
 
 		inline RenderData GetRenderData() const 
 		{
@@ -96,14 +93,11 @@ namespace shade
 			return data;
 		}
 	private:
-
 		Material(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
-		static Material* Create(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
 		std::size_t Serialize(std::ostream& stream) const;
 		std::size_t Deserialize(std::istream& stream);
 
 		friend class Serializer;
-		friend class Asset<Material>;
 	};
 
 	template<>

@@ -11,7 +11,7 @@ std::string shade::AssetMeta::GetTypeAsString(AssetMeta::Type type)
 		case AssetMeta::Type::Mesh: return "Mesh";
 		case AssetMeta::Type::Material: return "Material";
 		case AssetMeta::Type::Texture: return "Texture";
-		case AssetMeta::Type::SkeletonAnimation: return "SkeletonAnimation";
+		case AssetMeta::Type::Animation: return "Animation";
 		case AssetMeta::Type::Skeleton: return "Skeleton";
 		case AssetMeta::Type::CollisionShapes: return "CollisionShapes";
 		case AssetMeta::Type::Sound: return "Sound";
@@ -30,8 +30,8 @@ shade::AssetMeta::Type shade::AssetMeta::GetTypeFromString(const std::string& ty
 		return AssetMeta::Type::Material;
 	if (type == "Texture")
 		return AssetMeta::Type::Texture;
-	if (type == "SkeletonAnimation")
-		return AssetMeta::Type::SkeletonAnimation;
+	if (type == "Animation")
+		return AssetMeta::Type::Animation;
 	if (type == "Skeleton")
 		return AssetMeta::Type::Skeleton;
 	if (type == "CollisionShapes")

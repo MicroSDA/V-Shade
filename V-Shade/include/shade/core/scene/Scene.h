@@ -21,6 +21,7 @@ namespace shade
 		static SharedPointer<Scene>& SetActiveScene(const std::string& name);
 
 		void NativeScriptsUpdate(const shade::FrameTimer& deltaTime);
+		void AnimationsUpdate(const shade::FrameTimer& deltaTime);
 
 		ecs::Entity GetPrimaryCamera();
 		void OnPlayStart();

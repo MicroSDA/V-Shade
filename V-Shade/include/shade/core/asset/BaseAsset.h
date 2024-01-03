@@ -32,7 +32,7 @@ namespace shade
 			Mesh,
 			Material,
 			Texture,
-			SkeletonAnimation,
+			Animation,
 			Skeleton,
 			CollisionShapes,
 			Sound,
@@ -110,7 +110,7 @@ namespace shade
 			return search->second;
 		else
 			return std::string(); // throw std::exception(std::invalid_argument(std::format("Attribute = '{}' has not been found!", name)));
-			
+
 	}
 	/* Set attribute as string.*/
 	template<>
@@ -278,9 +278,26 @@ namespace shade
 
 		template<typename T>
 		friend class Asset;
-		 
+
 		friend class AssetManager;
 	};
+
+#define ASSET_INHERITANCE(type) public shade::BaseAsset, public shade::Asset<type>
+#define ASSET_STATIC_TYPE_HELPER(type) \
+		public: \
+			static inline AssetMeta::Type GetAssetStaticType() { return AssetMeta::Type::##type; }; \
+			virtual inline AssetMeta::Type GetAssetType() const override { return GetAssetStaticType(); }; \
+
+#define ASSET_DEFINITION_HELPER(type, ...) \
+		public: \
+			ASSET_STATIC_TYPE_HELPER(type) \
+			static inline SharedPointer<##type> CreateEXP() { return SharedPointer<##type>::Create(); }\
+		private:  \
+			type() = default; \
+			static type* Create(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour, ##__VA_ARGS__) { return new type(assetData, lifeTime, behaviour, ##__VA_ARGS__); }\
+			friend class SharedPointer<type>;\
+			friend class Asset<type>;
+
 	/* Serialize AssetData.*/
 	template<>
 	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const SharedPointer<AssetData>& assetData, std::size_t)

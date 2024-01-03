@@ -57,21 +57,6 @@ shade::Material::Material(SharedPointer<AssetData> assetData, LifeTime lifeTime,
 		
 }
 
-shade::AssetMeta::Type shade::Material::GetAssetStaticType()
-{
-	return AssetMeta::Type::Material;
-}
-
-shade::AssetMeta::Type shade::Material::GetAssetType() const
-{
-	return GetAssetStaticType();
-}
-
-shade::Material* shade::Material::Create(SharedPointer<AssetData> assetData, BaseAsset::LifeTime lifeTime, InstantiationBehaviour behaviour)
-{
-	return new Material(assetData, lifeTime, behaviour);
-}
-
 std::size_t shade::Material::Serialize(std::ostream& stream) const
 {
 	std::size_t size = Serializer::Serialize(stream, ColorAmbient);

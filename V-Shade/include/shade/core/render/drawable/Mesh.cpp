@@ -4,16 +4,6 @@
 // TEMPORARY
 #include <shade/core/physics/algo/ConvexHullGenerator.h>
 
-shade::AssetMeta::Type shade::Mesh::GetAssetStaticType()
-{
-	return AssetMeta::Type::Mesh;
-}
-
-shade::AssetMeta::Type shade::Mesh::GetAssetType() const
-{
-	return GetAssetStaticType();
-}
-
 shade::Mesh::Mesh(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour) : BaseAsset(assetData, lifeTime, behaviour)
 {
 	for (auto& dependency : assetData->GetDependencies())
@@ -54,11 +44,6 @@ shade::Mesh::Mesh(SharedPointer<AssetData> assetData, LifeTime lifeTime, Instant
 			}
 		}
 	}
-}
-
-shade::Mesh* shade::Mesh::Create(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour)
-{
-	return new Mesh(assetData, lifeTime, behaviour);
 }
 
 std::size_t shade::Mesh::Serialize(std::ostream& stream) const
@@ -187,8 +172,4 @@ std::size_t shade::Mesh::Deserialize(std::istream& stream)
 	}
 	
 	return stream.tellg();
-}
-shade::SharedPointer<shade::Mesh> shade::Mesh::CreateEXP()
-{
-	return SharedPointer<shade::Mesh>::Create();
 }

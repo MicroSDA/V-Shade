@@ -9,6 +9,7 @@
 #include <shade/core/components/Components.h>
 #include <shade/core/asset/AssetManager.h>
 #include <shade/core/physics/PhysicsManager.h>
+#include <shade/core/scripting/ScriptManager.h>
 
 // TODO: Add time, scene and so on.
 namespace shade

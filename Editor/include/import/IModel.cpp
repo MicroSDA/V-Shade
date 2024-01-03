@@ -36,7 +36,7 @@ namespace utils
 		return { aQuat.w, aQuat.x, aQuat.y, aQuat.z };
 	}
 }
-std::pair<shade::SharedPointer<shade::Model>, shade::AnimationControllerComponent> IModel::Import(const std::string& filePath, IImportFlag flags)
+std::pair<shade::SharedPointer<shade::Model>, std::unordered_map<std::string, shade::SharedPointer<shade::Animation>>> IModel::Import(const std::string& filePath, IImportFlag flags)
 {
 	Assimp::Importer importer;
 	importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
@@ -51,14 +51,14 @@ std::pair<shade::SharedPointer<shade::Model>, shade::AnimationControllerComponen
 		aiProcess_OptimizeMeshes |
 		aiProcess_FixInfacingNormals;
 
-		ImportFagls |= 
-			((flags & Triangulate) ? aiProcess_Triangulate : 0) |
-			((flags & FlipUVs) ? aiProcess_FlipUVs : 0) |
-			((flags & JoinIdenticalVertices) ? aiProcess_JoinIdenticalVertices : 0) |
-			((flags & CalcTangentSpace) ? aiProcess_CalcTangentSpace : 0) |
-			((flags & CalcNormals) ? aiProcess_ForceGenNormals : 0) |
-			((flags & GenSmoothNormals) ? aiProcess_GenSmoothNormals : 0) | 
-			((flags & UseScale) ? aiProcess_GlobalScale : 0);
+	ImportFagls |=
+		((flags & Triangulate) ? aiProcess_Triangulate : 0) |
+		((flags & FlipUVs) ? aiProcess_FlipUVs : 0) |
+		((flags & JoinIdenticalVertices) ? aiProcess_JoinIdenticalVertices : 0) |
+		((flags & CalcTangentSpace) ? aiProcess_CalcTangentSpace : 0) |
+		((flags & CalcNormals) ? aiProcess_ForceGenNormals : 0) |
+		((flags & GenSmoothNormals) ? aiProcess_GenSmoothNormals : 0) |
+		((flags & UseScale) ? aiProcess_GlobalScale : 0);
 
 	//const aiScene* pScene = importer.ReadFile(filePath, ImportFagls);
 	const aiScene* pScene = importer.ReadFile(filePath, ImportFagls);
@@ -75,14 +75,14 @@ std::pair<shade::SharedPointer<shade::Model>, shade::AnimationControllerComponen
 		auto model = shade::Model::CreateEXP();
 		model->SetAssetData(shade::SharedPointer<shade::AssetData>::Create(pScene->mName.C_Str(), shade::AssetMeta::Category::Primary, shade::AssetMeta::Type::Model));
 
-		
+
 		if (flags & ImportModel)
 		{
 			SHADE_INFO("******************************************************************");
 			SHADE_INFO("Start to extractin model");
 			SHADE_INFO("******************************************************************");
 
-			
+
 			ProcessModelNode(model, filePath.c_str(), pScene->mRootNode, pScene, flags);
 		}
 
@@ -97,7 +97,7 @@ std::pair<shade::SharedPointer<shade::Model>, shade::AnimationControllerComponen
 			skeleton = ISkeleton::ExtractSkeleton(pScene);
 		}
 
-		shade::AnimationControllerComponent animations;
+		std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> animations;
 
 		if (flags & ImportAnimation)
 		{
@@ -107,7 +107,7 @@ std::pair<shade::SharedPointer<shade::Model>, shade::AnimationControllerComponen
 
 			animations = IAnimation::ImportAnimations(pScene, skeleton);
 		}
-		
+
 		model->SetSkeleton(skeleton);
 
 		return { model, animations };
@@ -241,7 +241,7 @@ shade::SharedPointer<shade::Skeleton> ISkeleton::ExtractSkeleton(const aiScene* 
 	return (skeleton->GetBones().size()) ? skeleton : nullptr;
 }
 
-void ISkeleton::ProcessBone(const aiScene* pScene, const aiNode* pNode, shade::SharedPointer<shade::Skeleton>& skeleton, shade::SharedPointer<shade::Skeleton::BoneNode> parent)
+void ISkeleton::ProcessBone(const aiScene* pScene, const aiNode* pNode, shade::SharedPointer<shade::Skeleton>& skeleton, shade::Skeleton::BoneNode* parent)
 {
 	aiBone* pBone = nullptr;
 
@@ -250,11 +250,10 @@ void ISkeleton::ProcessBone(const aiScene* pScene, const aiNode* pNode, shade::S
 		const aiMesh* mesh = pScene->mMeshes[meshIndex];
 		for (uint32_t boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex)
 		{
-			if (skeleton->GetArmature() == nullptr)
-			{
-				SHADE_INFO("-- Add Armature --");
-				skeleton->AddArmature(utils::FromAssimToToGLM<glm::mat4>(mesh->mBones[boneIndex]->mArmature->mTransformation));
-			}
+
+			SHADE_INFO("-- Add Armature --");
+			skeleton->AddArmature(utils::FromAssimToToGLM<glm::mat4>(mesh->mBones[boneIndex]->mArmature->mTransformation));
+
 
 			if (pNode == mesh->mBones[boneIndex]->mNode)
 			{
@@ -268,13 +267,13 @@ void ISkeleton::ProcessBone(const aiScene* pScene, const aiNode* pNode, shade::S
 	if (pBone)
 	{
 		SHADE_INFO("-- Add new bone : {} --", pNode->mName.C_Str());
-		auto bone = skeleton->AddBone(pNode->mName.C_Str(), utils::FromAssimToToGLM<glm::mat4>(pNode->mTransformation), utils::FromAssimToToGLM<glm::mat4>(pBone->mOffsetMatrix));
+		auto& bone = skeleton->AddBone(pNode->mName.C_Str(), utils::FromAssimToToGLM<glm::mat4>(pNode->mTransformation), utils::FromAssimToToGLM<glm::mat4>(pBone->mOffsetMatrix));
 
 		if (parent != nullptr)
-			parent->Children.push_back(bone);
+			parent->Children.push_back(&bone);
 
 		for (std::uint32_t nodeIndex = 0; nodeIndex < pNode->mNumChildren; ++nodeIndex)
-			ProcessBone(pScene, pNode->mChildren[nodeIndex], skeleton, bone);
+			ProcessBone(pScene, pNode->mChildren[nodeIndex], skeleton, &bone);
 	}
 	else
 	{
@@ -283,9 +282,9 @@ void ISkeleton::ProcessBone(const aiScene* pScene, const aiNode* pNode, shade::S
 	}
 }
 
-shade::AnimationControllerComponent IAnimation::ImportAnimations(const aiScene* pScene, const shade::SharedPointer<shade::Skeleton>& skeleton)
+std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> IAnimation::ImportAnimations(const aiScene* pScene, const shade::SharedPointer<shade::Skeleton>& skeleton)
 {
-	shade::AnimationControllerComponent Animations = shade::AnimationControllerComponent::Create();
+	std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> Animations;
 
 	SHADE_INFO("Animation count : {}", pScene->mNumAnimations);
 
@@ -311,7 +310,7 @@ shade::AnimationControllerComponent IAnimation::ImportAnimations(const aiScene* 
 		for (std::uint32_t channelIndex = 0; channelIndex < pAnimation->mNumChannels; ++channelIndex)
 		{
 			const aiNodeAnim* pChannel = pAnimation->mChannels[channelIndex];
-			shade::Animation::Channel channel { channelIndex };
+			shade::Animation::Channel channel{ channelIndex };
 
 			if (skeleton)
 			{
@@ -353,8 +352,8 @@ shade::AnimationControllerComponent IAnimation::ImportAnimations(const aiScene* 
 			animation->AddChannel(pChannel->mNodeName.C_Str(), channel);
 		}
 
-		Animations->AddAnimation(animation);
-		Animations->SetCurrentAnimation(animation);
+		/*Animations->AddAnimation(animation);
+		Animations->SetCurrentAnimation(animation);*/
 	}
 
 	return Animations;

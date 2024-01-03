@@ -2,21 +2,6 @@
 #include "Model.h"
 #include <shade/core/asset/AssetManager.h>
 
-shade::Model::~Model()
-{
-	m_Meshes.clear();
-}
-
-shade::AssetMeta::Type shade::Model::GetAssetStaticType()
-{
-    return AssetMeta::Type::Model;
-}
-
-shade::AssetMeta::Type shade::Model::GetAssetType() const
-{
-    return GetAssetStaticType();
-}
-
 void shade::Model::AddMesh(const Asset<Mesh>& mesh)
 {
 	m_Meshes.emplace_back(mesh);
@@ -82,13 +67,3 @@ std::size_t shade::Model::DeserializeAsComponent(std::istream& stream)
 {
 	return std::size_t();
 }
-
-shade::Model* shade::Model::Create(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour)
-{
-    return new Model(assetData, lifeTime, behaviour);
-}
-shade::SharedPointer<shade::Model> shade::Model::CreateEXP()
-{
-	return SharedPointer<shade::Model>::Create();
-}
-

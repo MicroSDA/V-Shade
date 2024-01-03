@@ -114,14 +114,13 @@ namespace shade
 			friend class Serializer;
 		};
 
-		class SHADE_API CollisionShapes : public BaseAsset, public Asset<CollisionShapes>
+		class SHADE_API CollisionShapes : ASSET_INHERITANCE(CollisionShapes)
 		{
-		public:
-			CollisionShapes() = default;
-			virtual ~CollisionShapes() = default;
-			static AssetMeta::Type GetAssetStaticType();
-			virtual AssetMeta::Type GetAssetType() const override;
 
+			ASSET_DEFINITION_HELPER(CollisionShapes)
+
+		public:
+			virtual ~CollisionShapes() = default;
 			const std::vector<SharedPointer<CollisionShape>>& GetColliders() const;
 			std::vector<SharedPointer<CollisionShape>>& GetColliders();
 			std::size_t GetCollidersCount() const;
@@ -129,15 +128,12 @@ namespace shade
 			void AddShape(const SharedPointer<CollisionShape>& shape);
 		private:
 			CollisionShapes(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
-			static CollisionShapes* Create(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
 		private:
 			std::size_t Serialize(std::ostream& stream) const;
 			std::size_t Deserialize(std::istream& stream);
 		private:
 			std::vector<SharedPointer<CollisionShape>> m_Colliders;
-
 			friend class Serializer;
-			friend class Asset<CollisionShapes>;
 		};
 	}
 

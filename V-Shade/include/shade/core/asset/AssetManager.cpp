@@ -8,8 +8,6 @@ std::array<shade::AssetManager::AssetsDataRelink, shade::AssetMeta::Category::AS
 std::array<std::recursive_mutex, shade::AssetMeta::Category::ASSET_CATEGORY_MAX_ENUM> shade::AssetManager::m_sMutexs;
 shade::thread::ThreadPool shade::AssetManager::m_sThreadPool;
 
-
-
 // TODO: Try to use m_SecondaryReferenceId != '\0' insetad of m_SecondaryReferenceId != "NULL"
 
 void shade::AssetManager::Delivery(AssetMeta::Category category)

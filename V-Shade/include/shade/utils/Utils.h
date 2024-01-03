@@ -81,3 +81,19 @@ namespace shade
 	};
 
 }
+
+#define VECTOR_BASE_ITERATOR_HELPER(type, arr) \
+public: \
+	inline std::vector<type>::iterator begin() noexcept { return arr.begin(); };\
+	inline std::vector<type>::iterator end() noexcept { return arr.end(); }; \
+	inline std::vector<type>::const_iterator cbegin() const noexcept { return arr.begin(); }; \
+	inline std::vector<type>::const_iterator cend() const noexcept { return arr.end(); }; \
+
+#define SHADE_CAST_HELPER(type) \
+public: \
+	template<typename T> \
+	inline T& As()\
+	{ \
+		static_assert(std::is_base_of<type, T>::value, "Is not base"); \
+		return static_cast<T&>(*this); \
+	};

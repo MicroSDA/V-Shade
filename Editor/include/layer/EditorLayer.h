@@ -58,10 +58,10 @@ private:
 	void CameraComponent(shade::ecs::Entity& entity);
 	void ModelComponent(shade::ecs::Entity& entity);
 	void RgidBodyComponent(shade::ecs::Entity& entity);
-	void AnimationControllerComponent(shade::ecs::Entity& entity);
+	void AnimationGraphComponent(shade::ecs::Entity& entity);
 	///////
 	void MaterialEdit(shade::Material& material);
-	void BoneMaskEdnitor(const shade::SharedPointer<shade::Skeleton::BoneNode>& node, shade::animation::BoneMask& boneMask);
+	void BoneMaskEdnitor(const shade::Skeleton::BoneNode* node, shade::animation::BoneMask& boneMask);
 	void CreateMaterial();
 	void Material(shade::Material& material);
 	void AnimationSequencer();

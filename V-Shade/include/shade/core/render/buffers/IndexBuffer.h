@@ -7,6 +7,8 @@ namespace shade
 {
 	class SHADE_API IndexBuffer
 	{
+		SHADE_CAST_HELPER(FrameBuffer)
+
 	public:
 		enum class Usage
 		{
@@ -19,8 +21,6 @@ namespace shade
 		virtual void Resize(std::uint32_t size) = 0;
 		virtual void SetData(std::uint32_t size, const void* data, std::uint32_t offset = 0) = 0;
 
-		template<typename T>
-		T& As();
 	public:
 		static SharedPointer<IndexBuffer> Create(Usage usage, std::uint32_t size, std::uint32_t resizeThreshold = 0, const void* data = nullptr);
 	protected:
@@ -29,10 +29,4 @@ namespace shade
 		std::uint32_t m_ResizeThreshold = 0;
 		bool HasToBeResized(std::uint32_t oldSize, std::uint32_t newSize, std::uint32_t threshold);
 	};
-	template<typename T>
-	inline T& IndexBuffer::As()
-	{
-		static_assert(std::is_base_of<IndexBuffer, T>::value, "");
-		return static_cast<T&>(*this);
-	}
 }

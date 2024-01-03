@@ -103,6 +103,9 @@ namespace shade
 
 	class SHADE_API RenderPipeline : public Pipeline
 	{
+
+		SHADE_CAST_HELPER(RenderPipeline)
+
 	public:
 		
 		struct Specification
@@ -150,22 +153,17 @@ namespace shade
 		virtual void UpdateResources(SharedPointer<RenderCommandBuffer>& commandBuffer, std::uint32_t frameIndex) = 0;
 
 		virtual void SetBarrier(SharedPointer<RenderCommandBuffer>& commandBuffer, Stage srcStage, Stage dstStage, Access srcAccess, Access dstAccces, std::uint32_t frameIndex) = 0;
-		template<typename T>
-		T& As();
-
+		
 		std::function<void(SharedPointer<RenderPipeline>&, const render::SubmitedInstances&, const render::SubmitedSceneRenderData&, std::uint32_t, bool)> Process;
 	protected:
 		RenderPipeline::Specification m_Specification;
 	};
-	template<typename T>
-	inline T& RenderPipeline::As()
-	{
-		static_assert(std::is_base_of<RenderPipeline, T>::value, "");
-		return static_cast<T&>(*this);
-	}
-
+	
 	class SHADE_API ComputePipeline : public Pipeline
 	{
+
+		SHADE_CAST_HELPER(ComputePipeline)
+
 	public:
 		struct Specification
 		{
@@ -198,17 +196,8 @@ namespace shade
 		virtual void SetBarrier(SharedPointer<RenderCommandBuffer>& commandBuffer, Stage srcStage, Stage dstStage, Access srcAccess, Access dstAccces, std::uint32_t frameIndex) = 0;
 		virtual void UpdateResources(SharedPointer<RenderCommandBuffer>& commandBuffer, std::uint32_t frameIndex) = 0;
 
-		template<typename T>
-		T& As();
-
 		std::function<void(SharedPointer<ComputePipeline>& pipeline, std::uint32_t)> Process;
 	protected:
 		ComputePipeline::Specification m_Specification;
 	};
-	template<typename T>
-	inline T& ComputePipeline::As()
-	{
-		static_assert(std::is_base_of<ComputePipeline, T>::value, "");
-		return static_cast<T&>(*this);
-	}
 }

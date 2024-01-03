@@ -64,12 +64,3 @@ shade::Texture2D::Texture2D(const render::Image::Specification& specification)
 {
 	m_Image = render::Image2D::Create(specification);
 }
-shade::AssetMeta::Type shade::Texture2D::GetAssetStaticType()
-{
-	return AssetMeta::Texture;
-}
-
-shade::AssetMeta::Type shade::Texture2D::GetAssetType() const
-{
-	return GetAssetStaticType();
-}
