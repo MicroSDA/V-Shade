@@ -33,23 +33,28 @@ bool shade::animation::AnimationGraph::AddConnection(GraphNode::NodeIDX sourceNo
 
 	if (!source || !destination) return false;
 
-	auto sourceOutValue = source->GetOutputEndpointWrapper(sourceEndpoint);
-	auto destinationInValue = destination->GetInputEndpointWrapper(destinationEndpoint);
+	auto sourceOutValue = source->__GetEndpoint<GraphNode::Connection::Output>(sourceEndpoint);
+	auto destinationInValue = destination->__GetEndpoint<GraphNode::Connection::Input>(destinationEndpoint);
 
 	if (!sourceOutValue || !destinationInValue) return false;
 
 	if (sourceOutValue->get()->GetType() != destinationInValue->get()->GetType()) return false;
 
-	bool hasBeenConnected = ConnectValues(*sourceOutValue, *destinationInValue);
+	bool hasBeenConnected = ConnectValues(sourceOutValue, destinationInValue);
 
 	if (hasBeenConnected)
 	{
 		destination->AddChild(source); 
-		source->OnConnect(Connection::Type::Output, sourceOutValue->get()->GetType(), sourceEndpoint);
-		destination->OnConnect(Connection::Type::Input, destinationInValue->get()->GetType(), destinationEndpoint);
+		source->OnConnect(GraphNode::Connection::Type::Output, sourceOutValue->get()->GetType(), sourceEndpoint);
+		destination->OnConnect(GraphNode::Connection::Type::Input, destinationInValue->get()->GetType(), destinationEndpoint);
 	}
 	
 	return hasBeenConnected;
+}
+
+bool shade::animation::AnimationGraph::RemoveConnection(GraphNode::NodeIDX sourceNode, GraphNode::EndpointIDX sourceEndpoint, GraphNode::NodeIDX destinationNode, GraphNode::EndpointIDX destinationEndpoint)
+{
+	return false;
 }
 
 bool shade::animation::AnimationGraph::AddRootConnection(GraphNode::NodeIDX sourceNode, GraphNode::EndpointIDX sourceEndpoint)
@@ -57,17 +62,18 @@ bool shade::animation::AnimationGraph::AddRootConnection(GraphNode::NodeIDX sour
 	auto source	= FindNode(sourceNode);
 	if (!source) return false;
 
-	auto sourceOutValue = source->GetOutputEndpointWrapper(sourceEndpoint);
+	auto sourceOutValue = source->__GetEndpoint<GraphNode::Connection::Output>(sourceEndpoint);
 
-	if (!sourceOutValue || sourceOutValue->get()->GetType() != NodeValueType::POSE) return false;
+	if (!sourceOutValue || sourceOutValue->get()->GetType() != NodeValueType::Pose) return false;
 
-	bool hasBeenConnected = ConnectValues(*sourceOutValue, *m_RootNode->GetInputEndpointWrapper(0));
+	auto rootNode = m_RootNode->__GetEndpoint<GraphNode::Connection::Input>(0);
+	bool hasBeenConnected = ConnectValues(sourceOutValue, rootNode);
 
 	if (hasBeenConnected)
 	{
 		m_RootNode->AddChild(source); // Can create special for OutputPoseNode SetChild becase there only one child !
-		source->OnConnect(Connection::Type::Output, NodeValueType::POSE, sourceEndpoint);
-		m_RootNode->OnConnect(Connection::Type::Input, NodeValueType::POSE, 0);
+		source->OnConnect(GraphNode::Connection::Type::Output, NodeValueType::Pose, sourceEndpoint);
+		m_RootNode->OnConnect(GraphNode::Connection::Type::Input, NodeValueType::Pose, 0);
 	}
 	
 	return hasBeenConnected;
@@ -105,12 +111,14 @@ shade::SharedPointer<shade::animation::GraphNode> shade::animation::AnimationGra
 	return nullptr;
 }
 
-bool shade::animation::AnimationGraph::ConnectValues(const std::shared_ptr<NodeValue>& sourceEndpoint, std::shared_ptr<NodeValue>& destinationEndpoint)
+bool shade::animation::AnimationGraph::ConnectValues(const std::shared_ptr<NodeValue>* sourceEndpoint, std::shared_ptr<NodeValue>* destinationEndpoint)
 {
-	if (!&sourceEndpoint || !&destinationEndpoint)
+	if (!sourceEndpoint || !destinationEndpoint)
 		return false;
 
-	destinationEndpoint = sourceEndpoint;  return true;
+	*destinationEndpoint = *sourceEndpoint;
+
+	return true;
 }
 
 

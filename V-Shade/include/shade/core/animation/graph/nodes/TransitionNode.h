@@ -11,8 +11,8 @@ namespace shade
 			TransitionNode(NodeIDX idx, const GraphContext& context) :
 				GraphNode(idx, context)
 			{
-				REGISTER_INPUT_ENDPOINT(FLOAT, 0.0f); // Weight
-				REGISTER_OUTPUT_ENDPOINT(FLOAT, 0.0f); // Weight
+				//REGISTER_INPUT_ENDPOINT(FLOAT, 0.0f); // Weight
+				//REGISTER_OUTPUT_ENDPOINT(FLOAT, 0.0f); // Weight
 			}
 			virtual void Evaluate(const FrameTimer& delatTime) override;
 

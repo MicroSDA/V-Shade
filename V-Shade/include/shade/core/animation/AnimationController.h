@@ -23,6 +23,23 @@ namespace shade
 		class SHADE_API AnimationController
 		{
 		public:
+		public:
+			struct AnimationControllData
+			{
+				AnimationControllData() = default;
+				AnimationControllData(const Asset<Animation>& animation) :
+					Animation(animation),
+					Start(0.f),
+					End(animation->GetDuration()),
+					Duration(animation->GetDuration()),
+					CurrentPlayTime(0.f),
+					TicksPerSecond(animation->GetTiksPerSecond())
+				{}
+
+				Asset<Animation>		Animation;
+				Animation::State		State = Animation::State::Stop;
+				float					Start = 0.f, End = 0.f, Duration = 0.f, CurrentPlayTime = 0.f, TicksPerSecond = 0.f;
+			};
 			template<typename T, typename Data>
 			struct Task
 			{
@@ -44,31 +61,29 @@ namespace shade
 		public:
 			virtual ~AnimationController() = default;
 
-			animation::Pose* ProcessPose(const Asset<Skeleton>& skeleton, const Asset<Animation>& animation, float from, float till, const FrameTimer& deltaTime);
+			animation::Pose* ProcessPose(const Asset<Skeleton>& skeleton, AnimationControllData& animationData, const FrameTimer& deltaTime);
 			animation::Pose* Blend(const Asset<Skeleton>& skeleton, const animation::Pose* first, const animation::Pose* second, float blendFactor, const animation::BoneMask& boneMask);
 
 		private:
 			AnimationController() = default;
-
 			std::unordered_map<std::size_t, animation::Pose> m_Poses;
-			thread::ThreadPool m_ThreadPool;
-
+			
 			friend class SharedPointer<AnimationController>;
 		private:
-			animation::Pose* CreatePose(std::size_t hash, const Asset<Skeleton>& skeleton);
-			animation::Pose* CalculatePose(animation::Pose* targetPose, const Asset<Animation>& animation, float from, float till, const FrameTimer& deltaTime, float timeMultiplier = 1.f);
+			animation::Pose* CreatePose(const Asset<Skeleton>& skeleton, std::size_t hash);
+			animation::Pose* CalculatePose(animation::Pose* targetPose, AnimationControllData& animationData, const FrameTimer& deltaTime, float timeMultiplier = 1.f);
 			animation::Pose* ReceiveAnimationPose(const Asset<Skeleton>& skeleton, std::size_t hash);
 
 			template<typename... Args>
 			inline animation::Pose* ReceiveAnimationPose(const Asset<Skeleton>& skeleton, Args&&... args)
 			{
-				(CreatePose(animation::PointerHashCombine(args), skeleton), ...);
-				return CreatePose(animation::PointerHashCombine(std::forward<Args>(args)...), skeleton);
+				(CreatePose(skeleton, animation::PointerHashCombine(args)), ...);
+				return CreatePose(skeleton, animation::PointerHashCombine(std::forward<Args>(args)...));
 			}
 		
 			void CalculateBoneTransforms(
 				animation::Pose* pose,
-				const Asset<Animation>& animation,
+				const AnimationControllData& animationData,
 				const Skeleton::BoneNode* bone,
 				const glm::mat4& parentTransform,
 				const Skeleton::BoneArmature& armature);

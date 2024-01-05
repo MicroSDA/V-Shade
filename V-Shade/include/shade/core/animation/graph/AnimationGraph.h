@@ -7,18 +7,6 @@
 #include <shade/core/animation/graph/nodes/OutputPoseNode.h>
 #include <shade/core/animation/AnimationController.h>
 
-/*
-	Node -> virtual class
-		Has instantiate method
-			Argumetns is Instatiate context
-				Context has container with resources(void*) and casted to specific type (Animation, etc)
-
-				Make root node as Out final node, connect evereting to this node as childs
-				got to the end fo some brunch if it las node and there no childrens - start to execute node and go back to previews node
-				if there some children got till end as it was with previws node, do it for all branches till we get back to root node 
-				It will broke some common parent child pattern where you shodul execute every child continiusly from parent 
-*/
-
 namespace shade
 {
 	namespace animation
@@ -39,6 +27,8 @@ namespace shade
 			static Asset<AnimationGraph> CreateEXP(const Asset<Skeleton>& skeleton); // DANGER!!
 		public:
 			bool AddConnection(GraphNode::NodeIDX sourceNode, GraphNode::EndpointIDX sourceEndpoint, GraphNode::NodeIDX destinationNode, GraphNode::EndpointIDX destinationEndpoint);
+			bool RemoveConnection(GraphNode::NodeIDX sourceNode, GraphNode::EndpointIDX sourceEndpoint, GraphNode::NodeIDX destinationNode, GraphNode::EndpointIDX destinationEndpoint);
+
 			bool AddRootConnection(GraphNode::NodeIDX sourceNode, GraphNode::EndpointIDX sourceEndpoint);
 			void SetSkeleton(const Asset<Skeleton>& skeleton);
 			const Asset<Skeleton>& GetSkeleton() const;
@@ -59,7 +49,7 @@ namespace shade
 			const SharedPointer<OutputPoseNode>& const GetOutputPoseNode();
 		private:
 			SharedPointer<animation::GraphNode> FindNode(GraphNode::NodeIDX idx);
-			bool ConnectValues(const std::shared_ptr<NodeValue>& sourceEndpoint, std::shared_ptr<NodeValue>& destinationEndpoint);
+			bool ConnectValues(const std::shared_ptr<NodeValue>* sourceEndpoint, std::shared_ptr<NodeValue>* destinationEndpoint);
 		private:
 			// Create a skeleton object with the given asset data, lifetime, and instantiation behaviour
 			AnimationGraph(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);

@@ -54,6 +54,8 @@ void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shad
 		ShowWindowBar("Scene", &EditorLayer::Scene, this, scene);
 		ImGui::PopStyleColor();
 
+		bool is = true;
+		ShowExampleAppCustomNodeGraph(&is);
 		//ImGui::ShowDemoWindow();
 		ImGui::End();
 	}
@@ -1814,26 +1816,28 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 		pose1 &&
 		pose2 && 
 		blend && 
-		!pose1->AnimationData.Animation &&
-		!pose2->AnimationData.Animation)
+		!pose1->GetAnimationData().Animation &&
+		!pose2->GetAnimationData().Animation)
 	{
 		const std::string animation1 = "Boy.Animation.Idel";
 		const std::string animation2 = "Boy.Animation.Running";
 
 		shade::AssetManager::GetAsset<shade::Animation, shade::BaseAsset::InstantiationBehaviour::Synchronous>(animation1, shade::AssetMeta::Category::Secondary, shade::BaseAsset::LifeTime::KeepAlive, [=](auto& animation) mutable
 			{
-				pose1->AnimationData.Animation = animation;
+				pose1->ResetAnimationData(animation);
 			});
 		shade::AssetManager::GetAsset<shade::Animation, shade::BaseAsset::InstantiationBehaviour::Synchronous>(animation2, shade::AssetMeta::Category::Secondary, shade::BaseAsset::LifeTime::KeepAlive, [=](auto& animation) mutable
 			{
-				pose2->AnimationData.Animation = animation;
+				pose2->ResetAnimationData(animation);
 			});
 
 		
 	}
 	if (animationGraph && blend)
 	{
-		ImGui::DragFloat("Bledn weight", animationGraph->GetNode<shade::animation::BlendNode2D>(2)->GetInputEndpointRaw<shade::animation::NodeValueType::FLOAT>(0), 0.001);
+		auto v = animationGraph->GetNode<shade::animation::BlendNode2D>(2)->GetEndpoint<shade::animation::GraphNode::Connection::Input>(0)->As<shade::animation::NodeValueType::Float>();
+
+		ImGui::DragFloat("Bledn weight", &animationGraph->GetNode<shade::animation::BlendNode2D>(2)->GetEndpoint<shade::animation::GraphNode::Connection::Input>(0)->As<shade::animation::NodeValueType::Float>(), 0.001);
 	}
 	//if (ImGui::BeginTable("##SelectOrAddNewAnimation", 3, ImGuiTableFlags_None | ImGuiTableFlags_SizingStretchProp))
 	//{

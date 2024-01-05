@@ -187,6 +187,11 @@ namespace shade
 		bool DrawImGuizmo(glm::mat4& transform, const SharedPointer<Camera>& camera, ImGuizmo::OPERATION operation, const ImVec4& window);
 		bool ColorEdit3(const char* title, float* data, float cw1 = 0.0f, float cw2 = 0.0);
 		bool DrawButton(const char* title, const char* buttonTitle, float cw1 = 0.0f, float cw2 = 0.0f);
+
+        // Dummy data structure provided for the example.
+        // Note that we storing links as indices (not ID) to make example code shorter.
+		static void ShowExampleAppCustomNodeGraph(bool* opened);
+
 	private:
 		SharedPointer<ImGuiRender> m_ImGuiRender;
 	};

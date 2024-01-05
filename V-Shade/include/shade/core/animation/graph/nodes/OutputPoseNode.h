@@ -13,7 +13,7 @@ namespace shade
 				GraphNode(idx, context)
 			{
 				// We have only input !
-				REGISTER_INPUT_ENDPOINT(POSE, nullptr)
+				REGISTER_ENDPOINT<Connection::Input, NodeValueType::Pose>(nullptr);
 			}
 
 			virtual ~OutputPoseNode() = default;

@@ -29,7 +29,7 @@ void shade::thread::ThreadPool::Start(std::size_t threadsCount)
 				if (m_Quit && m_Tasks.empty())
 					break;
 
-				auto task = std::move(m_Tasks.front());
+				std::function<void()> task = std::move(m_Tasks.front());
 				m_Tasks.pop();
 				lock.unlock();
 				//!Sync
