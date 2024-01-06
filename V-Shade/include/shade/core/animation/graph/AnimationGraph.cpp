@@ -33,8 +33,8 @@ bool shade::animation::AnimationGraph::AddConnection(GraphNode::NodeIDX sourceNo
 
 	if (!source || !destination) return false;
 
-	auto sourceOutValue = source->__GetEndpoint<GraphNode::Connection::Output>(sourceEndpoint);
-	auto destinationInValue = destination->__GetEndpoint<GraphNode::Connection::Input>(destinationEndpoint);
+	auto sourceOutValue = source->__GET_ENDPOINT<GraphNode::Connection::Output>(sourceEndpoint);
+	auto destinationInValue = destination->__GET_ENDPOINT<GraphNode::Connection::Input>(destinationEndpoint);
 
 	if (!sourceOutValue || !destinationInValue) return false;
 
@@ -62,11 +62,11 @@ bool shade::animation::AnimationGraph::AddRootConnection(GraphNode::NodeIDX sour
 	auto source	= FindNode(sourceNode);
 	if (!source) return false;
 
-	auto sourceOutValue = source->__GetEndpoint<GraphNode::Connection::Output>(sourceEndpoint);
+	auto sourceOutValue = source->__GET_ENDPOINT<GraphNode::Connection::Output>(sourceEndpoint);
 
 	if (!sourceOutValue || sourceOutValue->get()->GetType() != NodeValueType::Pose) return false;
 
-	auto rootNode = m_RootNode->__GetEndpoint<GraphNode::Connection::Input>(0);
+	auto rootNode = m_RootNode->__GET_ENDPOINT<GraphNode::Connection::Input>(0);
 	bool hasBeenConnected = ConnectValues(sourceOutValue, rootNode);
 
 	if (hasBeenConnected)

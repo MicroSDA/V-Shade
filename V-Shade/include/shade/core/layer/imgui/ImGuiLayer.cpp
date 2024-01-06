@@ -1,4 +1,4 @@
-#include "shade_pch.h"
+﻿#include "shade_pch.h"
 #include "ImGuiLayer.h"
 
 #include <shade/core/application/Application.h>
@@ -47,15 +47,15 @@ void shade::ImGuiLayer::OnRenderBegin()
 	ImGui::SetNextWindowPos(m_Viewport->WorkPos);
 	ImGui::SetNextWindowSize(m_Viewport->WorkSize);
 	ImGui::SetNextWindowViewport(m_Viewport->ID);
-	
+
 }
 
 void shade::ImGuiLayer::OnRenderEnd()
 {
 	ImGui::Render();
-	 
+
 	ImGuiIO& io = ImGui::GetIO();
-	
+
 	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 	{
 		GLFWwindow* backup_current_context = glfwGetCurrentContext();
@@ -65,7 +65,7 @@ void shade::ImGuiLayer::OnRenderEnd()
 	}
 
 	m_ImGuiRender->EndRender();
-	
+
 }
 
 ImGuiContext* shade::ImGuiLayer::GetImGuiContext()
@@ -89,7 +89,7 @@ bool shade::ImGuiLayer::InputTextCol(const char* title, std::string& str, float 
 
 	std::string _title = std::string("##") + title;
 
-	if (ImGui::BeginTable(_title.c_str(), 2, ImGuiTableFlags_SizingStretchProp, {0, 0}))
+	if (ImGui::BeginTable(_title.c_str(), 2, ImGuiTableFlags_SizingStretchProp, { 0, 0 }))
 	{
 		ImGui::TableNextColumn();
 		{
@@ -97,7 +97,7 @@ bool shade::ImGuiLayer::InputTextCol(const char* title, std::string& str, float 
 		}
 		ImGui::TableNextColumn();
 		{
-			if(!cw2)
+			if (!cw2)
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 			else
 			{
@@ -110,7 +110,7 @@ bool shade::ImGuiLayer::InputTextCol(const char* title, std::string& str, float 
 		ImGui::EndTable();
 	}
 	return isInput;
-}	
+}
 
 bool shade::ImGuiLayer::InputTextD(const char* title, std::string& str)
 {
@@ -136,7 +136,7 @@ bool shade::ImGuiLayer::ComboCol(const char* title, std::string& selected, std::
 			{
 				ImGui::SetNextItemWidth(cw2);
 			}
-			
+
 			if (ImGui::BeginCombo(_title.c_str(), selected.c_str(), comboFlags)) // The second parameter is the label previewed before opening the combo.
 			{
 				for (auto& element : elements)
@@ -615,4 +615,280 @@ void shade::ImGuiLayer::ShowExampleAppCustomNodeGraph(bool* opened)
 	ImGui::EndGroup();
 
 	ImGui::End();
+}
+
+bool shade::ImGuiLayer::DrawGraphEditor(bool isOpend, const ImVec2& size)
+{
+
+	return false;
+}
+
+
+shade::ImGuiGraph::Node* shade::ImGuiGraph::m_spActiveNode = nullptr;
+
+bool shade::ImGuiGraph::Show(const char* title, const ImVec2& size)
+{
+	// Need to remove it from here
+	static ImGuiGraph::ViewContext	context;
+	static std::vector<Node>		nodes = { Node({200, 300}, "Blend 2D") };
+
+	ImGuiStyle unscaledStyle = ImGui::GetStyle();
+
+	//ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+	//ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+	//ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 0.f);
+	//ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.f);
+	//ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4{ 0.2, 0.2, 0.2, 1 });
+
+	ImGui::SetNextWindowSize(size, ImGuiCond_FirstUseEver);
+	{
+		if (ImGui::Begin(title))
+		{
+			const ImVec2 windowPos = ImGui::GetCursorScreenPos(), canvasSize = ImGui::GetContentRegionAvail(), scrollRegionLocalPos(0, 0);
+
+			ImRect canvas(windowPos, windowPos + canvasSize);
+
+			ImVec2 offset = ImGui::GetCursorScreenPos() + (context.ViewPosition * context.Zoom.Zoom);
+
+			//ImGui::PushClipRect(canvasRegion.Min, canvasRegion.Max, true);
+			if (ImGui::BeginChild("#ImGuiGraph::ScrollRegion", ImVec2(0, 0), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollWithMouse))
+			{
+				ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+				if (ImGui::IsItemActive()) m_spActiveNode = nullptr;
+
+				drawList->ChannelsSplit(2);
+				{
+					Zoom(canvas, context);
+
+					//drawList->ChannelsSetCurrent(0);
+
+					Grid(drawList, windowPos, context, canvasSize, ImGui::ColorConvertFloat4ToU32(ImVec4{ 0.3, 0.3, 0.3, 1.0 }), ImGui::ColorConvertFloat4ToU32(ImVec4{ 0.5, 0.5, 0.5, 1.0 }), 64.f);
+
+					//drawList->ChannelsSetCurrent(1); // Background
+
+					ImGui::GetStyle().ScaleAllSizes(context.Zoom.Zoom);
+					ImGui::SetWindowFontScale(context.Zoom.Zoom);
+					{
+						DrawNodes(drawList, offset, context, nodes);
+					}
+					ImGui::GetStyle() = unscaledStyle;
+
+					//draw_list->ChannelsMerge();
+					//drawList->ChannelsSetCurrent(0); // Background
+					//DrawConnections();
+				}
+
+				ImGui::EndChild();
+			}
+			//ImGui::PopClipRect();
+
+		}ImGui::End();
+	}
+	ImGui::PopStyleColor();
+	//ImGui::PopStyleVar(5);
+
+	return false;
+}
+
+void shade::ImGuiGraph::Zoom(ImRect region, ImGuiGraph::ViewContext& context)
+{
+	ImGuiIO& io = ImGui::GetIO(); // todo add as arg
+	if (region.Contains(io.MousePos))
+		UpdateZoom(context, io);
+
+	UpdateView(context, io);
+}
+
+void shade::ImGuiGraph::UpdateZoom(ImGuiGraph::ViewContext& context, const ImGuiIO& io)
+{
+	if (io.MouseWheel <= -std::numeric_limits<float>::epsilon())
+		context.Zoom.ZoomTarget *= 1.0f - context.Zoom.ZoomRatio;
+
+	if (io.MouseWheel >= std::numeric_limits<float>::epsilon())
+		context.Zoom.ZoomTarget *= 1.0f + context.Zoom.ZoomRatio;
+}
+
+void shade::ImGuiGraph::UpdateView(ImGuiGraph::ViewContext& context, const ImGuiIO& io)
+{
+	ImVec2 mouseWPosPre = CalculateMouseWorldPos(io, context);
+
+	context.Zoom.ZoomTarget = ImClamp(context.Zoom.ZoomTarget, context.Zoom.MinZoom, context.Zoom.MaxZoom);
+	context.Zoom.Zoom		= ImClamp(context.Zoom.Zoom, context.Zoom.MinZoom, context.Zoom.MaxZoom);
+
+	context.Zoom.Zoom = ImLerp(context.Zoom.Zoom, context.Zoom.ZoomTarget, context.Zoom.ZoomLerp);
+
+	ImVec2 mouseWPosPost = CalculateMouseWorldPos(io, context);
+
+	if (ImGui::IsMousePosValid())
+		context.ViewPosition += mouseWPosPost - mouseWPosPre;
+}
+
+ImVec2 shade::ImGuiGraph::CalculateMouseWorldPos(const ImGuiIO& io, const ImGuiGraph::ViewContext& context)
+{
+	return (io.MousePos - ImGui::GetCursorScreenPos()) / context.Zoom.Zoom;
+}
+
+void shade::ImGuiGraph::Grid(ImDrawList* drawList, ImVec2 windowPos, const ImGuiGraph::ViewContext& context, const ImVec2 canvasSize, ImU32 gridColor, ImU32 gridColor2, float gridSize)
+{
+	const float gridSpace	= gridSize * context.Zoom.Zoom;
+	const int divx			= static_cast<int>(-context.ViewPosition.x / gridSize);
+	const int divy			= static_cast<int>(-context.ViewPosition.y / gridSize);
+
+	DrawGridLines(context.ViewPosition * context.Zoom.Zoom, canvasSize, gridSpace, windowPos, gridColor, gridColor2, drawList, divx, divy);
+}
+
+void shade::ImGuiGraph::DrawGridLines(const ImVec2& start, const ImVec2& canvasSize, const float gridSpace, const ImVec2& windowPos, const ImColor& gridColor, const ImColor& gridColor2, ImDrawList* drawList, int divx, int divy)
+{
+	for (float coord = fmodf(start.x, gridSpace); coord < canvasSize.x; coord += gridSpace, divx++)
+		drawList->AddLine(ImVec2(coord, 0.0f) + windowPos, ImVec2(coord, canvasSize.y) + windowPos, !(divx % 10) ? gridColor2 : gridColor);
+
+	for (float coord = fmodf(start.y, gridSpace); coord < canvasSize.y; coord += gridSpace, divy++)
+		drawList->AddLine(ImVec2(0.0f, coord) + windowPos, ImVec2(canvasSize.x, coord) + windowPos, !(divy % 10) ? gridColor2 : gridColor);
+}
+
+void shade::ImGuiGraph::DrawNodes(ImDrawList* drawList, const ImVec2& offset, const ImGuiGraph::ViewContext& context, std::vector<ImGuiGraph::Node>& nodes)
+{
+	ImGui::PushStyleColor(ImGuiCol_ChildBg, context.Style.NodeBackgroundColor);
+	ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, context.Style.Rounding);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, context.Style.Padding * context.Zoom.Zoom);
+	//ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 10.f, 10.f });
+	for (auto& node : nodes)
+	{
+		ImGui::SetCursorScreenPos(offset + node.Position * context.Zoom.Zoom);
+
+		if (ImGui::BeginChild(node.Name.c_str(), 
+			node.Size * context.Zoom.Zoom,
+			true, 
+			ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove ))
+		{
+		
+			if (ImGui::IsItemActive()) { m_spActiveNode = &node; }
+
+			MoveNode(ImGui::GetIO(), context, node);
+
+			DrawNode(drawList, offset, context, (m_spActiveNode == &node), node);
+
+		} ImGui::EndChild();
+	}
+
+	ImGui::PopStyleColor(1); ImGui::PopStyleVar(2);
+}
+
+void shade::ImGuiGraph::DrawNode(ImDrawList* drawList, const ImVec2& offset, const ImGuiGraph::ViewContext& context, bool isActive, ImGuiGraph::Node& node)
+{
+	ImGui::PushStyleColor(ImGuiCol_Text, context.Style.HeaderTextColor);
+
+	if (isActive) DrawBorder(drawList, offset, context, node);
+
+	DrawHeader(drawList, offset, context, node);
+
+	const float enpointY = (context.Style.HeaderHeight + 25.f) * context.Zoom.Zoom;
+
+	DrawEndpoints(drawList, offset, context, enpointY, node);
+
+	//drawList->AddCircleFilled();
+
+	ImVec2 const	p1 = offset;
+	ImVec2 const	p4 = ImGui::GetMousePos();
+	ImVec2 const	p2 = p1 + ImVec2(+50, 0);
+	ImVec2 const	p3 = p4 + ImVec2(-50, 0);
+
+	//drawList->AddBezierCubic(p1, p2, p3, p4, ImGui::ColorConvertFloat4ToU32(ImVec4{ 0.4, 0.8, 0.2, 1.0 }), 5.f);
+
+	ImGui::PopStyleColor(1);
+}
+
+float shade::ImGuiGraph::DrawHeader(ImDrawList* drawList, const ImVec2& offset, const ImGuiGraph::ViewContext& context, ImGuiGraph::Node& node)
+{
+	ImGui::SetWindowFontScale(1.5);
+	
+	ImGui::BeginGroup();
+	{
+		ImGui::Text(node.Name.c_str());
+	}
+	ImGui::EndGroup();
+
+	ImGui::SetWindowFontScale(1);
+
+	const ImVec2 scaledPosition = node.Position * context.Zoom.Zoom;
+	const ImVec2 pMin = (offset + scaledPosition);
+	const ImVec2 pMax = (offset + scaledPosition + (ImVec2 { node.Size.x, context.Style.HeaderHeight } * context.Zoom.Zoom));
+
+	drawList->AddRectFilled(pMin, pMax, ImGui::ColorConvertFloat4ToU32(node.Style.HeaderColor), context.Style.Rounding, ImDrawFlags_RoundCornersTopRight | ImDrawFlags_RoundCornersTopLeft);
+
+	//return pMax.y;
+	return node.Position.y + context.Style.HeaderHeight;
+}
+
+void shade::ImGuiGraph::DrawFooter(ImDrawList* drawList, const ImVec2& offset, const ImGuiGraph::ViewContext& context, ImGuiGraph::Node& node)
+{
+
+}
+
+void shade::ImGuiGraph::DrawEndpoints(ImDrawList* drawList, const ImVec2& offset, const ImGuiGraph::ViewContext& context, float yOffset, ImGuiGraph::Node& node)
+{
+	const ImVec2 e1 = DrawInputEndpoint(drawList, offset, context, yOffset, node);
+	const ImVec2 e2 = DrawOutputEndpoint(drawList, offset, context, yOffset, node);
+	
+	DrawConnection(drawList, {0, 0}, context, e1, ImGui::GetMousePos());
+	DrawConnection(drawList, {0, 0}, context, e2, ImGui::GetMousePos());
+}
+
+ImVec2 shade::ImGuiGraph::DrawInputEndpoint(ImDrawList* drawList, const ImVec2& offset, const ImGuiGraph::ViewContext& context, float yOffset, ImGuiGraph::Node& node)
+{
+	const ImVec2 scaledPosition = node.Position * context.Zoom.Zoom;
+
+	ImVec2 pInput = (offset + scaledPosition);
+
+	pInput.y += yOffset;
+
+	drawList->AddCircleFilled(pInput, context.Style.EndpointRadius * context.Zoom.Zoom, ImGui::ColorConvertFloat4ToU32(node.Style.HeaderColor));
+
+	return pInput;
+}
+
+void shade::ImGuiGraph::DrawConnection(ImDrawList* drawList, const ImVec2& offset, const ImGuiGraph::ViewContext& context, const ImVec2& from, const ImVec2& till)
+{
+	ImVec2 const	p1 = offset + from;
+	ImVec2 const	p4 = offset + till;
+	ImVec2 const	p2 = p1 + ImVec2(+50, 0);
+	ImVec2 const	p3 = p4 + ImVec2(-50, 0);
+
+	drawList->AddBezierCubic(p1, p2, p3, p4, ImGui::ColorConvertFloat4ToU32(context.Style.ConnectionColor), context.Style.ConnectionThickness * context.Zoom.Zoom);
+}
+
+ImVec2 shade::ImGuiGraph::DrawOutputEndpoint(ImDrawList* drawList, const ImVec2& offset, const ImGuiGraph::ViewContext& context, float yOffset, ImGuiGraph::Node& node)
+{
+	const ImVec2 scaledPosition = node.Position * context.Zoom.Zoom;
+
+	ImVec2 pOutput = offset + scaledPosition + ImVec2{ node.Size.x * context.Zoom.Zoom, yOffset };
+
+	drawList->AddCircleFilled(pOutput, context.Style.EndpointRadius * context.Zoom.Zoom, ImGui::ColorConvertFloat4ToU32(node.Style.HeaderColor));
+
+	return pOutput;
+}
+
+void shade::ImGuiGraph::DrawBorder(ImDrawList* drawList, const ImVec2& offset, const ImGuiGraph::ViewContext& context, ImGuiGraph::Node& node)
+{
+	const ImVec2 scaledPosition = node.Position * context.Zoom.Zoom;
+	const ImVec2 pMin = (offset + scaledPosition);
+	const ImVec2 pMax = (offset + scaledPosition + node.Size * context.Zoom.Zoom);
+
+	drawList->AddRect(pMin, pMax, ImGui::ColorConvertFloat4ToU32(context.Style.NodeBorderColor), context.Style.Rounding, 0, context.Style.NodeBorderWidth);
+}
+
+void shade::ImGuiGraph::MoveNode(const ImGuiIO& io, const ImGuiGraph::ViewContext& context, ImGuiGraph::Node& node)
+{
+	if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
+	{
+		ImVec2 delta = io.MouseDelta / context.Zoom.Zoom;
+
+		if (fabsf(delta.x) >= 0.1f || fabsf(delta.y) >= 0.1f)
+		{
+			node.Position.x += delta.x;
+			node.Position.y += delta.y;
+		}
+	}
 }

@@ -55,8 +55,10 @@ void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shad
 		ImGui::PopStyleColor();
 
 		bool is = true;
-		ShowExampleAppCustomNodeGraph(&is);
-		//ImGui::ShowDemoWindow();
+		
+		shade::ImGuiGraph::Show("Graph editor", { 500, 500 });
+		//ShowExampleAppCustomNodeGraph(&is);
+		ImGui::ShowDemoWindow();
 		ImGui::End();
 	}
 }

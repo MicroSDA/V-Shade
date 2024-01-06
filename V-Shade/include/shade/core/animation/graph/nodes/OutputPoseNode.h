@@ -14,6 +14,7 @@ namespace shade
 			{
 				// We have only input !
 				REGISTER_ENDPOINT<Connection::Input, NodeValueType::Pose>(nullptr);
+				REGISTER_ENDPOINT<Connection::Input, NodeValueType::Float>(0.0);
 			}
 
 			virtual ~OutputPoseNode() = default;

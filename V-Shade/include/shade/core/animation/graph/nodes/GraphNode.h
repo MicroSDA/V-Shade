@@ -98,11 +98,17 @@ namespace shade
 
             /// @brief Getter for all endpoints
             /// @return A reference to the array of endpoints
-            SHADE_INLINE std::array<NodeValues, std::size_t(Connection::Type::MAX_ENUM)>& GetEndpoints() { return m_Endpoints; };
+            SHADE_INLINE std::array<NodeValues, std::size_t(Connection::Type::MAX_ENUM)>& GetEndpoints() 
+            {
+                return m_Endpoints; 
+            };
 
             /// @brief Const getter for all endpoints
             /// @return A const reference to the array of endpoints
-            SHADE_INLINE const std::array<NodeValues, std::size_t(Connection::Type::MAX_ENUM)>& GetEndpoints() const { return m_Endpoints; };
+            SHADE_INLINE const std::array<NodeValues, std::size_t(Connection::Type::MAX_ENUM)>& GetEndpoints() const 
+            { 
+                return m_Endpoints; 
+            };
 
             /// @brief Getter for the graph context
             /// @return A const reference to the graph context
@@ -155,7 +161,7 @@ namespace shade
             /// @return A reference to the retrieved endpoint value
             template<typename Connection::Type ConnectionType, typename NodeValueType ValueType, typename... Args> 
                 requires IsNodeValueType<typename FromNodeValueTypeToType<ValueType>::Type>
-            typename FromNodeValueTypeToType<ValueType>::Type& GET_ENDPOINT(EndpointIDX index, Args&&... args)
+            SHADE_INLINE typename FromNodeValueTypeToType<ValueType>::Type& GET_ENDPOINT(EndpointIDX index, Args&&... args)
             {
                 if constexpr (sizeof...(args) > 0)
                     m_Endpoints[static_cast<std::size_t>(ConnectionType)].At(index)->Initialize<ValueType>(std::forward<Args>(args)...);
@@ -169,19 +175,19 @@ namespace shade
             /// @return A const reference to the retrieved endpoint value
             template<typename Connection::Type ConnectionType, typename NodeValueType ValueType>
                 requires IsNodeValueType<typename FromNodeValueTypeToType<ValueType>::Type>
-            const typename FromNodeValueTypeToType<ValueType>::Type& GET_ENDPOINT(EndpointIDX index) const
+            SHADE_INLINE const typename FromNodeValueTypeToType<ValueType>::Type& GET_ENDPOINT(EndpointIDX index) const
             {
                 return m_Endpoints[static_cast<std::size_t>(ConnectionType)].At(index)->As<ValueType>();
             }
         private:
             friend class AnimationGraph;
-
+            public:
             /// @brief Helper function for getting the pointer to an endpoint value
             /// @tparam T The type of the connection (Input or Output)
             /// @param index The index of the endpoint
             /// @return A pointer to the endpoint value or nullptr if index is out of bounds
             template<typename Connection::Type T>
-            SHADE_INLINE NodeValues::Value* __GetEndpoint(EndpointIDX index)
+            SHADE_INLINE NodeValues::Value* __GET_ENDPOINT(EndpointIDX index)
             {
                 return ((index < m_Endpoints[static_cast<std::size_t>(T)].GetSize()) ? &m_Endpoints[static_cast<std::size_t>(T)].At(index) : nullptr);
             }
@@ -191,7 +197,7 @@ namespace shade
             /// @param index The index of the endpoint
             /// @return A const pointer to the endpoint value or nullptr if index is out of bounds
             template<typename Connection::Type T>
-            SHADE_INLINE const NodeValues::Value* __GetEndpoint(EndpointIDX index) const
+            SHADE_INLINE const NodeValues::Value* __GET_ENDPOINT(EndpointIDX index) const
             {
                 return ((index < m_Endpoints[static_cast<std::size_t>(T)].GetSize()) ? &m_Endpoints[static_cast<std::size_t>(T)].At(index) : nullptr);
             }

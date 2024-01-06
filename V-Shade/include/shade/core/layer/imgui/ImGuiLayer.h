@@ -8,6 +8,83 @@
 
 namespace shade
 {
+	class SHADE_API ImGuiGraph
+	{
+	public:
+
+		struct Node
+		{
+			ImVec2 Size			= ImVec2 {250, 250};
+			std::string Name	= "Node";
+			ImVec2 Position		= ImVec2 { 0, 0 };
+			struct
+			{
+
+				ImVec4 HeaderColor = ImVec4{ 0.4, 0.8, 0.2, 1.0 };
+			} Style;
+
+		};
+
+		struct ViewContext
+		{
+			struct
+			{
+				float Rounding				= 7.f;
+				float NodeBorderWidth		= 3.f;
+				float HeaderHeight			= 30.f;
+				float EndpointRadius		= 7.f;
+				float ConnectionThickness	= 5.f;
+				ImVec4 NodeBorderColor		= ImVec4{ 0.7f, 0.7f, 0.7f, 1.f };
+				ImVec4 NodeBackgroundColor  = ImVec4{ 0.2f, 0.2f, 0.2f, 1.f };
+				ImVec4 HeaderTextColor		= ImVec4{ 0.0f, 0.0f, 0.0f, 1.f };
+				ImVec4 ConnectionColor		= ImVec4{ 0.4f, 0.8f, 0.2f, 1.f };
+				ImVec2 Padding				= ImVec2{ 10.f, 5.f };
+			} Style;
+			struct 
+			{
+				float ZoomTarget		= 1.f;
+				float Zoom				= 1.f;
+				float MinZoom			= 0.01f;
+				float MaxZoom			= 2.f;
+				float ZoomLerp			= 0.20f;
+				float ZoomRatio			= 0.1f;
+			} Zoom;
+
+			ImVec2 ViewPosition			= ImVec2(0.f, 0.f);
+		};
+	public:
+		static bool Show(const char* title, const ImVec2& size);
+	private:
+		static void Zoom(ImRect region, ImGuiGraph::ViewContext& context);
+		static void UpdateZoom(ImGuiGraph::ViewContext& context, const ImGuiIO& io);
+		static void UpdateView(ImGuiGraph::ViewContext& context, const ImGuiIO& io);
+		static ImVec2 CalculateMouseWorldPos(const ImGuiIO& io, const ImGuiGraph::ViewContext& context);
+
+		static void Grid(ImDrawList* drawList, ImVec2 windowPos, const ImGuiGraph::ViewContext& context, const ImVec2 canvasSize, ImU32 gridColor, ImU32 gridColor2, float gridSize);
+		static void DrawGridLines(
+			const ImVec2& start, 
+			const ImVec2& canvasSize, 
+			const float gridSpace,
+			const ImVec2& windowPos,
+			const ImColor& gridColor, const ImColor& gridColor2,
+			ImDrawList* drawList, int divx, int divy);
+
+
+		static void DrawNodes(ImDrawList* drawList,const ImVec2& offset, const ImGuiGraph::ViewContext& context, std::vector<ImGuiGraph::Node>& nodes);
+		static void DrawNode(ImDrawList* drawList, const ImVec2& offset, const ImGuiGraph::ViewContext& context,  bool isActive, ImGuiGraph::Node& node);
+		static float DrawHeader(ImDrawList* drawList, const ImVec2& offset, const ImGuiGraph::ViewContext& context, ImGuiGraph::Node& node);
+		static void DrawFooter(ImDrawList* drawList, const ImVec2& offset, const ImGuiGraph::ViewContext& context, ImGuiGraph::Node& node);
+		static void DrawEndpoints(ImDrawList* drawList, const ImVec2& offset, const ImGuiGraph::ViewContext& context, float yOffset, ImGuiGraph::Node& node);
+		static ImVec2 DrawInputEndpoint(ImDrawList* drawList, const ImVec2& offset, const ImGuiGraph::ViewContext& context, float yOffset, ImGuiGraph::Node& node);
+		static ImVec2 DrawOutputEndpoint(ImDrawList* drawList, const ImVec2& offset, const ImGuiGraph::ViewContext& context, float yOffset, ImGuiGraph::Node& node);
+		static void DrawConnection(ImDrawList* drawList, const ImVec2& offset, const ImGuiGraph::ViewContext& context, const ImVec2& from, const ImVec2& till);
+		static void DrawBorder(ImDrawList* drawList, const ImVec2& offset, const ImGuiGraph::ViewContext& context, ImGuiGraph::Node& node);
+
+		static void MoveNode(const ImGuiIO& io, const ImGuiGraph::ViewContext& context, ImGuiGraph::Node& node);
+	private:
+		static Node* m_spActiveNode;
+
+	};
 	class SHADE_API ImGuiLayer : public Layer
 	{
 	public:
@@ -19,7 +96,6 @@ namespace shade
 		ImGuiContext* GetImGuiContext();
 		void DrawImage(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor);
 		void DrawImage(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor, std::uint32_t mip);
-
 	protected:
 		ImGuiViewport* m_Viewport;
 		int m_WindowFlags;
@@ -191,6 +267,8 @@ namespace shade
         // Dummy data structure provided for the example.
         // Note that we storing links as indices (not ID) to make example code shorter.
 		static void ShowExampleAppCustomNodeGraph(bool* opened);
+
+		bool DrawGraphEditor(bool isOpend, const ImVec2& size);
 
 	private:
 		SharedPointer<ImGuiRender> m_ImGuiRender;
