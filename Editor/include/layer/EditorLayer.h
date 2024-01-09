@@ -2,8 +2,8 @@
 #include <shade/core/layer/Layer.h>
 #include <shade/core/layer/imgui/ImGuiLayer.h>
 #include <shade/core/system/FileDialog.h>
-
 #include <import/IModel.h>
+#include <animation graphs/EditorAnimGraph.h>
 
 class EditorLayer : public shade::ImGuiLayer
 {
@@ -24,15 +24,17 @@ private:
 
 	shade::SharedPointer<shade::Model> m_ImportedModel;
 	shade::ecs::Entity m_ImportedEntity;
-
 	shade::SharedPointer<shade::SceneRenderer>  m_SceneRenderer;
+
+
+	editor_anim_grap_nodes::Graph m_AnimationGraphEditor;
 
 	bool m_IsAddNewAssetModalOpen = false;
 	bool m_IsAddNewAttributeModalOpen = false;
 	bool m_IsCreateNewRawAssetModalOpen = false;
 	bool m_IsAddCollisionShapeModal = false;
 	bool m_ImportModelModal = false;
-	bool m_PackFilesModal	= false;
+	bool m_PackFilesModal = false;
 	bool m_IsAddSkeletalAnimationModal = false;
 
 	// TEST !

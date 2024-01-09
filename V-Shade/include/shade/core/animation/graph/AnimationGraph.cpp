@@ -31,6 +31,8 @@ bool shade::animation::AnimationGraph::AddConnection(GraphNode::NodeIDX sourceNo
 	auto source			= FindNode(sourceNode);
 	auto destination    = FindNode(destinationNode);
 
+	
+
 	if (!source || !destination) return false;
 
 	auto sourceOutValue = source->__GET_ENDPOINT<GraphNode::Connection::Output>(sourceEndpoint);
@@ -44,6 +46,8 @@ bool shade::animation::AnimationGraph::AddConnection(GraphNode::NodeIDX sourceNo
 
 	if (hasBeenConnected)
 	{
+		source->__GET_CONNECTIONS().emplace_back(sourceNode, sourceEndpoint, destinationNode, destinationEndpoint, GraphNode::Connection::Output);
+
 		destination->AddChild(source); 
 		source->OnConnect(GraphNode::Connection::Type::Output, sourceOutValue->get()->GetType(), sourceEndpoint);
 		destination->OnConnect(GraphNode::Connection::Type::Input, destinationInValue->get()->GetType(), destinationEndpoint);
@@ -71,6 +75,8 @@ bool shade::animation::AnimationGraph::AddRootConnection(GraphNode::NodeIDX sour
 
 	if (hasBeenConnected)
 	{
+		source->__GET_CONNECTIONS().emplace_back(sourceNode, sourceEndpoint, m_RootNode->GetNodeIndex(), 0, GraphNode::Connection::Output);
+
 		m_RootNode->AddChild(source); // Can create special for OutputPoseNode SetChild becase there only one child !
 		source->OnConnect(GraphNode::Connection::Type::Output, NodeValueType::Pose, sourceEndpoint);
 		m_RootNode->OnConnect(GraphNode::Connection::Type::Input, NodeValueType::Pose, 0);

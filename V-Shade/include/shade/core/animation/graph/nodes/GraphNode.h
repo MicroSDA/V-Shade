@@ -28,6 +28,15 @@ namespace shade
             SHADE_CAST_HELPER(GraphNode)
 
         public:
+            
+
+            /// @brief Type aliases for node and endpoint indices
+            using NodeIDX = std::uint32_t;
+            using EndpointIDX = std::uint32_t;
+
+            /// @brief Constant for representing a null node index
+            static constexpr NodeIDX NODE_NULL_IDX = ~0u;
+
             /// @brief Structure representing a connection type within a graph node
             struct Connection
             {
@@ -37,15 +46,15 @@ namespace shade
                     Output,
                     MAX_ENUM
                 };
+
+                NodeIDX             Source;
+                EndpointIDX         SourceEndpoint;
+
+                NodeIDX             Target;
+                EndpointIDX         TargetEndpoint;
+
+                Type                ConnectionType = MAX_ENUM;
             };
-
-            /// @brief Type aliases for node and endpoint indices
-            using NodeIDX = std::uint32_t;
-            using EndpointIDX = std::uint32_t;
-
-            /// @brief Constant for representing a null node index
-            static constexpr NodeIDX NODE_NULL_IDX = ~0u;
-
         public:
             /// @brief Constructor for GraphNode
             /// @param idx The index of the graph node
@@ -132,7 +141,7 @@ namespace shade
             const GraphContext& m_rGraphContext;
             std::array<NodeValues, std::size_t(Connection::Type::MAX_ENUM)> m_Endpoints;
             std::unordered_map<std::size_t, SharedPointer<GraphNode>> m_Children;
-
+            std::vector<Connection> m_Connections;
         protected:
             /// @brief Template function for registering an endpoint of a specific type
             /// @tparam ConnectionType The type of the connection (Input or Output)
@@ -201,6 +210,17 @@ namespace shade
             {
                 return ((index < m_Endpoints[static_cast<std::size_t>(T)].GetSize()) ? &m_Endpoints[static_cast<std::size_t>(T)].At(index) : nullptr);
             }
+
+            SHADE_INLINE const std::vector<Connection>& __GET_CONNECTIONS() const
+            {
+                return m_Connections;
+            }
+
+            SHADE_INLINE std::vector<Connection>& __GET_CONNECTIONS()
+            {
+                return m_Connections;
+            }
+
         };
     }
 }

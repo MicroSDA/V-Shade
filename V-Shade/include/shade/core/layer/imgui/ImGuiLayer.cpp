@@ -118,6 +118,7 @@ bool shade::ImGuiLayer::InputTextD(const char* title, std::string& str)
 
 	return ImGui::InputText(_title.c_str(), &str, 0, InputTextCallback);
 }
+
 bool shade::ImGuiLayer::ComboCol(const char* title, std::string& selected, std::vector<std::string>& elements, ImGuiSelectableFlags selectedFlags, ImGuiComboFlags comboFlags, const float& cw1, const float& cw2)
 {
 	std::string _title = std::string("##") + title;
@@ -658,7 +659,7 @@ bool shade::ImGuiGraph::Show(const char* title, const ImVec2& size)
 
 				if (ImGui::IsItemActive()) m_spActiveNode = nullptr;
 
-				drawList->ChannelsSplit(2);
+				
 				{
 					Zoom(canvas, context);
 
@@ -788,20 +789,12 @@ void shade::ImGuiGraph::DrawNode(ImDrawList* drawList, const ImVec2& offset, con
 
 	DrawEndpoints(drawList, offset, context, enpointY, node);
 
-	//drawList->AddCircleFilled();
-
-	ImVec2 const	p1 = offset;
-	ImVec2 const	p4 = ImGui::GetMousePos();
-	ImVec2 const	p2 = p1 + ImVec2(+50, 0);
-	ImVec2 const	p3 = p4 + ImVec2(-50, 0);
-
-	//drawList->AddBezierCubic(p1, p2, p3, p4, ImGui::ColorConvertFloat4ToU32(ImVec4{ 0.4, 0.8, 0.2, 1.0 }), 5.f);
-
 	ImGui::PopStyleColor(1);
 }
 
 float shade::ImGuiGraph::DrawHeader(ImDrawList* drawList, const ImVec2& offset, const ImGuiGraph::ViewContext& context, ImGuiGraph::Node& node)
 {
+	
 	ImGui::SetWindowFontScale(1.5);
 	
 	ImGui::BeginGroup();
@@ -829,6 +822,21 @@ void shade::ImGuiGraph::DrawFooter(ImDrawList* drawList, const ImVec2& offset, c
 
 void shade::ImGuiGraph::DrawEndpoints(ImDrawList* drawList, const ImVec2& offset, const ImGuiGraph::ViewContext& context, float yOffset, ImGuiGraph::Node& node)
 {
+	/*  There should be some conenction info
+		We need to have connetions saves only from - till, not backwards, thats mean only pareent contain connections
+		Connection shoud be like:
+		struct Connection
+		{
+			NodeId from,
+			Endpoint id,
+			NodeId till,
+			Endpoint id
+			NodeValueType typeOfconnection
+		{
+
+		There should be a map where all connection are stored
+		Where key is ? node id ?, should it be the same in editor and runtime node?
+	*/
 	const ImVec2 e1 = DrawInputEndpoint(drawList, offset, context, yOffset, node);
 	const ImVec2 e2 = DrawOutputEndpoint(drawList, offset, context, yOffset, node);
 	

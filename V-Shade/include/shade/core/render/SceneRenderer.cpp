@@ -314,8 +314,11 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 					}
 				}
 			});
+
+
 		scene->View<Asset<Model>, TransformComponent>().Each([&](ecs::Entity& entity, Asset<Model>& model, TransformComponent& transform)
 			{
+
 				auto pcTransform = scene->ComputePCTransform(entity);
 
 				AnimationGraphComponent animationGraph = (entity.HasComponent<AnimationGraphComponent>()) ? entity.GetComponent<AnimationGraphComponent>() : nullptr;

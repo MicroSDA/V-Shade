@@ -19,6 +19,39 @@ void EditorLayer::OnCreate()
 
 void EditorLayer::OnUpdate(shade::SharedPointer<shade::Scene>& scene, const shade::FrameTimer& deltaTime)
 {
+	if (m_AnimationGraphEditor.Count() == 0)
+	{
+		scene->View<shade::AnimationGraphComponent>().Each([&](shade::ecs::Entity& entity, shade::AnimationGraphComponent& graph)
+			{
+				if (graph != nullptr)
+				{
+					for (auto& node : graph->GetNodes())
+					{
+
+						// Bad, but keep this, for test
+						if (dynamic_cast<shade::animation::ValueNode*>(node.Raw()))
+						{
+							m_AnimationGraphEditor.EmpalceNode<editor_anim_grap_nodes::ValueNode>(node->GetNodeIndex(), node);
+						}
+						if (dynamic_cast<shade::animation::PoseNode*>(node.Raw()))
+						{
+							m_AnimationGraphEditor.EmpalceNode<editor_anim_grap_nodes::PoseNode>(node->GetNodeIndex(), node);
+						}
+						if (dynamic_cast<shade::animation::BlendNode2D*>(node.Raw()))
+						{
+							m_AnimationGraphEditor.EmpalceNode<editor_anim_grap_nodes::BlendNode>(node->GetNodeIndex(), node);
+						}
+						if (dynamic_cast<shade::animation::BlendNode2D*>(node.Raw()))
+						{
+							m_AnimationGraphEditor.EmpalceNode<editor_anim_grap_nodes::BlendNode>(node->GetNodeIndex(), node);
+						}
+					}
+
+					m_AnimationGraphEditor.EmpalceNode<editor_anim_grap_nodes::OutputPoseNode>(graph->GetOutputPoseNode()->GetNodeIndex(), graph->GetOutputPoseNode());
+				}
+			});
+	}
+
 	shade::physic::PhysicsManager::Step(scene, deltaTime);
 	m_SceneRenderer->OnUpdate(scene, deltaTime);
 }
@@ -55,10 +88,12 @@ void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shad
 		ImGui::PopStyleColor();
 
 		bool is = true;
-		
-		shade::ImGuiGraph::Show("Graph editor", { 500, 500 });
+
+		m_AnimationGraphEditor.Show("Graph editor", { 500, 500 });
+
+		//shade::ImGuiGraph::Show("Graph editor", { 500, 500 });
 		//ShowExampleAppCustomNodeGraph(&is);
-		ImGui::ShowDemoWindow();
+		//ImGui::ShowDemoWindow();
 		ImGui::End();
 	}
 }
@@ -1786,6 +1821,7 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 	static shade::animation::BoneMask boneMask(entity.GetComponent<shade::ModelComponent>()->GetSkeleton());
 	static shade::SharedPointer<shade::animation::PoseNode>			pose1;
 	static shade::SharedPointer<shade::animation::PoseNode>			pose2;
+	static shade::SharedPointer<shade::animation::ValueNode>		blendWeight;
 
 	static shade::SharedPointer<shade::animation::BlendNode2D>		blend;
 
@@ -1793,54 +1829,27 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 	{
 		if (ImGui::Button("Add Graph"))
 		{
-		
-
 			// 1. Create Animation graph with empty context
 			// 2. Add function initialize after context was set ! or someting like that
 			// 3. Remove Skeleton from Model, submit animated only when graph component on entity when we create serrialization for graph
 			// 4. Take a look at Query pose and reafactor this if it posible !
 			// 5. Skeleton shoudl be only in context !
-			animationGraph = shade::animation::AnimationGraph::CreateEXP(entity.GetComponent<shade::ModelComponent>()->GetSkeleton());
+			animationGraph = shade::animation::AnimationGraph::CreateEXP(entity.GetComponent<shade::ModelComponent>()->GetSkeleton()); // Caussing asset error!
 
-			pose1 = animationGraph->CreateNode<shade::animation::PoseNode>();
-			pose2 = animationGraph->CreateNode<shade::animation::PoseNode>();
+			pose1		= animationGraph->CreateNode<shade::animation::PoseNode>();
+			pose2		= animationGraph->CreateNode<shade::animation::PoseNode>();
+			blendWeight = animationGraph->CreateNode<shade::animation::ValueNode>();
 
-			blend = animationGraph->CreateNode<shade::animation::BlendNode2D>();
+			blend		= animationGraph->CreateNode<shade::animation::BlendNode2D>();
 
-			auto is1 = animationGraph->AddConnection(pose1->GetNodeIndex(), 0, blend->GetNodeIndex(), 1);
-			auto is2 = animationGraph->AddConnection(pose2->GetNodeIndex(), 0, blend->GetNodeIndex(), 2);
-
-			auto is3 = animationGraph->AddRootConnection(blend->GetNodeIndex(), 0);
+			animationGraph->AddConnection(blendWeight->GetNodeIndex(), 0, blend->GetNodeIndex(), 0);
+			animationGraph->AddConnection(pose1->GetNodeIndex(), 0, blend->GetNodeIndex(), 1);
+			animationGraph->AddConnection(pose2->GetNodeIndex(), 0, blend->GetNodeIndex(), 2);
+			
+			animationGraph->AddRootConnection(blend->GetNodeIndex(), 0);
 		}
 	}
 
-	if (animationGraph &&
-		pose1 &&
-		pose2 && 
-		blend && 
-		!pose1->GetAnimationData().Animation &&
-		!pose2->GetAnimationData().Animation)
-	{
-		const std::string animation1 = "Boy.Animation.Idel";
-		const std::string animation2 = "Boy.Animation.Running";
-
-		shade::AssetManager::GetAsset<shade::Animation, shade::BaseAsset::InstantiationBehaviour::Synchronous>(animation1, shade::AssetMeta::Category::Secondary, shade::BaseAsset::LifeTime::KeepAlive, [=](auto& animation) mutable
-			{
-				pose1->ResetAnimationData(animation);
-			});
-		shade::AssetManager::GetAsset<shade::Animation, shade::BaseAsset::InstantiationBehaviour::Synchronous>(animation2, shade::AssetMeta::Category::Secondary, shade::BaseAsset::LifeTime::KeepAlive, [=](auto& animation) mutable
-			{
-				pose2->ResetAnimationData(animation);
-			});
-
-		
-	}
-	if (animationGraph && blend)
-	{
-		auto v = animationGraph->GetNode<shade::animation::BlendNode2D>(2)->GetEndpoint<shade::animation::GraphNode::Connection::Input>(0)->As<shade::animation::NodeValueType::Float>();
-
-		ImGui::DragFloat("Bledn weight", &animationGraph->GetNode<shade::animation::BlendNode2D>(2)->GetEndpoint<shade::animation::GraphNode::Connection::Input>(0)->As<shade::animation::NodeValueType::Float>(), 0.001);
-	}
 	//if (ImGui::BeginTable("##SelectOrAddNewAnimation", 3, ImGuiTableFlags_None | ImGuiTableFlags_SizingStretchProp))
 	//{
 	//	ImGui::TableNextRow();
@@ -2097,7 +2106,7 @@ void EditorLayer::BoneMaskEdnitor(const shade::Skeleton::BoneNode* node, shade::
 {
 	bool overrideByParrent = false;
 
-	if(ImGui::TreeNodeEx(node->Name.c_str(), ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_Framed))
+	if (ImGui::TreeNodeEx(node->Name.c_str(), ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_Framed))
 	{
 		if (ImGui::BeginTable("##BoneMask", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp))
 		{

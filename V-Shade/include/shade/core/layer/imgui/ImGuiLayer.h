@@ -5,6 +5,7 @@
 #include <shade/core/layer/imgui/ImGuiThemeEditor.h>
 #include <ImGuizmo/ImGuizmo.h>
 #include <ImGuizmo/ImSequencer.h>
+#include <shade/core/layer/imgui/ImGuiGraph.h>
 
 namespace shade
 {
@@ -96,7 +97,7 @@ namespace shade
 		ImGuiContext* GetImGuiContext();
 		void DrawImage(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor);
 		void DrawImage(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor, std::uint32_t mip);
-	protected:
+	public:
 		ImGuiViewport* m_Viewport;
 		int m_WindowFlags;
 		int m_DockSpaceFlags;
@@ -253,7 +254,7 @@ namespace shade
 		}
 		bool InputTextCol(const char* title, std::string& str, float cw1 = 0.0f, float cw2 = 0.0);
 		bool InputTextD(const char* title, std::string& str);
-		bool ComboCol(const char* id, std::string& selected, std::vector<std::string>& elements, ImGuiSelectableFlags selectedFlags, ImGuiComboFlags comboFlags, const float& cw1 = 0.0f, const float& cw2 = 0.0);
+		static bool ComboCol(const char* id, std::string& selected, std::vector<std::string>& elements, ImGuiSelectableFlags selectedFlags, ImGuiComboFlags comboFlags, const float& cw1 = 0.0f, const float& cw2 = 0.0);
 		bool DrawCombo(const char* id, std::string& selected, std::vector<std::string>& elements, ImGuiSelectableFlags selectedFlags, ImGuiComboFlags comboFlags);
 
 		bool DragFloat(const char* title, float* data, float step = 0.01f, float min = 0.0, float max = FLT_MAX, float cw1 = 0.0f, float cw2 = 0.0);

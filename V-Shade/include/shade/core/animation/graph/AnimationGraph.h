@@ -6,6 +6,7 @@
 #include <shade/core/animation/graph/nodes/PoseNode.h>
 #include <shade/core/animation/graph/nodes/OutputPoseNode.h>
 #include <shade/core/animation/AnimationController.h>
+#include <shade/core/animation/graph/nodes/ValueNode.h>
 
 namespace shade
 {
@@ -44,6 +45,8 @@ namespace shade
 			{
 				return  SharedPointer<Node>(m_Nodes.at(nodeIdx));
 			}
+
+			std::vector<SharedPointer<animation::GraphNode>>& GetNodes() { return m_Nodes; }
 
 			void Evaluate(const FrameTimer& delatTime);
 			const SharedPointer<OutputPoseNode>& const GetOutputPoseNode();
