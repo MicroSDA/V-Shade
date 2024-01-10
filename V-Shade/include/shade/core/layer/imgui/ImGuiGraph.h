@@ -215,6 +215,24 @@ namespace shade
 			{
 				if (ImGui::Begin(title, (bool*)0))
 				{
+					if (ImGui::BeginChild("##ImGuiGraphPrototype::ConfigRegion",
+						ImVec2(300, ImGui::GetContentRegionAvail().y),
+						true,
+						ImGuiWindowFlags_NoScrollbar |
+						ImGuiWindowFlags_NoMove |
+						ImGuiWindowFlags_NoScrollWithMouse))
+					{
+						if (m_ActiveNode)
+						{
+							ImGui::Text(m_ActiveNode->Style.Title.c_str());
+						}
+
+
+						ImGui::EndChild();
+					}
+
+					ImGui::SameLine();
+
 					const ImVec2 cursorPosition = ImGui::GetCursorScreenPos();
 					const ImVec2 windowPos = cursorPosition, scrollRegionLocalPos(0, 0);
 					m_Context.CanvasSize = ImGui::GetContentRegionAvail();
@@ -257,12 +275,19 @@ namespace shade
 						}
 
 						ImGui::EndChild();
+
 					}
 
-					if (ImGui::IsMouseReleased(ImGuiMouseButton_Right) && m_Context.CanvasRect.Contains(ImGui::GetIO().MousePos))
+					if (m_Context.CanvasRect.Contains(ImGui::GetIO().MousePos))
 					{
-						ImGui::OpenPopup("##GraphEditorPopup");
+						// Scrolling
+						if (ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f))
+							m_Context.CanvasPosition += ImGui::GetIO().MouseDelta / m_Context.Scale.Factor;
+
+						if (ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+							ImGui::OpenPopup("##GraphEditorPopup");
 					}
+					
 
 					if (ImGui::BeginPopup("##GraphEditorPopup"))
 					{
@@ -272,6 +297,10 @@ namespace shade
 						ImGui::EndPopup();
 					}
 
+					
+				
+
+					/* viewState.mPosition += io.MouseDelta / viewState.mFactor;*/
 
 				}ImGui::End();
 			}
@@ -309,7 +338,7 @@ namespace shade
 				if (ImGui::IsItemActive()) { m_ActiveNode = node; }
 
 				if (!(m_ConnectionEstablish.IsOutPutSelect))
-					MoveMode(m_Context.Scale.Factor, node->GetScreenPosition());
+					MoveNode(m_Context.Scale.Factor, node->GetScreenPosition());
 
 				ImGui::PopID();
 				CurrentChannel--;
@@ -563,7 +592,7 @@ namespace shade
 				m_Context.CanvasPosition += mouseWorldPossition - deltaMouseWorldPossition;
 		}
 
-		SHADE_INLINE void MoveMode(float scaleFactor, ImVec2& position) // Move to cpp
+		SHADE_INLINE void MoveNode(float scaleFactor, ImVec2& position) // Move to cpp
 		{
 			if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
 			{
