@@ -17,6 +17,11 @@ void shade::animation::GraphNode::ProcessBranch(const FrameTimer& delatTime)
 		child->ProcessBranch(delatTime);
 	}
 
+	for (const auto& endpoint : m_Endpoints[Connection::Type::Input])
+	{
+		if (!endpoint) return;
+	}
+	
 	Evaluate(delatTime);
 }
 

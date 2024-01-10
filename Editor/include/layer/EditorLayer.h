@@ -27,7 +27,7 @@ private:
 	shade::SharedPointer<shade::SceneRenderer>  m_SceneRenderer;
 
 
-	editor_anim_grap_nodes::Graph m_AnimationGraphEditor;
+	shade::SharedPointer<editor_animation_graph::GraphDeligate> m_AnimationGraphEditor;
 
 	bool m_IsAddNewAssetModalOpen = false;
 	bool m_IsAddNewAttributeModalOpen = false;

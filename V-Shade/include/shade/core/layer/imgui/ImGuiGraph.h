@@ -13,17 +13,7 @@ namespace shade
 	{
 		struct
 		{
-			float Rounding = 7.f;
-			float NodeBorderWidth = 4.f;
-			float HeaderHeight = 35.f;
-			float EndpointRadius = 10.f;
-			float ConnectionThickness = 5.f;
-			ImVec4 NodeBorderColor = ImVec4{ 0.3f, 0.3f, 0.3f, 1.f };
-			ImVec4 NodeBackgroundColor = ImVec4{ 0.2f, 0.2f, 0.2f, 1.f };
-			ImVec4 HeaderTextColor = ImVec4{ 0.0f, 0.0f, 0.0f, 1.f };
-			ImVec4 ConnectionColor = ImVec4{ 0.5, 0.7, 0.0, 1.0 };
-			ImVec2 Padding = ImVec2{ 10.f, 5.f };
-			ImVec2 CellPadding = ImVec2{ 15.f, 10.f };
+
 		} Style;
 		struct
 		{
@@ -31,7 +21,7 @@ namespace shade
 			float Zoom = 1.f;
 			float MinZoom = 0.01f;
 			float MaxZoom = 2.f;
-			float ZoomLerp = 0.20f;
+			float ZoomLerp = 0.2f;
 			float ZoomRatio = 0.1f;
 		} Zoom;
 
@@ -45,155 +35,254 @@ namespace shade
 		static void UpdateZoom(GraphViewContext& context, const ImGuiIO& io);
 		static void UpdateView(GraphViewContext& context, const ImGuiIO& io);
 		static ImVec2 CalculateMouseWorldPos(const ImGuiIO& io, const GraphViewContext& context);
-		static void Grid(ImDrawList* drawList, ImVec2 windowPos, const GraphViewContext& context, const ImVec2& canvasSize, ImU32 gridColor, ImU32 gridColor2, float gridSize);
-		static void DrawGridLines(const ImVec2& start, const ImVec2& canvasSize, const float gridSpace, const ImVec2& windowPos, const ImColor& gridColor, const ImColor& gridColor2, ImDrawList* drawList, int divx, int divy);	
+
+		static void DrawGrid(
+			ImDrawList* drawList,
+			const ImVec2& windowPosition,
+			const ImVec2& canvasSize,
+			const ImVec2& canvasPosition,
+			float scaleFactor,
+			ImU32 gridColor,
+			ImU32 gridColor2,
+			float gridSize);
+
+		static void DrawGridLines(const ImVec2& start, const ImVec2& canvasSize, const float gridSpace, const ImVec2& windowPos, const ImColor& gridColor, const ImColor& gridColor2, ImDrawList* drawList, int divx, int divy);
 		static void MoveNode(const ImGuiIO& io, const GraphViewContext& context, ImVec2& position);
 		static void DrawBorder(ImDrawList* drawList, const ImVec2& offset, const GraphViewContext& context, bool isActive, const ImVec2& nodePosition, const ImVec2& nodeSize);
 		static float DrawHeader(ImDrawList* drawList, const ImVec2& offset, const GraphViewContext& context, const char* title, const ImVec2& nodePosition, const ImVec2& nodeSize, const ImVec4& headerColor);
-		static bool DrawInputEndpoint(ImDrawList* drawList, const ImVec2& offset, const GraphViewContext& context, const ImVec2& screenPosition, const ImVec4& color, const ImVec4& hoveredColor);
-		static bool DrawOutputEndpoint(ImDrawList* drawList, const ImVec2& offset, const GraphViewContext& context, const ImVec2& screenPosition, const ImVec4& color, const ImVec4& hoveredColor);
-		static void DrawConnection(ImDrawList* drawList, const ImVec2& offset, const GraphViewContext& context, const ImVec2& from, const ImVec2& till);
+		static bool DrawEndpoint(ImDrawList* drawList, const ImVec2& offset, float radius, float scaleFactor, const ImVec2& screenPosition, const ImVec4& color, const ImVec4& hoveredColor);
+		static void DrawConnection(ImDrawList* drawList, const ImVec2& offset, float scaleFactor, const ImVec2& from, const ImVec2& till, const ImVec4& connectionColor, float thickness);
 	};
 
-	struct Endpoint
+
+	template<typename Graph, typename NodeIdentifier, typename EndpointIdentifier, typename Node>
+	class ImGuiGraphPrototype;
+
+	struct EndpointPrototype
 	{
-		enum Type : std::uint32_t { Input, Output, MAX_ENUM };
-		////////////////////////////
-		std::string		Name;
-		ImVec2			ScreenPosition;
+		enum EndpointType : std::uint8_t { Input = 0, Output = 1, MAX_ENUM };
+
+		EndpointPrototype(EndpointType type, const std::string& name = std::string("Endpoint name")) :
+			m_Type(type), m_Name(name)
+		{}
+		~EndpointPrototype() = default;
+		/////////////////////////////////////////////////////////////////////////////////////////////////
+		SHADE_INLINE		EndpointType GetType()							const { return m_Type; }
+		SHADE_INLINE const	std::string& GetName()							const { return m_Name; }
+		SHADE_INLINE const	ImVec2 GetScreenPosition()						const { return m_ScreenPosition; }
+		SHADE_INLINE		void SetScreenPosition(const ImVec2& position) { m_ScreenPosition = position; }
+		/////////////////////////////////////////////////////////////////////////////////////////////////
+	private:
+		std::string		m_Name;
+		EndpointType	m_Type;
+		ImVec2			m_ScreenPosition;
 	};
 
 	template<typename EndpointIdentifier>
-	using EndpointsDeligate = std::array<std::map<EndpointIdentifier, Endpoint>, Endpoint::MAX_ENUM>;
-	
+	using EndpointsPrototype = std::array<std::map<EndpointIdentifier, EndpointPrototype>, EndpointPrototype::MAX_ENUM>;
+
 	template<typename NodeIdentifier, typename EndpointIdentifier>
-	struct Connection
+	struct ConnectionPrototype
 	{
-		//////////////////////////////////////////////////
-		NodeIdentifier			SourceNodeIdentifier;
-		EndpointIdentifier		SourceEndpointIdentifier;
-		NodeIdentifier			TargetNodeIdentifier;
-		EndpointIdentifier		TargetEndpointIdentifier;
+		NodeIdentifier			InputNodeIdentifier;
+		EndpointIdentifier		InputEndpointIdentifier;
+		NodeIdentifier			OutputNodeIdentifier;
+		EndpointIdentifier		OutputEndpointIdentifier;
 	};
 
 	template<typename NodeIdentifier, typename EndpointIdentifier>
-	using ConnectionDeligate = std::vector<Connection<NodeIdentifier, EndpointIdentifier>>;
-	
-	template<typename Graph, typename NodeIdentifier, typename EndpointIdentifier, typename Node>
-	class ImGuiGraphDeligate;
+	using ConnectionsPrototype = std::vector<ConnectionPrototype<NodeIdentifier, EndpointIdentifier>>;
 
 	template<typename NodeIdentifier, typename EndpointIdentifier, typename Node>
-	struct GraphNodeDeligate
+	struct GraphNodePrototype
 	{
-		GraphNodeDeligate(NodeIdentifier id, Node ptr) : m_Identifier(id), m_NodeValue(ptr) {}
-		~GraphNodeDeligate() = default;
-		//////////////////////////////////////////////////////////////////////////
-		SHADE_INLINE const	Node& GetNode() const	{ return m_NodeValue; }
-		SHADE_INLINE		Node& GetNode()			{ return m_NodeValue; }
-		//////////////////////////////////////////////////////////////////////////
-		std::string				Title				= "Node";
-		ImVec2					Size				= ImVec2{ 200, 200 };
-		ImVec2					ScreenPosition		= ImVec2{ 0, 0 };
-		struct
+		struct VisualStyle
 		{
-			ImVec4 HeaderColor						= ImVec4{ 0.5, 0.7, 0.0, 1.0 };
+			ImVec4 HeaderColor = ImVec4{ 0.5f, 0.7f, 0.f, 1.f };
+			ImVec4 HeaderTextColor = ImVec4{ 0.0f, 0.0f, 0.f, 1.f };
 
-			ImVec4 InputEndpointsColor				= ImVec4{ 0.5, 0.7, 0.0, 1.0 };
-			ImVec4 InputEndpointsColorHovered		= ImVec4{ InputEndpointsColor.x * 2.f,InputEndpointsColor.y * 2.f, InputEndpointsColor.z * 2.f, InputEndpointsColor.w };
+			ImVec4 InputEndpointsColor = ImVec4{ 0.5f, 0.7f, 0.f, 1.f };
+			ImVec4 InputEndpointsColorHovered = ImVec4{ InputEndpointsColor.x * 2.f,InputEndpointsColor.y * 2.f, InputEndpointsColor.z * 2.f, InputEndpointsColor.w };
 
-			ImVec4 OutPutEndpointsColor				= ImVec4{ 0.5, 0.7, 0.0, 1.0 };
-			ImVec4 OutPutEndpointsColorHovered		= ImVec4{ OutPutEndpointsColor.x * 2.f,OutPutEndpointsColor.y * 2.f, OutPutEndpointsColor.z * 2.f, OutPutEndpointsColor.w };
+			ImVec4 OutPutEndpointsColor = ImVec4{ 0.5f, 0.7f, 0.f, 1.f };
+			ImVec4 OutPutEndpointsColorHovered = ImVec4{ OutPutEndpointsColor.x * 2.f,OutPutEndpointsColor.y * 2.f, OutPutEndpointsColor.z * 2.f, OutPutEndpointsColor.w };
 
-		} Style;
+			ImVec4 BorderColor = ImVec4{ 0.3f, 0.3f, 0.3f, 1.f };
+			ImVec4 BackgroundColor = ImVec4{ 0.2f, 0.2f, 0.2f, 1.f };
+			ImVec4 TextColor = ImVec4{ 0.0f, 0.0f, 0.0f, 1.f };
 
-		virtual ConnectionDeligate<NodeIdentifier, EndpointIdentifier> MergeConnections() const = 0;
-		virtual EndpointsDeligate<NodeIdentifier> MergeEndpoints() const = 0;
+			ImVec2 Size = ImVec2{ 200.f, 200.f };
+			std::string	Title = "Node title";
+		};
+
+		GraphNodePrototype(NodeIdentifier id, Node node) : m_Identifier(id), m_NodeValue(node) {}
+		~GraphNodePrototype() = default;
+
+		//////////////////////////////////////////////////////////////////////////
+		SHADE_INLINE const	Node& GetNode()								const { return m_NodeValue; }
+		SHADE_INLINE		Node& GetNode() { return m_NodeValue; }
+		SHADE_INLINE		void SetScreenPosition(const ImVec2& position) { m_ScreenPosition = position; }
+		SHADE_INLINE const	ImVec2& GetScreenPosition()					const { return m_ScreenPosition; }
+		SHADE_INLINE		ImVec2& GetScreenPosition() { return m_ScreenPosition; }
+
+		//////////////////////////////////////////////////////////////////////////
+
+		virtual ConnectionsPrototype<NodeIdentifier, EndpointIdentifier> ReceiveConnections() const = 0;
+		virtual EndpointsPrototype<NodeIdentifier> ReceiveEndpoints() const = 0;
 
 		virtual void ProcessBodyConent() {};
-		virtual void ProcessEndpoint(const EndpointIdentifier& endpoint, Endpoint::Type type) {};
+		virtual void ProcessEndpoint(const EndpointIdentifier& endpoint, EndpointPrototype::EndpointType type) {};
 
-		SHADE_INLINE ConnectionDeligate<NodeIdentifier, EndpointIdentifier>& GetConnections() 
+		SHADE_INLINE ConnectionsPrototype<NodeIdentifier, EndpointIdentifier>& GetConnections()
 		{
-			return m_Connections;  
+			return m_Connections;
 		};
-		SHADE_INLINE EndpointsDeligate<NodeIdentifier>& GetEndpoints() 
-		{ 
-			return m_Endpoints; 
+		SHADE_INLINE EndpointsPrototype<NodeIdentifier>& GetEndpoints()
+		{
+			return m_Endpoints;
 		};
-		SHADE_INLINE void SetConnections(ConnectionDeligate<NodeIdentifier, EndpointIdentifier> connections) 
-		{ 
-			m_Connections = std::move(connections); 
+		SHADE_INLINE void SetConnections(ConnectionsPrototype<NodeIdentifier, EndpointIdentifier> connections)
+		{
+			m_Connections = std::move(connections);
 		};
-		SHADE_INLINE void SetEndpoints(EndpointsDeligate<NodeIdentifier> endpoints) 
-		{ 
+		SHADE_INLINE void SetEndpoints(EndpointsPrototype<NodeIdentifier> endpoints)
+		{
 			m_Endpoints = std::move(endpoints);
 		};
 		SHADE_INLINE NodeIdentifier GetNodeIdentifier() const
 		{
 			return m_Identifier;
 		};
+
+		VisualStyle													Style;
 	private:
 		NodeIdentifier												m_Identifier;
 		Node														m_NodeValue;
-		ConnectionDeligate<NodeIdentifier, EndpointIdentifier>		m_Connections;
-		EndpointsDeligate<NodeIdentifier>							m_Endpoints;
+
+		ConnectionsPrototype<NodeIdentifier, EndpointIdentifier>	m_Connections;
+		EndpointsPrototype<NodeIdentifier>							m_Endpoints;
+
+		ImVec2														m_ScreenPosition = ImVec2{ 0, 0 };
 	};
 
 	template<typename Graph, typename NodeIdentifier, typename EndpointIdentifier, typename Node>
-	class ImGuiGraphDeligate
+	class ImGuiGraphPrototype
 	{
+	public:
+		struct VisualStyle
+		{
+			ImVec4 BackgroundColor = ImVec4{ 0.2f, 0.2f, 0.2f, 1.f };
+			ImVec4 GridColorSmall = ImVec4{ 0.3f, 0.3f, 0.3f, 1.f };
+			ImVec4 GridColorBig = ImVec4{ 0.5, 0.5, 0.5, 1.f };
+			float  GridSize = 64.f;
 
-		Graph m_Graph;
+			float Rounding = 7.f;
+			float NodeBorderWidth = 4.f;
+			float HeaderHeight = 35.f;
+			float EndpointRadius = 10.f;
+			float ConnectionThickness = 5.f;
+
+			ImVec4 ConnectionColor = ImVec4{ 0.5, 0.7, 0.0, 1.f };
+			ImVec2 Padding = ImVec2{ 10.f, 5.f };
+			ImVec2 CellPadding = ImVec2{ 15.f, 10.f };
+		};
+
+		struct VisualScale
+		{
+			float TargetFactor = 1.f;
+			float Factor = 1.f;
+			float MinFactor = 0.01f;
+			float MaxFactor = 2.f;
+			float LerpFactor = 0.2f;
+			float RatioFactor = 0.1f;
+		};
+
+		struct InternalContext
+		{
+			VisualScale Scale;
+			ImRect		CanvasRect;
+			ImVec2		CanvasSize = ImVec2(0.f, 0.f);
+			ImVec2		CanvasPosition = ImVec2(0.f, 0.f);
+			ImVec2		Offset = ImVec2(0.f, 0.f);
+			ImDrawList* DrawList = nullptr;
+		};
 
 	public:
-		ImGuiGraphDeligate(Graph graph) : m_Graph(graph) {}
-		~ImGuiGraphDeligate() { for (auto& [key, value] : m_Nodes) { delete value; } }
-		template<typename DeligateType, typename... Args>
-		void EmpalceNode(NodeIdentifier identifier, Node node)
+		ImGuiGraphPrototype(Graph graph) : m_GraphValue(graph) {}
+		virtual ~ImGuiGraphPrototype()
 		{
-			m_Nodes.emplace(identifier, new DeligateType(identifier, node));
+			for (auto& [key, value] : m_Nodes) { delete value; }
 		}
-		std::size_t Count() const { return m_Nodes.size(); }
-		inline bool Show(const char* title, const ImVec2& size)
+		// Copy constructor
+		ImGuiGraphPrototype(const ImGuiGraphPrototype&) = delete;
+		// Move constructor
+		ImGuiGraphPrototype(ImGuiGraphPrototype&&) = delete;
+		// Copy assignment operator
+		ImGuiGraphPrototype& operator=(const ImGuiGraphPrototype&) = delete;
+		// Move assignment operator
+		ImGuiGraphPrototype& operator=(ImGuiGraphPrototype&&) = delete;
+
+	public:
+		template<typename NodeDeligate, typename... Args>
+		SHADE_INLINE void EmplaceNode(NodeIdentifier identifier, Node node)
 		{
-			// Need to remove it from here
-			static GraphViewContext	context;
-
+			m_Nodes.emplace(identifier, new NodeDeligate(identifier, node));
+		}
+		SHADE_INLINE std::size_t GetCount() const
+		{
+			return m_Nodes.size();
+		}
+		SHADE_INLINE const	Graph& GetGraph() const { return m_GraphValue; }
+		SHADE_INLINE		Graph& GetGraph() { return m_GraphValue; }
+	public:
+		SHADE_INLINE bool Show(const char* title, const ImVec2& size)
+		{
+			// Save current style 
 			ImGuiStyle unscaledStyle = ImGui::GetStyle();
-
-			ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4{ 0.2, 0.2, 0.2, 1 });
-
+			ImGui::PushStyleColor(ImGuiCol_WindowBg, m_VisualStyle.BackgroundColor);
 			ImGui::SetNextWindowSize(size, ImGuiCond_FirstUseEver);
 			{
 				if (ImGui::Begin(title))
 				{
-					const ImVec2 windowPos = ImGui::GetCursorScreenPos(), canvasSize = ImGui::GetContentRegionAvail(), scrollRegionLocalPos(0, 0);
+					const ImVec2 cursorPosition = ImGui::GetCursorScreenPos();
+					const ImVec2 windowPos = cursorPosition, scrollRegionLocalPos(0, 0);
+					m_Context.CanvasSize = ImGui::GetContentRegionAvail();
+					m_Context.CanvasRect = ImRect{ windowPos, windowPos + m_Context.CanvasSize };
+					m_Context.Offset = cursorPosition + (m_Context.CanvasPosition * m_Context.Scale.Factor);
 
-					ImRect canvas(windowPos, windowPos + canvasSize);
 
-					ImVec2 offset = ImGui::GetCursorScreenPos() + (context.ViewPosition * context.Zoom.Zoom);
-
-
-					if (ImGui::BeginChild("#ImGuiGraph::ScrollRegion", ImVec2(0, 0), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollWithMouse))
+					if (ImGui::BeginChild("##ImGuiGraphPrototype::ScrollRegion",
+						ImVec2(0, 0),
+						true,
+						ImGuiWindowFlags_NoScrollbar |
+						ImGuiWindowFlags_NoMove |
+						ImGuiWindowFlags_NoScrollWithMouse))
 					{
-						
-						ImGui::GetStyle().ScaleAllSizes(context.Zoom.Zoom);
-						ImGui::SetWindowFontScale(context.Zoom.Zoom);
 
-						ImDrawList* drawList = ImGui::GetWindowDrawList();
+						m_Context.DrawList = ImGui::GetWindowDrawList();
+						// Set all elements scale inside canvas 
+						ImGui::GetStyle().ScaleAllSizes(m_Context.Scale.Factor);
+						ImGui::SetWindowFontScale(m_Context.Scale.Factor);
 
-						ImGuiGraphNodeRender::Zoom(canvas, context);
-						ImGuiGraphNodeRender::Grid(drawList, windowPos, context, canvasSize, ImGui::ColorConvertFloat4ToU32(ImVec4{ 0.3, 0.3, 0.3, 1.0 }), ImGui::ColorConvertFloat4ToU32(ImVec4{ 0.5, 0.5, 0.5, 1.0 }), 64.f);
+						ProcessScale();
 
+						ImGuiGraphNodeRender::DrawGrid(m_Context.DrawList,
+							windowPos,
+							m_Context.CanvasSize,
+							m_Context.CanvasPosition,
+							m_Context.Scale.Factor,
+							ImGui::ColorConvertFloat4ToU32(m_VisualStyle.GridColorSmall),
+							ImGui::ColorConvertFloat4ToU32(m_VisualStyle.GridColorBig),
+							m_VisualStyle.GridSize);
 						{
 							if (ImGui::IsItemActive())
 							{
-								m_ActiveNodeIdentifier = 0u;
-								m_NewConnection.Status = 0;
+								m_ActiveNode = nullptr;
+								m_ConnectionEstablish.Reset();
 							}
 
-							DrawNodes(drawList, offset, context, m_Nodes);
-							DrawAllConnections(drawList, offset, context, m_Nodes);
+							DrawNodes();
+							DrawAllConnections();
 						}
 
 						ImGui::EndChild();
@@ -203,104 +292,83 @@ namespace shade
 			}
 			ImGui::PopStyleColor();
 
+			// Reset style back
 			ImGui::GetStyle() = unscaledStyle;
 
 			return false;
 		}
-
-		virtual bool Connect(const Connection<NodeIdentifier, EndpointIdentifier>& coonection) = 0;
 	private:
-
-		std::map<NodeIdentifier, GraphNodeDeligate<NodeIdentifier, EndpointIdentifier, Node>*> m_Nodes;
-		NodeIdentifier m_ActiveNodeIdentifier = 0u; // but this is wrong !!
-
-	public:
-		struct NewConnection
-		{
-			enum _Status : int // uint ?
-			{
-				Empty = (1 << 0),
-				OutputSelect = (1 << 1),
-				InputSelect = (1 << 2),
-			};
-
-			int Status = 0;
-			Connection<NodeIdentifier, EndpointIdentifier> Connection;
-		};
-
-		NewConnection m_NewConnection;
-
-		void DrawNodes(ImDrawList* drawList, const ImVec2& offset, const GraphViewContext& context, std::map<NodeIdentifier, GraphNodeDeligate<NodeIdentifier, EndpointIdentifier, Node>*>& nodes)
+		SHADE_INLINE void DrawNodes()
 		{
 			std::size_t CurrentChannel = 0;
 
-			drawList->ChannelsSplit((nodes.size()) ? nodes.size() + 1: 1);
+			m_Context.DrawList->ChannelsSplit((m_Nodes.size()) ? m_Nodes.size() + 1 : 1);
 
-			for (auto& [id, node] : nodes)
+			for (auto& [id, node] : m_Nodes)
 			{
-				drawList->ChannelsSetCurrent(CurrentChannel);
+				m_Context.DrawList->ChannelsSetCurrent(CurrentChannel);
 
-				node->SetConnections(node->MergeConnections());
-				node->SetEndpoints(node->MergeEndpoints());
+				node->SetConnections(node->ReceiveConnections());
+				node->SetEndpoints(node->ReceiveEndpoints());
 
 				ImGui::PushID(id);
 
-				ImGui::SetCursorScreenPos(offset + node->ScreenPosition * context.Zoom.Zoom);
+				ImGui::SetCursorScreenPos(m_Context.Offset + node->GetScreenPosition() * m_Context.Scale.Factor);
 
-				DrawNode(drawList, offset, context, (m_ActiveNodeIdentifier == id), CurrentChannel, node);
+				DrawNode((m_ActiveNode == node), CurrentChannel, node);
 
-				ImGui::SetCursorScreenPos(offset + node->ScreenPosition * context.Zoom.Zoom);
-				ImGui::InvisibleButton("NodeBox", node->Size * context.Zoom.Zoom);
+				ImGui::SetCursorScreenPos(m_Context.Offset + node->GetScreenPosition() * m_Context.Scale.Factor);
 
-				if (ImGui::IsItemActive()) { m_ActiveNodeIdentifier = id; }
+				ImGui::InvisibleButton("NodeBox", node->Style.Size * m_Context.Scale.Factor);
 
-				if(!(m_NewConnection.Status & NewConnection::_Status::OutputSelect))
-					ImGuiGraphNodeRender::MoveNode(ImGui::GetIO(), context, node->ScreenPosition);
+				if (ImGui::IsItemActive()) { m_ActiveNode = node; }
+
+				if (!(m_ConnectionEstablish.IsOutPutSelect))
+					MoveMode(m_Context.Scale.Factor, node->GetScreenPosition());
 
 				ImGui::PopID();
 				CurrentChannel++;
-				
+
 			}
 
-			drawList->ChannelsMerge();
+			m_Context.DrawList->ChannelsMerge();
 		}
-
-		inline void DrawNode(ImDrawList* drawList, const ImVec2& offset, const GraphViewContext& context, bool isActive, std::size_t nodeIndex, GraphNodeDeligate<NodeIdentifier, EndpointIdentifier, Node>* node)
+		SHADE_INLINE void DrawNode(bool isActive, std::size_t nodeIndex, GraphNodePrototype<NodeIdentifier, EndpointIdentifier, Node>* node)
 		{
-			const ImVec2 nodeRectMin = offset + node->ScreenPosition * context.Zoom.Zoom;
-			const ImVec2 nodeRectMax = nodeRectMin + node->Size * context.Zoom.Zoom;
+			const ImVec2 nodeRectMin = m_Context.Offset + node->GetScreenPosition() * m_Context.Scale.Factor;
+			const ImVec2 nodeRectMax = nodeRectMin + node->Style.Size * m_Context.Scale.Factor;
 
-			ImVec4 bckColor = (isActive) ? ImVec4(
-				context.Style.NodeBackgroundColor.x * 1.5f,
-				context.Style.NodeBackgroundColor.y * 1.5f,
-				context.Style.NodeBackgroundColor.z * 1.5f,
-				context.Style.NodeBackgroundColor.w) : context.Style.NodeBackgroundColor;
+			const ImVec4 bckColor = (isActive) ? ImVec4(
+				node->Style.BackgroundColor.x * 1.5f,
+				node->Style.BackgroundColor.y * 1.5f,
+				node->Style.BackgroundColor.z * 1.5f,
+				node->Style.BackgroundColor.w) : node->Style.BackgroundColor;
 
-			drawList->AddRectFilled(nodeRectMin, nodeRectMax,
-				ImGui::ColorConvertFloat4ToU32(bckColor), context.Style.Rounding);
+			m_Context.DrawList->AddRectFilled(nodeRectMin, nodeRectMax,
+				ImGui::ColorConvertFloat4ToU32(bckColor), m_VisualStyle.Rounding);
 
-			ImGuiGraphNodeRender::DrawHeader(drawList, offset, context, node->Title.c_str(), node->ScreenPosition, node->Size, node->Style.HeaderColor);
-			ImGuiGraphNodeRender::DrawBorder(drawList, offset, context, isActive, node->ScreenPosition, node->Size);
+			DrawHeader(node->Style.Title.c_str(), node->GetScreenPosition(), node->Style.Size, node->Style.HeaderColor, node->Style.HeaderTextColor);
+			DrawBorder(isActive, node->GetScreenPosition(), node->Style.Size, node->Style.BorderColor);
 
-			const ImVec2 endOfPrevRegion = DrawEndpoints(drawList, offset, context, context.Style.HeaderHeight, nodeIndex, node);
+			const ImVec2 endOfPrevRegion = DrawEndpoints(m_VisualStyle.HeaderHeight, nodeIndex, node);
 
-			const ImVec2 newScreenPosition = offset + ImVec2{ node->ScreenPosition.x * context.Zoom.Zoom, endOfPrevRegion.y };
-			const ImVec2 avalibleRegion { nodeRectMax - newScreenPosition };
+			const ImVec2 newScreenPosition = m_Context.Offset + ImVec2{ node->GetScreenPosition().x * m_Context.Scale.Factor, endOfPrevRegion.y };
+			const ImVec2 avalibleRegion{ nodeRectMax - newScreenPosition };
 
 			ImGui::SetCursorScreenPos(newScreenPosition);
 
 			ImGui::BeginGroup();
 			{
-				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, context.Style.Padding * context.Zoom.Zoom);
-				ImGui::PushStyleVar(ImGuiStyleVar_CellPadding,  context.Style.CellPadding * context.Zoom.Zoom);
-				
-				if (ImGui::BeginTableEx("##BodyContentTable", std::size_t(node) + 2000, 1, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersOuterV, { avalibleRegion.x, 0}))
+				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, m_VisualStyle.Padding * m_Context.Scale.Factor);
+				ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, m_VisualStyle.CellPadding * m_Context.Scale.Factor);
+
+				if (ImGui::BeginTableEx("##BodyContentTable", std::size_t(node) + 2000, 1, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersOuterV, { avalibleRegion.x, 0 }))
 				{
 					ImGui::TableNextRow();
 					{
-						ImGui::TableNextColumn(); 
-						{ 
-							node->ProcessBodyConent(); 
+						ImGui::TableNextColumn();
+						{
+							node->ProcessBodyConent();
 						}
 					}
 					ImGui::EndTable();
@@ -311,102 +379,92 @@ namespace shade
 
 			ImGui::Dummy({ 0, 0 });
 
-			node->Size.y += ImGui::GetCursorScreenPos().y - nodeRectMax.y;
+			node->Style.Size.y += ImGui::GetCursorScreenPos().y - nodeRectMax.y;
 		}
-		inline void DrawAllConnections(ImDrawList* drawList, const ImVec2& offset, const GraphViewContext& context, std::map<NodeIdentifier, GraphNodeDeligate<NodeIdentifier, EndpointIdentifier, Node>*>& nodes)
+		SHADE_INLINE void DrawAllConnections()
 		{
-			for (auto& [id, node] : nodes)
-			{
-				DrawConnections(drawList, offset, context, node);
-			}
+			for (auto& [id, node] : m_Nodes)
+				DrawConnections(node);
 		}
-		inline void DrawConnections(ImDrawList* drawList, const ImVec2& offset, const GraphViewContext& context, GraphNodeDeligate<NodeIdentifier, EndpointIdentifier, Node>* node)
-		{
-			// Need to revork
-			auto& endpoints = node->GetEndpoints();
-			auto& connections = node->GetConnections();
-
-			for (const auto& conenction : connections)
-			{
-				if (endpoints[Endpoint::Type::Output].find(conenction.SourceEndpointIdentifier) != endpoints[Endpoint::Type::Output].end())
-				{
-					const auto sourceEndpoint = endpoints[Endpoint::Type::Output].at(conenction.SourceEndpointIdentifier);
-
-					if (m_NewConnection.Status & NewConnection::_Status::OutputSelect && m_NewConnection.Connection.SourceNodeIdentifier == node->GetNodeIdentifier())
-					{
-						/*	NodeIdentifier			SourceNodeIdentifier;
-							EndpointIdentifier		SourceEndpointIdentifier;
-							NodeIdentifier			TargetNodeIdentifier;
-							EndpointIdentifier		TargetEndpointIdentifier;*/
-						ImGuiGraphNodeRender::DrawConnection(drawList, offset, context, sourceEndpoint.ScreenPosition, ImGui::GetMousePos() - offset);
-					}
-
-					if (m_Nodes.find(conenction.TargetNodeIdentifier) != m_Nodes.end())
-					{
-						const auto targetNode = m_Nodes.at(conenction.TargetNodeIdentifier);
-
-						const auto& targetEndpoints = targetNode->GetEndpoints()[Endpoint::Type::Input];
-
-						if (targetEndpoints.find(conenction.TargetEndpointIdentifier) != targetEndpoints.end())
-						{
-							const auto targetEndpoint = targetEndpoints.at(conenction.TargetEndpointIdentifier);
-
-							if (m_NewConnection.Status & NewConnection::_Status::InputSelect && m_NewConnection.Connection.TargetNodeIdentifier == conenction.TargetEndpointIdentifier)
-							{
-								/*	NodeIdentifier			SourceNodeIdentifier;
-									EndpointIdentifier		SourceEndpointIdentifier;
-									NodeIdentifier			TargetNodeIdentifier;
-									EndpointIdentifier		TargetEndpointIdentifier;*/
-								ImGuiGraphNodeRender::DrawConnection(drawList, offset, context, sourceEndpoint.ScreenPosition, targetEndpoint.ScreenPosition);
-							}
-
-							ImGuiGraphNodeRender::DrawConnection(drawList, offset, context, sourceEndpoint.ScreenPosition, targetEndpoint.ScreenPosition);
-						}
-					}
-				}
-			}
-		}
-		inline ImVec2 DrawEndpoints(ImDrawList* drawList, const ImVec2& offset, const GraphViewContext& context, float yOffset, std::size_t nodeIndex, GraphNodeDeligate<NodeIdentifier, EndpointIdentifier, Node>* node)
+		SHADE_INLINE void DrawConnections(GraphNodePrototype<NodeIdentifier, EndpointIdentifier, Node>* node)
 		{
 			auto& endpoints = node->GetEndpoints();
 			auto& connections = node->GetConnections();
 
-			const std::size_t outputCount		= endpoints[Endpoint::Type::Output].size();
-			const ImVec2 cellPaddingZoomed		= context.Style.CellPadding * context.Zoom.Zoom;
+			for (const auto& connection : connections)
+			{
+				const auto& inputEndpoint = endpoints[EndpointPrototype::EndpointType::Input].at(connection.InputEndpointIdentifier);
+				// It should be there !!
+				const auto& outputNode = m_Nodes.at(connection.OutputNodeIdentifier);
 
-			ImVec2 endOfRegion					= ImVec2{ 0.f, 0.f };
+				const auto& outputEndpoint = outputNode->GetEndpoints()[EndpointPrototype::EndpointType::Output].at(connection.OutputEndpointIdentifier);
 
-			ImGui::SetCursorScreenPos(offset + ImVec2{ node->ScreenPosition.x, node->ScreenPosition.y + yOffset } * context.Zoom.Zoom);
+				ImGuiGraphNodeRender::DrawConnection(
+					m_Context.DrawList,
+					m_Context.Offset,
+					m_Context.Scale.Factor,
+					inputEndpoint.GetScreenPosition(),
+					outputEndpoint.GetScreenPosition(),
+					m_VisualStyle.ConnectionColor,
+					m_VisualStyle.ConnectionThickness);
+			}
+
+			if (m_ConnectionEstablish.IsOutPutSelect && m_ConnectionEstablish.Connection.OutputNodeIdentifier == node->GetNodeIdentifier())
+			{
+				const auto& endpoint = endpoints[EndpointPrototype::EndpointType::Output].at(m_ConnectionEstablish.Connection.OutputEndpointIdentifier);
+
+				ImGuiGraphNodeRender::DrawConnection(
+					m_Context.DrawList,
+					m_Context.Offset,
+					m_Context.Scale.Factor,
+					ImGui::GetMousePos() - m_Context.Offset,
+					endpoint.GetScreenPosition(),
+					m_VisualStyle.ConnectionColor,
+					m_VisualStyle.ConnectionThickness);
+			}
+
+		}
+		SHADE_INLINE ImVec2 DrawEndpoints(float yOffset, std::size_t nodeIndex, GraphNodePrototype<NodeIdentifier, EndpointIdentifier, Node>* node)
+		{
+			auto& endpoints = node->GetEndpoints();
+			auto& connections = node->GetConnections();
+
+			const std::size_t outputCount = endpoints[EndpointPrototype::EndpointType::Output].size();
+			const ImVec2 cellPaddingZoomed = m_VisualStyle.CellPadding * m_Context.Scale.Factor;
+
+			ImVec2 endOfRegion = ImVec2{ 0.f, 0.f };
+
+			ImGui::SetCursorScreenPos(m_Context.Offset + ImVec2{ node->GetScreenPosition().x, node->GetScreenPosition().y + yOffset } *m_Context.Scale.Factor);
 			ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, cellPaddingZoomed);
-			ImGui::PushStyleColor(ImGuiCol_TableBorderStrong, ImVec4{0.f, 0.f, 0.f, 0.f});
+			ImGui::PushStyleColor(ImGuiCol_TableBorderStrong, ImVec4{ 0.f, 0.f, 0.f, 0.f });
 
 			//ImGuiTableFlags_SizingStretchProp|
 			if (ImGui::BeginTableEx("##EndpointsTable", std::size_t(node) + 1000, (outputCount) ? 2 : 1,
 				ImGuiTableFlags_BordersOuterV |
 				ImGuiTableFlags_SizingStretchProp,
-				{ node->Size.x * context.Zoom.Zoom, 0}))
+				{ node->Style.Size.x * m_Context.Scale.Factor, 0 }))
 			{
-				auto inputsIt = endpoints[Endpoint::Type::Input].begin();
-				auto outputIt = endpoints[Endpoint::Type::Output].begin();
+				auto inputsIt = endpoints[EndpointPrototype::EndpointType::Input].begin();
+				auto outputIt = endpoints[EndpointPrototype::EndpointType::Output].begin();
 
-			
-				while (	inputsIt != endpoints[Endpoint::Type::Input].end() ||
-						outputIt != endpoints[Endpoint::Type::Output].end())
+
+				while (inputsIt != endpoints[EndpointPrototype::EndpointType::Input].end() ||
+					outputIt != endpoints[EndpointPrototype::EndpointType::Output].end())
 				{
 					ImGui::TableNextRow();
 					{
-						if (inputsIt != endpoints[Endpoint::Type::Input].end())
+						if (inputsIt != endpoints[EndpointPrototype::EndpointType::Input].end())
 						{
 							ImGui::TableNextColumn();
 
-							const ImVec2 deltaPosition = ImGui::GetCursorScreenPos() - offset;
+							const ImVec2 deltaPosition = ImGui::GetCursorScreenPos() - m_Context.Offset;
 							{
-								node->ProcessEndpoint(inputsIt->first, Endpoint::Type::Input);
+								node->ProcessEndpoint(inputsIt->first, EndpointPrototype::EndpointType::Input);
 							}
 
-							inputsIt->second.ScreenPosition = ImVec2{ deltaPosition.x - cellPaddingZoomed.x, deltaPosition.y + cellPaddingZoomed.y };
+							inputsIt->second.SetScreenPosition(ImVec2{ deltaPosition.x - cellPaddingZoomed.x, deltaPosition.y + cellPaddingZoomed.y });
 
-							endOfRegion.y = (inputsIt->second.ScreenPosition.y > endOfRegion.y) ? inputsIt->second.ScreenPosition.y : endOfRegion.y;
+							endOfRegion.y = (inputsIt->second.GetScreenPosition().y > endOfRegion.y) ? inputsIt->second.GetScreenPosition().y : endOfRegion.y;
 
 							inputsIt++;
 						}
@@ -414,18 +472,18 @@ namespace shade
 						{
 							ImGui::TableNextColumn();
 						}
-						if (outputIt != endpoints[Endpoint::Type::Output].end())
+						if (outputIt != endpoints[EndpointPrototype::EndpointType::Output].end())
 						{
-							
+
 							ImGui::TableNextColumn();
 
-							const ImVec2 deltaPosition = ImGui::GetCursorScreenPos() - offset;
+							const ImVec2 deltaPosition = ImGui::GetCursorScreenPos() - m_Context.Offset;
 							{
-								node->ProcessEndpoint(outputIt->first, Endpoint::Type::Output);
+								node->ProcessEndpoint(outputIt->first, EndpointPrototype::EndpointType::Output);
 							}
-							outputIt->second.ScreenPosition = ImVec2{ deltaPosition.x + ImGui::GetContentRegionAvail().x + cellPaddingZoomed.x, deltaPosition.y};
+							outputIt->second.SetScreenPosition(ImVec2{ deltaPosition.x + ImGui::GetContentRegionAvail().x + cellPaddingZoomed.x, deltaPosition.y });
 
-							endOfRegion.y = (outputIt->second.ScreenPosition.y > endOfRegion.y) ? outputIt->second.ScreenPosition.y : endOfRegion.y;
+							endOfRegion.y = (outputIt->second.GetScreenPosition().y > endOfRegion.y) ? outputIt->second.GetScreenPosition().y : endOfRegion.y;
 
 							outputIt++;
 						}
@@ -433,63 +491,173 @@ namespace shade
 						{
 							ImGui::TableNextColumn();
 						}
-					}		
+					}
 				}
 				ImGui::EndTable();
 			}
 			ImGui::PopStyleVar();
 			ImGui::PopStyleColor();
 
-			for (auto& [id, endpoint] : endpoints[Endpoint::Type::Input])
+			for (auto& [id, endpoint] : endpoints[EndpointPrototype::EndpointType::Input])
 			{
-				if (ImGuiGraphNodeRender::DrawInputEndpoint(drawList,
-					offset,
-					context,
-					endpoint.ScreenPosition,
+				if (ImGuiGraphNodeRender::DrawEndpoint(m_Context.DrawList,
+					m_Context.Offset,
+					m_VisualStyle.EndpointRadius,
+					m_Context.Scale.Factor,
+					endpoint.GetScreenPosition(),
 					node->Style.InputEndpointsColor,
 					node->Style.InputEndpointsColorHovered))
 				{
-					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && m_NewConnection.Status & NewConnection::_Status::OutputSelect)
+					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && m_ConnectionEstablish.IsOutPutSelect)
 					{
-						m_NewConnection.Status									|= NewConnection::_Status::InputSelect;
-						m_NewConnection.Connection.TargetNodeIdentifier			= node->GetNodeIdentifier();
-						m_NewConnection.Connection.TargetEndpointIdentifier		= id;
+						m_ConnectionEstablish.IsInputSelect = true;
+						m_ConnectionEstablish.Connection.InputNodeIdentifier = node->GetNodeIdentifier();
+						m_ConnectionEstablish.Connection.InputEndpointIdentifier = id;
 
-						this->Connect(m_NewConnection.Connection);
-						/*struct TryTOConnect
-						{
-							NodeIdentifier from;
-							EndpointIdentifier fromEdpoint;
-							NodeIdentifier to;
-							EndpointIdentifier toEdpoint;
-						};*/
+						this->Connect(m_ConnectionEstablish.Connection);
+						m_ConnectionEstablish.Reset();
+					}
+					if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && !m_ConnectionEstablish.IsOutPutSelect)
+					{
+						m_ConnectionEstablish.Connection.InputNodeIdentifier = node->GetNodeIdentifier();
+						m_ConnectionEstablish.Connection.InputEndpointIdentifier = id;
+
+						this->Disconnect(m_ConnectionEstablish.Connection);
+						m_ConnectionEstablish.Reset();
 					}
 				}
 			}
-			for (auto& [id, endpoint] : endpoints[Endpoint::Type::Output])
+			for (auto& [id, endpoint] : endpoints[EndpointPrototype::EndpointType::Output])
 			{
-				if (ImGuiGraphNodeRender::DrawOutputEndpoint(drawList, offset, context, endpoint.ScreenPosition, node->Style.OutPutEndpointsColor, node->Style.OutPutEndpointsColorHovered))
+				if (ImGuiGraphNodeRender::DrawEndpoint(m_Context.DrawList,
+					m_Context.Offset,
+					m_VisualStyle.EndpointRadius,
+					m_Context.Scale.Factor,
+					endpoint.GetScreenPosition(),
+					node->Style.InputEndpointsColor,
+					node->Style.InputEndpointsColorHovered))
 				{
 					if (ImGui::IsMouseDragging(ImGuiMouseButton_Left))
 					{
-						m_NewConnection.Status									|= NewConnection::_Status::OutputSelect;
-						m_NewConnection.Connection.SourceNodeIdentifier			= node->GetNodeIdentifier();
-						m_NewConnection.Connection.SourceEndpointIdentifier		= id;
-						/*struct TryTOConnect
-						{
-							NodeIdentifier from;
-							EndpointIdentifier fromEdpoint;
-							NodeIdentifier to;
-							EndpointIdentifier toEdpoint;
-						};*/
+						m_ConnectionEstablish.IsOutPutSelect = true;
+						m_ConnectionEstablish.Connection.OutputNodeIdentifier = node->GetNodeIdentifier();
+						m_ConnectionEstablish.Connection.OutputEndpointIdentifier = id;
 					}
-					
 				}
 			}
 
-			ImGui::Dummy({0, 0});
-			return ImGui::GetCursorScreenPos() - offset;
+			ImGui::Dummy({ 0, 0 });
+			return ImGui::GetCursorScreenPos() - m_Context.Offset;
 		}
+		SHADE_INLINE ImVec2 CalculateMouseWorldPos(const ImVec2& mousePosition)
+		{
+			return (mousePosition - ImGui::GetCursorScreenPos()) / m_Context.Scale.Factor;
+		}
+		SHADE_INLINE void ProcessScale() // private
+		{
+			ImGuiIO& io = ImGui::GetIO(); // todo add as arg
+
+			if (m_Context.CanvasRect.Contains(io.MousePos))
+			{
+				if (io.MouseWheel <= -std::numeric_limits<float>::epsilon())
+					m_Context.Scale.TargetFactor *= 1.0f - m_Context.Scale.RatioFactor;
+
+				if (io.MouseWheel >= std::numeric_limits<float>::epsilon())
+					m_Context.Scale.TargetFactor *= 1.0f + m_Context.Scale.RatioFactor;
+			}
+
+			const ImVec2 deltaMouseWorldPossition = CalculateMouseWorldPos(io.MousePos);
+
+			m_Context.Scale.TargetFactor = ImClamp(m_Context.Scale.TargetFactor, m_Context.Scale.MinFactor, m_Context.Scale.MaxFactor);
+			m_Context.Scale.Factor = ImClamp(m_Context.Scale.Factor, m_Context.Scale.MinFactor, m_Context.Scale.MaxFactor);
+			m_Context.Scale.Factor = ImLerp(m_Context.Scale.Factor, m_Context.Scale.TargetFactor, m_Context.Scale.LerpFactor);
+
+			const ImVec2 mouseWorldPossition = CalculateMouseWorldPos(io.MousePos);
+
+			if (ImGui::IsMousePosValid())
+				m_Context.CanvasPosition += mouseWorldPossition - deltaMouseWorldPossition;
+		}
+
+		SHADE_INLINE void MoveMode(float scaleFactor, ImVec2& position) // Move to cpp
+		{
+			if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
+			{
+				ImVec2 delta = ImGui::GetIO().MouseDelta / scaleFactor;
+
+				if (fabsf(delta.x) >= 0.1f || fabsf(delta.y) >= 0.1f)
+				{
+					position.x += delta.x;
+					position.y += delta.y;
+				}
+			}
+		}
+
+		SHADE_INLINE float DrawHeader(const char* title,
+			const ImVec2& nodePosition,
+			const ImVec2& nodeSize,
+			const ImVec4& headerColor,
+			const ImVec4& headerTextColor)
+		{
+			const ImVec2 scaledPosition = nodePosition * m_Context.Scale.Factor;
+			const ImVec2 pMin = (m_Context.Offset + scaledPosition);
+			const ImVec2 pMax = (m_Context.Offset + scaledPosition + (ImVec2{ nodeSize.x, m_VisualStyle.HeaderHeight } *m_Context.Scale.Factor));
+
+			m_Context.DrawList->AddRectFilled(pMin, pMax, ImGui::ColorConvertFloat4ToU32(headerColor), m_VisualStyle.Rounding, ImDrawFlags_RoundCornersTopRight | ImDrawFlags_RoundCornersTopLeft);
+
+			ImGui::SetCursorScreenPos(m_Context.Offset + (m_VisualStyle.Padding + nodePosition) * m_Context.Scale.Factor);
+			ImGui::PushStyleColor(ImGuiCol_Text, headerTextColor);
+
+			ImGui::SetWindowFontScale(ImGui::GetCurrentWindow()->FontWindowScale * 1.5f);
+
+			ImGui::BeginGroup();
+			{
+				ImGui::Text(title);
+			}
+			ImGui::EndGroup();
+
+			ImGui::SetWindowFontScale(ImGui::GetCurrentWindow()->FontWindowScale / 1.5f);
+
+			ImGui::PopStyleColor(1);
+
+			return nodePosition.y + m_VisualStyle.HeaderHeight;
+		}
+		SHADE_INLINE void DrawBorder(bool isActive, const ImVec2& nodePosition, const ImVec2& nodeSize, const ImVec4& borderColor)
+		{
+			const ImVec2 scaledPosition = nodePosition * m_Context.Scale.Factor;
+			const ImVec2 pMin = (m_Context.Offset + scaledPosition);
+			const ImVec2 pMax = (m_Context.Offset + scaledPosition + nodeSize * m_Context.Scale.Factor);
+
+			const ImVec4 color = (isActive) ? ImVec4(
+				borderColor.x * 1.6f,
+				borderColor.y * 1.6f,
+				borderColor.z * 1.6f,
+				borderColor.w) : borderColor;
+
+			m_Context.DrawList->AddRect(pMin, pMax, ImGui::ColorConvertFloat4ToU32(color), m_VisualStyle.Rounding, 0, m_VisualStyle.NodeBorderWidth);
+		}
+	private:
+		Graph			m_GraphValue;
+		VisualStyle		m_VisualStyle;
+		InternalContext m_Context;
+	protected:
+		virtual bool Connect(const ConnectionPrototype<NodeIdentifier, EndpointIdentifier>& connection) = 0;
+		virtual bool Disconnect(const ConnectionPrototype<NodeIdentifier, EndpointIdentifier>& connection) = 0;
+	private:
+
+		std::map<NodeIdentifier, GraphNodePrototype<NodeIdentifier, EndpointIdentifier, Node>*> m_Nodes;
+		GraphNodePrototype<NodeIdentifier, EndpointIdentifier, Node>* m_ActiveNode = nullptr;
+
+		struct ConnectionEstablish
+		{
+			bool IsInputSelect = false;
+			bool IsOutPutSelect = false;
+			ConnectionPrototype<NodeIdentifier, EndpointIdentifier> Connection;
+
+			void Reset() { IsInputSelect = false; IsOutPutSelect = false; }
+		};
+
+		ConnectionEstablish m_ConnectionEstablish;
+
 	};
 
 }

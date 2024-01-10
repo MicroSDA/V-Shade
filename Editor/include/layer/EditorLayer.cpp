@@ -19,39 +19,39 @@ void EditorLayer::OnCreate()
 
 void EditorLayer::OnUpdate(shade::SharedPointer<shade::Scene>& scene, const shade::FrameTimer& deltaTime)
 {
-	if (m_AnimationGraphEditor.Count() == 0)
-	{
-		scene->View<shade::AnimationGraphComponent>().Each([&](shade::ecs::Entity& entity, shade::AnimationGraphComponent& graph)
+	scene->View<shade::AnimationGraphComponent>().Each([&](shade::ecs::Entity& entity, shade::AnimationGraphComponent& graph)
+		{
+			if (!m_AnimationGraphEditor)
 			{
 				if (graph != nullptr)
 				{
-					for (auto& node : graph->GetNodes())
-					{
-
-						// Bad, but keep this, for test
-						if (dynamic_cast<shade::animation::ValueNode*>(node.Raw()))
-						{
-							m_AnimationGraphEditor.EmpalceNode<editor_anim_grap_nodes::ValueNode>(node->GetNodeIndex(), node);
-						}
-						if (dynamic_cast<shade::animation::PoseNode*>(node.Raw()))
-						{
-							m_AnimationGraphEditor.EmpalceNode<editor_anim_grap_nodes::PoseNode>(node->GetNodeIndex(), node);
-						}
-						if (dynamic_cast<shade::animation::BlendNode2D*>(node.Raw()))
-						{
-							m_AnimationGraphEditor.EmpalceNode<editor_anim_grap_nodes::BlendNode>(node->GetNodeIndex(), node);
-						}
-						if (dynamic_cast<shade::animation::BlendNode2D*>(node.Raw()))
-						{
-							m_AnimationGraphEditor.EmpalceNode<editor_anim_grap_nodes::BlendNode>(node->GetNodeIndex(), node);
-						}
-					}
-
-					m_AnimationGraphEditor.EmpalceNode<editor_anim_grap_nodes::OutputPoseNode>(graph->GetOutputPoseNode()->GetNodeIndex(), graph->GetOutputPoseNode());
+					m_AnimationGraphEditor = shade::SharedPointer<editor_animation_graph::GraphDeligate>::Create(graph);
 				}
-			});
-	}
+			}
 
+			if (m_AnimationGraphEditor && m_AnimationGraphEditor->GetCount() == 0)
+			{
+				for (auto& node : graph->GetNodes())
+				{
+
+					// Bad, but keep this, for test
+					if (dynamic_cast<shade::animation::ValueNode*>(node.Raw()))
+					{
+						m_AnimationGraphEditor->EmplaceNode<editor_animation_graph::ValueNodeDeligate>(node->GetNodeIndex(), node);
+					}
+					if (dynamic_cast<shade::animation::PoseNode*>(node.Raw()))
+					{
+						m_AnimationGraphEditor->EmplaceNode<editor_animation_graph::PoseNodeDeligate>(node->GetNodeIndex(), node);
+					}
+					if (dynamic_cast<shade::animation::BlendNode2D*>(node.Raw()))
+					{
+						m_AnimationGraphEditor->EmplaceNode<editor_animation_graph::BlendNodeDeligate>(node->GetNodeIndex(), node);
+					}
+				}
+
+				m_AnimationGraphEditor->EmplaceNode<editor_animation_graph::OutputPoseNodeDeligate>(graph->GetOutputPoseNode()->GetNodeIndex(), graph->GetOutputPoseNode());
+			}
+		});
 	shade::physic::PhysicsManager::Step(scene, deltaTime);
 	m_SceneRenderer->OnUpdate(scene, deltaTime);
 }
@@ -87,9 +87,10 @@ void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shad
 		ShowWindowBar("Scene", &EditorLayer::Scene, this, scene);
 		ImGui::PopStyleColor();
 
-		bool is = true;
+	
+		if(m_AnimationGraphEditor)
+			m_AnimationGraphEditor->Show("Graph editor", { 500, 500 });
 
-		m_AnimationGraphEditor.Show("Graph editor", { 500, 500 });
 
 		//shade::ImGuiGraph::Show("Graph editor", { 500, 500 });
 		//ShowExampleAppCustomNodeGraph(&is);
@@ -1840,13 +1841,14 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 			pose2		= animationGraph->CreateNode<shade::animation::PoseNode>();
 			blendWeight = animationGraph->CreateNode<shade::animation::ValueNode>();
 
-			blend		= animationGraph->CreateNode<shade::animation::BlendNode2D>();
+			blend = animationGraph->CreateNode<shade::animation::BlendNode2D>();
 
-			animationGraph->AddConnection(blendWeight->GetNodeIndex(), 0, blend->GetNodeIndex(), 0);
-			animationGraph->AddConnection(pose1->GetNodeIndex(), 0, blend->GetNodeIndex(), 1);
+			animationGraph->AddConnection(blend->GetNodeIndex(), 0, blendWeight->GetNodeIndex(), 0);
+
+			/*animationGraph->AddConnection(pose1->GetNodeIndex(), 0, blend->GetNodeIndex(), 1);
 			animationGraph->AddConnection(pose2->GetNodeIndex(), 0, blend->GetNodeIndex(), 2);
-			
-			animationGraph->AddRootConnection(blend->GetNodeIndex(), 0);
+
+			animationGraph->AddRootConnection(blend->GetNodeIndex(), 0);*/
 		}
 	}
 

@@ -27,10 +27,14 @@ namespace shade
 			// Static method to create a shared pointer to a AnimationGraph object
 			static Asset<AnimationGraph> CreateEXP(const Asset<Skeleton>& skeleton); // DANGER!!
 		public:
-			bool AddConnection(GraphNode::NodeIDX sourceNode, GraphNode::EndpointIDX sourceEndpoint, GraphNode::NodeIDX destinationNode, GraphNode::EndpointIDX destinationEndpoint);
-			bool RemoveConnection(GraphNode::NodeIDX sourceNode, GraphNode::EndpointIDX sourceEndpoint, GraphNode::NodeIDX destinationNode, GraphNode::EndpointIDX destinationEndpoint);
+			//bool AddConnection(GraphNode::NodeIDX sourceNode, GraphNode::EndpointIDX sourceEndpoint, GraphNode::NodeIDX destinationNode, GraphNode::EndpointIDX destinationEndpoint);
+			bool AddConnection(GraphNode::NodeIDX inputNode, GraphNode::EndpointIDX inputEndpoint, GraphNode::NodeIDX outputNode, GraphNode::EndpointIDX outputEndpoint);
+			bool RemoveConnection(GraphNode::NodeIDX inputNode, GraphNode::EndpointIDX inputEndpoint);
 
-			bool AddRootConnection(GraphNode::NodeIDX sourceNode, GraphNode::EndpointIDX sourceEndpoint);
+
+			bool AddRootConnection(GraphNode::NodeIDX inputNodeIdx, GraphNode::EndpointIDX outputEndpointIdx);
+			bool RemoveRootConnection();
+
 			void SetSkeleton(const Asset<Skeleton>& skeleton);
 			const Asset<Skeleton>& GetSkeleton() const;
 
@@ -52,7 +56,9 @@ namespace shade
 			const SharedPointer<OutputPoseNode>& const GetOutputPoseNode();
 		private:
 			SharedPointer<animation::GraphNode> FindNode(GraphNode::NodeIDX idx);
-			bool ConnectValues(const std::shared_ptr<NodeValue>* sourceEndpoint, std::shared_ptr<NodeValue>* destinationEndpoint);
+
+			//bool ConnectValues(const std::shared_ptr<NodeValue>* sourceEndpoint, std::shared_ptr<NodeValue>* destinationEndpoint);
+			bool ConnectValues(std::shared_ptr<NodeValue>* inputEndpoint, const std::shared_ptr<NodeValue>* outputEndpoint);
 		private:
 			// Create a skeleton object with the given asset data, lifetime, and instantiation behaviour
 			AnimationGraph(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);

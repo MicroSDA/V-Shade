@@ -47,11 +47,12 @@ namespace shade
                     MAX_ENUM
                 };
 
-                NodeIDX             Source;
-                EndpointIDX         SourceEndpoint;
+                // TODO Make Constructor !!
+                NodeIDX             InputNodeIdx   = ~0u;
+                EndpointIDX         InputEndpoint  = ~0u;
 
-                NodeIDX             Target;
-                EndpointIDX         TargetEndpoint;
+                NodeIDX             OutputNodeIdx  = ~0u;
+                EndpointIDX         OutputEndpoint = ~0u;
 
                 Type                ConnectionType = MAX_ENUM;
             };
@@ -122,7 +123,62 @@ namespace shade
             /// @brief Getter for the graph context
             /// @return A const reference to the graph context
             SHADE_INLINE const GraphContext& GetGraphContext() const { return m_rGraphContext; };
+            
+            SHADE_INLINE Connection FindConnection(GraphNode::EndpointIDX inputEndpoint) const
+            {
+                auto it = std::find_if(m_Connections.begin(), m_Connections.end(), [inputEndpoint](const Connection& connection)
+                    {
+                        return connection.InputEndpoint == inputEndpoint;
+                    });
 
+                if (it != m_Connections.end())
+                {
+                    return *it;
+                }
+
+                return Connection();
+            }
+            SHADE_INLINE bool IsConnectionExist(GraphNode::EndpointIDX inputEndpoint) const
+            {
+                auto it = std::find_if(m_Connections.begin(), m_Connections.end(), [inputEndpoint](const Connection& connection)
+                    {
+                        return connection.InputEndpoint == inputEndpoint;
+                    });
+
+                if (it != m_Connections.end())
+                {
+                    return true;
+                }
+                    
+                return false;
+            }
+           
+            SHADE_INLINE bool AddConnection(EndpointIDX inputEndpointIdx, NodeIDX outputNodeIdx, EndpointIDX outputEndpointIdx, GraphNode::Connection::Type type)
+            {
+                if (!IsConnectionExist(inputEndpointIdx))
+                {
+                    m_Connections.emplace_back(m_NodeIdx, inputEndpointIdx, outputNodeIdx, outputEndpointIdx, type);
+                    return true;
+                }
+
+                return false;
+            
+            } // TODO
+            SHADE_INLINE bool RemoveConnection(GraphNode::EndpointIDX inputEndpoint) // Private ??
+            {
+                auto it = std::find_if(m_Connections.begin(), m_Connections.end(), [inputEndpoint](const Connection& connection)
+                    {
+                        return connection.InputEndpoint == inputEndpoint;
+                    });
+
+                if (it != m_Connections.end())
+                {
+                    m_Connections.erase(it); 
+                    return true;
+                }
+
+                return false;   
+            } 
         private:
             /// @brief Function for processing the branch of nodes
             /// @param deltaTime The time elapsed since the last processing

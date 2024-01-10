@@ -117,7 +117,7 @@ namespace shade
             template <typename NodeValueType Type, typename... Args> requires IsNodeValueType<typename FromNodeValueTypeToType<Type>::Type>
             SHADE_INLINE void Initialize(Args &&... args)
             {
-                m_Value = FromNodeValueTypeToType<Type>::Type(std::forward<Args>(args)...);
+                m_Value = { FromNodeValueTypeToType<Type>::Type(std::forward<Args>(args)...), Type };
                 m_Type = Type;
             }
 
@@ -227,7 +227,7 @@ namespace shade
         {
         public:
             // Alias for shared_ptr to NodeValue
-            using Value = std::shared_ptr<NodeValue>;
+            using Value = std::pair<std::shared_ptr<NodeValue>, NodeValueType>;
 
         public:
            
