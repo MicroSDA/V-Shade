@@ -84,7 +84,13 @@ namespace shade
             /// @param connectionType The type of the connection (Input or Output)
             /// @param type The type of the node value being disconnected
             /// @param endpoint The index of the endpoint being disconnected
-            virtual void OnDisconnect(Connection::Type connectionType, NodeValueType type, EndpointIDX endpoint)    { assert(false && "In case if you are using this function you need to impliment it fist!"); };;
+            virtual void OnDisconnect(Connection::Type connectionType, NodeValueType type, EndpointIDX endpoint)
+            {
+                if (connectionType == Connection::Type::Input)
+                {
+                    m_Endpoints[Connection::Type::Input].Reset(endpoint);
+                }     
+            }
 
             /// @brief Template function for getting the value of a specific endpoint
             /// @tparam T The type of the connection (Input or Output)

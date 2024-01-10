@@ -8,34 +8,8 @@
 
 namespace shade
 {
-
-	struct GraphViewContext
-	{
-		struct
-		{
-
-		} Style;
-		struct
-		{
-			float ZoomTarget = 1.f;
-			float Zoom = 1.f;
-			float MinZoom = 0.01f;
-			float MaxZoom = 2.f;
-			float ZoomLerp = 0.2f;
-			float ZoomRatio = 0.1f;
-		} Zoom;
-
-		ImVec2 ViewPosition = ImVec2(0.f, 0.f);
-	};
-
-
 	struct SHADE_API ImGuiGraphNodeRender
 	{
-		static void Zoom(ImRect region, GraphViewContext& context);
-		static void UpdateZoom(GraphViewContext& context, const ImGuiIO& io);
-		static void UpdateView(GraphViewContext& context, const ImGuiIO& io);
-		static ImVec2 CalculateMouseWorldPos(const ImGuiIO& io, const GraphViewContext& context);
-
 		static void DrawGrid(
 			ImDrawList* drawList,
 			const ImVec2& windowPosition,
@@ -47,9 +21,6 @@ namespace shade
 			float gridSize);
 
 		static void DrawGridLines(const ImVec2& start, const ImVec2& canvasSize, const float gridSpace, const ImVec2& windowPos, const ImColor& gridColor, const ImColor& gridColor2, ImDrawList* drawList, int divx, int divy);
-		static void MoveNode(const ImGuiIO& io, const GraphViewContext& context, ImVec2& position);
-		static void DrawBorder(ImDrawList* drawList, const ImVec2& offset, const GraphViewContext& context, bool isActive, const ImVec2& nodePosition, const ImVec2& nodeSize);
-		static float DrawHeader(ImDrawList* drawList, const ImVec2& offset, const GraphViewContext& context, const char* title, const ImVec2& nodePosition, const ImVec2& nodeSize, const ImVec4& headerColor);
 		static bool DrawEndpoint(ImDrawList* drawList, const ImVec2& offset, float radius, float scaleFactor, const ImVec2& screenPosition, const ImVec4& color, const ImVec4& hoveredColor);
 		static void DrawConnection(ImDrawList* drawList, const ImVec2& offset, float scaleFactor, const ImVec2& from, const ImVec2& till, const ImVec4& connectionColor, float thickness);
 	};
@@ -242,7 +213,7 @@ namespace shade
 			ImGui::PushStyleColor(ImGuiCol_WindowBg, m_VisualStyle.BackgroundColor);
 			ImGui::SetNextWindowSize(size, ImGuiCond_FirstUseEver);
 			{
-				if (ImGui::Begin(title))
+				if (ImGui::Begin(title, (bool*)0))
 				{
 					const ImVec2 cursorPosition = ImGui::GetCursorScreenPos();
 					const ImVec2 windowPos = cursorPosition, scrollRegionLocalPos(0, 0);
@@ -288,6 +259,20 @@ namespace shade
 						ImGui::EndChild();
 					}
 
+					if (ImGui::IsMouseReleased(ImGuiMouseButton_Right) && m_Context.CanvasRect.Contains(ImGui::GetIO().MousePos))
+					{
+						ImGui::OpenPopup("##GraphEditorPopup");
+					}
+
+					if (ImGui::BeginPopup("##GraphEditorPopup"))
+					{
+						
+						this->PopupMenu();
+
+						ImGui::EndPopup();
+					}
+
+
 				}ImGui::End();
 			}
 			ImGui::PopStyleColor();
@@ -300,7 +285,7 @@ namespace shade
 	private:
 		SHADE_INLINE void DrawNodes()
 		{
-			std::size_t CurrentChannel = 0;
+			std::size_t CurrentChannel = m_Nodes.size() - 1;
 
 			m_Context.DrawList->ChannelsSplit((m_Nodes.size()) ? m_Nodes.size() + 1 : 1);
 
@@ -319,7 +304,7 @@ namespace shade
 
 				ImGui::SetCursorScreenPos(m_Context.Offset + node->GetScreenPosition() * m_Context.Scale.Factor);
 
-				ImGui::InvisibleButton("NodeBox", node->Style.Size * m_Context.Scale.Factor);
+				ImGui::InvisibleButton(std::format("##NodeBox_{}", std::size_t(node)).c_str(), node->Style.Size * m_Context.Scale.Factor);
 
 				if (ImGui::IsItemActive()) { m_ActiveNode = node; }
 
@@ -327,7 +312,7 @@ namespace shade
 					MoveMode(m_Context.Scale.Factor, node->GetScreenPosition());
 
 				ImGui::PopID();
-				CurrentChannel++;
+				CurrentChannel--;
 
 			}
 
@@ -481,7 +466,7 @@ namespace shade
 							{
 								node->ProcessEndpoint(outputIt->first, EndpointPrototype::EndpointType::Output);
 							}
-							outputIt->second.SetScreenPosition(ImVec2{ deltaPosition.x + ImGui::GetContentRegionAvail().x + cellPaddingZoomed.x, deltaPosition.y });
+							outputIt->second.SetScreenPosition(ImVec2{ deltaPosition.x + ImGui::GetContentRegionAvail().x + cellPaddingZoomed.x, deltaPosition.y + cellPaddingZoomed.y });
 
 							endOfRegion.y = (outputIt->second.GetScreenPosition().y > endOfRegion.y) ? outputIt->second.GetScreenPosition().y : endOfRegion.y;
 
@@ -537,7 +522,7 @@ namespace shade
 					node->Style.InputEndpointsColor,
 					node->Style.InputEndpointsColorHovered))
 				{
-					if (ImGui::IsMouseDragging(ImGuiMouseButton_Left))
+					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 					{
 						m_ConnectionEstablish.IsOutPutSelect = true;
 						m_ConnectionEstablish.Connection.OutputNodeIdentifier = node->GetNodeIdentifier();
@@ -642,6 +627,7 @@ namespace shade
 	protected:
 		virtual bool Connect(const ConnectionPrototype<NodeIdentifier, EndpointIdentifier>& connection) = 0;
 		virtual bool Disconnect(const ConnectionPrototype<NodeIdentifier, EndpointIdentifier>& connection) = 0;
+		virtual void PopupMenu() { ImGui::MenuItem("override PopupMenu()"); };
 	private:
 
 		std::map<NodeIdentifier, GraphNodePrototype<NodeIdentifier, EndpointIdentifier, Node>*> m_Nodes;

@@ -91,7 +91,7 @@ void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shad
 		if(m_AnimationGraphEditor)
 			m_AnimationGraphEditor->Show("Graph editor", { 500, 500 });
 
-
+		bool is = true;
 		//shade::ImGuiGraph::Show("Graph editor", { 500, 500 });
 		//ShowExampleAppCustomNodeGraph(&is);
 		//ImGui::ShowDemoWindow();
@@ -1841,9 +1841,9 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 			pose2		= animationGraph->CreateNode<shade::animation::PoseNode>();
 			blendWeight = animationGraph->CreateNode<shade::animation::ValueNode>();
 
-			blend = animationGraph->CreateNode<shade::animation::BlendNode2D>();
+			blend		= animationGraph->CreateNode<shade::animation::BlendNode2D>();
 
-			animationGraph->AddConnection(blend->GetNodeIndex(), 0, blendWeight->GetNodeIndex(), 0);
+			//animationGraph->AddConnection(blend->GetNodeIndex(), 0, blendWeight->GetNodeIndex(), 0);
 
 			/*animationGraph->AddConnection(pose1->GetNodeIndex(), 0, blend->GetNodeIndex(), 1);
 			animationGraph->AddConnection(pose2->GetNodeIndex(), 0, blend->GetNodeIndex(), 2);

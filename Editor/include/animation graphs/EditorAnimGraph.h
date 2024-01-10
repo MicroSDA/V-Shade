@@ -8,7 +8,6 @@ namespace editor_animation_graph
 	using namespace shade;
 	using namespace animation;
 
-
 	struct GraphDeligate : public
 		ImGuiGraphPrototype<Asset<AnimationGraph>,
 		GraphNode::NodeIDX,
@@ -29,6 +28,14 @@ namespace editor_animation_graph
 		{
 			return GetGraph()->RemoveConnection(coonection.InputNodeIdentifier, coonection.InputEndpointIdentifier);
 		}
+		virtual void  PopupMenu() override 
+		{
+			ImGui::MenuItem("SomeMenu 1");
+			ImGui::MenuItem("SomeMenu 2");
+			ImGui::MenuItem("SomeMenu 4");
+			ImGui::MenuItem("SomeMenu 5");
+			ImGui::MenuItem("SomeMenu 6");
+		};
 	};
 
 	struct BaseNodeDeligate : public GraphNodePrototype<GraphNode::NodeIDX,
@@ -201,10 +208,10 @@ namespace editor_animation_graph
 			{
 				if (endpoint == 0) // Blend Weight
 				{
-					/*ImGui::Text("Blend Weight");
+					ImGui::Text("Blend Weight");
 					ImGui::BeginDisabled();
 					ImGui::DragFloat("##", &node.GetEndpoint<GraphNode::Connection::Input>(endpoint)->As<NodeValueType::Float>(), 0.001);
-					ImGui::EndDisabled();*/
+					ImGui::EndDisabled();
 				}
 				// Input Poses
 				if (endpoint > 0) ImGui::Text("Input Pose");

@@ -99,14 +99,14 @@ namespace shade
             // Default constructor and destructor
             NodeValue() = default;
             ~NodeValue() = default;
-            // Copy constructor
-            NodeValue(const NodeValue& other) = default;
-            // Move constructor
-            NodeValue(NodeValue&& other) noexcept = default;
-            // Copy assignment operator
-            NodeValue& operator=(const NodeValue& other) = default;
-            // Move assignment operator
-            NodeValue& operator=(NodeValue&& other) noexcept = default;
+            //// Copy constructor
+            //NodeValue(const NodeValue& other) = default;
+            //// Move constructor
+            //NodeValue(NodeValue&& other) noexcept = default;
+            //// Copy assignment operator
+            //NodeValue& operator=(const NodeValue& other) = default;
+            //// Move assignment operator
+            //NodeValue& operator=(NodeValue&& other) noexcept = default;
         public:
             /**
              * @brief Template function to initialize the NodeValue with a specific type and value.
@@ -117,7 +117,7 @@ namespace shade
             template <typename NodeValueType Type, typename... Args> requires IsNodeValueType<typename FromNodeValueTypeToType<Type>::Type>
             SHADE_INLINE void Initialize(Args &&... args)
             {
-                m_Value = { FromNodeValueTypeToType<Type>::Type(std::forward<Args>(args)...), Type };
+                m_Value = FromNodeValueTypeToType<Type>::Type(std::forward<Args>(args)...);
                 m_Type = Type;
             }
 
@@ -227,8 +227,9 @@ namespace shade
         {
         public:
             // Alias for shared_ptr to NodeValue
-            using Value = std::pair<std::shared_ptr<NodeValue>, NodeValueType>;
-
+            using Value  = std::shared_ptr<NodeValue>;
+            // Where Curent value and cashed default;
+            using Values = std::pair<std::shared_ptr<NodeValue>, std::shared_ptr<NodeValue>>;
         public:
            
             // Default constructor and destructor
@@ -257,7 +258,9 @@ namespace shade
             template<typename NodeValueType Type, typename... Args>
             std::size_t Emplace(Args&&... args)
             {
-                m_Values.emplace_back(std::make_shared<NodeValue>())->Initialize<Type>(std::forward<Args>(args)...);
+                auto value = std::make_shared<NodeValue>();
+                value->Initialize<Type>(std::forward<Args>(args)...);
+                m_Values.emplace_back(value, value);
                 return m_Values.size() - 1;
             }
 
@@ -272,15 +275,21 @@ namespace shade
              * @param index - The index of the NodeValue to access.
              * @return Reference to the shared_ptr<NodeValue> at the specified index.
              */
-            SHADE_INLINE Value& At(std::size_t index) { return m_Values.at(index); }
+            SHADE_INLINE Value& At(std::size_t index) { return m_Values.at(index).first; }
 
             /**
              * @brief Const version to access the NodeValue at the specified index.
              * @param index - The index of the NodeValue to access.
              * @return Const reference to the shared_ptr<NodeValue> at the specified index.
              */
-            SHADE_INLINE const Value& At(std::size_t index) const { return m_Values.at(index); }
+            SHADE_INLINE const Value& At(std::size_t index) const { return m_Values.at(index).first; }
 
+            /**
+            * @brief Reset to default initialized value.
+            * @param index - The index of the NodeValue to access.
+            */
+
+            SHADE_INLINE void Reset(std::size_t index) { m_Values.at(index).first = m_Values.at(index).second; }
             /**
             * @brief Get values count.
             * @return Count of currently created values.
@@ -291,25 +300,25 @@ namespace shade
              * @brief Iterator to the beginning of the NodeValues vector.
              * @return Iterator pointing to the beginning of the NodeValues vector.
              */
-            SHADE_INLINE std::vector<Value>::iterator begin() { return m_Values.begin(); }
+            SHADE_INLINE std::vector<Values>::iterator begin() { return m_Values.begin(); }
 
             /**
              * @brief Iterator to the end of the NodeValues vector.
              * @return Iterator pointing to the end of the NodeValues vector.
              */
-            SHADE_INLINE std::vector<Value>::iterator end() { return m_Values.end(); }
+            SHADE_INLINE std::vector<Values>::iterator end() { return m_Values.end(); }
 
             /**
              * @brief Const iterator to the beginning of the NodeValues vector.
              * @return Const iterator pointing to the beginning of the NodeValues vector.
              */
-            SHADE_INLINE std::vector<Value>::const_iterator cbegin() const { return m_Values.cbegin(); }
+            SHADE_INLINE std::vector<Values>::const_iterator cbegin() const { return m_Values.cbegin(); }
 
             /**
              * @brief Const iterator to the end of the NodeValues vector.
              * @return Const iterator pointing to the end of the NodeValues vector.
              */
-            SHADE_INLINE std::vector<Value>::const_iterator cend() const { return m_Values.cend(); }
+            SHADE_INLINE std::vector<Values>::const_iterator cend() const { return m_Values.cend(); }
 
         public:
             /**
@@ -317,18 +326,18 @@ namespace shade
              * @param index - The index of the NodeValue to access.
              * @return Reference to the shared_ptr<NodeValue> at the specified index.
              */
-            SHADE_INLINE Value& operator[](std::size_t index) { return m_Values[index]; }
+            SHADE_INLINE Value& operator[](std::size_t index) { return m_Values[index].first; }
 
             /**
              * @brief Const version to access the NodeValue at the specified index using the subscript operator.
              * @param index - The index of the NodeValue to access.
              * @return Const reference to the shared_ptr<NodeValue> at the specified index.
              */
-            SHADE_INLINE const Value& operator[](std::size_t index) const { return m_Values[index]; }
+            SHADE_INLINE const Value& operator[](std::size_t index) const { return m_Values[index].first; }
 
         private:
             // Vector to store shared_ptrs to NodeValue
-            std::vector<Value> m_Values;
+            std::vector<Values> m_Values;
         };
 	}
 }

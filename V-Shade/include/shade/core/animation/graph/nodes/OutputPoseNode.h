@@ -20,7 +20,6 @@ namespace shade
 
 			virtual void Evaluate(const FrameTimer& delatTime) override {};
 			virtual void OnConnect(Connection::Type connectionType, NodeValueType type, EndpointIDX endpoint) override {};
-			virtual void OnDisconnect(Connection::Type connectionType, NodeValueType type, EndpointIDX endpoint) override {};
 
 			const Pose* GetFinalPose() const;
 		};
