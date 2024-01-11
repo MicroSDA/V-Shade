@@ -12,6 +12,8 @@ namespace shade
 {
     namespace animation
     {
+        // TODO: Add reflection static mechanizm 
+
         /// @brief Structure representing the context of a graph
         struct SHADE_API GraphContext final
         {
@@ -29,7 +31,6 @@ namespace shade
 
         public:
             
-
             /// @brief Type aliases for node and endpoint indices
             using NodeIDX = std::uint32_t;
             using EndpointIDX = std::uint32_t;
@@ -84,14 +85,8 @@ namespace shade
             /// @param connectionType The type of the connection (Input or Output)
             /// @param type The type of the node value being disconnected
             /// @param endpoint The index of the endpoint being disconnected
-            virtual void OnDisconnect(Connection::Type connectionType, NodeValueType type, EndpointIDX endpoint)
-            {
-                if (connectionType == Connection::Type::Input)
-                {
-                    m_Endpoints[Connection::Type::Input].Reset(endpoint);
-                }     
-            }
-
+            virtual void OnDisconnect(Connection::Type connectionType, NodeValueType type, EndpointIDX endpoint);
+           
             /// @brief Template function for getting the value of a specific endpoint
             /// @tparam T The type of the connection (Input or Output)
             /// @param index The index of the endpoint

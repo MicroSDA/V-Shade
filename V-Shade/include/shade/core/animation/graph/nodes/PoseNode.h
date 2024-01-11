@@ -8,7 +8,7 @@ namespace shade
 	{
 		class SHADE_API PoseNode : public GraphNode
 		{
-		
+
 		public:
 			PoseNode(NodeIDX idx, const GraphContext& context) :
 				GraphNode(idx, context)

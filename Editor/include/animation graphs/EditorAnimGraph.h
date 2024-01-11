@@ -8,35 +8,6 @@ namespace editor_animation_graph
 	using namespace shade;
 	using namespace animation;
 
-	struct GraphDeligate : public
-		ImGuiGraphPrototype<Asset<AnimationGraph>,
-		GraphNode::NodeIDX,
-		GraphNode::EndpointIDX,
-		SharedPointer<GraphNode>>
-	{
-		GraphDeligate(Asset<AnimationGraph> graph) : ImGuiGraphPrototype(graph) {}
-		virtual ~GraphDeligate() = default;
-
-		virtual bool Connect(const ConnectionPrototype<GraphNode::NodeIDX, GraphNode::EndpointIDX>& connection) override
-		{
-			SHADE_CORE_TRACE("OutputNodeIdentifier = {0},OutputEndpointIdentifier = {1},InputNodeIdentifier = {2},InputEndpointIdentifier = {3}",
-				connection.OutputNodeIdentifier, connection.OutputEndpointIdentifier, connection.InputNodeIdentifier, connection.InputEndpointIdentifier)
-
-			return GetGraph()->AddConnection(connection.InputNodeIdentifier, connection.InputEndpointIdentifier, connection.OutputNodeIdentifier, connection.OutputEndpointIdentifier);
-		};
-		virtual bool Disconnect(const ConnectionPrototype<GraphNode::NodeIDX, GraphNode::EndpointIDX>& coonection) override
-		{
-			return GetGraph()->RemoveConnection(coonection.InputNodeIdentifier, coonection.InputEndpointIdentifier);
-		}
-		virtual void  PopupMenu() override 
-		{
-			ImGui::MenuItem("SomeMenu 1");
-			ImGui::MenuItem("SomeMenu 2");
-			ImGui::MenuItem("SomeMenu 4");
-			ImGui::MenuItem("SomeMenu 5");
-			ImGui::MenuItem("SomeMenu 6");
-		};
-	};
 
 	struct BaseNodeDeligate : public GraphNodePrototype<GraphNode::NodeIDX,
 		GraphNode::EndpointIDX,
@@ -54,7 +25,7 @@ namespace editor_animation_graph
 
 			for (const auto& conenction : GetNode()->__GET_CONNECTIONS())
 				connections.emplace_back(conenction.InputNodeIdx, conenction.InputEndpoint, conenction.OutputNodeIdx, conenction.OutputEndpoint);
-				//connections.emplace_back(conenction.Source, conenction.SourceEndpoint, conenction.Target, conenction.TargetEndpoint);
+			//connections.emplace_back(conenction.Source, conenction.SourceEndpoint, conenction.Target, conenction.TargetEndpoint);
 
 			return connections;
 		}
@@ -72,9 +43,9 @@ namespace editor_animation_graph
 		}
 
 		virtual void ProcessBodyConent() override { ImGui::Text("Body Content"); }
-		virtual void ProcessEndpoint(const GraphNode::EndpointIDX& endpoint, EndpointPrototype::EndpointType type) override 
-		{ 
-			ImGui::Text("Endpoint"); 
+		virtual void ProcessEndpoint(const GraphNode::EndpointIDX& endpoint, EndpointPrototype::EndpointType type) override
+		{
+			ImGui::Text("Endpoint");
 		}
 	};
 
@@ -87,10 +58,6 @@ namespace editor_animation_graph
 			Style.HeaderColor = ImVec4{ 0.7, 0.7, 0.7, 1.0 };
 		}
 		virtual ~OutputPoseNodeDeligate() = default;
-		virtual void ProcessBodyConent() override
-		{
-
-		}
 		virtual void ProcessEndpoint(const GraphNode::EndpointIDX& endpoint, EndpointPrototype::EndpointType type) override
 		{
 			ImGui::Text("Input Pose");
@@ -108,71 +75,20 @@ namespace editor_animation_graph
 
 		virtual void ProcessBodyConent() override
 		{
-			auto&	node = GetNode()->As<animation::PoseNode>();
-			float&	start = node.GetAnimationData().Start;
-			float&	end = node.GetAnimationData().End;
-			float&	duration = node.GetAnimationData().Duration;
-
-
-			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+			PoseNode& node = GetNode()->As<animation::PoseNode>();
+			float& start = node.GetAnimationData().Start;
+			float& end = node.GetAnimationData().End;
+			float& duration = node.GetAnimationData().Duration;
 
 			ImGui::BeginDisabled();
+			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
 			ImGui::SliderFloat("##TimeLine", &node.GetAnimationData().CurrentPlayTime, start, end);
-			ImGui::EndDisabled();
-
 			ImGui::PopItemWidth();
-
 			glm::vec2 startEnd = { start , end };
-
 			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
-
 			ImGui::DragFloat2("##StartEnd", glm::value_ptr(startEnd), 0.01f, 0.0f, duration);
-
 			ImGui::PopItemWidth();
-
-			start = startEnd.x;
-			end = startEnd.y;
-
-			std::vector<std::string> items;
-
-			for (const auto& assetData : shade::AssetManager::GetAssetDataList(shade::AssetMeta::Category::Secondary))
-			{
-				if (assetData.second->GetType() == shade::AssetMeta::Type::Animation)
-				{
-					items.emplace_back(assetData.first);
-				}
-			}
-
-			std::string currentItem = "";
-
-			if (node.GetAnimationData().Animation)
-			{
-				currentItem = node.GetAnimationData().Animation->GetAssetData()->GetId();
-			}
-
-			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
-			if (ImGui::BeginCombo("##", currentItem.c_str(), 0)) // The second parameter is the label previewed before opening the combo.
-			{
-				for (auto& element : items)
-				{
-					bool isSelected = (currentItem == element);
-					if (ImGui::Selectable(element.c_str(), isSelected, 0))
-					{
-						currentItem = element;
-					}
-					if (isSelected)
-						ImGui::SetItemDefaultFocus();
-				}
-				ImGui::EndCombo();
-
-				shade::AssetManager::GetAsset<shade::Animation, shade::BaseAsset::InstantiationBehaviour::Synchronous>(currentItem, shade::AssetMeta::Category::Secondary, shade::BaseAsset::LifeTime::KeepAlive, [&](auto& animation) mutable
-					{
-						node.ResetAnimationData(animation);
-					});
-
-			}
-
-			ImGui::PopItemWidth();
+			ImGui::EndDisabled();
 		}
 		virtual void ProcessEndpoint(const GraphNode::EndpointIDX& endpoint, EndpointPrototype::EndpointType type) override
 		{
@@ -184,6 +100,10 @@ namespace editor_animation_graph
 			}
 			}
 		}
+		virtual void ProcessSideBar() override;
+	private:
+		std::string m_Search;
+		bool m_IsAnimationPopupActive = false;
 	};
 	struct BlendNodeDeligate : public BaseNodeDeligate
 	{
@@ -248,4 +168,49 @@ namespace editor_animation_graph
 
 		}
 	};
+
+	struct GraphDeligate : public
+		ImGuiGraphPrototype<Asset<AnimationGraph>,
+		GraphNode::NodeIDX,
+		GraphNode::EndpointIDX,
+		SharedPointer<GraphNode>>
+	{
+		GraphDeligate(Asset<AnimationGraph> graph) : ImGuiGraphPrototype(graph) {}
+		virtual ~GraphDeligate() = default;
+
+		virtual bool Connect(const ConnectionPrototype<GraphNode::NodeIDX, GraphNode::EndpointIDX>& connection) override
+		{
+			SHADE_CORE_TRACE("OutputNodeIdentifier = {0},OutputEndpointIdentifier = {1},InputNodeIdentifier = {2},InputEndpointIdentifier = {3}",
+				connection.OutputNodeIdentifier, connection.OutputEndpointIdentifier, connection.InputNodeIdentifier, connection.InputEndpointIdentifier)
+
+				return GetGraph()->AddConnection(connection.InputNodeIdentifier, connection.InputEndpointIdentifier, connection.OutputNodeIdentifier, connection.OutputEndpointIdentifier);
+		};
+		virtual bool Disconnect(const ConnectionPrototype<GraphNode::NodeIDX, GraphNode::EndpointIDX>& coonection) override
+		{
+			return GetGraph()->RemoveConnection(coonection.InputNodeIdentifier, coonection.InputEndpointIdentifier);
+		}
+		virtual void  PopupMenu() override
+		{
+			if (ImGui::MenuItem("Blend"))
+			{
+				auto node = GetGraph()->CreateNode<animation::BlendNode2D>();
+				this->EmplaceNode<BlendNodeDeligate>(node->GetNodeIndex(), node);
+			}
+			if (ImGui::MenuItem("Pose"))
+			{
+				auto node = GetGraph()->CreateNode<animation::PoseNode>();
+				this->EmplaceNode<PoseNodeDeligate>(node->GetNodeIndex(), node);
+			}
+			if (ImGui::MenuItem("Flaot"))
+			{
+				auto node = GetGraph()->CreateNode<animation::ValueNode>();
+				this->EmplaceNode<ValueNodeDeligate>(node->GetNodeIndex(), node);
+			}
+		};
+		virtual void ProcessSideBar(GraphNodePrototype<GraphNode::NodeIDX, GraphNode::EndpointIDX, SharedPointer<GraphNode>>& selectedNode) override
+		{
+			selectedNode.ProcessSideBar();
+		}
+	};
+
 }

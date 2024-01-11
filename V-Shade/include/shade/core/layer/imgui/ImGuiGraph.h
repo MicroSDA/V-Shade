@@ -65,8 +65,9 @@ namespace shade
 	using ConnectionsPrototype = std::vector<ConnectionPrototype<NodeIdentifier, EndpointIdentifier>>;
 
 	template<typename NodeIdentifier, typename EndpointIdentifier, typename Node>
-	struct GraphNodePrototype
+	class GraphNodePrototype
 	{
+	public:
 		struct VisualStyle
 		{
 			ImVec4 HeaderColor = ImVec4{ 0.5f, 0.7f, 0.f, 1.f };
@@ -100,7 +101,7 @@ namespace shade
 
 		virtual ConnectionsPrototype<NodeIdentifier, EndpointIdentifier> ReceiveConnections() const = 0;
 		virtual EndpointsPrototype<NodeIdentifier> ReceiveEndpoints() const = 0;
-
+		virtual void ProcessSideBar() {};
 		virtual void ProcessBodyConent() {};
 		virtual void ProcessEndpoint(const EndpointIdentifier& endpoint, EndpointPrototype::EndpointType type) {};
 
@@ -206,7 +207,7 @@ namespace shade
 		SHADE_INLINE const	Graph& GetGraph() const { return m_GraphValue; }
 		SHADE_INLINE		Graph& GetGraph() { return m_GraphValue; }
 	public:
-		SHADE_INLINE bool Show(const char* title, const ImVec2& size)
+		bool Show(const char* title, const ImVec2& size)
 		{
 			// Save current style 
 			ImGuiStyle unscaledStyle = ImGui::GetStyle();
@@ -215,7 +216,7 @@ namespace shade
 			{
 				if (ImGui::Begin(title, (bool*)0))
 				{
-					if (ImGui::BeginChild("##ImGuiGraphPrototype::ConfigRegion",
+					if (ImGui::BeginChild("##ImGuiGraphPrototype::ContentSideBar",
 						ImVec2(300, ImGui::GetContentRegionAvail().y),
 						true,
 						ImGuiWindowFlags_NoScrollbar |
@@ -224,10 +225,8 @@ namespace shade
 					{
 						if (m_ActiveNode)
 						{
-							ImGui::Text(m_ActiveNode->Style.Title.c_str());
+							ProcessSideBar(*m_ActiveNode);
 						}
-
-
 						ImGui::EndChild();
 					}
 
@@ -312,7 +311,7 @@ namespace shade
 			return false;
 		}
 	private:
-		SHADE_INLINE void DrawNodes()
+		void DrawNodes()
 		{
 			std::size_t CurrentChannel = m_Nodes.size() - 1;
 
@@ -347,7 +346,7 @@ namespace shade
 
 			m_Context.DrawList->ChannelsMerge();
 		}
-		SHADE_INLINE void DrawNode(bool isActive, std::size_t nodeIndex, GraphNodePrototype<NodeIdentifier, EndpointIdentifier, Node>* node)
+		void DrawNode(bool isActive, std::size_t nodeIndex, GraphNodePrototype<NodeIdentifier, EndpointIdentifier, Node>* node)
 		{
 			const ImVec2 nodeRectMin = m_Context.Offset + node->GetScreenPosition() * m_Context.Scale.Factor;
 			const ImVec2 nodeRectMax = nodeRectMin + node->Style.Size * m_Context.Scale.Factor;
@@ -395,12 +394,12 @@ namespace shade
 
 			node->Style.Size.y += ImGui::GetCursorScreenPos().y - nodeRectMax.y;
 		}
-		SHADE_INLINE void DrawAllConnections()
+		void DrawAllConnections()
 		{
 			for (auto& [id, node] : m_Nodes)
 				DrawConnections(node);
 		}
-		SHADE_INLINE void DrawConnections(GraphNodePrototype<NodeIdentifier, EndpointIdentifier, Node>* node)
+		void DrawConnections(GraphNodePrototype<NodeIdentifier, EndpointIdentifier, Node>* node)
 		{
 			auto& endpoints = node->GetEndpoints();
 			auto& connections = node->GetConnections();
@@ -438,7 +437,7 @@ namespace shade
 			}
 
 		}
-		SHADE_INLINE ImVec2 DrawEndpoints(float yOffset, std::size_t nodeIndex, GraphNodePrototype<NodeIdentifier, EndpointIdentifier, Node>* node)
+		ImVec2 DrawEndpoints(float yOffset, std::size_t nodeIndex, GraphNodePrototype<NodeIdentifier, EndpointIdentifier, Node>* node)
 		{
 			auto& endpoints = node->GetEndpoints();
 			auto& connections = node->GetConnections();
@@ -567,7 +566,7 @@ namespace shade
 		{
 			return (mousePosition - ImGui::GetCursorScreenPos()) / m_Context.Scale.Factor;
 		}
-		SHADE_INLINE void ProcessScale() // private
+		void ProcessScale() // private
 		{
 			ImGuiIO& io = ImGui::GetIO(); // todo add as arg
 
@@ -606,7 +605,7 @@ namespace shade
 			}
 		}
 
-		SHADE_INLINE float DrawHeader(const char* title,
+		float DrawHeader(const char* title,
 			const ImVec2& nodePosition,
 			const ImVec2& nodeSize,
 			const ImVec4& headerColor,
@@ -656,7 +655,9 @@ namespace shade
 	protected:
 		virtual bool Connect(const ConnectionPrototype<NodeIdentifier, EndpointIdentifier>& connection) = 0;
 		virtual bool Disconnect(const ConnectionPrototype<NodeIdentifier, EndpointIdentifier>& connection) = 0;
-		virtual void PopupMenu() { ImGui::MenuItem("override PopupMenu()"); };
+
+		virtual void PopupMenu() {};
+		virtual void ProcessSideBar(GraphNodePrototype<NodeIdentifier, EndpointIdentifier, Node>& selectedNode) {};
 	private:
 
 		std::map<NodeIdentifier, GraphNodePrototype<NodeIdentifier, EndpointIdentifier, Node>*> m_Nodes;

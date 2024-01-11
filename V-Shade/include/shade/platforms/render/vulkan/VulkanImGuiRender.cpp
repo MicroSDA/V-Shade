@@ -50,6 +50,12 @@ shade::VulkanImGuiRender::VulkanImGuiRender()
 	m_ImGuiContext = ImGui::CreateContext();
 	ImGui::SetCurrentContext(m_ImGuiContext);
 
+	//shade::ImGuiThemeEditor::SetFont("./resources/fonts/Roboto-Medium.ttf", 14.5);
+
+	// Need to remove it from here !!!
+	ImGuiIO& io = ImGui::GetIO();
+	io.Fonts->AddFontFromFileTTF("./resources/fonts/Roboto-Medium.ttf", 14.5);
+
 	ImGui_ImplGlfw_InitForVulkan(static_cast<GLFWwindow*>(Application::GetWindow()->GetNativeWindow()), true);
 	auto& swapchain = Application::GetWindow()->GetSwapChain()->As<VulkanSwapChain>();
 	ImGui_ImplVulkan_Init(&imguiImplVulkanInfo, swapchain.GetColorFormat(), VulkanContext::GetPhysicalDevice()->GetDepthForamt());

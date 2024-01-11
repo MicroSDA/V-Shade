@@ -4,10 +4,10 @@
 
 // TODO: Temporary
 
-EditorLayer::EditorLayer()
+EditorLayer::EditorLayer() : ImGuiLayer()
 {
-	ImGui::SetCurrentContext(GetImGuiContext());
 
+	ImGui::SetCurrentContext(GetImGuiContext());
 	shade::ImGuiThemeEditor::SetColors(0x202020FF, 0xFAFFFDFF, 0x505050FF, 0x9C1938CC, 0xFFC307B1);
 	shade::ImGuiThemeEditor::ApplyTheme();
 }
@@ -94,7 +94,7 @@ void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shad
 		bool is = true;
 		//shade::ImGuiGraph::Show("Graph editor", { 500, 500 });
 		//ShowExampleAppCustomNodeGraph(&is);
-		//ImGui::ShowDemoWindow();
+		ImGui::ShowDemoWindow();
 		ImGui::End();
 	}
 }
@@ -114,6 +114,7 @@ void EditorLayer::OnEvent(shade::SharedPointer<shade::Scene>& scene, const shade
 void EditorLayer::OnDestroy()
 {
 }
+
 
 void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 {
