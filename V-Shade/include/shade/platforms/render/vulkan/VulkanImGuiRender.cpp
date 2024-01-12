@@ -52,9 +52,22 @@ shade::VulkanImGuiRender::VulkanImGuiRender()
 
 	//shade::ImGuiThemeEditor::SetFont("./resources/fonts/Roboto-Medium.ttf", 14.5);
 
-	// Need to remove it from here !!!
 	ImGuiIO& io = ImGui::GetIO();
-	io.Fonts->AddFontFromFileTTF("./resources/fonts/Roboto-Medium.ttf", 14.5);
+	
+	static ImWchar rangess[] = { 0x1, 0x1FFFF, 0 };
+	static ImFontConfig cfg;
+	//cfg.OversampleH = cfg.OversampleV = 1;
+
+	ImVector<ImWchar> ranges;
+	ImFontGlyphRangesBuilder builder;
+	builder.AddRanges(rangess); // Add one of the default ranges
+	builder.BuildRanges(&ranges);
+
+	io.Fonts->AddFontFromFileTTF("./resources/fonts/Roboto-Medium.ttf", 15.5, &cfg, ranges.Data);
+	io.Fonts->AddFontFromFileTTF("./resources/fonts/fontello.ttf", 30.0, &cfg, ranges.Data);
+	
+	// Need to remove it from here !!!
+	
 
 	ImGui_ImplGlfw_InitForVulkan(static_cast<GLFWwindow*>(Application::GetWindow()->GetNativeWindow()), true);
 	auto& swapchain = Application::GetWindow()->GetSwapChain()->As<VulkanSwapChain>();

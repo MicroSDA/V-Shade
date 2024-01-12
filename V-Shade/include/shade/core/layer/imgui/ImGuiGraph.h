@@ -79,8 +79,8 @@ namespace shade
 			ImVec4 OutPutEndpointsColor = ImVec4{ 0.5f, 0.7f, 0.f, 1.f };
 			ImVec4 OutPutEndpointsColorHovered = ImVec4{ OutPutEndpointsColor.x * 2.f,OutPutEndpointsColor.y * 2.f, OutPutEndpointsColor.z * 2.f, OutPutEndpointsColor.w };
 
-			ImVec4 BorderColor = ImVec4{ 0.3f, 0.3f, 0.3f, 1.f };
-			ImVec4 BackgroundColor = ImVec4{ 0.2f, 0.2f, 0.2f, 1.f };
+			ImVec4 BorderColor = ImVec4{ 0.4f, 0.4f, 0.4f, 1.f };
+			ImVec4 BackgroundColor = ImVec4{ 0.15f, 0.15f, 0.15f, 1.f };
 			ImVec4 TextColor = ImVec4{ 0.0f, 0.0f, 0.0f, 1.f };
 
 			ImVec2 Size = ImVec2{ 200.f, 200.f };
@@ -143,9 +143,9 @@ namespace shade
 	public:
 		struct VisualStyle
 		{
-			ImVec4 BackgroundColor = ImVec4{ 0.2f, 0.2f, 0.2f, 1.f };
-			ImVec4 GridColorSmall = ImVec4{ 0.3f, 0.3f, 0.3f, 1.f };
-			ImVec4 GridColorBig = ImVec4{ 0.5, 0.5, 0.5, 1.f };
+			ImVec4 BackgroundColor = ImVec4{ 0.1f, 0.1f, 0.1f, 1.f };
+			ImVec4 GridColorSmall = ImVec4{ 0.2f, 0.2f, 0.2f, 1.f };
+			ImVec4 GridColorBig = ImVec4{ 0.4, 0.4, 0.4, 1.f };
 			float  GridSize = 64.f;
 
 			float Rounding = 7.f;
@@ -225,8 +225,13 @@ namespace shade
 					{
 						if (m_ActiveNode)
 						{
-							ProcessSideBar(*m_ActiveNode);
+							m_ActiveNode->ProcessSideBar();
 						}
+						else
+						{
+							ProcessSideBar();
+						}
+
 						ImGui::EndChild();
 					}
 
@@ -295,11 +300,6 @@ namespace shade
 
 						ImGui::EndPopup();
 					}
-
-					
-				
-
-					/* viewState.mPosition += io.MouseDelta / viewState.mFactor;*/
 
 				}ImGui::End();
 			}
@@ -374,6 +374,7 @@ namespace shade
 			{
 				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, m_VisualStyle.Padding * m_Context.Scale.Factor);
 				ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, m_VisualStyle.CellPadding * m_Context.Scale.Factor);
+				ImGui::PushStyleColor(ImGuiCol_TableBorderStrong, ImVec4{ 0.f, 0.f, 0.f, 0.f });
 
 				if (ImGui::BeginTableEx("##BodyContentTable", std::size_t(node) + 2000, 1, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersOuterV, { avalibleRegion.x, 0 }))
 				{
@@ -387,6 +388,7 @@ namespace shade
 					ImGui::EndTable();
 				}
 				ImGui::PopStyleVar(2);
+				ImGui::PopStyleColor();
 			}
 			ImGui::EndGroup();
 
@@ -484,12 +486,11 @@ namespace shade
 						else
 						{
 							ImGui::TableNextColumn();
+							ImGui::Dummy(ImVec2{ ImGui::GetContentRegionAvail().x, 0 });
 						}
 						if (outputIt != endpoints[EndpointPrototype::EndpointType::Output].end())
 						{
-
 							ImGui::TableNextColumn();
-
 							const ImVec2 deltaPosition = ImGui::GetCursorScreenPos() - m_Context.Offset;
 							{
 								node->ProcessEndpoint(outputIt->first, EndpointPrototype::EndpointType::Output);
@@ -503,6 +504,7 @@ namespace shade
 						else
 						{
 							ImGui::TableNextColumn();
+							//ImGui::Dummy(ImVec2{ ImGui::GetContentRegionAvail().x, 0 });
 						}
 					}
 				}
@@ -650,14 +652,15 @@ namespace shade
 		}
 	private:
 		Graph			m_GraphValue;
-		VisualStyle		m_VisualStyle;
 		InternalContext m_Context;
+	protected:
+		VisualStyle		m_VisualStyle;
 	protected:
 		virtual bool Connect(const ConnectionPrototype<NodeIdentifier, EndpointIdentifier>& connection) = 0;
 		virtual bool Disconnect(const ConnectionPrototype<NodeIdentifier, EndpointIdentifier>& connection) = 0;
 
 		virtual void PopupMenu() {};
-		virtual void ProcessSideBar(GraphNodePrototype<NodeIdentifier, EndpointIdentifier, Node>& selectedNode) {};
+		virtual void ProcessSideBar() {};
 	private:
 
 		std::map<NodeIdentifier, GraphNodePrototype<NodeIdentifier, EndpointIdentifier, Node>*> m_Nodes;

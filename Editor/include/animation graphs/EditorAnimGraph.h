@@ -8,7 +8,6 @@ namespace editor_animation_graph
 	using namespace shade;
 	using namespace animation;
 
-
 	struct BaseNodeDeligate : public GraphNodePrototype<GraphNode::NodeIDX,
 		GraphNode::EndpointIDX,
 		SharedPointer<GraphNode>>
@@ -54,14 +53,16 @@ namespace editor_animation_graph
 		OutputPoseNodeDeligate(GraphNode::NodeIDX id, SharedPointer<GraphNode> node) :
 			BaseNodeDeligate(id, node)
 		{
-			Style.Title = "OUTPUT POSE";
+			Style.Title = "Result";
 			Style.HeaderColor = ImVec4{ 0.7, 0.7, 0.7, 1.0 };
+			Style.Size = ImVec2{ 100.f, 100.f };
 		}
 		virtual ~OutputPoseNodeDeligate() = default;
 		virtual void ProcessEndpoint(const GraphNode::EndpointIDX& endpoint, EndpointPrototype::EndpointType type) override
 		{
-			ImGui::Text("Input Pose");
+			ImGui::Text("Pose");
 		}
+		virtual void ProcessBodyConent() override {}
 	};
 
 	struct PoseNodeDeligate : public BaseNodeDeligate
@@ -69,27 +70,11 @@ namespace editor_animation_graph
 		PoseNodeDeligate(GraphNode::NodeIDX id, SharedPointer<GraphNode> node) :
 			BaseNodeDeligate(id, node)
 		{
-			Style.Title = "POSE";
+			Style.Title = "Pose";
 		}
 		virtual ~PoseNodeDeligate() = default;
 
-		virtual void ProcessBodyConent() override
-		{
-			PoseNode& node = GetNode()->As<animation::PoseNode>();
-			float& start = node.GetAnimationData().Start;
-			float& end = node.GetAnimationData().End;
-			float& duration = node.GetAnimationData().Duration;
-
-			ImGui::BeginDisabled();
-			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
-			ImGui::SliderFloat("##TimeLine", &node.GetAnimationData().CurrentPlayTime, start, end);
-			ImGui::PopItemWidth();
-			glm::vec2 startEnd = { start , end };
-			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
-			ImGui::DragFloat2("##StartEnd", glm::value_ptr(startEnd), 0.01f, 0.0f, duration);
-			ImGui::PopItemWidth();
-			ImGui::EndDisabled();
-		}
+		virtual void ProcessBodyConent() override;
 		virtual void ProcessEndpoint(const GraphNode::EndpointIDX& endpoint, EndpointPrototype::EndpointType type) override
 		{
 			switch (type)
@@ -110,7 +95,7 @@ namespace editor_animation_graph
 		BlendNodeDeligate(GraphNode::NodeIDX id, SharedPointer<GraphNode> node) :
 			BaseNodeDeligate(id, node)
 		{
-			Style.Title = "BLEND";
+			Style.Title = "Blend";
 		}
 		virtual ~BlendNodeDeligate() = default;
 
@@ -129,13 +114,15 @@ namespace editor_animation_graph
 				if (endpoint == 0) // Blend Weight
 				{
 					ImGui::Text("Blend Weight");
-					ImGui::BeginDisabled();
-					ImGui::DragFloat("##", &node.GetEndpoint<GraphNode::Connection::Input>(endpoint)->As<NodeValueType::Float>(), 0.001);
-					ImGui::EndDisabled();
 				}
-				// Input Poses
-				if (endpoint > 0) ImGui::Text("Input Pose");
-
+				if (endpoint == 1)
+				{
+					ImGui::Text("Bone Mask");
+				}
+				if (endpoint > 1) ImGui::Text("Input Pose");
+				{
+					
+				}
 				break;
 			}
 			case EndpointPrototype::Output:
@@ -150,8 +137,8 @@ namespace editor_animation_graph
 		ValueNodeDeligate(GraphNode::NodeIDX id, SharedPointer<GraphNode> node) :
 			BaseNodeDeligate(id, node)
 		{
-			Style.Title = "FLOAT";
-			Style.HeaderColor = ImVec4{ 0.3, 0.3, 0.9, 1.0 };
+			Style.Title = "Float";
+			Style.HeaderColor = ImVec4{ 0.3, 0.5, 1.0, 1.0 };
 			Style.Size = ImVec2{ 100, 100 };
 		}
 		virtual ~ValueNodeDeligate() = default;
@@ -167,6 +154,27 @@ namespace editor_animation_graph
 		{
 
 		}
+	};
+	struct BoneMaskNodeDeligate : public BaseNodeDeligate
+	{
+		BoneMaskNodeDeligate(GraphNode::NodeIDX id, SharedPointer<GraphNode> node) :
+			BaseNodeDeligate(id, node)
+		{
+			Style.Title = "Bone Mask";
+			Style.HeaderColor = ImVec4{ 0.6, 0.4, 0.0, 1.0 };
+			Style.Size = ImVec2{ 150, 100 };
+		}
+		virtual ~BoneMaskNodeDeligate() = default;
+
+		virtual void ProcessBodyConent() override
+		{
+			auto& node = GetNode()->As<animation::BoneMaskNode>();
+		}
+		virtual void ProcessEndpoint(const GraphNode::EndpointIDX& endpoint, EndpointPrototype::EndpointType type) override
+		{
+
+		}
+		virtual void ProcessSideBar() override;
 	};
 
 	struct GraphDeligate : public
@@ -201,16 +209,21 @@ namespace editor_animation_graph
 				auto node = GetGraph()->CreateNode<animation::PoseNode>();
 				this->EmplaceNode<PoseNodeDeligate>(node->GetNodeIndex(), node);
 			}
-			if (ImGui::MenuItem("Flaot"))
+			if (ImGui::MenuItem("Float"))
 			{
 				auto node = GetGraph()->CreateNode<animation::ValueNode>();
 				this->EmplaceNode<ValueNodeDeligate>(node->GetNodeIndex(), node);
 			}
+			if (ImGui::MenuItem("Bone Mask"))
+			{
+				auto node = GetGraph()->CreateNode<animation::BoneMaskNode>();
+				this->EmplaceNode<BoneMaskNodeDeligate>(node->GetNodeIndex(), node);
+			}
 		};
-		virtual void ProcessSideBar(GraphNodePrototype<GraphNode::NodeIDX, GraphNode::EndpointIDX, SharedPointer<GraphNode>>& selectedNode) override
-		{
-			selectedNode.ProcessSideBar();
-		}
+		virtual void ProcessSideBar() override;
+	private:
+		std::string  m_Search;
+		bool m_IsSkeletonPopupActive = false;
 	};
 
 }

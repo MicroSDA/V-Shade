@@ -347,6 +347,19 @@ bool shade::ImGuiLayer::DrawButton(const char* title, const char* buttonTitle, f
 	return hasPresed;
 }
 
+void shade::ImGuiLayer::TextUTF8(const std::u8string& string)
+{
+	ImGui::TextUnformatted((char*)string.c_str(), (char*)string.c_str() + string.size());
+}
+void shade::ImGuiLayer::DrawFontIcon(const char8_t* c, std::size_t fontIndex, float scale)
+{
+	ImGui::GetIO().Fonts->Fonts[fontIndex]->Scale = scale;
+	ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[fontIndex]);
+	TextUTF8(c);
+	ImGui::PopFont();
+	ImGui::GetIO().Fonts->Fonts[fontIndex]->Scale = 1.f;
+}
+
 bool shade::ImGuiLayer::DrawImGuizmo(glm::mat4& transform, const SharedPointer<Camera>& camera, ImGuizmo::OPERATION operation, const ImVec4& window)
 {
 	ImGuizmo::SetOrthographic(false);

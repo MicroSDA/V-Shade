@@ -100,7 +100,9 @@ shade::animation::Pose* shade::animation::AnimationController::CreatePose(const 
 shade::animation::Pose* shade::animation::AnimationController::CalculatePose(animation::Pose* targetPose, AnimationControllData& animationData, const FrameTimer& deltaTime, float timeMultiplier)
 {	
 	animationData.CurrentPlayTime += animationData.TicksPerSecond * deltaTime.GetInSeconds<float>() * timeMultiplier;
-	animationData.CurrentPlayTime = glm::fmod(animationData.CurrentPlayTime, animationData.Duration);
+	animationData.CurrentPlayTime = glm::fmod(animationData.CurrentPlayTime, animationData.End);
+
+	animationData.CurrentPlayTime = glm::clamp(animationData.CurrentPlayTime, animationData.Start, animationData.End);
 
 	CalculateBoneTransforms(targetPose, animationData, targetPose->GetSkeleton()->GetRootNode(), glm::mat4(1.0), targetPose->GetSkeleton()->GetArmature());
 

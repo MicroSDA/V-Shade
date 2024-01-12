@@ -8,7 +8,6 @@ void shade::ImGuiGraphNodeRender::DrawGridLines(const ImVec2& start, const ImVec
 
 	for (float coord = fmodf(start.y, gridSpace); coord < canvasSize.y; coord += gridSpace, divy++)
 		drawList->AddLine(ImVec2(0.0f, coord) + windowPos, ImVec2(canvasSize.x, coord) + windowPos, !(divy % 10) ? gridColor2 : gridColor);
-
 }
 
 bool shade::ImGuiGraphNodeRender::DrawEndpoint(ImDrawList* drawList, const ImVec2& offset, float radius, float scaleFactor, const ImVec2& screenPosition, const ImVec4& color, const ImVec4& hoveredColor)

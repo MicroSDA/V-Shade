@@ -19,6 +19,7 @@ namespace shade
         double, \
         std::string,\
         animation::Pose*,\
+        animation::BoneMask,\
         glm::vec2,\
         glm::vec3,\
         glm::vec4,\
@@ -47,6 +48,7 @@ namespace shade
             Double,     ///< Double type
             String,     ///< std::string type
             Pose,       ///< animation::Pose* type
+            BoneMask,   ///< animation::BoneMask
             Vector2,    ///< glm::vec2 type
             Vector3,    ///< glm::vec3 type
             Vector4,    ///< glm::vec4 type
@@ -67,6 +69,7 @@ namespace shade
         template <> struct FromNodeValueTypeToType<NodeValueType::Double>       { typedef double Type; };
         template <> struct FromNodeValueTypeToType<NodeValueType::String>       { typedef std::string Type; };
         template <> struct FromNodeValueTypeToType<NodeValueType::Pose>         { typedef animation::Pose* Type; };
+        template <> struct FromNodeValueTypeToType<NodeValueType::BoneMask>     { typedef animation::BoneMask Type; };
         template <> struct FromNodeValueTypeToType<NodeValueType::Vector2>      { typedef glm::vec2 Type; };
         template <> struct FromNodeValueTypeToType<NodeValueType::Vector3>      { typedef glm::vec3 Type; };
         template <> struct FromNodeValueTypeToType<NodeValueType::Vector4>      { typedef glm::vec4 Type; };
@@ -84,6 +87,8 @@ namespace shade
         template <> struct FromTypeToNodeValueType<float>                       { static NodeValueType const Type = NodeValueType::Float; };
         template <> struct FromTypeToNodeValueType<double>                      { static NodeValueType const Type = NodeValueType::Double; };
         template <> struct FromTypeToNodeValueType<std::string>                 { static NodeValueType const Type = NodeValueType::String; };
+        template <> struct FromTypeToNodeValueType<animation::Pose*>            { static NodeValueType const Type = NodeValueType::Pose; };
+        template <> struct FromTypeToNodeValueType<animation::BoneMask>         { static NodeValueType const Type = NodeValueType::BoneMask; };
         template <> struct FromTypeToNodeValueType<glm::vec2>                   { static NodeValueType const Type = NodeValueType::Vector2; };
         template <> struct FromTypeToNodeValueType<glm::vec3>                   { static NodeValueType const Type = NodeValueType::Vector3; };
         template <> struct FromTypeToNodeValueType<glm::vec4>                   { static NodeValueType const Type = NodeValueType::Vector4; };

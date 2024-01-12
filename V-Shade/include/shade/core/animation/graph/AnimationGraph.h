@@ -7,6 +7,7 @@
 #include <shade/core/animation/graph/nodes/OutputPoseNode.h>
 #include <shade/core/animation/AnimationController.h>
 #include <shade/core/animation/graph/nodes/ValueNode.h>
+#include <shade/core/animation/graph/nodes/BoneMaskNode.h>
 
 namespace shade
 {

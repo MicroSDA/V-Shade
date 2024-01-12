@@ -7,8 +7,14 @@ void shade::animation::BlendNode2D::Evaluate(const FrameTimer& deltaTime)
 	auto& controller = GetGraphContext().Controller;
 	auto& skeleton   = GetGraphContext().Skeleton;
 
-	const Pose* source		= GET_ENDPOINT<Connection::Input, NodeValueType::Pose>(1);
-	const Pose* destination	= GET_ENDPOINT<Connection::Input, NodeValueType::Pose>(2);
+	const Pose* source		= GET_ENDPOINT<Connection::Input, NodeValueType::Pose>(2);
+	const Pose* destination	= GET_ENDPOINT<Connection::Input, NodeValueType::Pose>(3);
 
-	if(source && destination) GET_ENDPOINT<Connection::Output, NodeValueType::Pose>(0, controller->Blend(skeleton, source, destination, GET_ENDPOINT<Connection::Input, NodeValueType::Float>(0), Mask));
+	if (source && destination)
+	{
+		GET_ENDPOINT<Connection::Output, NodeValueType::Pose>(0, 
+			controller->Blend(skeleton, source, destination,
+				GET_ENDPOINT<Connection::Input, NodeValueType::Float>(0), 
+				GET_ENDPOINT<Connection::Input, NodeValueType::BoneMask>(1)));
+	}
 }

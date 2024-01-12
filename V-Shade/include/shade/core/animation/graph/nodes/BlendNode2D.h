@@ -13,6 +13,7 @@ namespace shade
 			{
 
 				REGISTER_ENDPOINT<Connection::Input,  NodeValueType::Float>(DefaultWeightValue);
+				REGISTER_ENDPOINT<Connection::Input,  NodeValueType::BoneMask>(context.Skeleton);
 
 				REGISTER_ENDPOINT<Connection::Input,  NodeValueType::Pose>(nullptr);
 				REGISTER_ENDPOINT<Connection::Input,  NodeValueType::Pose>(nullptr);

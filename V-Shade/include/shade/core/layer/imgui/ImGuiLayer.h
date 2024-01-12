@@ -38,7 +38,7 @@ namespace shade
 			ImGui::End();
 		}
 		template<typename Callback, typename ...Args>
-		static void ShowWindowBarOverlay(const char* title, ImGuiViewport* veiwport, Callback callback, Args && ...args)
+		static void ShowWindowBarOverlay(const char* title, ImGuiViewport* veiwport, Callback callback, Args&& ...args)
 		{
 			ImGui::SetNextWindowViewport(veiwport->ID);
 			ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
@@ -52,6 +52,25 @@ namespace shade
 			}
 			ImGui::End();
 		}
+
+		template<typename Callback, typename ...Args>
+		static void BeginWindowOverlay(const char* title, ImGuiViewport* veiwport, ImGuiID id, const ImVec2& size, const ImVec2& position, float alpha, Callback callback, Args&& ...args)
+		{
+			ImGui::SetNextWindowViewport(veiwport->ID);
+			ImGui::SetNextWindowBgAlpha(alpha); // Transparent background
+			ImGui::SetNextWindowPos(position, ImGuiCond_Always);
+			ImGui::SetNextWindowSize(size, ImGuiCond_Always);
+
+			ImGui::PushID(id);
+			if (ImGui::Begin(title, nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize |
+				ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_Tooltip))
+			{
+				std::invoke(callback, std::forward<Args>(args)...);
+
+			} ImGui::End();
+			ImGui::PopID();
+		}
+
 		template<typename Component, typename Callback, typename EditCallback, typename ...Args>
 		void DrawComponent(const char* title, ecs::Entity& entity, Callback callback, EditCallback editCallback, Args&& ...args)
 		{
@@ -187,6 +206,8 @@ namespace shade
 		bool ColorEdit3(const char* title, float* data, float cw1 = 0.0f, float cw2 = 0.0);
 		bool DrawButton(const char* title, const char* buttonTitle, float cw1 = 0.0f, float cw2 = 0.0f);
 
+		static void TextUTF8(const std::u8string& string);
+		static void DrawFontIcon(const char8_t* c, std::size_t fontIndex, float size);
         // Dummy data structure provided for the example.
         // Note that we storing links as indices (not ID) to make example code shorter.
 		static void ShowExampleAppCustomNodeGraph(bool* opened);
