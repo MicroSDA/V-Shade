@@ -115,7 +115,6 @@ void EditorLayer::OnDestroy()
 {
 }
 
-
 void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 {
 	if (ImGui::BeginMenuBar())
@@ -210,28 +209,28 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 				{
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn(); { ImGui::Text("Import Model"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotModelsCheckBox", &importModels);  HelpMarker("TODO");   }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotModelsCheckBox", &importModels);  HelpMarker("(?)", "TODO");   }
 
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn(); { ImGui::Text("Import Meshes"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotMeshesCheckBox", &importMeshes); HelpMarker("Import and convert meshes into valid engine file format.");  }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotMeshesCheckBox", &importMeshes); HelpMarker("(?)", "Import and convert meshes into valid engine file format.");  }
 
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn(); { ImGui::Text("Import Materials"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotMaterialsCheckBox", &importMaterials); HelpMarker("Import and convert materials into valid engine file format."); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotMaterialsCheckBox", &importMaterials); HelpMarker("(?)", "Import and convert materials into valid engine file format."); }
 
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn(); { ImGui::Text("Try to import Skeleton"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotSkeletonCheckBox", &importSkeleton); HelpMarker("Try to find and convert skeleton into valid engine file format if skeleton is present."); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotSkeletonCheckBox", &importSkeleton); HelpMarker("(?)", "Try to find and convert skeleton into valid engine file format if skeleton is present."); }
 
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn(); { ImGui::Text("Try to import Animations"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotAnimationsCheckBox", &importAnimations); HelpMarker("Try to find and convert animations into valid engine file format if animations are present."); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotAnimationsCheckBox", &importAnimations); HelpMarker("(?)", "Try to find and convert animations into valid engine file format if animations are present."); }
 
 					ImGui::TableNextRow();
 					(!importSkeleton || !importAnimations) ? ImGui::BeginDisabled() : void();
 					ImGui::TableNextColumn(); { ImGui::Text("	Validate animation channels"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##ValidateAnimationsChannels", &validateAnimationChannels); HelpMarker("Remove animation channels if there are no specific bones present."); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##ValidateAnimationsChannels", &validateAnimationChannels); HelpMarker("(?)", "Remove animation channels if there are no specific bones present."); }
 					(!importSkeleton || !importAnimations) ? ImGui::EndDisabled() : void();
 
 					ImGui::EndTable();
@@ -242,19 +241,19 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 				{
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn(); { ImGui::Text("Global scale"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##GlobalScale", &useScale); HelpMarker("This step will perform a global scale of the model."); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##GlobalScale", &useScale); HelpMarker("(?)", "This step will perform a global scale of the model."); }
 
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn(); { ImGui::Text("Triangulate"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##TriangulateCheckBox", &triangulate); HelpMarker("Triangulates all faces of all meshes."); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##TriangulateCheckBox", &triangulate); HelpMarker("(?)", "Triangulates all faces of all meshes."); }
 
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn(); { ImGui::Text("FlipUVs"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##FlipUVsCheckBox", &flipUvs); HelpMarker("Flips all UV coordinates along the y-axis and adjusts material settings and bitangents accordingly."); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##FlipUVsCheckBox", &flipUvs); HelpMarker("(?)", "Flips all UV coordinates along the y-axis and adjusts material settings and bitangents accordingly."); }
 
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn(); { ImGui::Text("Join identical vertices"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##JoinVertiesCheckBox", &joinVerties);  HelpMarker("Identifies and joins identical vertex data sets within all imported meshes."); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##JoinVertiesCheckBox", &joinVerties);  HelpMarker("(?)", "Identifies and joins identical vertex data sets within all imported meshes."); }
 
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn(); { ImGui::Text("Calculate normals"); }

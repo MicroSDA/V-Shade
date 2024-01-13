@@ -15,7 +15,8 @@ namespace editor_animation_graph
 		BaseNodeDeligate(GraphNode::NodeIDX id, SharedPointer<GraphNode> node) :
 			GraphNodePrototype<GraphNode::NodeIDX,
 			GraphNode::EndpointIDX,
-			SharedPointer<GraphNode>>(id, node) {}
+			SharedPointer<GraphNode>>(id, node) {};
+
 		virtual ~BaseNodeDeligate() = default;
 
 		virtual ConnectionsPrototype<GraphNode::NodeIDX, GraphNode::EndpointIDX>  ReceiveConnections() const override
@@ -24,8 +25,6 @@ namespace editor_animation_graph
 
 			for (const auto& conenction : GetNode()->__GET_CONNECTIONS())
 				connections.emplace_back(conenction.InputNodeIdx, conenction.InputEndpoint, conenction.OutputNodeIdx, conenction.OutputEndpoint);
-			//connections.emplace_back(conenction.Source, conenction.SourceEndpoint, conenction.Target, conenction.TargetEndpoint);
-
 			return connections;
 		}
 
@@ -41,140 +40,59 @@ namespace editor_animation_graph
 			return endpoints;
 		}
 
-		virtual void ProcessBodyConent() override { ImGui::Text("Body Content"); }
-		virtual void ProcessEndpoint(const GraphNode::EndpointIDX& endpoint, EndpointPrototype::EndpointType type) override
-		{
-			ImGui::Text("Endpoint");
-		}
+		virtual void ProcessBodyContent()																			override { ImGui::Text("Body Content"); }
+		virtual void ProcessEndpoint(const GraphNode::EndpointIDX& endpointIdentifier, EndpointPrototype& endpoint) override { ImGui::Text("Endpoint");		}
 	};
 
 	struct OutputPoseNodeDeligate : public BaseNodeDeligate
 	{
-		OutputPoseNodeDeligate(GraphNode::NodeIDX id, SharedPointer<GraphNode> node) :
-			BaseNodeDeligate(id, node)
-		{
-			Style.Title = "Result";
-			Style.HeaderColor = ImVec4{ 0.7, 0.7, 0.7, 1.0 };
-			Style.Size = ImVec2{ 100.f, 100.f };
-		}
+		OutputPoseNodeDeligate(GraphNode::NodeIDX id, SharedPointer<GraphNode> node);
 		virtual ~OutputPoseNodeDeligate() = default;
-		virtual void ProcessEndpoint(const GraphNode::EndpointIDX& endpoint, EndpointPrototype::EndpointType type) override
-		{
-			ImGui::Text("Pose");
-		}
-		virtual void ProcessBodyConent() override {}
+		virtual void ProcessEndpoint(const GraphNode::EndpointIDX& endpointIdentifier, EndpointPrototype& endpoint) override;
+		virtual void ProcessBodyContent() override;
 	};
 
 	struct PoseNodeDeligate : public BaseNodeDeligate
 	{
-		PoseNodeDeligate(GraphNode::NodeIDX id, SharedPointer<GraphNode> node) :
-			BaseNodeDeligate(id, node)
-		{
-			Style.Title = "Pose";
-		}
+		PoseNodeDeligate(GraphNode::NodeIDX id, SharedPointer<GraphNode> node);
 		virtual ~PoseNodeDeligate() = default;
 
-		virtual void ProcessBodyConent() override;
-		virtual void ProcessEndpoint(const GraphNode::EndpointIDX& endpoint, EndpointPrototype::EndpointType type) override
-		{
-			switch (type)
-			{
-			case EndpointPrototype::Output:
-			{
-				ImGui::Text("Pose"); // break;
-			}
-			}
-		}
+		virtual void ProcessBodyContent() override;
+		virtual void ProcessEndpoint(const GraphNode::EndpointIDX& endpointIdentifier, EndpointPrototype& endpoint) override;
 		virtual void ProcessSideBar() override;
 	private:
 		std::string m_Search;
 		bool m_IsAnimationPopupActive = false;
 	};
+
 	struct BlendNodeDeligate : public BaseNodeDeligate
 	{
-		BlendNodeDeligate(GraphNode::NodeIDX id, SharedPointer<GraphNode> node) :
-			BaseNodeDeligate(id, node)
-		{
-			Style.Title = "Blend";
-		}
+		BlendNodeDeligate(GraphNode::NodeIDX id, SharedPointer<GraphNode> node);
 		virtual ~BlendNodeDeligate() = default;
 
-		virtual void ProcessBodyConent() override
-		{
-			//ImGui::Text("BlendNode");
-		}
-		virtual void ProcessEndpoint(const GraphNode::EndpointIDX& endpoint, EndpointPrototype::EndpointType type) override
-		{
-			auto& node = GetNode()->As<BlendNode2D>();
-
-			switch (type)
-			{
-			case EndpointPrototype::Input:
-			{
-				if (endpoint == 0) // Blend Weight
-				{
-					ImGui::Text("Blend Weight");
-				}
-				if (endpoint == 1)
-				{
-					ImGui::Text("Bone Mask");
-				}
-				if (endpoint > 1) ImGui::Text("Input Pose");
-				{
-					
-				}
-				break;
-			}
-			case EndpointPrototype::Output:
-			{
-				ImGui::Text("Pose"); break;
-			}
-			}
-		}
+		virtual void ProcessBodyContent() override;
+		virtual void ProcessEndpoint(const GraphNode::EndpointIDX& endpointIdentifier, EndpointPrototype& endpoint) override;
 	};
-	struct ValueNodeDeligate : public BaseNodeDeligate
-	{
-		ValueNodeDeligate(GraphNode::NodeIDX id, SharedPointer<GraphNode> node) :
-			BaseNodeDeligate(id, node)
-		{
-			Style.Title = "Float";
-			Style.HeaderColor = ImVec4{ 0.3, 0.5, 1.0, 1.0 };
-			Style.Size = ImVec2{ 100, 100 };
-		}
-		virtual ~ValueNodeDeligate() = default;
-
-		virtual void ProcessBodyConent() override
-		{
-			auto& node = GetNode()->As<animation::BlendNode2D>();
-			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
-			ImGui::DragFloat("##value", &node.GetEndpoint<GraphNode::Connection::Output>(0)->As<NodeValueType::Float>(), 0.001, 0.0, 1.0);
-			ImGui::PopItemWidth();
-		}
-		virtual void ProcessEndpoint(const GraphNode::EndpointIDX& endpoint, EndpointPrototype::EndpointType type) override
-		{
-
-		}
-	};
+	
 	struct BoneMaskNodeDeligate : public BaseNodeDeligate
 	{
-		BoneMaskNodeDeligate(GraphNode::NodeIDX id, SharedPointer<GraphNode> node) :
-			BaseNodeDeligate(id, node)
-		{
-			Style.Title = "Bone Mask";
-			Style.HeaderColor = ImVec4{ 0.6, 0.4, 0.0, 1.0 };
-			Style.Size = ImVec2{ 150, 100 };
-		}
+		BoneMaskNodeDeligate(GraphNode::NodeIDX id, SharedPointer<GraphNode> node);
 		virtual ~BoneMaskNodeDeligate() = default;
 
-		virtual void ProcessBodyConent() override
-		{
-			auto& node = GetNode()->As<animation::BoneMaskNode>();
-		}
-		virtual void ProcessEndpoint(const GraphNode::EndpointIDX& endpoint, EndpointPrototype::EndpointType type) override
-		{
-
-		}
+		virtual void ProcessBodyContent() override;
+		virtual void ProcessEndpoint(const GraphNode::EndpointIDX& endpointIdentifier, EndpointPrototype& endpoint) override;
 		virtual void ProcessSideBar() override;
+	private:
+		std::string m_Search;
+	};
+
+	struct ValueNodeDeligate : public BaseNodeDeligate
+	{
+		ValueNodeDeligate(GraphNode::NodeIDX id, SharedPointer<GraphNode> node);
+		virtual ~ValueNodeDeligate() = default;
+
+		virtual void ProcessBodyContent() override;
+		virtual void ProcessEndpoint(const GraphNode::EndpointIDX& endpointIdentifier, EndpointPrototype& endpoint) override;
 	};
 
 	struct GraphDeligate : public

@@ -180,19 +180,8 @@ namespace shade
 				}
 			}
 		}
-		static void HelpMarker(const char* desc)
-		{
-			ImGui::SameLine();
-			ImGui::TextDisabled("(?)");
-			if (ImGui::IsItemHovered())
-			{
-				ImGui::BeginTooltip();
-				ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-				ImGui::TextUnformatted(desc);
-				ImGui::PopTextWrapPos();
-				ImGui::EndTooltip();
-			}
-		}
+		static void HelpMarker(const char* marker, const char* desc);
+		
 		static bool InputTextCol(const char* title, std::string& str, float cw1 = 0.0f, float cw2 = 0.0);
 		static bool InputTextD(const char* title, std::string& str);
 		static bool ComboCol(const char* id, std::string& selected, std::vector<std::string>& elements, ImGuiSelectableFlags selectedFlags, ImGuiComboFlags comboFlags, const float& cw1 = 0.0f, const float& cw2 = 0.0);

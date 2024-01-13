@@ -31,6 +31,13 @@ namespace shade
 
 	struct EndpointPrototype
 	{
+		struct VisualStyle
+		{
+			ImVec4 Color		= ImVec4{ 0.0f, 0.f, 0.f, 1.f };
+			ImVec4 ColorHovered = ImVec4{ 0.2f, 0.2f, 0.2f, 1.f };
+			float Radius		= 5.f;
+		};
+
 		enum EndpointType : std::uint8_t { Input = 0, Output = 1, MAX_ENUM };
 
 		EndpointPrototype(EndpointType type, const std::string& name = std::string("Endpoint name")) :
@@ -38,15 +45,17 @@ namespace shade
 		{}
 		~EndpointPrototype() = default;
 		/////////////////////////////////////////////////////////////////////////////////////////////////
-		SHADE_INLINE		EndpointType GetType()							const { return m_Type; }
-		SHADE_INLINE const	std::string& GetName()							const { return m_Name; }
-		SHADE_INLINE const	ImVec2 GetScreenPosition()						const { return m_ScreenPosition; }
-		SHADE_INLINE		void SetScreenPosition(const ImVec2& position) { m_ScreenPosition = position; }
+		SHADE_INLINE		EndpointType GetType()							const	{ return m_Type; }
+		SHADE_INLINE const	std::string& GetName()							const	{ return m_Name; }
+		SHADE_INLINE const	ImVec2 GetScreenPosition()						const	{ return m_ScreenPosition; }
+		SHADE_INLINE		void SetScreenPosition(const ImVec2& position)			{ m_ScreenPosition = position; }
 		/////////////////////////////////////////////////////////////////////////////////////////////////
+		VisualStyle Style;
 	private:
 		std::string		m_Name;
 		EndpointType	m_Type;
 		ImVec2			m_ScreenPosition;
+
 	};
 
 	template<typename EndpointIdentifier>
@@ -83,7 +92,7 @@ namespace shade
 			ImVec4 BackgroundColor = ImVec4{ 0.15f, 0.15f, 0.15f, 1.f };
 			ImVec4 TextColor = ImVec4{ 0.0f, 0.0f, 0.0f, 1.f };
 
-			ImVec2 Size = ImVec2{ 200.f, 200.f };
+			ImVec2 Size = ImVec2{ 230.f, 200.f };
 			std::string	Title = "Node title";
 		};
 
@@ -102,8 +111,8 @@ namespace shade
 		virtual ConnectionsPrototype<NodeIdentifier, EndpointIdentifier> ReceiveConnections() const = 0;
 		virtual EndpointsPrototype<NodeIdentifier> ReceiveEndpoints() const = 0;
 		virtual void ProcessSideBar() {};
-		virtual void ProcessBodyConent() {};
-		virtual void ProcessEndpoint(const EndpointIdentifier& endpoint, EndpointPrototype::EndpointType type) {};
+		virtual void ProcessBodyContent() {};
+		virtual void ProcessEndpoint(const EndpointIdentifier& endpointIdentifier, EndpointPrototype& endpoint) {};
 
 		SHADE_INLINE ConnectionsPrototype<NodeIdentifier, EndpointIdentifier>& GetConnections()
 		{
@@ -154,7 +163,6 @@ namespace shade
 			float EndpointRadius = 10.f;
 			float ConnectionThickness = 5.f;
 
-			ImVec4 ConnectionColor = ImVec4{ 0.5, 0.7, 0.0, 1.f };
 			ImVec2 Padding = ImVec2{ 10.f, 5.f };
 			ImVec2 CellPadding = ImVec2{ 15.f, 10.f };
 		};
@@ -382,7 +390,7 @@ namespace shade
 					{
 						ImGui::TableNextColumn();
 						{
-							node->ProcessBodyConent();
+							node->ProcessBodyContent();
 						}
 					}
 					ImGui::EndTable();
@@ -420,7 +428,7 @@ namespace shade
 					m_Context.Scale.Factor,
 					inputEndpoint.GetScreenPosition(),
 					outputEndpoint.GetScreenPosition(),
-					m_VisualStyle.ConnectionColor,
+					inputEndpoint.Style.Color,
 					m_VisualStyle.ConnectionThickness);
 			}
 
@@ -434,7 +442,7 @@ namespace shade
 					m_Context.Scale.Factor,
 					ImGui::GetMousePos() - m_Context.Offset,
 					endpoint.GetScreenPosition(),
-					m_VisualStyle.ConnectionColor,
+					endpoint.Style.Color,
 					m_VisualStyle.ConnectionThickness);
 			}
 
@@ -474,7 +482,7 @@ namespace shade
 
 							const ImVec2 deltaPosition = ImGui::GetCursorScreenPos() - m_Context.Offset;
 							{
-								node->ProcessEndpoint(inputsIt->first, EndpointPrototype::EndpointType::Input);
+								node->ProcessEndpoint(inputsIt->first, inputsIt->second);
 							}
 
 							inputsIt->second.SetScreenPosition(ImVec2{ deltaPosition.x - cellPaddingZoomed.x, deltaPosition.y + cellPaddingZoomed.y });
@@ -493,7 +501,7 @@ namespace shade
 							ImGui::TableNextColumn();
 							const ImVec2 deltaPosition = ImGui::GetCursorScreenPos() - m_Context.Offset;
 							{
-								node->ProcessEndpoint(outputIt->first, EndpointPrototype::EndpointType::Output);
+								node->ProcessEndpoint(outputIt->first, outputIt->second);
 							}
 							outputIt->second.SetScreenPosition(ImVec2{ deltaPosition.x + ImGui::GetContentRegionAvail().x + cellPaddingZoomed.x, deltaPosition.y + cellPaddingZoomed.y });
 
@@ -520,8 +528,8 @@ namespace shade
 					m_VisualStyle.EndpointRadius,
 					m_Context.Scale.Factor,
 					endpoint.GetScreenPosition(),
-					node->Style.InputEndpointsColor,
-					node->Style.InputEndpointsColorHovered))
+					endpoint.Style.Color,
+					endpoint.Style.ColorHovered))
 				{
 					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && m_ConnectionEstablish.IsOutPutSelect)
 					{
@@ -549,8 +557,8 @@ namespace shade
 					m_VisualStyle.EndpointRadius,
 					m_Context.Scale.Factor,
 					endpoint.GetScreenPosition(),
-					node->Style.InputEndpointsColor,
-					node->Style.InputEndpointsColorHovered))
+					endpoint.Style.Color,
+					endpoint.Style.ColorHovered))
 				{
 					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 					{

@@ -83,6 +83,20 @@ void shade::ImGuiLayer::DrawImage(SharedPointer<Texture2D>& texture, const ImVec
 	m_ImGuiRender->DrawImage(texture, size, borderColor, mip);
 }
 
+void shade::ImGuiLayer::HelpMarker(const char* marker, const char* desc)
+{
+	ImGui::SameLine();
+	ImGui::TextDisabled(marker);
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::BeginTooltip();
+		ImGui::PushTextWrapPos(ImGui::GetFontSize() * 45.0f);
+		ImGui::TextUnformatted(desc);
+		ImGui::PopTextWrapPos();
+		ImGui::EndTooltip();
+	}
+}
+
 bool shade::ImGuiLayer::InputTextCol(const char* title, std::string& str, float cw1, float cw2)
 {
 	bool isInput = false;
