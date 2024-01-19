@@ -49,7 +49,12 @@ void shade::animation::AnimationController::CalculateBoneTransformsBlend(
 
 	float blendFactorWithBoneMask = blendFactor * boneMask.GetWeight(bone->ID);
 
-	glm::mat4 combined = glm::mat4_cast(glm::slerp(glm::quat_cast(firstPose), glm::quat_cast(secondPose), blendFactorWithBoneMask));
+	glm::mat4 combined	    = glm::mat4_cast(glm::slerp(glm::quat_cast(firstPose), glm::quat_cast(secondPose), blendFactorWithBoneMask));
+	//glm::vec3 translate	    = glm::mix(firstPose[3], secondPose[3], blendFactor);
+	//glm::vec3 scale		= glm::mix(firstPose[3], secondPose[3], blendFactor);
+
+	//result->RootMotion.Translation = glm::mix(poseA->RootMotion.Translation, poseB->RootMotion.Translation, w);
+
 
 	combined[3] = (1.0f - blendFactorWithBoneMask) * firstPose[3] + secondPose[3] * blendFactorWithBoneMask;
 

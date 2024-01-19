@@ -24,9 +24,9 @@ namespace shade
 			// Virtual method to get the type of the AnimationGraph asset
 			virtual AssetMeta::Type GetAssetType() const override;
 			// Default constructor
-			AnimationGraph(const Asset<Skeleton>& skeleton);
+			AnimationGraph(const Asset<Skeleton>&skeleton, ecs::Entity entity);
 			// Static method to create a shared pointer to a AnimationGraph object
-			static Asset<AnimationGraph> CreateEXP(const Asset<Skeleton>& skeleton); // DANGER!!
+			static Asset<AnimationGraph> CreateEXP(const Asset<Skeleton>& skeleton, ecs::Entity entity); // DANGER!!
 		public:
 			//bool AddConnection(GraphNode::NodeIDX sourceNode, GraphNode::EndpointIDX sourceEndpoint, GraphNode::NodeIDX destinationNode, GraphNode::EndpointIDX destinationEndpoint);
 			bool AddConnection(GraphNode::NodeIDX inputNode, GraphNode::EndpointIDX inputEndpoint, GraphNode::NodeIDX outputNode, GraphNode::EndpointIDX outputEndpoint);

@@ -1816,6 +1816,16 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 {
 	auto& animationGraph = entity.GetComponent<shade::AnimationGraphComponent>();
 
+	if (!animationGraph)
+	{
+
+	}
+	else
+	{
+
+	}
+
+
 	static float blendFactor = 0.f;
 	static bool isSync = false;
 
@@ -1835,7 +1845,7 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 			// 3. Remove Skeleton from Model, submit animated only when graph component on entity when we create serrialization for graph
 			// 4. Take a look at Query pose and reafactor this if it posible !
 			// 5. Skeleton shoudl be only in context !
-			animationGraph = shade::animation::AnimationGraph::CreateEXP(entity.GetComponent<shade::ModelComponent>()->GetSkeleton()); // Caussing asset error!
+			animationGraph = shade::animation::AnimationGraph::CreateEXP(entity.GetComponent<shade::ModelComponent>()->GetSkeleton(), entity); // Caussing asset error!
 
 			pose1		= animationGraph->CreateNode<shade::animation::PoseNode>();
 			pose2		= animationGraph->CreateNode<shade::animation::PoseNode>();

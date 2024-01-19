@@ -12,7 +12,7 @@ shade::AssetMeta::Type shade::animation::AnimationGraph::GetAssetType() const
 	return GetAssetStaticType();
 }
 
-shade::animation::AnimationGraph::AnimationGraph(const Asset<Skeleton>& skeleton)
+shade::animation::AnimationGraph::AnimationGraph(const Asset<Skeleton>& skeleton, ecs::Entity entity)
 {
 	m_AnimationController = AnimationController::Create();
 	m_GraphContext.Controller = m_AnimationController;
@@ -21,9 +21,9 @@ shade::animation::AnimationGraph::AnimationGraph(const Asset<Skeleton>& skeleton
 	m_RootNode = SharedPointer<OutputPoseNode>::Create(~0, m_GraphContext);
 }
 
-shade::Asset<shade::animation::AnimationGraph> shade::animation::AnimationGraph::CreateEXP(const Asset<Skeleton>& skeleton)
+shade::Asset<shade::animation::AnimationGraph> shade::animation::AnimationGraph::CreateEXP(const Asset<Skeleton>& skeleton, ecs::Entity entity)
 {
-	return SharedPointer<AnimationGraph>::Create(skeleton);
+	return SharedPointer<AnimationGraph>::Create(skeleton, entity);
 }
 
 bool shade::animation::AnimationGraph::AddConnection(GraphNode::NodeIDX inputNode, GraphNode::EndpointIDX inputEndpoint, GraphNode::NodeIDX outputNode, GraphNode::EndpointIDX outputEndpoint)

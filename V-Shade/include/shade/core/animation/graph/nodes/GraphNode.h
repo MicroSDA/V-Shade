@@ -5,7 +5,7 @@
 #include <shade/core/event/Event.h>
 #include <shade/core/animation/graph/nodes/NodeValue.h>
 #include <shade/core/animation/AnimationController.h>
-
+#include <shade/core/entity/Entity.h>
 #include <shade/utils/Logger.h>
 
 namespace shade
@@ -22,6 +22,8 @@ namespace shade
             Asset<Skeleton> Skeleton; 
             ///@brief AnimationController
             mutable SharedPointer<AnimationController> Controller;
+            ///@brief Current entity
+            ecs::Entity Entity;
         };
 
         /// @brief Class representing a graph node
