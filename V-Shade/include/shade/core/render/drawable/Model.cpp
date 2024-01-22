@@ -56,6 +56,7 @@ shade::Model::Model(SharedPointer<AssetData> assetData, LifeTime lifeTime, Insta
 				AssetManager::GetAsset<Skeleton, InstantiationBehaviour::Aynchronous>(dependency->GetId(), AssetMeta::Category::Secondary, BaseAsset::LifeTime::KeepAlive, callback);
 		}
 	}
+
 }
 
 std::size_t shade::Model::SerializeAsComponent(std::ostream& stream) const

@@ -875,6 +875,7 @@ void EditorLayer::Entities(shade::SharedPointer<shade::Scene>& scene)
 
 void EditorLayer::AssetsExplorer()
 {
+
 	static std::string assetMetaPath = SHADE_ASSET_META_FILE_PATH;
 
 	if (ImGui::BeginTable("#RegisterNewAssetOrOverrideTable", 3, ImGuiTableFlags_SizingStretchProp))
