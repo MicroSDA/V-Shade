@@ -39,7 +39,7 @@ void shade::AssetManager::Delivery(AssetMeta::Category category)
 					for (auto& delivery : task.DeliveryCallbacks)
 						delivery(asset);
 
-					asset->Initialize();
+					asset->InitializeAsset();
 
 					search = m_sTaskQueue[category].erase(search);
 				}

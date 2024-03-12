@@ -3,6 +3,7 @@
 #include <shade/core/layer/imgui/ImGuiLayer.h>
 #include <shade/core/system/FileDialog.h>
 #include <import/IModel.h>
+//#include <animation graphs/EditorAnimGraph.h>
 #include <animation graphs/EditorAnimGraph.h>
 
 class EditorLayer : public shade::ImGuiLayer
@@ -26,8 +27,11 @@ private:
 	shade::ecs::Entity m_ImportedEntity;
 	shade::SharedPointer<shade::SceneRenderer>  m_SceneRenderer;
 
-
-	shade::SharedPointer<editor_animation_graph::GraphDeligate> m_AnimationGraphEditor;
+	shade::animation::AnimationGraphContext	graphContext;
+	shade::SharedPointer<shade::animation::AnimationGraph> m_Graph;
+	graph_editor::GraphEditor m_graphEditor;
+	/*shade::SharedPointer<editor_animation_graph::GraphDeligate>			m_AnimationGraphEditor;
+	shade::SharedPointer<editor_state_machine::StateMachineDeligate>	m_StateMachineEditor;*/
 
 	bool m_IsAddNewAssetModalOpen = false;
 	bool m_IsAddNewAttributeModalOpen = false;
@@ -61,6 +65,7 @@ private:
 	void ModelComponent(shade::ecs::Entity& entity);
 	void RgidBodyComponent(shade::ecs::Entity& entity);
 	void AnimationGraphComponent(shade::ecs::Entity& entity);
+	void PlayerStateMachineComponent(shade::ecs::Entity& entity);
 	///////
 	void MaterialEdit(shade::Material& material);
 	void BoneMaskEdnitor(const shade::Skeleton::BoneNode* node, shade::animation::BoneMask& boneMask);

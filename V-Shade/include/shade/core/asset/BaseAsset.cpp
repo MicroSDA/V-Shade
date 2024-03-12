@@ -224,7 +224,7 @@ shade::AssetMeta::Type shade::BaseAsset::GetAssetType() const
 	return GetAssetStaticType();
 }
 
-void shade::BaseAsset::Initialize()
+void shade::BaseAsset::InitializeAsset()
 {
 	//assert(!m_HasBeenInitialized && "BaseAsset has been alraedy initialized!");
 	m_HasBeenInitialized = true;

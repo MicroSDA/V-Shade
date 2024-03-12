@@ -4,7 +4,7 @@
 
 void shade::animation::AnimationController::CalculateBoneTransforms(
 	animation::Pose* pose,
-	const  AnimationControllData& animationData,
+	const  AnimationControlData& animationData,
 	const Skeleton::BoneNode* bone,
 	const glm::mat4& parentTransform,
 	const Skeleton::BoneArmature& armature)
@@ -83,9 +83,9 @@ shade::SharedPointer<shade::animation::AnimationController> shade::animation::An
 	return SharedPointer<shade::animation::AnimationController>::Create();
 }
 
-shade::animation::Pose* shade::animation::AnimationController::ProcessPose(const Asset<Skeleton>& skeleton, AnimationControllData& animationData, const FrameTimer& deltaTime)
+shade::animation::Pose* shade::animation::AnimationController::ProcessPose(const Asset<Skeleton>& skeleton, AnimationControlData& animationData, const FrameTimer& deltaTime, float timeMultiplier)
 {
-	return CalculatePose(ReceiveAnimationPose(skeleton, animationData.Animation), animationData, deltaTime);
+	return CalculatePose(ReceiveAnimationPose(skeleton, animationData.Animation), animationData, deltaTime, timeMultiplier);
 }
 
 shade::animation::Pose* shade::animation::AnimationController::Blend(const Asset<Skeleton>& skeleton, const animation::Pose* first, const animation::Pose* second, float blendFactor, const animation::BoneMask& boneMask)
@@ -102,12 +102,15 @@ shade::animation::Pose* shade::animation::AnimationController::CreatePose(const 
 	return &m_Poses.at(hash);
 }
 
-shade::animation::Pose* shade::animation::AnimationController::CalculatePose(animation::Pose* targetPose, AnimationControllData& animationData, const FrameTimer& deltaTime, float timeMultiplier)
+shade::animation::Pose* shade::animation::AnimationController::CalculatePose(animation::Pose* targetPose, AnimationControlData& animationData, const FrameTimer& deltaTime, float timeMultiplier)
 {	
 	animationData.CurrentPlayTime += animationData.TicksPerSecond * deltaTime.GetInSeconds<float>() * timeMultiplier;
-	animationData.CurrentPlayTime = glm::fmod(animationData.CurrentPlayTime, animationData.End);
+	animationData.CurrentPlayTime  = glm::fmod(animationData.CurrentPlayTime, animationData.End);
 
-	animationData.CurrentPlayTime = glm::clamp(animationData.CurrentPlayTime, animationData.Start, animationData.End);
+	animationData.CurrentPlayTime  = glm::clamp(animationData.CurrentPlayTime, animationData.Start, animationData.End);
+
+	targetPose->SetCurrentPlayTime(animationData.CurrentPlayTime);
+	targetPose->SetDuration(animationData.Duration);
 
 	CalculateBoneTransforms(targetPose, animationData, targetPose->GetSkeleton()->GetRootNode(), glm::mat4(1.0), targetPose->GetSkeleton()->GetArmature());
 

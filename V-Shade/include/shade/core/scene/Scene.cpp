@@ -90,13 +90,13 @@ void shade::Scene::NativeScriptsUpdate(const shade::FrameTimer& deltaTime)
 
 void shade::Scene::AnimationsUpdate(const shade::FrameTimer& deltaTime)
 {
-   View<AnimationGraphComponent>().Each([&](ecs::Entity& entity, AnimationGraphComponent& graph)
+   /*View<AnimationGraphComponent>().Each([&](ecs::Entity& entity, AnimationGraphComponent& graph)
         {
             if (graph)
             {
                 graph->Evaluate(deltaTime);
             }
-        });
+        });*/
 }
 
 shade::ecs::Entity shade::Scene::GetPrimaryCamera()

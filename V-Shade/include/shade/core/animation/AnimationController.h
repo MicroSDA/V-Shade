@@ -24,10 +24,10 @@ namespace shade
 		{
 		public:
 		public:
-			struct AnimationControllData
+			struct AnimationControlData
 			{
-				AnimationControllData() = default;
-				AnimationControllData(const Asset<Animation>& animation) :
+				AnimationControlData() = default;
+				AnimationControlData(const Asset<Animation>& animation) :
 					Animation(animation),
 					Start(0.f),
 					End(animation->GetDuration()),
@@ -61,9 +61,9 @@ namespace shade
 		public:
 			virtual ~AnimationController() = default;
 
-			animation::Pose* ProcessPose(const Asset<Skeleton>& skeleton, AnimationControllData& animationData, const FrameTimer& deltaTime);
+			animation::Pose* ProcessPose(const Asset<Skeleton>& skeleton, AnimationControlData& animationData, const FrameTimer& deltaTime, float timeMultiplier = 1.f);
 			animation::Pose* Blend(const Asset<Skeleton>& skeleton, const animation::Pose* first, const animation::Pose* second, float blendFactor, const animation::BoneMask& boneMask);
-
+			std::pair<float, float> GetTimeMultiplier(float firstDuration, float secondDuration, float blendFactor) const;
 		private:
 			AnimationController() = default;
 			std::unordered_map<std::size_t, animation::Pose> m_Poses;
@@ -71,7 +71,7 @@ namespace shade
 			friend class SharedPointer<AnimationController>;
 		private:
 			animation::Pose* CreatePose(const Asset<Skeleton>& skeleton, std::size_t hash);
-			animation::Pose* CalculatePose(animation::Pose* targetPose, AnimationControllData& animationData, const FrameTimer& deltaTime, float timeMultiplier = 1.f);
+			animation::Pose* CalculatePose(animation::Pose* targetPose, AnimationControlData& animationData, const FrameTimer& deltaTime, float timeMultiplier = 1.f);
 			animation::Pose* ReceiveAnimationPose(const Asset<Skeleton>& skeleton, std::size_t hash);
 
 			template<typename... Args>
@@ -83,7 +83,7 @@ namespace shade
 		
 			void CalculateBoneTransforms(
 				animation::Pose* pose,
-				const AnimationControllData& animationData,
+				const AnimationControlData& animationData,
 				const Skeleton::BoneNode* bone,
 				const glm::mat4& parentTransform,
 				const Skeleton::BoneArmature& armature);
@@ -96,8 +96,6 @@ namespace shade
 				const glm::mat4& parrentTransform,
 				float blendFactor, 
 				const animation::BoneMask& boneMask);
-
-			std::pair<float, float> GetTimeMultiplier(float firstDuration, float secondDuration, float blendFactor) const;
 		};
 	}
 }

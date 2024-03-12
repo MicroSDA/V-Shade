@@ -7,6 +7,7 @@ namespace shade
 	{
 	public:
 		FrameTimer();
+		FrameTimer(float time);
 		~FrameTimer() = default;
 		void Update();
 

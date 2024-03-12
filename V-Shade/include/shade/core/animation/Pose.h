@@ -43,11 +43,19 @@ namespace shade
 			SHADE_INLINE		State GetState()														const	{ return m_State; }
 			SHADE_INLINE const	Asset<Skeleton>& GetSkeleton()											const	{ return m_Skeleton; }
 			SHADE_INLINE		std::size_t GetAnimationHash()											const	{ return m_AnimationCombinationHash; }
+
+			SHADE_INLINE 		void SetDuration(float time)													{ m_Duration = time; }
+			SHADE_INLINE 		void SetCurrentPlayTime(float time)												{ m_CurrentPlayTime = time; }
+
+			SHADE_INLINE 		float GetDuration()														const   { return m_Duration; }
+			SHADE_INLINE 		float GetCurrentPlayTime()												const   { return m_CurrentPlayTime; }
 		private:
 			Asset<Skeleton>							m_Skeleton;
 			std::size_t								m_AnimationCombinationHash;
 			SharedPointer<std::vector<glm::mat4>>	m_GlobalTransforms, m_LocalTransforms;
 			State									m_State;
+			float									m_Duration;
+			float									m_CurrentPlayTime;
 		};
 	}
 }

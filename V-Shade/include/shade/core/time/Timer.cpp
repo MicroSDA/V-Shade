@@ -7,6 +7,11 @@ shade::FrameTimer::FrameTimer():
 {
 }
 
+shade::FrameTimer::FrameTimer(float time) : 
+	m_TimeNow(glfwGetTime()), m_TimeLast(0.0), m_DeltaTime(time)
+{
+}
+
 void shade::FrameTimer::Update()
 {
 	m_TimeLast = m_TimeNow;

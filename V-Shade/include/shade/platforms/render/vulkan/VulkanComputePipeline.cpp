@@ -319,7 +319,7 @@ void shade::VulkanComputePipeline::SetBarrier(SharedPointer<RenderCommandBuffer>
 		.image = texture->GetImage()->As<VulkanImage2D>().GetImage(),
 		.subresourceRange =
 		{
-				texture->As<VulkanTexture2D>()->GetImage()->As<VulkanImage2D>().GetAspectMask(), // aspectMask
+				texture->As<VulkanTexture2D>().GetImage()->As<VulkanImage2D>().GetAspectMask(), // aspectMask
 				(mip) ? mip : 0, // baseMipLevel
 				(mip) ? 1 : texture->GetImage()->GetSpecification().MipLevels, // levelCount
 				0, // baseArrayLayer

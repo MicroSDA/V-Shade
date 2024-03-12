@@ -8,3 +8,11 @@
 #ifndef SHADE_INLINE
 	#define SHADE_INLINE __forceinline
 #endif // SHADE_INLINE
+
+#ifndef SNEW
+	#define SNEW new 
+#endif // SNEW
+
+#ifndef SDELETE
+	#define SDELETE delete 
+#endif // SDELETE

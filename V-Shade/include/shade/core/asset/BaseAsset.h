@@ -273,7 +273,7 @@ namespace shade
 		InstantiationBehaviour m_Behaviour;
 		SharedPointer<AssetData> m_AssetData;
 		bool m_HasBeenInitialized = false;
-		void Initialize();
+		void InitializeAsset();
 		void LifeTimeManagment();
 
 		template<typename T>
@@ -282,7 +282,7 @@ namespace shade
 		friend class AssetManager;
 	};
 
-#define ASSET_INHERITANCE(type) public shade::BaseAsset, public shade::Asset<type>
+#define ASSET_INHERITANCE(type) public shade::BaseAsset //,public shade::Asset<type>
 #define ASSET_STATIC_TYPE_HELPER(type) \
 		public: \
 			static inline AssetMeta::Type GetAssetStaticType() { return AssetMeta::Type::##type; }; \

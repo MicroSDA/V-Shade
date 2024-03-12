@@ -40,7 +40,7 @@ namespace shade
 		// If you want to kepp an asset in memory even if all contributors was deleted, 
 		// use BaseAsset::Lifetime::KeepAlive or BaseAsset::Lifetime::DontKeepAlive if you don't want to keep it in memeory.
 		// All assets that were held with BaseAsset::Lifetime::DontKeepAlive flag will be removed automatically ! 
-		template<typename T, BaseAsset::InstantiationBehaviour behaviour = BaseAsset::InstantiationBehaviour::Aynchronous, typename ...Args, std::enable_if_t<std::is_base_of_v<Asset<T>, T>, bool> = true>
+		template<typename T, BaseAsset::InstantiationBehaviour behaviour = BaseAsset::InstantiationBehaviour::Aynchronous , typename ...Args /*, std::enable_if_t<std::is_base_of_v<Asset<T>, T>, bool> = true*/>
 		static auto GetAsset(const std::string& id, AssetMeta::Category category, BaseAsset::LifeTime lifeTime, DeliveryCallback callback, Args&& ...args);
 
 		// Function usues for delivery assets which where loaded.
@@ -86,7 +86,7 @@ namespace shade
 		static auto LoadNew(const SharedPointer<AssetData>& assetData, AssetMeta::Category category, BaseAsset::LifeTime lifeTime, DeliveryCallback callback, Args&& ...args);
 	};
 
-	template<typename T, shade::BaseAsset::InstantiationBehaviour behaviour, typename ...Args, std::enable_if_t<std::is_base_of_v<Asset<T>, T>, bool>>
+	template<typename T, shade::BaseAsset::InstantiationBehaviour behaviour, typename ...Args/*, std::enable_if_t<std::is_base_of_v<Asset<T>, T>, bool>*/>
 	inline auto AssetManager::GetAsset(const std::string& id, AssetMeta::Category category, BaseAsset::LifeTime lifeTime, DeliveryCallback callback, Args&& ...args)
 	{
 		// Get the asset metadata for the given category and id
@@ -165,7 +165,7 @@ namespace shade
 				m_sAssets[category].emplace(assetData->GetId(), asset);
 				callback(asset);
 
-				asset->Initialize();
+				asset->InitializeAsset();
 			}
 			catch (std::exception& exception)
 			{

@@ -321,8 +321,8 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 
 				auto pcTransform = scene->ComputePCTransform(entity);
 
-				AnimationGraphComponent animationGraph = (entity.HasComponent<AnimationGraphComponent>()) ? entity.GetComponent<AnimationGraphComponent>() : nullptr;
-				const animation::Pose* finalPose = (animationGraph) ? animationGraph->GetOutputPoseNode()->GetFinalPose() : nullptr;
+				Asset<animation::AnimationGraph> animationGraph = (entity.HasComponent<AnimationGraphComponent>()) ? entity.GetComponent<AnimationGraphComponent>().AnimationGraph : nullptr;
+				const animation::Pose* finalPose = (animationGraph) ? animationGraph->GetOutPutPose() : nullptr;
 
 
 				bool isModelInFrustrum = false;

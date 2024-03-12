@@ -411,7 +411,7 @@ namespace shade
 		}
 		void DrawConnections(GraphNodePrototype<NodeIdentifier, EndpointIdentifier, Node>* node)
 		{
-			auto& endpoints = node->GetEndpoints();
+			auto& endpoints   = node->GetEndpoints();
 			auto& connections = node->GetConnections();
 
 			for (const auto& connection : connections)
@@ -457,7 +457,7 @@ namespace shade
 
 			ImVec2 endOfRegion = ImVec2{ 0.f, 0.f };
 
-			ImGui::SetCursorScreenPos(m_Context.Offset + ImVec2{ node->GetScreenPosition().x, node->GetScreenPosition().y + yOffset } *m_Context.Scale.Factor);
+			ImGui::SetCursorScreenPos(m_Context.Offset + ImVec2{ node->GetScreenPosition().x, node->GetScreenPosition().y + yOffset } * m_Context.Scale.Factor);
 			ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, cellPaddingZoomed);
 			ImGui::PushStyleColor(ImGuiCol_TableBorderStrong, ImVec4{ 0.f, 0.f, 0.f, 0.f });
 
@@ -469,7 +469,6 @@ namespace shade
 			{
 				auto inputsIt = endpoints[EndpointPrototype::EndpointType::Input].begin();
 				auto outputIt = endpoints[EndpointPrototype::EndpointType::Output].begin();
-
 
 				while (inputsIt != endpoints[EndpointPrototype::EndpointType::Input].end() ||
 					outputIt != endpoints[EndpointPrototype::EndpointType::Output].end())

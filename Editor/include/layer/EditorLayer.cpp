@@ -2,6 +2,7 @@
 #include "EditorLayer.h"
 #include <shade/core/event/Input.h>
 
+
 // TODO: Temporary
 
 EditorLayer::EditorLayer() : ImGuiLayer()
@@ -15,43 +16,111 @@ EditorLayer::EditorLayer() : ImGuiLayer()
 void EditorLayer::OnCreate()
 {
 	m_SceneRenderer = shade::SceneRenderer::Create();
+
+	//graphContext.Controller = shade::SharedPointer<shade::animation::AnimationController>::Create();
+
+
+	//shade::AssetManager::GetAsset<shade::Skeleton, shade::BaseAsset::InstantiationBehaviour::Synchronous>("Boy.Skeleton", shade::AssetMeta::Category::Secondary, shade::BaseAsset::LifeTime::KeepAlive, [&](auto& skeleton) mutable
+	//	{
+	//		graphContext.Skeleton = skeleton;
+	//	});
+
+	//m_Graph = m_Graph.Create(&graphContext);
+
+	//auto machine = m_Graph->CreateNode<shade::animation::state_machine::StateMachineNode>();
+	//m_Graph->ConnectNodes(m_Graph->GetRootNode()->GetNodeIdentifier(), 0, machine->GetNodeIdentifier(), 0);
+
+	//auto idle = machine->CreateState("Idle");
+	//machine->SetRootNode(idle);
+
+	//auto walk = machine->CreateState("Walk");
+	////auto run = machine->CreateState("Run");
+
+	//// Idle -> Walk
+	//auto tr1 = idle->AddTransition(walk);
+	//// Idle -> Run
+	////auto tr2 = idle->AddTransition(run);
+	//// Walk -> Idle
+	//auto tr3 = walk->AddTransition(idle);
+	//// Walk -> Run
+	////auto tr4 = walk->AddTransition(run);
+	//// Run -> Idle
+	////auto tr5 = run->AddTransition(idle);
+	//// Run -> Walk
+	//auto tr6 = run->AddTransition(walk);
+
+
+	/*static shade::PlayerStateMachineComponent machine = shade::SharedPointer<shade::animation::AnimationGraph>::Create(&context);
+
+	auto idl = machine->AddState("Idl");
+	auto walk = machine->AddState("Walk");
+
+	machine->SetDefaultState(idl);
+
+	idl->AddNode<shade::graphs::ValueNode>();
+	walk->AddNode<shade::graphs::ValueNode>();
+
+	auto t1 = idl->AddTransition(walk);
+	t1->AddNode<shade::graphs::ValueNode>();
+
+	auto t2 = walk->AddTransition(idl);
+	t2->AddNode<shade::graphs::ValueNode>();*/
 }
 
 void EditorLayer::OnUpdate(shade::SharedPointer<shade::Scene>& scene, const shade::FrameTimer& deltaTime)
 {
 	scene->View<shade::AnimationGraphComponent>().Each([&](shade::ecs::Entity& entity, shade::AnimationGraphComponent& graph)
 		{
-			if (!m_AnimationGraphEditor)
-			{
-				if (graph != nullptr)
-				{
-					m_AnimationGraphEditor = shade::SharedPointer<editor_animation_graph::GraphDeligate>::Create(graph);
-				}
-			}
-
-			if (m_AnimationGraphEditor && m_AnimationGraphEditor->GetCount() == 0)
-			{
-				for (auto& node : graph->GetNodes())
-				{
-
-					// Bad, but keep this, for test
-					if (dynamic_cast<shade::animation::ValueNode*>(node.Raw()))
-					{
-						m_AnimationGraphEditor->EmplaceNode<editor_animation_graph::ValueNodeDeligate>(node->GetNodeIndex(), node);
-					}
-					if (dynamic_cast<shade::animation::PoseNode*>(node.Raw()))
-					{
-						m_AnimationGraphEditor->EmplaceNode<editor_animation_graph::PoseNodeDeligate>(node->GetNodeIndex(), node);
-					}
-					if (dynamic_cast<shade::animation::BlendNode2D*>(node.Raw()))
-					{
-						m_AnimationGraphEditor->EmplaceNode<editor_animation_graph::BlendNodeDeligate>(node->GetNodeIndex(), node);
-					}
-				}
-
-				m_AnimationGraphEditor->EmplaceNode<editor_animation_graph::OutputPoseNodeDeligate>(graph->GetOutputPoseNode()->GetNodeIndex(), graph->GetOutputPoseNode());
-			}
+			if(graph.AnimationGraph)
+				graph.AnimationGraph->ProcessBranch(deltaTime);
 		});
+	
+	//scene->View<shade::AnimationGraphComponent>().Each([&](shade::ecs::Entity& entity, shade::AnimationGraphComponent& graph)
+	//	{
+	//		if (!m_AnimationGraphEditor)
+	//		{
+	//			if (graph != nullptr)
+	//			{
+	//				m_AnimationGraphEditor = shade::SharedPointer<editor_animation_graph::GraphDeligate>::Create(graph);
+	//			}
+	//		}
+
+	//		if (m_AnimationGraphEditor && m_AnimationGraphEditor->GetCount() == 0)
+	//		{
+	//			for (auto& node : graph->GetNodes())
+	//			{
+	//				// Bad, but keep this, for test
+	//				if (dynamic_cast<shade::animation::ValueNode*>(node.Raw()))
+	//				{
+	//					m_AnimationGraphEditor->EmplaceNode<editor_animation_graph::ValueNodeDeligate>(node->GetNodeIndex(), node);
+	//				}
+	//				if (dynamic_cast<shade::animation::PoseNode*>(node.Raw()))
+	//				{
+	//					m_AnimationGraphEditor->EmplaceNode<editor_animation_graph::PoseNodeDeligate>(node->GetNodeIndex(), node);
+	//				}
+	//				if (dynamic_cast<shade::animation::BlendNode2D*>(node.Raw()))
+	//				{
+	//					m_AnimationGraphEditor->EmplaceNode<editor_animation_graph::BlendNodeDeligate>(node->GetNodeIndex(), node);
+	//				}
+	//			}
+
+	//			//m_AnimationGraphEditor->EmplaceNode<editor_animation_graph::OutputPoseNodeDeligate>(graph->GetRootNode()->GetNodeIndex(), graph->GetRootNode());
+	//			m_AnimationGraphEditor->EmplaceNode<editor_animation_graph::OutputPoseNodeDeligate>(graph->GetOutputPoseNode()->GetNodeIndex(), graph->GetOutputPoseNode());
+	//		}
+	//	});
+
+	//scene->View<shade::PlayerStateMachineComponent>().Each([&](shade::ecs::Entity& entity, shade::PlayerStateMachineComponent& machine)
+	//	{
+	//		if (!m_StateMachineEditor)
+	//		{
+	//			if (machine != nullptr)
+	//			{
+	//				m_StateMachineEditor = shade::SharedPointer<editor_state_machine::StateMachineDeligate>::Create(machine);
+	//			}
+	//		}
+	//	});
+
+
 	shade::physic::PhysicsManager::Step(scene, deltaTime);
 	m_SceneRenderer->OnUpdate(scene, deltaTime);
 }
@@ -87,15 +156,31 @@ void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shad
 		ShowWindowBar("Scene", &EditorLayer::Scene, this, scene);
 		ImGui::PopStyleColor();
 
-	
-		if(m_AnimationGraphEditor)
-			m_AnimationGraphEditor->Show("Graph editor", { 500, 500 });
 
-		bool is = true;
-		//shade::ImGuiGraph::Show("Graph editor", { 500, 500 });
-		//ShowExampleAppCustomNodeGraph(&is);
+		/*	if(m_AnimationGraphEditor)
+				m_AnimationGraphEditor->Show("Graph editor", { 500, 500 });
+
+			if (m_StateMachineEditor)
+				m_StateMachineEditor->Show("State machine", { 500, 500 });*/
+
 		ImGui::ShowDemoWindow();
 		ImGui::End();
+
+		{
+			m_graphEditor.Edit("State machine", { 500, 500 });
+		}
+
+		/*	enum States : std::uint8_t
+			{
+				Idle,
+				Walk
+			};
+			shade::PlayerStateMachineComponent stateMachine = shade::PlayerStateMachineComponent::Create();
+			stateMachine->AddState<Idle, shade::state_machine::PlayerStateMachine>("Idle");
+
+
+			stateMachine->GetState(Idle, Idle)->Evaluate(deltaTime);*/
+
 	}
 }
 
@@ -209,11 +294,11 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 				{
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn(); { ImGui::Text("Import Model"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotModelsCheckBox", &importModels);  HelpMarker("(?)", "TODO");   }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotModelsCheckBox", &importModels);  HelpMarker("(?)", "TODO"); }
 
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn(); { ImGui::Text("Import Meshes"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotMeshesCheckBox", &importMeshes); HelpMarker("(?)", "Import and convert meshes into valid engine file format.");  }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotMeshesCheckBox", &importMeshes); HelpMarker("(?)", "Import and convert meshes into valid engine file format."); }
 
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn(); { ImGui::Text("Import Materials"); }
@@ -443,19 +528,19 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 							}
 						}
 
-						if (m_ImportedEntity.HasComponent<shade::AnimationGraphComponent>())
-						{
-							/*for (const auto& [name, animation] : *m_ImportedEntity.GetComponent<shade::AnimationControllerComponent>())
-							{
-								const std::string path(to + animation.Animation->GetAssetData()->GetId() + ".s_sanim");
-								shade::File file(path, shade::File::Out, "@s_sanim", shade::File::VERSION(0, 0, 1));
+						//if (m_ImportedEntity.HasComponent<shade::AnimationGraphComponent>())
+						//{
+						//	/*for (const auto& [name, animation] : *m_ImportedEntity.GetComponent<shade::AnimationControllerComponent>())
+						//	{
+						//		const std::string path(to + animation.Animation->GetAssetData()->GetId() + ".s_sanim");
+						//		shade::File file(path, shade::File::Out, "@s_sanim", shade::File::VERSION(0, 0, 1));
 
-								if (file.IsOpen())
-									file.Write(animation.Animation);
-								else
-									SHADE_CORE_WARNING("Failed to save animation, path = {}", path);
-							}*/
-						}
+						//		if (file.IsOpen())
+						//			file.Write(animation.Animation);
+						//		else
+						//			SHADE_CORE_WARNING("Failed to save animation, path = {}", path);
+						//	}*/
+						//}
 
 						m_ImportedModel = nullptr;
 						m_ImportModelModal = false;
@@ -836,6 +921,12 @@ void EditorLayer::Entities(shade::SharedPointer<shade::Scene>& scene)
 						entity.AddComponent<shade::AnimationGraphComponent>();
 					}, m_SelectedEntity);
 
+				//AddComponent<shade::PlayerStateMachineComponent>("State Machine", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
+				//	{
+				//		// WRONG ASSET Creation !!
+				//		entity.AddComponent<shade::PlayerStateMachineComponent>();
+				//	}, m_SelectedEntity);
+
 				ImGui::Separator();
 				if (ImGui::MenuItem("New entity as child"))
 				{
@@ -981,7 +1072,7 @@ void EditorLayer::AssetsExplorer()
 			if (ImGui::BeginTable("##RegisterNewAssetTable", 2))
 			{
 				ImGui::TableNextRow();
-				ImGui::TableNextColumn(); {ImGui::Text("Category"); }
+				ImGui::TableNextColumn(); { ImGui::Text("Category"); }
 
 				ImGui::TableNextColumn();
 				{
@@ -997,7 +1088,7 @@ void EditorLayer::AssetsExplorer()
 					assetData->SetCategory(selectedCategory);
 				}
 				ImGui::TableNextRow();
-				ImGui::TableNextColumn(); {ImGui::Text("Type"); }
+				ImGui::TableNextColumn(); { ImGui::Text("Type"); }
 				ImGui::TableNextColumn();
 				{
 					std::vector<std::string> items(shade::AssetMeta::Type::ASSET_TYPE_MAX_ENUM);
@@ -1013,7 +1104,7 @@ void EditorLayer::AssetsExplorer()
 					assetData->SetType(selectedType);
 				}
 				ImGui::TableNextRow();
-				ImGui::TableNextColumn(); {ImGui::Text("Id"); }
+				ImGui::TableNextColumn(); { ImGui::Text("Id"); }
 				ImGui::TableNextColumn();
 				{
 					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
@@ -1024,7 +1115,7 @@ void EditorLayer::AssetsExplorer()
 					{
 
 						ImGui::TableNextRow();
-						ImGui::TableNextColumn(); {ImGui::Text("Path"); }
+						ImGui::TableNextColumn(); { ImGui::Text("Path"); }
 						ImGui::TableNextColumn();
 						{
 							if (ImGui::BeginTable("##registerNewAsset_SelectPath", 2, ImGuiTableFlags_SizingStretchProp))
@@ -1069,7 +1160,7 @@ void EditorLayer::AssetsExplorer()
 						if (items.size())
 						{
 							ImGui::TableNextRow();
-							ImGui::TableNextColumn(); {ImGui::Text("Reference"); }
+							ImGui::TableNextColumn(); { ImGui::Text("Reference"); }
 							ImGui::TableNextColumn();
 							{
 								if (DrawCombo(" ##Reference", currentItem, items, ImGuiSelectableFlags_None, ImGuiComboFlags_None))
@@ -1516,6 +1607,8 @@ void EditorLayer::EntityInspector(shade::ecs::Entity& entity)
 			[&](auto isTreeOpen)->bool { return EditComponent<shade::RigidBodyComponent>(entity, {}, isTreeOpen); }, this, entity);
 		DrawComponent<shade::AnimationGraphComponent>("Animations", entity, &EditorLayer::AnimationGraphComponent,
 			[&](auto isTreeOpen)->bool { return EditComponent<shade::AnimationGraphComponent>(entity, {}, isTreeOpen); }, this, entity);
+		/*DrawComponent<shade::PlayerStateMachineComponent>("State machine", entity, &EditorLayer::PlayerStateMachineComponent,
+			[&](auto isTreeOpen)->bool { return EditComponent<shade::PlayerStateMachineComponent>(entity, {}, isTreeOpen); }, this, entity);*/
 	}
 }
 
@@ -1815,53 +1908,107 @@ void EditorLayer::RgidBodyComponent(shade::ecs::Entity& entity)
 
 void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 {
-	auto& animationGraph = entity.GetComponent<shade::AnimationGraphComponent>();
 
-	if (!animationGraph)
+	auto& graph = entity.GetComponent<shade::AnimationGraphComponent>();
+
+	if (!graph.GraphContext.Controller)
+		graph.GraphContext.Controller = shade::SharedPointer<shade::animation::AnimationController>::Create();
+
+	if (!graph.GraphContext.Skeleton)
 	{
-
+		shade::AssetManager::GetAsset<shade::Skeleton, shade::BaseAsset::InstantiationBehaviour::Synchronous>("Boy.Skeleton", shade::AssetMeta::Category::Secondary, shade::BaseAsset::LifeTime::KeepAlive, [&](auto& skeleton) mutable
+			{
+				graph.GraphContext.Skeleton = skeleton;
+			});
 	}
-	else
+	
+	if (!graph.AnimationGraph)
 	{
+		graph.AnimationGraph = graph.AnimationGraph.Create(&graph.GraphContext);
+		
+		auto machine = graph.AnimationGraph->CreateNode<shade::animation::state_machine::StateMachineNode>();
+		graph.AnimationGraph->ConnectNodes(graph.AnimationGraph->GetRootNode()->GetNodeIdentifier(), 0, machine->GetNodeIdentifier(), 0);
 
+		auto idle = machine->CreateState("Idle");
+		machine->SetRootNode(idle);
+
+
+		auto walk = machine->CreateState("Walk");
+		auto run  = machine->CreateState("Run");
+
+		// Idle -> Walk
+		auto tr1 = idle->AddTransition(walk);
+		tr1->ConnectNodes(tr1->GetRootNode()->GetNodeIdentifier(), 0, tr1->CreateNode<shade::graphs::IntEqualsNode>()->GetNodeIdentifier(), 0);
+
+		// Idle -> Run
+		auto tr2 = idle->AddTransition(run);
+		tr2->ConnectNodes(tr2->GetRootNode()->GetNodeIdentifier(), 0, tr2->CreateNode<shade::graphs::IntEqualsNode>()->GetNodeIdentifier(), 0);
+
+		// Walk -> Idle
+		auto tr3 = walk->AddTransition(idle);
+		tr3->ConnectNodes(tr3->GetRootNode()->GetNodeIdentifier(), 0, tr3->CreateNode<shade::graphs::IntEqualsNode>()->GetNodeIdentifier(), 0);
+
+		// Walk -> Run
+		auto tr4 = walk->AddTransition(run);
+		tr4->ConnectNodes(tr4->GetRootNode()->GetNodeIdentifier(), 0, tr4->CreateNode<shade::graphs::IntEqualsNode>()->GetNodeIdentifier(), 0);
+
+		// Run -> Walk
+		auto tr5 = run->AddTransition(walk);
+		tr5->ConnectNodes(tr5->GetRootNode()->GetNodeIdentifier(), 0, tr5->CreateNode<shade::graphs::IntEqualsNode>()->GetNodeIdentifier(), 0);
+
+		// Run -> idle
+		auto tr6 = run->AddTransition(idle);
+		tr6->ConnectNodes(tr6->GetRootNode()->GetNodeIdentifier(), 0, tr6->CreateNode<shade::graphs::IntEqualsNode>()->GetNodeIdentifier(), 0);
+
+		// Walk -> Run
+		//auto tr4 = walk->AddTransition(run);
+		// Run -> Idle
+		//auto tr5 = run->AddTransition(idle);
+		// Run -> Walk
+		//auto tr6 = run->AddTransition(walk);
+
+		m_graphEditor.Initialize(graph.AnimationGraph.Raw());
 	}
 
+	
+	
+	//auto& animationGraph = entity.GetComponent<shade::AnimationGraphComponent>();
 
-	static float blendFactor = 0.f;
-	static bool isSync = false;
+	//static float blendFactor = 0.f;
+	//static bool isSync = false;
 
-	static shade::animation::BoneMask boneMask(entity.GetComponent<shade::ModelComponent>()->GetSkeleton());
-	static shade::SharedPointer<shade::animation::PoseNode>			pose1;
-	static shade::SharedPointer<shade::animation::PoseNode>			pose2;
-	static shade::SharedPointer<shade::animation::ValueNode>		blendWeight;
+	//static shade::animation::BoneMask boneMask(entity.GetComponent<shade::ModelComponent>()->GetSkeleton());
+	//static shade::SharedPointer<shade::animation::PoseNode>			pose1;
+	//static shade::SharedPointer<shade::animation::PoseNode>			pose2;
+	//static shade::SharedPointer<shade::animation::ValueNode>		blendWeight;
 
-	static shade::SharedPointer<shade::animation::BlendNode2D>		blend;
+	//static shade::SharedPointer<shade::animation::BlendNode2D>		blend;
 
-	if (!animationGraph)
-	{
-		if (ImGui::Button("Add Graph"))
-		{
-			// 1. Create Animation graph with empty context
-			// 2. Add function initialize after context was set ! or someting like that
-			// 3. Remove Skeleton from Model, submit animated only when graph component on entity when we create serrialization for graph
-			// 4. Take a look at Query pose and reafactor this if it posible !
-			// 5. Skeleton shoudl be only in context !
-			animationGraph = shade::animation::AnimationGraph::CreateEXP(entity.GetComponent<shade::ModelComponent>()->GetSkeleton(), entity); // Caussing asset error!
+	//if (!animationGraph)
+	//{
+	//	if (ImGui::Button("Add Graph"))
+	//	{
+	//		// 1. Create Animation graph with empty context
+	//		// 2. Add function initialize after context was set ! or someting like that
+	//		// 3. Remove Skeleton from Model, submit animated only when graph component on entity when we create serrialization for graph
+	//		// 4. Take a look at Query pose and reafactor this if it posible !
+	//		// 5. Skeleton shoudl be only in context !
+	//		animationGraph = shade::animation::AnimationGraph::CreateEXP(entity.GetComponent<shade::ModelComponent>()->GetSkeleton(), entity); // Caussing asset error!
 
-			pose1		= animationGraph->CreateNode<shade::animation::PoseNode>();
-			pose2		= animationGraph->CreateNode<shade::animation::PoseNode>();
-			blendWeight = animationGraph->CreateNode<shade::animation::ValueNode>();
+	//		pose1		= animationGraph->CreateNode<shade::animation::PoseNode>();
+	//		pose2		= animationGraph->CreateNode<shade::animation::PoseNode>();
+	//		blendWeight = animationGraph->CreateNode<shade::animation::ValueNode>();
 
-			blend		= animationGraph->CreateNode<shade::animation::BlendNode2D>();
+	//		blend		= animationGraph->CreateNode<shade::animation::BlendNode2D>();
 
-			//animationGraph->AddConnection(blend->GetNodeIndex(), 0, blendWeight->GetNodeIndex(), 0);
+	//		//animationGraph->AddConnection(blend->GetNodeIndex(), 0, blendWeight->GetNodeIndex(), 0);
 
-			/*animationGraph->AddConnection(pose1->GetNodeIndex(), 0, blend->GetNodeIndex(), 1);
-			animationGraph->AddConnection(pose2->GetNodeIndex(), 0, blend->GetNodeIndex(), 2);
+	//		/*animationGraph->AddConnection(pose1->GetNodeIndex(), 0, blend->GetNodeIndex(), 1);
+	//		animationGraph->AddConnection(pose2->GetNodeIndex(), 0, blend->GetNodeIndex(), 2);
 
-			animationGraph->AddRootConnection(blend->GetNodeIndex(), 0);*/
-		}
-	}
+	//		animationGraph->AddRootConnection(blend->GetNodeIndex(), 0);*/
+	//	}
+	//}
 
 	//if (ImGui::BeginTable("##SelectOrAddNewAnimation", 3, ImGuiTableFlags_None | ImGuiTableFlags_SizingStretchProp))
 	//{
@@ -2066,6 +2213,24 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 	//	});
 }
 
+void EditorLayer::PlayerStateMachineComponent(shade::ecs::Entity& entity)
+{
+	//auto& stateMachine = entity.GetComponent<shade::PlayerStateMachineComponent>();
+
+	//if (!stateMachine)
+	//{
+	//	if (ImGui::Button("Add Graph"))
+	//	{
+	//		// 1. Create Animation graph with empty context
+	//		// 2. Add function initialize after context was set ! or someting like that
+	//		// 3. Remove Skeleton from Model, submit animated only when graph component on entity when we create serrialization for graph
+	//		// 4. Take a look at Query pose and reafactor this if it posible !
+	//		// 5. Skeleton shoudl be only in context !
+	//		stateMachine = shade::PlayerStateMachineComponent::Create(); // Caussing asset error!
+	//	}
+	//}
+}
+
 void EditorLayer::MaterialEdit(shade::Material& material)
 {
 	static std::string path;
@@ -2164,7 +2329,7 @@ void EditorLayer::Material(shade::Material& material)
 		}
 		ImGui::TableNextRow();
 		{
-			ImGui::TableNextColumn(); {ImGui::Text("Diffuse"); }
+			ImGui::TableNextColumn(); { ImGui::Text("Diffuse"); }
 			ImGui::TableNextColumn();
 			{
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
