@@ -10,7 +10,7 @@ namespace shade
 		public:
 			IntEqualsNode(GraphContext* context, NodeIdentifier identifier) : BaseNode(context, identifier)
 			{
-				REGISTER_ENDPOINT<Connection::Input, NodeValueType::Int>(0.0);
+				REGISTER_ENDPOINT<Connection::Input, NodeValueType::Int>(0);
 				REGISTER_ENDPOINT<Connection::Input, NodeValueType::Int>(m_Compare);
 
 				REGISTER_ENDPOINT<Connection::Output, NodeValueType::Bool>(0.f);

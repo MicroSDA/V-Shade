@@ -11,9 +11,10 @@ shade::graphs::BaseNode::~BaseNode()
 	assert(m_pParrentNode == nullptr);
 }
 
-void shade::graphs::BaseNode::Initialize(BaseNode* pParentNode)
+void shade::graphs::BaseNode::Initialize(BaseNode* pParentNode, BaseNode* pRootParrentNode)
 {
 	m_pParrentNode = pParentNode;
+	m_pRootParrentNode = pRootParrentNode;
 }
 
 void shade::graphs::BaseNode::Shutdown()

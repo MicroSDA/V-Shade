@@ -24,7 +24,7 @@ namespace shade
 		public:
 			/// @brief Initialization of node.
 			/// @param BaseGraph* The parent graph which can contains current node.
-			virtual void Initialize(BaseNode* pParentGraph = nullptr);
+			virtual void Initialize(BaseNode* pParentGraph = nullptr, BaseNode* pRootParrentNode = nullptr);
 
 			/// @brief Unparrent.
 			virtual void Shutdown();
@@ -76,11 +76,16 @@ namespace shade
 				return m_pParrentNode != nullptr;
 			}
 
+			void AddReferNode(BaseNode* node)
+			{
+				m_ReferNodes.emplace_back(node);
+			}
+
 			template<typename T, typename... Args>
 			T* CreateNode(Args&&... args)
 			{
 				T* node = SNEW T(GetGraphContext(), m_Nodes.size(), std::forward<Args>(args)...);
-				m_Nodes.emplace_back(node)->Initialize(this);
+				m_Nodes.emplace_back(node)->Initialize(this, (!m_pRootParrentNode) ? this : m_pRootParrentNode);
 
 				return node;
 			}
@@ -109,6 +114,8 @@ namespace shade
 			/// @brief Get parrent graph const pointer.
 			/// @return const BaseGraph* pointer to parrent graph. Can be nullptr if here's no parrent graph.
 			SHADE_INLINE const BaseNode* GetParrentGraph() const { return m_pParrentNode; }
+			SHADE_INLINE const BaseNode* GetParrentRootGraph() const { return m_pRootParrentNode; }
+			SHADE_INLINE BaseNode* GetParrentRootGraph()  { return m_pRootParrentNode; }
 
 			/// @brief Virtual function for evaluating the node
 			/// @param deltaTime The time elapsed since the last evaluation
@@ -193,6 +200,16 @@ namespace shade
 				return m_Nodes;
 			}
 
+			SHADE_INLINE std::vector<BaseNode*>& GetReferNodes()
+			{
+				return m_ReferNodes;
+			}
+
+			SHADE_INLINE const std::vector<BaseNode*>& GetReferNodes() const
+			{
+				return m_ReferNodes;
+			}
+
 			/// @brief Function for processing the branch of nodes
 			/// @param deltaTime The time elapsed since the last processing
 			void ProcessBranch(const FrameTimer& deltaTime);
@@ -265,10 +282,12 @@ namespace shade
 				return ((index < m_Endpoints[static_cast<std::size_t>(T)].GetSize()) ? &m_Endpoints[static_cast<std::size_t>(T)].At(index) : nullptr);
 			}
 		protected:
-			BaseNode*							m_pParrentNode  = nullptr;
+			BaseNode*							m_pParrentNode		= nullptr;
+			BaseNode*							m_pRootParrentNode  = nullptr;
 			BaseNode*							m_pRootNode = nullptr;
 			glm::vec2							m_ScreenPosition = glm::vec2(0.f);
 			std::vector<BaseNode*>				m_Nodes;
+			std::vector<BaseNode*>				m_ReferNodes;
 		private:
 			NodeIdentifier																	m_NodeIdentifier;
 			GraphContext* const 															m_pGraphContext = nullptr;

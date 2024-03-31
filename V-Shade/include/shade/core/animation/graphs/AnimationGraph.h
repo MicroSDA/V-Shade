@@ -6,6 +6,7 @@
 #include <shade/core/animation/graphs/nodes/BoneMaskNode.h>
 #include <shade/core/animation/graphs/AnimationGraphContext.h>
 #include <shade/core/animation/graphs/nodes/StateMachineNode.h>
+#include <shade/core/graphs/nodes/IntNode.h>
 
 namespace shade
 {
@@ -21,13 +22,20 @@ namespace shade
 
 			const Pose* GetOutPutPose() const;
 
-			const NodeValues& GetGlobalValues() const;
-			NodeValues& GetGlobalValues();
+			const std::vector<BaseNode*>& GetInputNodes() const;
+			std::vector<BaseNode*>& GetInputNodes();
 
+			template<typename T, typename... Args>
+			T* CreateInputNode(Args&&... args)
+			{
+				T* node = SNEW T(GetGraphContext(), m_InputNodes.size(), std::forward<Args>(args)...);
+				m_InputNodes.emplace_back(node)->Initialize(this, this);
+				return node;
+			}
 		private:
 			virtual void Evaluate(const FrameTimer& deltaTime) override;
 			OutputPoseNode* m_OutPutPoseNode = nullptr;
-			NodeValues m_GlobalValues;
+			std::vector<BaseNode*>			m_InputNodes;
 		};
 	}
 }

@@ -11,7 +11,7 @@ namespace shade
 			ValueNode(GraphContext* context, NodeIdentifier identifier) : BaseNode(context, identifier)
 			{
 				REGISTER_ENDPOINT<Connection::Output, NodeValueType::Float>(0.f);
-				REGISTER_ENDPOINT<Connection::Input, NodeValueType::Float>(0.f);
+				REGISTER_ENDPOINT<Connection::Input,  NodeValueType::Float>(0.f);
 
 			}; virtual ~ValueNode() = default;
 

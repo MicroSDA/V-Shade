@@ -72,6 +72,8 @@ shade::animation::AnimationGraph::AnimationGraph(graphs::GraphContext* context, 
 {
 	m_OutPutPoseNode = CreateNode<OutputPoseNode>();
 	SetRootNode(m_OutPutPoseNode);
+
+	CreateInputNode<graphs::IntNode>();
 }
 
 void shade::animation::AnimationGraph::ProcessGraph(const shade::FrameTimer& deltaTime)
@@ -84,14 +86,14 @@ const shade::animation::Pose* shade::animation::AnimationGraph::GetOutPutPose() 
 	return m_OutPutPoseNode->GetFinalPose();
 }
 
-const shade::NodeValues& shade::animation::AnimationGraph::GetGlobalValues() const
+const std::vector<shade::graphs::BaseNode*>& shade::animation::AnimationGraph::GetInputNodes() const
 {
-	return m_GlobalValues;
+	return m_InputNodes;
 }
 
-shade::NodeValues& shade::animation::AnimationGraph::GetGlobalValues()
+std::vector<shade::graphs::BaseNode*>& shade::animation::AnimationGraph::GetInputNodes()
 {
-	return m_GlobalValues;
+	return m_InputNodes;
 }
 
 void shade::animation::AnimationGraph::Evaluate(const FrameTimer& deltaTime)

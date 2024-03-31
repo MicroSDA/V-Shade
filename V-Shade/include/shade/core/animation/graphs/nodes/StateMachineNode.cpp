@@ -4,6 +4,8 @@
 #include <shade/core/event/Input.h>
 #include <glfw/glfw3.h>
 
+#include <shade/core/animation/graphs/AnimationGraph.h>
+
 shade::animation::state_machine::TransitionNode::TransitionNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, const Data& data) : BaseNode(context, identifier) , m_TransitionData(data)
 {
 	m_pOutputTransitionNode = CreateNode<OutputTransitionNode>();
@@ -47,6 +49,14 @@ shade::animation::state_machine::StateNode::~StateNode()
 
 void shade::animation::state_machine::StateNode::Evaluate(const FrameTimer& deltaTime)
 {
+	if (GetParrentRootGraph())
+	{
+		for (auto v : GetParrentRootGraph()->As<animation::AnimationGraph>().GetInputNodes())
+		{
+			//std::cout << (int)v.first->GetType() << std::endl;
+		}
+	}
+
 	if (m_pActiveTransition)
 	{
 		Pose* blendPose = m_pActiveTransition->GetRootNode()->As<OutputTransitionNode>().Transit(

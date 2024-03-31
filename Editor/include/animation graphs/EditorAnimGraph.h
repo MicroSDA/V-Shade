@@ -46,6 +46,23 @@ namespace graph_editor
 		ImVec2		Offset = ImVec2(0.f, 0.f);
 		ImDrawList* DrawList = nullptr;
 		mutable GraphNodePrototype* CurrentGraph = nullptr;
+
+		struct 
+		{
+			graphs::BaseNode* InputNode  = nullptr;
+			graphs::BaseNode* OutPutNode = nullptr;
+
+			graphs::EndpointIdentifier InputEndpointIdentifier  = ~0;
+			graphs::EndpointIdentifier OutPutEndpointIdentifier = ~0;
+
+			bool IsInputSelect = false;
+			bool IsOutPutSelect = false;
+
+			ImVec2 InputEndpointScreenPosition  = ImVec2{ 0.f, 0.f };
+			ImVec2 OutPutEndpointScreenPosition = ImVec2{ 0.f, 0.f };
+
+			void Reset() { IsInputSelect = false; IsOutPutSelect = false; }
+		} mutable ConnectionEstablish;
 	};
 
 	class GraphNodePrototype
@@ -150,17 +167,19 @@ namespace graph_editor
 
 		InternalContext  m_Context;
 		GraphVisualStyle m_VisualStyle;
-
+	
 	private:
-
-		
 		void InitializeRecursively(graphs::BaseNode* pNode);
 		void ProcessScale();
 		ImVec2 CalculateMouseWorldPos(const ImVec2& mousePosition);
 		void DrawNodes();
 		void DrawConnections();
 
+		void PopupMenu();
+
 		void DrawPathRecursevly(GraphNodePrototype* pNode);
+
+		
 	};
 
 	class TransitionNodeDelegate : public GraphNodePrototype
@@ -310,6 +329,14 @@ namespace graph_editor
 	public:
 		IntEqualsNodeDelegate(graphs::BaseNode* pNode);
 		virtual ~IntEqualsNodeDelegate() = default;
+		virtual void ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint) override;
+	};
+
+	class IntNodeDelegate : public GraphNodePrototype
+	{
+	public:
+		IntNodeDelegate(graphs::BaseNode* pNode);
+		virtual ~IntNodeDelegate() = default;
 		virtual void ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint) override;
 	};
 }
