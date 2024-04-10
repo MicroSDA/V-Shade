@@ -8,8 +8,7 @@ void shade::graphs::IntEqualsNode::Evaluate(const FrameTimer& deltaTime)
 	const std::int32_t input   = GET_ENDPOINT<graphs::Connection::Input, NodeValueType::Int>(0);
 	const std::int32_t compare = GET_ENDPOINT<graphs::Connection::Input, NodeValueType::Int>(1);
 
-
-	if (Input::IsKeyPressed(compare))
+	if (input == compare)
 	{
 		GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Bool>(0, true);
 	}

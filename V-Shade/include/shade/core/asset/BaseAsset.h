@@ -36,7 +36,7 @@ namespace shade
 			Skeleton,
 			CollisionShapes,
 			Sound,
-
+			AnimationGraph,
 			// Insert new here
 			Other,
 			ASSET_TYPE_MAX_ENUM

@@ -150,6 +150,8 @@ void graph_editor::GraphNodePrototype::DrawEndpoints(const InternalContext* cont
 	auto outputs = endpoints[shade::graphs::Connection::Output].begin();
 	auto connections = graphContext->Connections.find(node);
 
+	//void (*InputCallback)(void);
+
 	if (ImGui::BeginTableEx("##EndpointsTable", std::size_t(this) + 1000, (outputCount) ? 2 : 1,
 		ImGuiTableFlags_BordersOuterV |
 		ImGuiTableFlags_SizingStretchProp,
@@ -230,8 +232,8 @@ void graph_editor::GraphNodePrototype::DrawEndpoints(const InternalContext* cont
 					graphStyle->EndpointRadius,
 					context->Scale.Factor,
 					endpointScreenPosition,
-					Style.InputEndpointsColor,
-					Style.InputEndpointsColorHovered))
+					Style.OutPutEndpointsColor,
+					Style.OutPutEndpointsColorHovered))
 				{
 					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 					{
@@ -291,9 +293,9 @@ void graph_editor::GraphNodePrototype::DrawConnections(const InternalContext* co
 				context->DrawList,
 				context->Offset,
 				context->Scale.Factor,
-				ImVec2{ connection.InputScreenPosition.x, connection.InputScreenPosition.y },
+				ImVec2{ connection.InputScreenPosition.x,  connection.InputScreenPosition.y },
 				ImVec2{ connection.OutputScreenPosition.x, connection.OutputScreenPosition.y },
-
+				
 				ImVec4{ 1, 1, 1, 1 },
 				graphStyle->ConnectionThickness);
 		}
@@ -406,7 +408,7 @@ void graph_editor::GraphEditor::InitializeRecursively(graphs::BaseNode* pNode)
 		if (dynamic_cast<shade::graphs::IntNode*>(pNode))
 		{
 			shade::graphs::IntNode* value = reinterpret_cast<shade::graphs::IntNode*>(pNode);
-			m_Nodes[std::size_t(pNode)] = new IntEqualsNodeDelegate(pNode);
+			m_Nodes[std::size_t(pNode)] = new IntNodeDelegate(pNode);
 		}
 	}
 }
@@ -424,9 +426,9 @@ void graph_editor::GraphEditor::Initialize(AnimationGraph* pGraph)
 		InitializeRecursively(node);
 	}
 
-	for (auto input : pGraph->GetInputNodes())
+	for (auto [name, node] : pGraph->GetInputNodes())
 	{
-		InitializeRecursively(input);
+		InitializeRecursively(node);
 	}
 	
 	//m_pGraph->Initialize();
@@ -542,9 +544,9 @@ bool graph_editor::GraphEditor::Edit(const char* title, const ImVec2& size)
 	if (m_Context.ConnectionEstablish.IsInputSelect && m_Context.ConnectionEstablish.IsOutPutSelect)
 	{
 		m_pRootGraph->ConnectNodes(
-			m_Context.ConnectionEstablish.InputNode->GetNodeIdentifier(),
+			m_Context.ConnectionEstablish.InputNode,
 			m_Context.ConnectionEstablish.InputEndpointIdentifier,
-			m_Context.ConnectionEstablish.OutPutNode->GetNodeIdentifier(),
+			m_Context.ConnectionEstablish.OutPutNode,
 			m_Context.ConnectionEstablish.OutPutEndpointIdentifier);
 		m_Context.ConnectionEstablish.Reset();
 	}
@@ -649,7 +651,7 @@ void graph_editor::GraphEditor::DrawConnections()
 
 void graph_editor::GraphEditor::PopupMenu()
 {
-	for (const auto node : m_pRootGraph->As<AnimationGraph>().GetInputNodes())
+	for (const auto [name, node] : m_pRootGraph->As<AnimationGraph>().GetInputNodes())
 	{
 		if (ImGui::Selectable("Add Node")) 
 		{ 
@@ -1314,8 +1316,8 @@ graph_editor::BlendNode2DNodeDelegate::BlendNode2DNodeDelegate(graphs::BaseNode*
 
 graph_editor::OutputTransitionNodeDelegate::OutputTransitionNodeDelegate(graphs::BaseNode* pNode) : GraphNodePrototype(pNode)
 {
-	Style.HeaderColor = ImVec4{ 0.7, 0.2, 0.2, 1.0 };
-	Style.Size = ImVec2{ 200.f, 150.f };
+	Style.HeaderColor = ImVec4 { 0.7, 0.2, 0.2, 1.0 };
+	Style.Size = ImVec2{ 250.f, 250.f };
 	Style.Title = "Transition";
 }
 
@@ -1328,11 +1330,12 @@ void graph_editor::OutputTransitionNodeDelegate::ProcessEndpoint(graphs::Endpoin
 		if (identifier == 0)
 		{
 			ImGui::Text("Transition");
-			Style.InputEndpointsColor = ImVec4(1.f, 0.f, 0.f, 1.f);
+			Style.InputEndpointsColor = { 0.8, 0.2, 0.2, 1.0 };
 			break;
 		}
 		if (identifier == 2)
 		{
+			Style.InputEndpointsColor = { 0.8, 0.2, 0.2, 1.0 };
 			ImGui::Checkbox("Sync", &GetNode()->As<shade::animation::state_machine::OutputTransitionNode>().IsSync());
 			break;
 		}
@@ -1539,9 +1542,9 @@ void graph_editor::AnimationGraphDeligate::ProcessSideBar()
 
 graph_editor::IntEqualsNodeDelegate::IntEqualsNodeDelegate(graphs::BaseNode* pNode) : GraphNodePrototype(pNode)
 {
-	Style.HeaderColor	= ImVec4 { 0.7, 0.2, 0.2, 1.0 };
+	Style.HeaderColor   = ImVec4{ 0.2, 0.4, 0.99, 1.0 };
 	Style.Size			= ImVec2 { 200.f, 150.f };
-	Style.Title			= "IntEquals";
+	Style.Title = "Int == ?";
 }
 
 void graph_editor::IntEqualsNodeDelegate::ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint)
@@ -1552,13 +1555,21 @@ void graph_editor::IntEqualsNodeDelegate::ProcessEndpoint(graphs::EndpointIdenti
 		{
 		case NodeValueType::Int:
 		{
-			ImGui::Text("Input");
+			if (identifier == 0)
+			{
+				ImGui::Text("Input"); 
+			}
+			if (identifier == 1)
+			{
+				ImGui::Text("Equals");
+			}
 
+			//ImGui::SameLine();
 			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
-			ImGui::DragInt(std::to_string(identifier).c_str(), &endpoint.As<NodeValueType::Int>(), 0.1, 0, 1);
+			ImGui::DragInt(std::string("##" + std::to_string(identifier)).c_str(), &endpoint.As<NodeValueType::Int>(), 0.1, 0, INT_MAX);
 			ImGui::PopItemWidth();
 
-			Style.InputEndpointsColor = ImVec4(1.f, 0.f, 0.f, 1.f);
+			Style.InputEndpointsColor = Style.HeaderColor = { 0.2, 0.4, 0.99, 1.0 };
 			break;
 		}
 		}
@@ -1569,8 +1580,8 @@ void graph_editor::IntEqualsNodeDelegate::ProcessEndpoint(graphs::EndpointIdenti
 		{
 		case NodeValueType::Bool:
 		{
-			ImGui::Text("Is");
-			Style.InputEndpointsColor = ImVec4(1.f, 0.f, 0.f, 1.f);
+			ImGui::Text("Result ");
+			Style.OutPutEndpointsColor = { 0.8, 0.2, 0.2, 1.0 };
 			break;
 		}
 		}
@@ -1579,13 +1590,25 @@ void graph_editor::IntEqualsNodeDelegate::ProcessEndpoint(graphs::EndpointIdenti
 
 graph_editor::IntNodeDelegate::IntNodeDelegate(graphs::BaseNode* pNode) : GraphNodePrototype(pNode)
 {
-	Style.HeaderColor = ImVec4{ 0.7, 0.2, 0.2, 1.0 };
-	Style.Size = ImVec2{ 200.f, 150.f };
+	Style.HeaderColor = ImVec4{ 0.2, 0.4, 0.99, 1.0 };
+
+	Style.OutPutEndpointsColor = ImVec4{ 0.2, 0.4, 0.99, 1.0 };
+	Style.InputEndpointsColor = ImVec4{ 0.2, 0.4, 0.99, 1.0 };
+
+	Style.Size = ImVec2{ 125.f, 100.f };
 	Style.Title = "Int";
+
 }
 
 void graph_editor::IntNodeDelegate::ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint)
 {
-	ImGui::Text("Is");
-	Style.InputEndpointsColor = ImVec4(1.f, 0.f, 0.f, 1.f);
+
+}
+
+void graph_editor::IntNodeDelegate::ProcessBodyContent()
+{
+	auto node = GetNode();
+	ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+	ImGui::DragInt("", &node->GetEndpoint<shade::graphs::Connection::Output>(0)->As<NodeValueType::Int>(), 0.1, 0, 1);
+	ImGui::PopItemWidth();
 }

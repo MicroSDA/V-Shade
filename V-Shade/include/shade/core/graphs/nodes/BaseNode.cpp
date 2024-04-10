@@ -29,27 +29,27 @@ void shade::graphs::BaseNode::Shutdown()
 	m_pParrentNode = nullptr;
 }
 
-bool shade::graphs::BaseNode::ConnectNodes(NodeIdentifier inputNode, EndpointIdentifier inputEndpoint, NodeIdentifier outputNode, EndpointIdentifier outputEndpoint)
+bool shade::graphs::BaseNode::ConnectNodes(BaseNode* inputNode, EndpointIdentifier inputEndpoint, BaseNode* outputNode, EndpointIdentifier outputEndpoint)
 {
-	auto pInput = FindNode(inputNode);
-	auto pOutput = FindNode(outputNode);
+	/*auto pInput  = FindNode(inputNode);
+	auto pOutput = FindNode(outputNode);*/
 
-	if (!pInput || !pOutput || inputNode == outputNode) return false;
+	if (!inputNode || !outputNode || inputNode == outputNode) return false;
 
-	auto inputValue = pInput->__GET_ENDPOINT<Connection::Input>(inputEndpoint);
-	auto outputValue = pOutput->__GET_ENDPOINT<Connection::Output>(outputEndpoint);
+	auto inputValue = inputNode->__GET_ENDPOINT<Connection::Input>(inputEndpoint);
+	auto outputValue = outputNode->__GET_ENDPOINT<Connection::Output>(outputEndpoint);
 
 	if (!inputValue || !outputValue) return false;
 
 	if (inputValue->get()->GetType() != outputValue->get()->GetType()) return false;
 
 
-	if (m_pGraphContext->AddConnection(pInput, inputEndpoint, pOutput, outputEndpoint, Connection::Input))
+	if (m_pGraphContext->AddConnection(inputNode, inputEndpoint, outputNode, outputEndpoint, Connection::Input))
 	{
 		if (ConnectValues(inputValue, outputValue))
 		{
-			pInput->OnConnect(Connection::Type::Input, inputValue->get()->GetType(), inputEndpoint);
-			pOutput->OnConnect(Connection::Type::Output, outputValue->get()->GetType(), outputEndpoint);
+			inputNode->OnConnect(Connection::Type::Input, inputValue->get()->GetType(), inputEndpoint);
+			outputNode->OnConnect(Connection::Type::Output, outputValue->get()->GetType(), outputEndpoint);
 
 			return true;
 		}

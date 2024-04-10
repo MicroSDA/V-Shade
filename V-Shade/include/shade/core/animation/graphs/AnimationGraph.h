@@ -1,4 +1,5 @@
 #pragma once
+#include <shade/core/memory/Memory.h>
 #include <shade/core/asset/Asset.h>
 #include <shade/core/animation/AnimationController.h>
 #include <shade/core/animation/graphs/nodes/PoseNode.h>
@@ -12,8 +13,10 @@ namespace shade
 {
 	namespace animation
 	{
-		class SHADE_API AnimationGraph : public graphs::BaseNode
+		class SHADE_API AnimationGraph : public graphs::BaseNode//, ASSET_INHERITANCE(AnimationGraph)
 		{
+			//ASSET_DEFINITION_HELPER(AnimationGraph)
+
 		public:
 			AnimationGraph(graphs::GraphContext* context, graphs::NodeIdentifier identifier = 0u);
 			virtual ~AnimationGraph() = default;
@@ -22,24 +25,68 @@ namespace shade
 
 			const Pose* GetOutPutPose() const;
 
-			const std::vector<BaseNode*>& GetInputNodes() const;
-			std::vector<BaseNode*>& GetInputNodes();
-
 			template<typename T, typename... Args>
-			T* CreateInputNode(Args&&... args)
+			SHADE_INLINE T* CreateInputNode(const std::string& name, Args&&... args)
 			{
 				T* node = SNEW T(GetGraphContext(), m_InputNodes.size(), std::forward<Args>(args)...);
-				m_InputNodes.emplace_back(node)->Initialize(this, this);
+				m_InputNodes.emplace(name, node).first->second->Initialize(this, this);
 				return node;
 			}
+
+			template<typename T>
+			SHADE_INLINE void SetInputValue(const std::string& name, const T& value)
+			{
+				auto node = GetInputNode(name);
+				assert(FromTypeToNodeValueType<T>::Type == node->GetEndpoint<graphs::Connection::Output>(0)->GetType() && "Wrong value type");
+				node->GET_ENDPOINT<graphs::Connection::Output, FromTypeToNodeValueType<T>::Type>(0, value);
+			}
+
+			BaseNode* GetInputNode(const std::string& name);
+			const BaseNode* GetInputNode(const std::string& name) const;
+
+			std::unordered_map<std::string, BaseNode*> GetInputNodes() { return m_InputNodes; }
+			const std::unordered_map<std::string, BaseNode*> GetInputNodes() const { return m_InputNodes; }
 		private:
 			virtual void Evaluate(const FrameTimer& deltaTime) override;
 			OutputPoseNode* m_OutPutPoseNode = nullptr;
-			std::vector<BaseNode*>			m_InputNodes;
+			std::unordered_map<std::string, BaseNode*> m_InputNodes;
+		private:
+			// Create a animation graph object with the given asset data, lifetime, and instantiation behaviour
+			//AnimationGraph(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
+			// Serialize the animation graph object and write the serialized data to the given output stream
+			std::size_t Serialize(std::ostream& stream) const;
+			// Deserialize the animation graph object from the given input stream and return the number of bytes read
+			std::size_t Deserialize(std::istream& stream);
+		private:
+			friend class Serializer;
 		};
 	}
+
+	template<>
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const animation::AnimationGraph& graph, std::size_t)
+	{
+		return graph.Serialize(stream);
+	}
+	/* Deserialize Skeleton.*/
+	template<>
+	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, animation::AnimationGraph& graph, std::size_t)
+	{
+		return graph.Deserialize(stream);
+	}
+	/* Serialize Asset<Skeleton>.*/
+	template<>
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Asset<animation::AnimationGraph>& graph, std::size_t)
+	{
+		return graph->Serialize(stream);
+	}
+	/* Deserialize Asset<Skeleton>.*/
+	template<>
+	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, Asset<animation::AnimationGraph>& graph, std::size_t)
+	{
+		return graph->Deserialize(stream);
+	}
 }
-// TODO: Fiuere out context polynorphism !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 
 //namespace shade
 //{

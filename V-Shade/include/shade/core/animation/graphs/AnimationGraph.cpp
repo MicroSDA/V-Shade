@@ -73,7 +73,7 @@ shade::animation::AnimationGraph::AnimationGraph(graphs::GraphContext* context, 
 	m_OutPutPoseNode = CreateNode<OutputPoseNode>();
 	SetRootNode(m_OutPutPoseNode);
 
-	CreateInputNode<graphs::IntNode>();
+	CreateInputNode<graphs::IntNode>("DirectState");
 }
 
 void shade::animation::AnimationGraph::ProcessGraph(const shade::FrameTimer& deltaTime)
@@ -86,17 +86,31 @@ const shade::animation::Pose* shade::animation::AnimationGraph::GetOutPutPose() 
 	return m_OutPutPoseNode->GetFinalPose();
 }
 
-const std::vector<shade::graphs::BaseNode*>& shade::animation::AnimationGraph::GetInputNodes() const
-{
-	return m_InputNodes;
-}
-
-std::vector<shade::graphs::BaseNode*>& shade::animation::AnimationGraph::GetInputNodes()
-{
-	return m_InputNodes;
-}
-
 void shade::animation::AnimationGraph::Evaluate(const FrameTimer& deltaTime)
 {
 	GetRootNode()->ProcessBranch(deltaTime);
+}
+
+std::size_t shade::animation::AnimationGraph::Serialize(std::ostream& stream) const
+{
+	return std::size_t();
+}
+
+std::size_t shade::animation::AnimationGraph::Deserialize(std::istream& stream)
+{
+	return std::size_t();
+}
+
+shade::graphs::BaseNode* shade::animation::AnimationGraph::GetInputNode(const std::string& name)
+{
+	auto node = m_InputNodes.find(name);
+	assert(node != m_InputNodes.end() && "Input node has not been found!");
+	return node->second;
+}
+
+const shade::graphs::BaseNode* shade::animation::AnimationGraph::GetInputNode(const std::string& name) const
+{
+	auto node = m_InputNodes.find(name);
+	assert(node != m_InputNodes.end() && "Input node has not been found!");
+	return node->second;
 }

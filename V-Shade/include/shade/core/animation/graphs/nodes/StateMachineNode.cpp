@@ -35,18 +35,16 @@ shade::animation::state_machine::StateNode::StateNode(graphs::GraphContext* cont
 {
 	m_pOutPutPoseNode = CreateNode<OutputPoseNode>();
 	// Not sure where there shoudl be blend node
-	CreateNode<PoseNode>(); CreateNode<BlendNode2D>();
-	
+	auto pose = CreateNode<PoseNode>();
 	SetRootNode(m_pOutPutPoseNode);
-	ConnectNodes(0, 0, 1, 0); // has to be removed ! for test only
+
+	ConnectNodes(m_pOutPutPoseNode, 0, pose, 0); // has to be removed ! for test only
 }
 
 shade::animation::state_machine::StateNode::~StateNode()
 {
 
 }
-
-
 void shade::animation::state_machine::StateNode::Evaluate(const FrameTimer& deltaTime)
 {
 	if (GetParrentRootGraph())

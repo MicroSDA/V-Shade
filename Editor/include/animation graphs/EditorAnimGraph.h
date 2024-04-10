@@ -338,6 +338,7 @@ namespace graph_editor
 		IntNodeDelegate(graphs::BaseNode* pNode);
 		virtual ~IntNodeDelegate() = default;
 		virtual void ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint) override;
+		virtual void ProcessBodyContent() override;
 	};
 }
 

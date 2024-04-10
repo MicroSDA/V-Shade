@@ -35,7 +35,7 @@ namespace shade
 			/// @param
 			/// @param
 			/// @return
-			bool ConnectNodes(NodeIdentifier inputNode, EndpointIdentifier inputEndpoint, NodeIdentifier outputNode, EndpointIdentifier outputEndpoint);
+			bool ConnectNodes(BaseNode* inputNode, EndpointIdentifier inputEndpoint, BaseNode* outputNode, EndpointIdentifier outputEndpoint);
 			/// @brief
 			/// @param
 			/// @param
@@ -75,7 +75,7 @@ namespace shade
 			{
 				return m_pParrentNode != nullptr;
 			}
-
+			/// @brief
 			void AddReferNode(BaseNode* node)
 			{
 				m_ReferNodes.emplace_back(node);
@@ -86,7 +86,6 @@ namespace shade
 			{
 				T* node = SNEW T(GetGraphContext(), m_Nodes.size(), std::forward<Args>(args)...);
 				m_Nodes.emplace_back(node)->Initialize(this, (!m_pRootParrentNode) ? this : m_pRootParrentNode);
-
 				return node;
 			}
 
@@ -179,22 +178,26 @@ namespace shade
 			{
 				return m_pGraphContext;
 			}
-
+			/// @brief Get screen position(For editor only)
+			/// @return A const glm::vec2
 			SHADE_INLINE const glm::vec2& GetScreenPosition() const
 			{
 				return m_ScreenPosition;
 			}
-
+			/// @brief Get screen position(For editor only)
+			/// @return A glm::vec2
 			SHADE_INLINE glm::vec2& GetScreenPosition()
 			{
 				return m_ScreenPosition;
 			}
-
+			/// @brief Get all child nodes
+			/// @return A std::vector<BaseNode*>&
 			SHADE_INLINE std::vector<BaseNode*>& GetNodes()
 			{
 				return m_Nodes;
 			}
-
+			/// @brief Get all child nodes
+			/// @return A const std::vector<BaseNode*>&
 			SHADE_INLINE const std::vector<BaseNode*>& GetNodes() const
 			{
 				return m_Nodes;
@@ -284,14 +287,15 @@ namespace shade
 		protected:
 			BaseNode*							m_pParrentNode		= nullptr;
 			BaseNode*							m_pRootParrentNode  = nullptr;
-			BaseNode*							m_pRootNode = nullptr;
-			glm::vec2							m_ScreenPosition = glm::vec2(0.f);
+			BaseNode*							m_pRootNode			= nullptr;
+			glm::vec2							m_ScreenPosition	= glm::vec2(0.f);
 			std::vector<BaseNode*>				m_Nodes;
 			std::vector<BaseNode*>				m_ReferNodes;
 		private:
 			NodeIdentifier																	m_NodeIdentifier;
 			GraphContext* const 															m_pGraphContext = nullptr;
 			std::array<NodeValues, static_cast<std::size_t>(Connection::Type::MAX_ENUM)>	m_Endpoints;
+			
 		};
 	}
 }

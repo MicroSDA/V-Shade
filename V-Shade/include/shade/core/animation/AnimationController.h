@@ -66,7 +66,7 @@ namespace shade
 			std::pair<float, float> GetTimeMultiplier(float firstDuration, float secondDuration, float blendFactor) const;
 		private:
 			AnimationController() = default;
-			std::unordered_map<std::size_t, animation::Pose> m_Poses;
+			std::unordered_map<std::size_t, animation::Pose> m_Poses; //NOTE: Thats can be a problem !!
 			
 			friend class SharedPointer<AnimationController>;
 		private:
