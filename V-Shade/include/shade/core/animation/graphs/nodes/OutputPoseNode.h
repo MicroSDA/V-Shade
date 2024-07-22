@@ -11,8 +11,11 @@ namespace shade
 		{
 		public:
 			OutputPoseNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier) :
-				BaseNode(context, identifier)
+				BaseNode(context, identifier, "OutputPose")
 			{
+				m_IsRenamable = false;
+				m_IsRemovable = false;
+				m_CanBeOpen = false;
 				// We have only input !
 				REGISTER_ENDPOINT<graphs::Connection::Input, NodeValueType::Pose>(nullptr);
 			}

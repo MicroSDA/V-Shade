@@ -23,6 +23,7 @@ namespace shade
 		static void DrawGridLines(const ImVec2& start, const ImVec2& canvasSize, const float gridSpace, const ImVec2& windowPos, const ImColor& gridColor, const ImColor& gridColor2, ImDrawList* drawList, int divx, int divy);
 		static bool DrawEndpoint(ImDrawList* drawList, const ImVec2& offset, float radius, float scaleFactor, const ImVec2& screenPosition, const ImVec4& color, const ImVec4& hoveredColor);
 		static void DrawConnection(ImDrawList* drawList, const ImVec2& offset, float scaleFactor, const ImVec2& from, const ImVec2& till, const ImVec4& connectionColor, float thickness);
+		static bool DrawReferNodeConnection(ImDrawList* drawList,const ImVec2& offset,float scaleFactor,const ImVec2& point,const ImVec2& fontSizePx,const ImVec4& connectionColor,float iconSize);
 	};
 
 

@@ -10,8 +10,10 @@ namespace shade
 		{
 		public:
 			BlendNode2D(graphs::GraphContext* context, graphs::NodeIdentifier identifier) :
-				BaseNode(context, identifier), DefaultWeightValue(0.0f), Mask(BoneMask{ nullptr })
+				BaseNode(context, identifier, "Blend2D"), DefaultWeightValue(0.0f), Mask(BoneMask{nullptr})
 			{
+				m_CanBeOpen = false;
+
 				REGISTER_ENDPOINT<graphs::Connection::Input,  NodeValueType::Float>(DefaultWeightValue);
 				REGISTER_ENDPOINT<graphs::Connection::Input,  NodeValueType::BoneMask>(GetGraphContext()->As<AnimationGraphContext>().Skeleton);
 

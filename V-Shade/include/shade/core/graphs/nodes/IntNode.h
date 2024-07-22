@@ -8,13 +8,14 @@ namespace shade
 		class SHADE_API IntNode : public BaseNode
 		{
 		public:
-			IntNode(GraphContext* context, NodeIdentifier identifier) : BaseNode(context, identifier)
+			IntNode(GraphContext* context, NodeIdentifier identifier) : BaseNode(context, identifier, "Int")
 			{
+				m_CanBeOpen = false;
 				REGISTER_ENDPOINT<Connection::Output, NodeValueType::Int>(0);
 			}; virtual ~IntNode() = default;
 
 			virtual void OnConnect(Connection::Type connectionType, NodeValueType type, EndpointIdentifier endpoint) override {};
-			virtual void Evaluate(const FrameTimer& deltaTime) override { std::cout << std::hex << this << "\n"; }
+			virtual void Evaluate(const FrameTimer& deltaTime) override {}
 		};
 	}
 }

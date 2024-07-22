@@ -78,6 +78,8 @@ namespace shade
 				template<typename... Args>
 				TransitionNode* AddTransition(StateNode* destination, Args&&... args)
 				{
+					// TODO !
+					// Need to check if this already exist transition !!
 					TransitionNode* transition = SNEW TransitionNode(GetGraphContext(), m_Transitions.size(), TransitionNode::Data{ this, destination });
 
 					transition->Initialize(this);
@@ -87,15 +89,9 @@ namespace shade
 
 				SHADE_INLINE std::vector<TransitionNode*>& GetTransitions() { return m_Transitions; }
 				SHADE_INLINE const std::vector<TransitionNode*>& GetTransitions() const { return m_Transitions; }
-
-				SHADE_INLINE const std::string& GetName() const { return m_Name; }
-
-				SHADE_INLINE void SetName(const std::string& name) { m_Name = name; }
-
 				SHADE_INLINE void  SetTransitionSyncData(const TransitionSyncData& data) { m_TransitionSyncData = data; }
 				SHADE_INLINE TransitionSyncData& GetTransitionSyncData() { return m_TransitionSyncData; }
 			private:
-				std::string m_Name;
 				std::vector<TransitionNode*> m_Transitions;
 				TransitionNode* m_pActiveTransition = nullptr;
 				OutputPoseNode* m_pOutPutPoseNode = nullptr;

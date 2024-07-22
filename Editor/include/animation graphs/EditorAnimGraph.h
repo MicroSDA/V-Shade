@@ -65,6 +65,8 @@ namespace graph_editor
 		} mutable ConnectionEstablish;
 	};
 
+	class GraphEditor;
+
 	class GraphNodePrototype
 	{
 	public:
@@ -88,12 +90,15 @@ namespace graph_editor
 			std::string	Title = "Node title";
 		};
 
-		GraphNodePrototype(graphs::BaseNode* pNode) : m_pNode(pNode) {}
+		GraphNodePrototype(graphs::BaseNode* pNode, GraphEditor* pEditor) : m_pNode(pNode), m_pEditor(pEditor) {}
 		virtual ~GraphNodePrototype() = default;
 
 		//////////////////////////////////////////////////////////////////////////
 		SHADE_INLINE const	graphs::BaseNode* GetNode()	const { return m_pNode; }
 		SHADE_INLINE		graphs::BaseNode* GetNode() { return m_pNode; }
+
+		SHADE_INLINE const	GraphEditor* GetEditor() const { return m_pEditor; }
+		SHADE_INLINE		GraphEditor* GetEditor() { return m_pEditor; }
 
 		SHADE_INLINE		void SetScreenPosition(const ImVec2& position) { m_pNode->GetScreenPosition() = glm::vec2(position.x, position.y); }
 		SHADE_INLINE const	ImVec2 GetScreenPosition()				const { return ImVec2{ m_pNode->GetScreenPosition().x, m_pNode->GetScreenPosition().y }; }
@@ -105,9 +110,10 @@ namespace graph_editor
 
 		ImRect GetScaledRectangle(const InternalContext* context, const GraphVisualStyle* graphStyle);
 
-		virtual void ProcessSideBar() {};
-		virtual void ProcessBodyContent() {};
+		virtual void ProcessSideBar(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, std::unordered_map<std::size_t, GraphNodePrototype*>& referNodes) {};
+		virtual void ProcessBodyContent(const InternalContext* context) {};
 		virtual void ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint) { ImGui::Text("Endpoint"); };
+		virtual void ProcessPopup(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, const std::string& search);
 
 
 		virtual void Draw(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes);
@@ -122,10 +128,12 @@ namespace graph_editor
 		VisualStyle													Style;
 	private:
 		graphs::BaseNode* m_pNode;
+		GraphEditor* m_pEditor;
 		bool m_IsSelected = false;
 	};
 
-	class GraphPrototype : public GraphNodePrototype
+	// To Delete ? 
+	/*class GraphPrototype : public GraphNodePrototype
 	{
 	public:
 		GraphPrototype(graphs::BaseNode* pGraph) : GraphNodePrototype(pGraph) {}
@@ -137,7 +145,7 @@ namespace graph_editor
 		SHADE_INLINE		graphs::BaseNode* GetGraph()			{ return reinterpret_cast<graphs::BaseNode*>(GetNode()); }
 	private:
 		std::vector<GraphNodePrototype*> m_Nodes;
-	};
+	};*/
 
 	struct ConnectionsPrototype
 	{
@@ -153,6 +161,16 @@ namespace graph_editor
 		GraphEditor() = default;
 		~GraphEditor() = default;
 		void Initialize(AnimationGraph* pGraph);
+		void InitializeRecursively(graphs::BaseNode* pNode, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes); // Strange and not clear
+		GraphNodePrototype* GetPrototypedNode(graphs::BaseNode* pNode); // Strange and not clear
+		GraphNodePrototype* GetPrototypedReferNode(graphs::BaseNode* pNode); // Strange and not clear
+
+		std::unordered_map<std::size_t, GraphNodePrototype*>& GetNodes() { return m_Nodes; }
+		std::unordered_map<std::size_t, GraphNodePrototype*>& GetReferNodes() { return m_ReferNodes; }
+
+		graphs::BaseNode* GetRootGraph() { return m_pRootGraph; }
+
+		bool RemoveNode(graphs::BaseNode* pNode);
 	public:
 		bool Edit(const char* title, const ImVec2& size);
 	private:
@@ -162,6 +180,7 @@ namespace graph_editor
 		GraphNodePrototype*	m_pSelectedNode = nullptr;
 
 		std::unordered_map<std::size_t, GraphNodePrototype*>  m_Nodes;
+		std::unordered_map<std::size_t, GraphNodePrototype*>  m_ReferNodes;
 
 		std::vector<GraphNodePrototype*> m_Path;
 
@@ -169,23 +188,45 @@ namespace graph_editor
 		GraphVisualStyle m_VisualStyle;
 	
 	private:
-		void InitializeRecursively(graphs::BaseNode* pNode);
+		
 		void ProcessScale();
 		ImVec2 CalculateMouseWorldPos(const ImVec2& mousePosition);
 		void DrawNodes();
 		void DrawConnections();
-
 		void PopupMenu();
 
 		void DrawPathRecursevly(GraphNodePrototype* pNode);
+	};
 
-		
+	class AnimationGraphDeligate : public GraphNodePrototype
+	{
+	public:
+		AnimationGraphDeligate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
+		{
+			Style.Title = "Animation graph";
+		}
+		virtual ~AnimationGraphDeligate() = default;
+		virtual void ProcessSideBar(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, std::unordered_map<std::size_t, GraphNodePrototype*>& referNodes) override;
+	private:
+		template<typename T>
+		graph_editor::GraphNodePrototype* CreateReferNode(const std::string& name)
+		{
+			auto node = GetNode()->As<AnimationGraph>().CreateInputNode<T>(
+				name + std::to_string(GetCurrentTimeStamp<std::chrono::milliseconds>()));
+			if (node)
+			{
+				GetEditor()->InitializeRecursively(node, GetEditor()->GetReferNodes());
+				return GetEditor()->GetPrototypedReferNode(node);
+			}
+			return nullptr;
+		}
+		bool DeleteReferNode(const std::string& name);
 	};
 
 	class TransitionNodeDelegate : public GraphNodePrototype
 	{
 	public:
-		TransitionNodeDelegate(graphs::BaseNode* pNode) : GraphNodePrototype(pNode) 
+		TransitionNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
 		{
 			Style.Title = "Transition";
 		}
@@ -196,7 +237,7 @@ namespace graph_editor
 	class StateNodeDelegate : public GraphNodePrototype
 	{
 	public:
-		StateNodeDelegate(graphs::BaseNode* pNode) : GraphNodePrototype(pNode) 
+		StateNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
 		{
 			Style.HeaderColor = ImVec4{ 0.1, 0.4, 0.4, 1.0 };
 			Style.Size = ImVec2{ 200, 75};
@@ -204,7 +245,7 @@ namespace graph_editor
 		}
 		virtual ~StateNodeDelegate() = default;
 
-		virtual void ProcessBodyContent() override
+		virtual void ProcessBodyContent(const InternalContext* context) override
 		{
 			ImGui::Text(reinterpret_cast<animation::state_machine::StateNode*>(GetNode())->GetName().c_str());
 		}
@@ -247,43 +288,46 @@ namespace graph_editor
 
 			return points[closestPointIdx];
 		}
-	};
 
-	class AnimationGraphDeligate : public GraphNodePrototype
-	{
-	public:
-		AnimationGraphDeligate(graphs::BaseNode* pNode) : GraphNodePrototype(pNode)
+	private:
+		struct TransitionEstablish
 		{
-			Style.Title = "Animation graph";
-		}
-		virtual ~AnimationGraphDeligate() = default;
-		virtual void ProcessSideBar() override;
+			graphs::BaseNode* From = nullptr;
+			graphs::BaseNode* To = nullptr;
+			void Reset() { From = nullptr; To = nullptr; }
+		};
+
+		static TransitionEstablish m_TransitionEstablish;
 	};
 
+	
 	class StateMachineNodeDeligate : public GraphNodePrototype
 	{
 	public:
-		StateMachineNodeDeligate(graphs::BaseNode* pNode) : GraphNodePrototype(pNode) 
+		StateMachineNodeDeligate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
 		{
 			Style.HeaderColor = ImVec4{ 0.1, 0.9, 0.7, 1.0 };
 			Style.Title = "State Machine";
 		}
 		virtual ~StateMachineNodeDeligate() = default;
 
-		virtual void ProcessBodyContent() override
+		virtual void ProcessBodyContent(const InternalContext* context) override
 		{
 			ImGui::Text("State Machine");
 		}
-		virtual void ProcessSideBar() override;
-
+		virtual void ProcessSideBar(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, std::unordered_map<std::size_t, GraphNodePrototype*>& referNodes) override;
+		virtual void ProcessPopup(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, const std::string& search) override;
+	private:
+		
 	};
+	// TODO Remove !
 	class ValueNodeDelegate : public GraphNodePrototype
 	{
 	public:
-		ValueNodeDelegate(graphs::BaseNode* pNode) : GraphNodePrototype(pNode) {}
+		ValueNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor) {}
 		virtual ~ValueNodeDelegate() = default;
 
-		virtual void ProcessBodyContent() override
+		virtual void ProcessBodyContent(const InternalContext* context) override
 		{
 			ImGui::Text("Value");
 		}
@@ -292,18 +336,18 @@ namespace graph_editor
 	class OutputPoseNodeDelegate : public GraphNodePrototype
 	{
 	public:
-		OutputPoseNodeDelegate(graphs::BaseNode* pNode);
+		OutputPoseNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor);
 		virtual ~OutputPoseNodeDelegate() = default;
 	};
 
 	class PoseNodeDelegate : public GraphNodePrototype
 	{
 	public:
-		PoseNodeDelegate(graphs::BaseNode* pNode);
+		PoseNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor);
 		virtual ~PoseNodeDelegate() = default;
 
-		virtual void ProcessBodyContent() override;
-		virtual void ProcessSideBar() override;
+		virtual void ProcessBodyContent(const InternalContext* context) override;
+		virtual void ProcessSideBar(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, std::unordered_map<std::size_t, GraphNodePrototype*>& referNodes) override;
 	private:
 		std::string m_Search;
 		bool m_IsAnimationPopupActive = false;
@@ -312,7 +356,7 @@ namespace graph_editor
 	class OutputTransitionNodeDelegate : public GraphNodePrototype
 	{
 	public:
-		OutputTransitionNodeDelegate(graphs::BaseNode* pNode);
+		OutputTransitionNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor);
 		virtual ~OutputTransitionNodeDelegate() = default;
 		virtual void ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint) override;
 	};
@@ -320,14 +364,27 @@ namespace graph_editor
 	class BlendNode2DNodeDelegate : public GraphNodePrototype
 	{
 	public:
-		BlendNode2DNodeDelegate(graphs::BaseNode* pNode);
+		BlendNode2DNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor);
 		virtual ~BlendNode2DNodeDelegate() = default;
+		virtual void ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint) override;
+	};
+
+	class BoneMaskNodeDelegate : public GraphNodePrototype
+	{
+	public:
+		BoneMaskNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor);
+		virtual ~BoneMaskNodeDelegate() = default;
+		virtual void ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint) override;
+		virtual void ProcessSideBar(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, std::unordered_map<std::size_t, GraphNodePrototype*>& referNodes) override;
+		virtual void ProcessBodyContent(const InternalContext* context) override;
+	private:
+		std::string m_Search;
 	};
 
 	class IntEqualsNodeDelegate : public GraphNodePrototype
 	{
 	public:
-		IntEqualsNodeDelegate(graphs::BaseNode* pNode);
+		IntEqualsNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor);
 		virtual ~IntEqualsNodeDelegate() = default;
 		virtual void ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint) override;
 	};
@@ -335,10 +392,27 @@ namespace graph_editor
 	class IntNodeDelegate : public GraphNodePrototype
 	{
 	public:
-		IntNodeDelegate(graphs::BaseNode* pNode);
+		IntNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor);
 		virtual ~IntNodeDelegate() = default;
 		virtual void ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint) override;
-		virtual void ProcessBodyContent() override;
+		virtual void ProcessBodyContent(const InternalContext* context) override;
+	};
+
+	class FloatEqualsNodeDelegate : public GraphNodePrototype
+	{
+	public:
+		FloatEqualsNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor);
+		virtual ~FloatEqualsNodeDelegate() = default;
+		virtual void ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint) override;
+	};
+
+	class FloatNodeDelegate : public GraphNodePrototype
+	{
+	public:
+		FloatNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor);
+		virtual ~FloatNodeDelegate() = default;
+		virtual void ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint) override;
+		virtual void ProcessBodyContent(const InternalContext* context) override;
 	};
 }
 

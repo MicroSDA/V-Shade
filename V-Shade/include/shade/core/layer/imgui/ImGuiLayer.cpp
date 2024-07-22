@@ -374,6 +374,48 @@ void shade::ImGuiLayer::DrawFontIcon(const char8_t* c, std::size_t fontIndex, fl
 	ImGui::GetIO().Fonts->Fonts[fontIndex]->Scale = 1.f;
 }
 
+bool shade::ImGuiLayer::IconButton(const char8_t* c, std::size_t fontIndex, float iconScale, float scale)
+{
+	const ImVec2 screenPoss = ImGui::GetCursorScreenPos();
+
+	const float fontSize = ImGui::GetIO().Fonts->Fonts[fontIndex]->FontSize;
+
+	const ImRect buttonRect = { screenPoss, screenPoss + ImVec2 { fontSize * (1.5f * iconScale), fontSize * (1.5f * iconScale) } * scale };
+
+	bool isButtonPressed = false;
+
+	// Button hover
+	if (buttonRect.Contains(ImGui::GetIO().MousePos))
+	{
+		if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
+		{
+			ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]);
+		}
+		else if(ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+		{
+			ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_Button]);
+			isButtonPressed = true;
+		}
+		else
+		{
+			ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered]);
+		}
+	}
+	else
+	{
+		ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_Button]);
+	}
+
+	
+	//ImGui::GetWindowDrawList()->AddRectFilled(buttonRect.Min, buttonRect.Max, ImGui::ColorConvertFloat4ToU32({ 1,1,1,1 }));
+
+	DrawFontIcon(c, fontIndex, iconScale);
+
+	ImGui::PopStyleColor();
+
+	return isButtonPressed;
+}
+
 bool shade::ImGuiLayer::DrawImGuizmo(glm::mat4& transform, const SharedPointer<Camera>& camera, ImGuizmo::OPERATION operation, const ImVec4& window)
 {
 	ImGuizmo::SetOrthographic(false);

@@ -2,12 +2,10 @@
 #include "EditorLayer.h"
 #include <shade/core/event/Input.h>
 
-
 // TODO: Temporary
 
 EditorLayer::EditorLayer() : ImGuiLayer()
 {
-
 	ImGui::SetCurrentContext(GetImGuiContext());
 	shade::ImGuiThemeEditor::SetColors(0x202020FF, 0xFAFFFDFF, 0x505050FF, 0x9C1938CC, 0xFFC307B1);
 	shade::ImGuiThemeEditor::ApplyTheme();
@@ -69,6 +67,7 @@ void EditorLayer::OnCreate()
 
 void EditorLayer::OnUpdate(shade::SharedPointer<shade::Scene>& scene, const shade::FrameTimer& deltaTime)
 {
+	// Place for it has to be changed, scene rnderer is better place for it !
 	scene->View<shade::AnimationGraphComponent>().Each([&](shade::ecs::Entity& entity, shade::AnimationGraphComponent& graph)
 		{
 			if (graph.AnimationGraph)
@@ -82,7 +81,7 @@ void EditorLayer::OnUpdate(shade::SharedPointer<shade::Scene>& scene, const shad
 				if (shade::Input::IsKeyPressed(shade::Key::S) && shade::Input::IsKeyPressed(shade::Key::LeftShift))
 					state = 3;
 
-				graph.AnimationGraph->SetInputValue("DirectState", state);
+				//graph.AnimationGraph->SetInputValue("DirectState", state);
 
 				graph.AnimationGraph->ProcessBranch(deltaTime);
 			}
@@ -1947,56 +1946,56 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 		machine->SetRootNode(idle);
 
 		auto walk = machine->CreateState("Walk");
-		auto run  = machine->CreateState("Run");
-		auto run_bakcword  = machine->CreateState("Run-Backword");
+		//auto run  = machine->CreateState("Run");
+		//auto run_bakcword  = machine->CreateState("Run-Backword");
 
 		// Idle -> Walk
 		auto tr1 = idle->AddTransition(walk);
 		tr1->ConnectNodes(tr1->GetRootNode(), 0, tr1->CreateNode<shade::graphs::IntEqualsNode>(), 0);
 
-		// Idle -> Run
-		auto tr2 = idle->AddTransition(run);
-		tr2->ConnectNodes(tr2->GetRootNode(), 0, tr2->CreateNode<shade::graphs::IntEqualsNode>(), 0);
+		//// Idle -> Run
+		//auto tr2 = idle->AddTransition(run);
+		//tr2->ConnectNodes(tr2->GetRootNode(), 0, tr2->CreateNode<shade::graphs::IntEqualsNode>(), 0);
 
 		// Walk -> Idle
 		auto tr3 = walk->AddTransition(idle);
 		tr3->ConnectNodes(tr3->GetRootNode(), 0, tr3->CreateNode<shade::graphs::IntEqualsNode>(), 0);
 
-		// Walk -> Run
-		auto tr4 = walk->AddTransition(run);
-		tr4->ConnectNodes(tr4->GetRootNode(), 0, tr4->CreateNode<shade::graphs::IntEqualsNode>(), 0);
+		//// Walk -> Run
+		//auto tr4 = walk->AddTransition(run);
+		//tr4->ConnectNodes(tr4->GetRootNode(), 0, tr4->CreateNode<shade::graphs::IntEqualsNode>(), 0);
 
-		// Run -> Walk
-		auto tr5 = run->AddTransition(walk);
-		tr5->ConnectNodes(tr5->GetRootNode(), 0, tr5->CreateNode<shade::graphs::IntEqualsNode>(), 0);
+		//// Run -> Walk
+		//auto tr5 = run->AddTransition(walk);
+		//tr5->ConnectNodes(tr5->GetRootNode(), 0, tr5->CreateNode<shade::graphs::IntEqualsNode>(), 0);
 
-		// Run -> idle
-		auto tr6 = run->AddTransition(idle);
-		tr6->ConnectNodes(tr6->GetRootNode(), 0, tr6->CreateNode<shade::graphs::IntEqualsNode>(), 0);
+		//// Run -> idle
+		//auto tr6 = run->AddTransition(idle);
+		//tr6->ConnectNodes(tr6->GetRootNode(), 0, tr6->CreateNode<shade::graphs::IntEqualsNode>(), 0);
 
-		// Idle -> Run-Backowrd
-		auto tr7 = idle->AddTransition(run_bakcword);
-		tr7->ConnectNodes(tr7->GetRootNode(), 0, tr7->CreateNode<shade::graphs::IntEqualsNode>(), 0);
+		//// Idle -> Run-Backowrd
+		//auto tr7 = idle->AddTransition(run_bakcword);
+		//tr7->ConnectNodes(tr7->GetRootNode(), 0, tr7->CreateNode<shade::graphs::IntEqualsNode>(), 0);
 
-		// Run-Backowrd -> Idle 
-		auto tr8 = run_bakcword->AddTransition(idle);
-		tr8->ConnectNodes(tr8->GetRootNode(), 0, tr8->CreateNode<shade::graphs::IntEqualsNode>(), 0);
+		//// Run-Backowrd -> Idle 
+		//auto tr8 = run_bakcword->AddTransition(idle);
+		//tr8->ConnectNodes(tr8->GetRootNode(), 0, tr8->CreateNode<shade::graphs::IntEqualsNode>(), 0);
 
-		// Run -> Run-Backowrd
-		auto tr9 = run->AddTransition(run_bakcword);
-		tr9->ConnectNodes(tr9->GetRootNode(), 0, tr9->CreateNode<shade::graphs::IntEqualsNode>(), 0);
+		//// Run -> Run-Backowrd
+		//auto tr9 = run->AddTransition(run_bakcword);
+		//tr9->ConnectNodes(tr9->GetRootNode(), 0, tr9->CreateNode<shade::graphs::IntEqualsNode>(), 0);
 
-		// Run-Backowrd - > Run
-		auto tr10 = run_bakcword->AddTransition(run);
-		tr10->ConnectNodes(tr10->GetRootNode(), 0, tr10->CreateNode<shade::graphs::IntEqualsNode>(), 0);
+		//// Run-Backowrd - > Run
+		//auto tr10 = run_bakcword->AddTransition(run);
+		//tr10->ConnectNodes(tr10->GetRootNode(), 0, tr10->CreateNode<shade::graphs::IntEqualsNode>(), 0);
 
-		// Walk -> Run-Backowrd
-		auto tr11 = walk->AddTransition(run_bakcword);
-		tr11->ConnectNodes(tr11->GetRootNode(), 0, tr11->CreateNode<shade::graphs::IntEqualsNode>(), 0);
+		//// Walk -> Run-Backowrd
+		//auto tr11 = walk->AddTransition(run_bakcword);
+		//tr11->ConnectNodes(tr11->GetRootNode(), 0, tr11->CreateNode<shade::graphs::IntEqualsNode>(), 0);
 
-		// Run-Backowrd -> Walk
-		auto tr12 = run_bakcword->AddTransition(walk);
-		tr12->ConnectNodes(tr12->GetRootNode(), 0, tr12->CreateNode<shade::graphs::IntEqualsNode>(), 0);
+		//// Run-Backowrd -> Walk
+		//auto tr12 = run_bakcword->AddTransition(walk);
+		//tr12->ConnectNodes(tr12->GetRootNode(), 0, tr12->CreateNode<shade::graphs::IntEqualsNode>(), 0);
 
 		// Walk -> Run
 		//auto tr4 = walk->AddTransition(run);

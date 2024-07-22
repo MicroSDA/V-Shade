@@ -72,8 +72,6 @@ shade::animation::AnimationGraph::AnimationGraph(graphs::GraphContext* context, 
 {
 	m_OutPutPoseNode = CreateNode<OutputPoseNode>();
 	SetRootNode(m_OutPutPoseNode);
-
-	CreateInputNode<graphs::IntNode>("DirectState");
 }
 
 void shade::animation::AnimationGraph::ProcessGraph(const shade::FrameTimer& deltaTime)

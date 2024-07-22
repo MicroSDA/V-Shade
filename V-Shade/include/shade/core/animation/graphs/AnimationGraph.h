@@ -7,7 +7,11 @@
 #include <shade/core/animation/graphs/nodes/BoneMaskNode.h>
 #include <shade/core/animation/graphs/AnimationGraphContext.h>
 #include <shade/core/animation/graphs/nodes/StateMachineNode.h>
+
 #include <shade/core/graphs/nodes/IntNode.h>
+#include <shade/core/graphs/nodes/IntEqualsNode.h>
+#include <shade/core/graphs/nodes/FloatNode.h>
+#include <shade/core/graphs/nodes/FloatEqualsNode.h>
 
 namespace shade
 {
@@ -29,8 +33,41 @@ namespace shade
 			SHADE_INLINE T* CreateInputNode(const std::string& name, Args&&... args)
 			{
 				T* node = SNEW T(GetGraphContext(), m_InputNodes.size(), std::forward<Args>(args)...);
+				node->SetName(name);
+
+				if (m_InputNodes.find(name) != m_InputNodes.end())
+					return nullptr;
+
 				m_InputNodes.emplace(name, node).first->second->Initialize(this, this);
 				return node;
+			}
+
+			SHADE_INLINE bool RemoveInputNode(const std::string& name)
+			{
+				auto node = m_InputNodes.find(name);
+				if (node != m_InputNodes.end())
+				{
+					m_InputNodes.erase(node);
+					return true;
+				}
+
+				return false;
+			}
+
+			SHADE_INLINE bool RemoveInputNode(BaseNode* pNode)
+			{
+				auto node = std::find_if(m_InputNodes.begin(), m_InputNodes.end(), [pNode](const std::pair<std::string, BaseNode*>& node)
+					{
+						return node.second == pNode;
+					});
+
+				if (node != m_InputNodes.end())
+				{
+					m_InputNodes.erase(node);
+					return true;
+				}
+
+				return false;
 			}
 
 			template<typename T>

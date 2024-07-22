@@ -67,10 +67,10 @@ vec4 CreateGrid(vec3 gridColor, vec3 fragPos3D, float scale, bool drawAxis)
     vec4  Color = vec4(gridColor.rgb, 1.0 - min(Line, 1));
     // Z axis
     if(fragPos3D.x > - 3 * MinX && fragPos3D.x < 3 * MinX)
-       Color.rgb = vec3(0.0, 0.0, 2.0);
+       Color.rgb = vec3(0.0, 0.0, 1.0);
     // X axis
     if(fragPos3D.z > - 3 * MinZ && fragPos3D.z < 3 * MinZ)
-        Color.rgb = vec3(2.0, 0.0, 0.0);
+        Color.rgb = vec3(1.0, 0.0, 0.0);
 
     return Color;
 }

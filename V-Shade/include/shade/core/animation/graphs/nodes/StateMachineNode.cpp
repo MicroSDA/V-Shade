@@ -31,7 +31,7 @@ void shade::animation::state_machine::TransitionNode::Evaluate(const FrameTimer&
 	GetRootNode()->ProcessBranch(deltaTime);
 }
 
-shade::animation::state_machine::StateNode::StateNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, const std::string& name) : BaseNode(context, identifier) ,m_Name(name)
+shade::animation::state_machine::StateNode::StateNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, const std::string& name) : BaseNode(context, identifier, name)
 {
 	m_pOutPutPoseNode = CreateNode<OutputPoseNode>();
 	// Not sure where there shoudl be blend node
@@ -96,7 +96,7 @@ void shade::animation::state_machine::StateNode::Shutdown()
 {
 }
 
-shade::animation::state_machine::StateMachineNode::StateMachineNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier) : BaseNode(context, identifier)
+shade::animation::state_machine::StateMachineNode::StateMachineNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier) : BaseNode(context, identifier, "State machine")
 {
 	REGISTER_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(nullptr);
 }
@@ -108,16 +108,27 @@ shade::animation::state_machine::StateMachineNode::~StateMachineNode()
 void shade::animation::state_machine::StateMachineNode::Evaluate(const FrameTimer& deltaTime)
 {
 	// Should be aka default state, because state machine has only states
-	GetRootNode()->ProcessBranch(deltaTime);
+	if (GetRootNode() != nullptr)
+	{
+		GetRootNode()->ProcessBranch(deltaTime);
+	}
 }
 
 shade::animation::state_machine::StateNode* shade::animation::state_machine::StateMachineNode::CreateState(const std::string& name)
 {
-	return CreateNode<StateNode>(name);
+	auto state = CreateNode<StateNode>(name);
+
+	if (GetRootNode() == nullptr) SetRootNode(state);
+
+	return state;
 }
 
-shade::animation::state_machine::OutputTransitionNode::OutputTransitionNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier) : BaseNode(context, identifier)
+shade::animation::state_machine::OutputTransitionNode::OutputTransitionNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier) : BaseNode(context, identifier, "OutputTransition")
 {
+	m_IsRenamable	= false;
+	m_IsRemovable	= false;
+	m_CanBeOpen		= false;
+
 	REGISTER_ENDPOINT<graphs::Connection::Input, NodeValueType::Bool>(false);
 	REGISTER_ENDPOINT<graphs::Connection::Input, NodeValueType::Float>(0.0);
 	REGISTER_ENDPOINT<graphs::Connection::Input, NodeValueType::Bool>(0.0);

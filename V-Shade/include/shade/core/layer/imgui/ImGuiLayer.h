@@ -197,6 +197,7 @@ namespace shade
 
 		static void TextUTF8(const std::u8string& string);
 		static void DrawFontIcon(const char8_t* c, std::size_t fontIndex, float size);
+		static bool IconButton(const char8_t* c, std::size_t fontIndex, float iconScale, float scale);
         // Dummy data structure provided for the example.
         // Note that we storing links as indices (not ID) to make example code shorter.
 		static void ShowExampleAppCustomNodeGraph(bool* opened);

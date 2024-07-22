@@ -40,7 +40,11 @@ namespace shade
 			glm::vec2 OutputScreenPosition	= glm::vec2(0.f);
 		};
 
-		
+		struct NodesPack
+		{
+			std::vector<Connection> Connections;
+			std::vector<BaseNode*>  InternalNodes;
+		};
 
 		/// @brief Structure representing the context of a graph
 		struct GraphContext
@@ -51,6 +55,29 @@ namespace shade
 			ecs::Entity Entity;
 			///@brief Connections
 			std::unordered_map<BaseNode*, std::vector<Connection>> Connections;
+
+			SHADE_INLINE bool IsEndpointFree(BaseNode* firstNode, EndpointIdentifier firstEndpoint,
+				BaseNode* secondNode, EndpointIdentifier secondEndpoint, Connection::Type type) const
+			{
+				const auto node = Connections.find(firstNode);
+
+				if (node != Connections.end())
+				{
+					auto connection = std::find_if(
+						node->second.begin(),
+						node->second.end(),
+						[secondNode, firstEndpoint](const Connection& connection)
+						{
+							return (connection.InputEndpoint != firstEndpoint);
+						});
+
+					return connection != node->second.end();
+				}
+				else
+				{
+					return true;
+				}
+			}
 
 			SHADE_INLINE bool IsConnectionExist(BaseNode* firstNode, EndpointIdentifier firstEndpoint, 
 				BaseNode* secondNode, EndpointIdentifier secondEndpoint, Connection::Type type) const 
@@ -75,7 +102,7 @@ namespace shade
 			SHADE_INLINE bool AddConnection(BaseNode* firstNode, EndpointIdentifier firstEndpoint,
 				BaseNode* secondNode, EndpointIdentifier secondEndpoint, Connection::Type type)
 			{
-				if (!IsConnectionExist(firstNode, firstEndpoint, secondNode, secondEndpoint, type))
+				if (IsEndpointFree(firstNode, firstEndpoint, secondNode, secondEndpoint, type) && !IsConnectionExist(firstNode, firstEndpoint, secondNode, secondEndpoint, type))
 				{
 					auto connection = Connections.find(firstNode);
 					if (connection != Connections.end())
@@ -109,6 +136,15 @@ namespace shade
 				}
 
 				return false;
+			}
+
+			SHADE_API bool RemoveAllInputConnection(BaseNode* firstNode);
+			
+			SHADE_API bool RemoveAllOutputConnection(BaseNode* firstNode);
+			
+			SHADE_INLINE bool RemoveAllConnection(BaseNode* firstNode)
+			{
+				return (RemoveAllOutputConnection(firstNode) | RemoveAllInputConnection(firstNode));
 			}
 
 			SHADE_INLINE Connection FindConnection(BaseNode* firstNode, EndpointIdentifier firstEndpoint,

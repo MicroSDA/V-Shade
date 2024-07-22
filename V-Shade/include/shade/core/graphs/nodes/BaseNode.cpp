@@ -6,6 +6,11 @@ shade::graphs::BaseNode::BaseNode(GraphContext* context, NodeIdentifier identifi
 {
 }
 
+shade::graphs::BaseNode::BaseNode(GraphContext* context, NodeIdentifier identifier, const std::string& name) :
+	m_pGraphContext(context), m_NodeIdentifier(identifier), m_Name(name)
+{
+}
+
 shade::graphs::BaseNode::~BaseNode()
 {
 	assert(m_pParrentNode == nullptr);
@@ -70,7 +75,7 @@ bool shade::graphs::BaseNode::ConnectValues(std::shared_ptr<NodeValue>* inputEnd
 
 bool shade::graphs::BaseNode::DisconnectNodes(NodeIdentifier inputNode, EndpointIdentifier inputEndpoint, NodeIdentifier outputNode, EndpointIdentifier outputEndpoint)
 {
-	auto pInput = FindNode(inputNode);
+	auto pInput  = FindNode(inputNode);
 	auto pOutput = FindNode(outputNode);
 
 	if (!pInput) return false;
@@ -124,6 +129,76 @@ shade::graphs::BaseNode* shade::graphs::BaseNode::FindNode(NodeIdentifier identi
 
 	return nullptr;
 }
+
+void shade::graphs::BaseNode::RemoveReferNodeRecursively(shade::graphs::BaseNode* pNode)
+{
+	for (auto node : m_Nodes)
+	{
+		node->RemoveReferNodeRecursively(pNode);
+	}
+	
+	auto it = std::find_if(m_ReferNodes.begin(), m_ReferNodes.end(), [pNode](const BaseNode* node) { return node == pNode; });
+
+	if (it != m_ReferNodes.end())
+	{
+		GetGraphContext()->RemoveAllConnection((*it));
+		m_ReferNodes.erase(it, m_ReferNodes.end());
+	}
+}
+
+bool shade::graphs::BaseNode::RemoveNode(BaseNode* pNode)
+{
+	auto nodesIt = std::find_if(m_Nodes.begin(), m_Nodes.end(), [pNode](const BaseNode* node)
+		{
+			return node == pNode;
+		});
+
+	if (nodesIt != m_Nodes.end())
+	{
+		GetGraphContext()->RemoveAllConnection(pNode);
+
+		pNode->Shutdown();
+
+		SDELETE pNode;
+
+		m_Nodes.erase(nodesIt);
+		return true;
+	}
+	else
+	{
+		// If it's refer node 
+		auto refersIt = std::find_if(m_ReferNodes.begin(), m_ReferNodes.end(), [pNode](const BaseNode* node)
+			{
+				return node == pNode;
+			});
+
+		if (refersIt != m_ReferNodes.end())
+		{
+			GetGraphContext()->RemoveAllConnection((*refersIt));
+
+			if ((*refersIt)->GetParrentGraph() == this)
+			{
+				// wee need to go throu all nodes and remvoe refer from each node
+
+				auto node = (*refersIt);
+				node->GetParrentRootGraph()->RemoveReferNodeRecursively(pNode);
+
+				node->Shutdown();
+
+				SDELETE node;
+			}
+			else
+			{
+				m_ReferNodes.erase(refersIt);
+			}
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
 
 void shade::graphs::BaseNode::OnDisconnect(Connection::Type connectionType, NodeValueType type, EndpointIdentifier endpoint)
 {

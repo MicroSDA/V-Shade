@@ -88,7 +88,7 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 		m_MainTargetFrameBuffer = FrameBuffer::CreateFromSwapChain();
 	else
 	{
-		m_MainTargetFrameBuffer = { Renderer::GetFramesCount(), FrameBuffer::Create({ 1000, 1000, {0.0f, 0.0f, 0.0f, 1.f}, 1.f, { { render::Image::Format::RGBA32F}, { render::Image::Format::RGBA32F}, { render::Image::Format::RGBA32F}, { render::Image::Format::DEPTH32F } } }) };
+		m_MainTargetFrameBuffer = { Renderer::GetFramesCount(), FrameBuffer::Create({ 1000, 1000, {0.05f, 0.05f, 0.05f, 1.f}, 1.f, { { render::Image::Format::RGBA32F}, { render::Image::Format::RGBA32F}, { render::Image::Format::RGBA32F}, { render::Image::Format::DEPTH32F } } }) };
 	}
 	
 	m_LightCullingPreDepthFrameBuffer	= FrameBuffer::Create({ 1, 1, {0.0f, 0.0f, 0.0f, 1.f}, 1.f, { { render::Image::Format::DEPTH24STENCIL8 } } });
@@ -603,6 +603,7 @@ void shade::SceneRenderer::RecompileAllPipelines()
 {
 	m_MainGeometryPipelineStatic->Recompile();
 	m_MainGeometryPipelineAnimated->Recompile();
+	m_GridPipeline->Recompile();
 	/*m_ScreenSpaceAmbientOcclusionPipeline->Recompile();
 	m_BloomPipeline->Recompile();
 	m_GridPipeline->Recompile();

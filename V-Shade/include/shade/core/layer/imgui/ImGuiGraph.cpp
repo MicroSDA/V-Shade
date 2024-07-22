@@ -1,5 +1,6 @@
 #include "shade_pch.h"
 #include "ImGuiGraph.h"
+#include <shade/core/layer/imgui/ImGuiLayer.h>
 
 void shade::ImGuiGraphNodeRender::DrawGridLines(const ImVec2& start, const ImVec2& canvasSize, const float gridSpace, const ImVec2& windowPos, const ImColor& gridColor, const ImColor& gridColor2, ImDrawList* drawList, int divx, int divy)
 {
@@ -55,4 +56,36 @@ void shade::ImGuiGraphNodeRender::DrawGrid(
 	const int divy = static_cast<int>(-canvasPosition.y / gridSize);
 
 	DrawGridLines(canvasPosition * scaleFactor, canvasSize, gridSpace, windowPosition, gridColor, gridColor2, drawList, divx, divy);
+}
+
+bool shade::ImGuiGraphNodeRender::DrawReferNodeConnection(
+	ImDrawList* drawList, 
+	const ImVec2& offset, 
+	float scaleFactor, 
+	const ImVec2& point, 
+	const ImVec2& fontSizePx, 
+	const ImVec4& connectionColor,
+	float iconSize)
+{
+	ImVec2	const	icoScreenPos = offset + point - fontSizePx / 2.f * scaleFactor;
+	ImRect  rect = { icoScreenPos, icoScreenPos + fontSizePx * scaleFactor };
+
+	bool hasFocus = false;
+
+	if (rect.Contains(ImGui::GetIO().MousePos))
+	{
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4 { connectionColor.x * 1.5f,connectionColor.y * 1.5f, connectionColor.z * 1.5f, connectionColor.w } );
+		hasFocus = true;
+	}
+	else
+	{
+		ImGui::PushStyleColor(ImGuiCol_Text, connectionColor);
+	}
+
+	ImGui::SetCursorScreenPos(icoScreenPos);
+	
+	ImGuiLayer::DrawFontIcon(u8"\xe867", 1, iconSize);
+	ImGui::PopStyleColor();
+
+	return hasFocus;
 }

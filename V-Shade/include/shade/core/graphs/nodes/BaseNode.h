@@ -15,9 +15,14 @@ namespace shade
 		public:
 			SHADE_CAST_HELPER(BaseNode)
 
+				/// @brief Default BaseNode constructor.
+				/// @param NodeIdentifier node identifier.
+				BaseNode(GraphContext* context, NodeIdentifier identifier);
+
+
 			/// @brief Default BaseNode constructor.
 			/// @param NodeIdentifier node identifier.
-			BaseNode(GraphContext* context, NodeIdentifier identifier);
+			BaseNode(GraphContext* context, NodeIdentifier identifier, const std::string& name);
 
 			virtual ~BaseNode();
 
@@ -64,6 +69,41 @@ namespace shade
 
 			/// @brief
 			/// @return
+			SHADE_INLINE void SetName(const std::string& name)
+			{
+				m_Name = name;
+			}
+
+			/// @brief
+			/// @return
+			SHADE_INLINE const std::string& GetName() const
+			{
+				return m_Name;
+			}
+
+			/// @brief
+			/// @return
+			SHADE_INLINE bool CanBeOpen() const
+			{
+				return m_CanBeOpen;
+			}
+
+			/// @brief
+			/// @return
+			SHADE_INLINE bool IsRemovable() const
+			{
+				return m_IsRemovable;
+			}
+
+			/// @brief
+			/// @return
+			SHADE_INLINE bool IsRenamable() const
+			{
+				return m_IsRenamable;
+			}
+
+			/// @brief
+			/// @return
 			SHADE_INLINE bool IsRootGraph() const
 			{
 				return !HasParrent();
@@ -75,9 +115,11 @@ namespace shade
 			{
 				return m_pParrentNode != nullptr;
 			}
+
 			/// @brief
 			void AddReferNode(BaseNode* node)
 			{
+				if (std::find(m_ReferNodes.begin(), m_ReferNodes.end(), node) == m_ReferNodes.end());
 				m_ReferNodes.emplace_back(node);
 			}
 
@@ -88,6 +130,11 @@ namespace shade
 				m_Nodes.emplace_back(node)->Initialize(this, (!m_pRootParrentNode) ? this : m_pRootParrentNode);
 				return node;
 			}
+
+			/// @brief 
+			/// @return 
+			bool RemoveNode(BaseNode* pNode);
+
 
 			/// @brief Getter for the node identifier
 			/// @return The index of the graph node
@@ -112,9 +159,12 @@ namespace shade
 
 			/// @brief Get parrent graph const pointer.
 			/// @return const BaseGraph* pointer to parrent graph. Can be nullptr if here's no parrent graph.
-			SHADE_INLINE const BaseNode* GetParrentGraph() const { return m_pParrentNode; }
+			SHADE_INLINE const BaseNode* GetParrentGraph() const
+			{
+				return m_pParrentNode;
+			}
 			SHADE_INLINE const BaseNode* GetParrentRootGraph() const { return m_pRootParrentNode; }
-			SHADE_INLINE BaseNode* GetParrentRootGraph()  { return m_pRootParrentNode; }
+			SHADE_INLINE BaseNode* GetParrentRootGraph() { return m_pRootParrentNode; }
 
 			/// @brief Virtual function for evaluating the node
 			/// @param deltaTime The time elapsed since the last evaluation
@@ -124,7 +174,7 @@ namespace shade
 			/// @param connectionType The type of the connection (Input or Output)
 			/// @param type The type of the node value being connected
 			/// @param endpoint The index of the endpoint being connected
-			virtual void OnConnect(Connection::Type connectionType, NodeValueType type, EndpointIdentifier endpoint) { /*assert(false && "In case if you are using this function you need to impliment it fist!"); */};
+			virtual void OnConnect(Connection::Type connectionType, NodeValueType type, EndpointIdentifier endpoint) { /*assert(false && "In case if you are using this function you need to impliment it fist!"); */ };
 
 			/// @brief Virtual function for handling connection events when a node is disconnected
 			/// @param connectionType The type of the connection (Input or Output)
@@ -285,17 +335,21 @@ namespace shade
 				return ((index < m_Endpoints[static_cast<std::size_t>(T)].GetSize()) ? &m_Endpoints[static_cast<std::size_t>(T)].At(index) : nullptr);
 			}
 		protected:
-			BaseNode*							m_pParrentNode		= nullptr;
-			BaseNode*							m_pRootParrentNode  = nullptr;
-			BaseNode*							m_pRootNode			= nullptr;
-			glm::vec2							m_ScreenPosition	= glm::vec2(0.f);
+			BaseNode* m_pParrentNode = nullptr;
+			BaseNode* m_pRootParrentNode = nullptr;
+			BaseNode* m_pRootNode = nullptr;
+			glm::vec2							m_ScreenPosition = glm::vec2(0.f);
 			std::vector<BaseNode*>				m_Nodes;
 			std::vector<BaseNode*>				m_ReferNodes;
+			std::string							m_Name = "Node";
+			bool								m_IsRenamable = true;
+			bool								m_IsRemovable = true;
+			bool								m_CanBeOpen = true;
 		private:
 			NodeIdentifier																	m_NodeIdentifier;
 			GraphContext* const 															m_pGraphContext = nullptr;
 			std::array<NodeValues, static_cast<std::size_t>(Connection::Type::MAX_ENUM)>	m_Endpoints;
-			
+			void RemoveReferNodeRecursively(shade::graphs::BaseNode* pNode);
 		};
 	}
 }
