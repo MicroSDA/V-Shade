@@ -2,64 +2,80 @@
 #include "GraphContext.h"
 #include <shade/core/graphs/nodes/BaseNode.h>
 
-bool shade::graphs::GraphContext::RemoveAllInputConnection(BaseNode* firstNode)
+SHADE_API void shade::graphs::GraphContext::InitializeNode(BaseNode* pNode, BaseNode* pParrent)
 {
-	const auto node = Connections.find(firstNode);
+	Nodes.emplace(pNode, NodesPack{}).first->first->Initialize();
+}
 
-	if (node != Connections.end())
+SHADE_API bool shade::graphs::GraphContext::RemoveNode(BaseNode* pNode)
+{
+	std::unordered_map<BaseNode*, NodesPack>::iterator node = Nodes.find(pNode);
+
+	assert(node != Nodes.end() && "");
+
+	RemoveAllConnection(pNode);
+
+	for (BaseNode* internalNode : GetInternalNodes(pNode))
 	{
-		for (auto& connection : node->second)
-		{
-			connection.OutputNode->OnDisconnect(Connection::Type::Output, connection.OutputNode->GetEndpoint<Connection::Output>(connection.OutputEndpoint)->GetType(), connection.OutputEndpoint);
-			connection.InputNode->OnDisconnect(Connection::Type::Input, connection.InputNode->GetEndpoint<Connection::Input>(connection.InputEndpoint)->GetType(), connection.InputEndpoint);
-		}
+		RemoveNode(internalNode);
+	}
 
-		Connections.erase(node);
+	BaseNode* pParrent = pNode->GetParrentGraph();
+
+	if (pParrent != nullptr)
+	{
+		std::unordered_map<BaseNode*, NodesPack>::iterator parrent = Nodes.find(pParrent);
+		assert(parrent != Nodes.end() && "");
+
+		std::vector<BaseNode*>& internalNodes = parrent->second.InternalNodes;
+
+		auto asInternalNode = std::find_if(internalNodes.begin(), internalNodes.end(), [pNode](const BaseNode* node)
+			{
+				return node == pNode;
+			});
+
+		internalNodes.erase(asInternalNode, internalNodes.end()); // Need to remove them recursevly!
+	}
+
+	pNode->Shutdown(); SDELETE pNode; Nodes.erase(node);
+
+	return true;
+}
+
+bool shade::graphs::GraphContext::RemoveAllInputConnection(BaseNode* pConnectedTo)
+{
+	std::vector<Connection>* connections = GetConnections(pConnectedTo);
+
+	if (connections != nullptr)
+	{
+		connections->clear();
 		return true;
 	}
-	else
-	{
-		return false;
-	}
+
+	return false;
 }
 
 
-bool shade::graphs::GraphContext::RemoveAllOutputConnection(BaseNode* firstNode)
+bool shade::graphs::GraphContext::RemoveAllOutputConnection(BaseNode* pConnectedFrom)
 {
-	bool isRemoved = false;
+	bool wasRemoved = false;
 
-	for (auto it = Connections.begin(); it != Connections.end(); )
+	for (auto& [node, pack] : Nodes)
 	{
-		auto& [input, connections] = *it;
+		std::vector<Connection>& connections = pack.Connections;
 
-		// Remove connections where OutputNode == firstNode
-		auto remove = std::remove_if(connections.begin(), connections.end(), [firstNode](const Connection& connection)
+		auto remove = std::remove_if(connections.begin(), connections.end(), [pConnectedFrom](const Connection& connection)
 			{
-				return connection.OutputNode == firstNode;
+				return connection.PConnectedFrom == pConnectedFrom;
 			});
 
 		if (remove != connections.end())
 		{
-			
-			remove->OutputNode->OnDisconnect(Connection::Type::Output, remove->OutputNode->GetEndpoint<Connection::Output>(remove->OutputEndpoint)->GetType(), remove->OutputEndpoint);
-			remove->InputNode->OnDisconnect(Connection::Type::Input, remove->InputNode->GetEndpoint<Connection::Input>(remove->InputEndpoint)->GetType(), remove->InputEndpoint);
-
 			connections.erase(remove, connections.end());
-			isRemoved = true;
-		}
-
-		// Check if the connections vector is now empty
-		if (connections.empty())
-		{
-			// Erase the entry from the Connections map
-			it = Connections.erase(it);
-		}
-		else
-		{
-			++it;
+			wasRemoved = true;
 		}
 	}
 
-	return isRemoved;
+	return wasRemoved;
 }
 

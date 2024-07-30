@@ -87,7 +87,7 @@ void graph_editor::GraphNodePrototype::DrawHeader(const InternalContext* context
 		{
 			if (shade::ImGuiLayer::IconButton(u8"\xe867", 1, 0.5f, context->Scale.Factor))
 			{
-				context->CurrentGraph = this;
+				context->CurrentNode = GetNode();
 			}
 
 			ImGui::SameLine();
@@ -126,7 +126,7 @@ void graph_editor::GraphNodePrototype::DrawHeader(const InternalContext* context
 
 			if (shade::ImGuiLayer::IconButton(u8"\xe85d", 1, 0.3f, context->Scale.Factor))
 			{
-				//GetEditor()->RemoveNode(GetNode()); // So there wee need to stop executing this node bacuse we are remove it, or make call back for removing !!
+				GetEditor()->SetToRemove(GetNode()); // So there wee need to stop executing this node bacuse we are remove it, or make call back for removing !!
 			}
 		}
 
@@ -258,7 +258,7 @@ void graph_editor::GraphNodePrototype::DrawEndpoints(const InternalContext* cont
 	auto& endpoints = node->GetEndpoints();
 	auto inputs = endpoints[shade::graphs::Connection::Input].begin();
 	auto outputs = endpoints[shade::graphs::Connection::Output].begin();
-	auto connections = graphContext->Connections.find(node);
+	auto& connections = GetNode()->GetConnections();
 	bool needToOpenPopup = false;
 
 	static std::function<void(graphs::BaseNode*)> Callback;
@@ -283,24 +283,19 @@ void graph_editor::GraphNodePrototype::DrawEndpoints(const InternalContext* cont
 
 				ProcessEndpoint(endpoint, shade::graphs::Connection::Input, *inputs->first);
 
-				const auto connections = node->GetGraphContext()->Connections.find(node);
-
 				bool referConnection = false;
 				// If connections exist at this endpoint
-				if (connections != node->GetGraphContext()->Connections.end())
-				{
-					auto it = std::find_if(connections->second.begin(), connections->second.end(), [endpoint](const shade::graphs::Connection& c)
-						{
-							return c.InputEndpoint == endpoint;
-						});
-
-					if (it != connections->second.end())
+				auto it = std::find_if(connections.begin(), connections.end(), [endpoint](const shade::graphs::Connection& c)
 					{
-						// If connection with refer endpoint
-						if (GetEditor()->GetPrototypedReferNode((*it).OutputNode))
-						{
-							referConnection = true;
-						}
+						return c.ConnectedToEndpoint == endpoint;
+					});
+
+				if (it != connections.end())
+				{
+					// If connection with refer endpoint
+					if (GetEditor()->GetPrototypedReferNode((*it).PConnectedFrom))
+					{
+						referConnection = true;
 					}
 				}
 
@@ -338,19 +333,16 @@ void graph_editor::GraphNodePrototype::DrawEndpoints(const InternalContext* cont
 					context->ConnectionEstablish.InputEndpointScreenPosition = endpointScreenPosition;
 				}
 
-				if (connections != graphContext->Connections.end())
-				{
-					graphs::EndpointIdentifier endpoint = std::distance(endpoints[shade::graphs::Connection::Input].begin(), inputs);
+				//graphs::EndpointIdentifier endpoint = std::distance(endpoints[shade::graphs::Connection::Input].begin(), inputs);
 
-					auto connection = std::find_if(connections->second.begin(), connections->second.end(), [endpoint](const graphs::Connection& connection)
-						{
-							return (connection.InputEndpoint == endpoint);
-						});
-
-					if (connection != connections->second.end())
+				auto connection = std::find_if(connections.begin(), connections.end(), [endpoint](const graphs::Connection& connection)
 					{
-						connection->InputScreenPosition = glm::vec2(endpointScreenPosition.x, endpointScreenPosition.y);
-					}
+						return (connection.ConnectedToEndpoint == endpoint);
+					});
+
+				if (connection != connections.end())
+				{
+					connection->ConnectedToPosition = glm::vec2(endpointScreenPosition.x, endpointScreenPosition.y);
 				}
 
 				inputs++;
@@ -393,22 +385,26 @@ void graph_editor::GraphNodePrototype::DrawEndpoints(const InternalContext* cont
 					context->ConnectionEstablish.OutPutEndpointScreenPosition = endpointScreenPosition;
 				}
 
-				for (auto& graphConnections : graphContext->Connections)
+				for (auto& [n, pack] : graphContext->GetNodes())
 				{
 					graphs::EndpointIdentifier endpoint = std::distance(endpoints[shade::graphs::Connection::Output].begin(), outputs);
+				
+					auto it = pack.Connections.begin();
 
-					auto connection = std::find_if(graphConnections.second.begin(), graphConnections.second.end(), [endpoint, node](const graphs::Connection& connection)
-						{
-							return (connection.OutputNode == node && connection.OutputEndpoint == endpoint);
-
-						});
-
-					if (connection != graphConnections.second.end())
+					while (it != pack.Connections.end())
 					{
-						connection->OutputScreenPosition = glm::vec2(endpointScreenPosition.x, endpointScreenPosition.y);
+						it = std::find_if(it, pack.Connections.end(), [endpoint, node](const graphs::Connection& connection)
+							{
+								return (connection.PConnectedFrom == node && connection.ConnectedFromEndpoint == endpoint);
+							});
+
+						if (it != pack.Connections.end())
+						{
+							it->ConnectedFromPosition = glm::vec2(endpointScreenPosition.x, endpointScreenPosition.y);
+							++it; 
+						}
 					}
 				}
-
 				outputs++;
 			}
 			else
@@ -418,7 +414,7 @@ void graph_editor::GraphNodePrototype::DrawEndpoints(const InternalContext* cont
 		}
 
 		ImGui::EndTable();
-
+		
 	}
 
 	ImGui::PopStyleVar();
@@ -440,9 +436,9 @@ void graph_editor::GraphNodePrototype::DrawEndpoints(const InternalContext* cont
 
 			if (ImGui::Selectable(name.c_str()))
 			{
-				if (context->CurrentGraph)
+				if (context->CurrentNode)
 				{
-					context->CurrentGraph->GetNode()->AddReferNode(referNode);
+					//context->CurrentGraph->GetNode()->AddReferNode(referNode);
 					Callback(referNode);
 					Callback = {}; // reset
 				}
@@ -456,32 +452,27 @@ void graph_editor::GraphNodePrototype::DrawEndpoints(const InternalContext* cont
 
 void graph_editor::GraphNodePrototype::DrawConnections(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes)
 {
-	auto& connections = nodes.begin()->second->GetNode()->GetGraphContext()->Connections;
+	auto& connections = GetNode()->GetConnections();
 
-	if (connections.find(GetNode()) != connections.end())
+	for (auto& connection : connections)
 	{
-		auto& nodeConnections = connections.at(GetNode());
-
-		for (const auto& connection : nodeConnections)
+		if (nodes.find(std::size_t(connection.PConnectedFrom)) == nodes.end())
 		{
-			if (nodes.find(std::size_t(connection.OutputNode)) == nodes.end())
-			{
-				ImGuiGraphNodeRender::DrawReferNodeConnection(context->DrawList, context->Offset, context->Scale.Factor, ImVec2{ connection.InputScreenPosition.x, connection.InputScreenPosition.y },
-					ImVec2{ 30.f, 30.f },
-					ImVec4{ 0.7f, 0.7f, 0.1f, 1.f }, 1.f);
-			}
-			else
-			{
-				ImGuiGraphNodeRender::DrawConnection(
-					context->DrawList,
-					context->Offset,
-					context->Scale.Factor,
-					ImVec2{ connection.InputScreenPosition.x,  connection.InputScreenPosition.y },
-					ImVec2{ connection.OutputScreenPosition.x, connection.OutputScreenPosition.y },
+			ImGuiGraphNodeRender::DrawReferNodeConnection(context->DrawList, context->Offset, context->Scale.Factor, ImVec2{ connection.ConnectedToPosition.x, connection.ConnectedToPosition.y },
+				ImVec2{ 30.f, 30.f },
+				ImVec4{ 0.7f, 0.7f, 0.1f, 1.f }, 1.f);
+		}
+		else
+		{
+			ImGuiGraphNodeRender::DrawConnection(
+				context->DrawList,
+				context->Offset,
+				context->Scale.Factor,
+				ImVec2{ connection.ConnectedToPosition.x,  connection.ConnectedToPosition.y },
+				ImVec2{ connection.ConnectedFromPosition.x, connection.ConnectedFromPosition.y },
 
-					ImVec4{ 1, 1, 1, 1 },
-					graphStyle->ConnectionThickness);
-			}
+				ImVec4{ 1, 1, 1, 1 },
+				graphStyle->ConnectionThickness);
 		}
 	}
 
@@ -523,13 +514,13 @@ void graph_editor::GraphEditor::InitializeRecursively(graphs::BaseNode* pNode, s
 	{
 		state_machine::StateNode* state = reinterpret_cast<state_machine::StateNode*>(pNode);
 		nodes[std::size_t(pNode)] = new StateNodeDelegate(pNode, this);
-		// Transitions nodes aka logic
-		for (auto transition : state->GetTransitions())
-		{
-			InitializeRecursively(transition, nodes);
-		}
+		//// Transitions nodes aka logic
+		//for (auto transition : state->GetTransitions())
+		//{
+		//	InitializeRecursively(transition, nodes);
+		//}
 		// Play animation nodes aka
-		for (auto node : state->GetNodes())
+		for (auto node : state->GetInternalNodes())
 		{
 			InitializeRecursively(node, nodes);
 		}
@@ -538,9 +529,9 @@ void graph_editor::GraphEditor::InitializeRecursively(graphs::BaseNode* pNode, s
 	{
 		// Transition as graph node, contains nodes
 		state_machine::TransitionNode* transition = reinterpret_cast<state_machine::TransitionNode*>(pNode);
-		nodes[std::size_t(pNode)] = new TransitionNodeDelegate(pNode, this);
+		//nodes[std::size_t(pNode)] = new TransitionNodeDelegate(pNode, this);
 
-		for (auto node : transition->GetNodes())
+		for (auto node : transition->GetInternalNodes())
 		{
 			InitializeRecursively(node, nodes);
 		}
@@ -552,19 +543,13 @@ void graph_editor::GraphEditor::InitializeRecursively(graphs::BaseNode* pNode, s
 		nodes[std::size_t(pNode)] = new StateMachineNodeDeligate(pNode, this);
 
 		// Aka states
-		for (auto state : machine->GetNodes())
+		for (auto state : machine->GetInternalNodes())
 		{
 			InitializeRecursively(state, nodes);
 		}
 	}
 	else if (dynamic_cast<graphs::BaseNode*>(pNode))
 	{
-		// Probablu value node is not needed
-		if (dynamic_cast<shade::graphs::ValueNode*>(pNode))
-		{
-			shade::graphs::ValueNode* value = reinterpret_cast<shade::graphs::ValueNode*>(pNode);
-			nodes[std::size_t(pNode)] = new ValueNodeDelegate(pNode, this);
-		}
 		if (dynamic_cast<shade::animation::OutputPoseNode*>(pNode))
 		{
 			shade::animation::OutputPoseNode* value = reinterpret_cast<shade::animation::OutputPoseNode*>(pNode);
@@ -633,15 +618,22 @@ graph_editor::GraphNodePrototype* graph_editor::GraphEditor::GetPrototypedReferN
 		return nullptr;
 }
 
-bool graph_editor::GraphEditor::RemoveNode(graphs::BaseNode* pNode)
+bool graph_editor::GraphEditor::RemoveNode(graphs::BaseNode*& pNode)
 {
-	auto it = m_Nodes.find(std::size_t(pNode));
-
-	if (it != m_Nodes.end())
+	if (pNode)
 	{
-		m_Nodes.erase(it);
-		pNode->GetParrentGraph()->RemoveNode(pNode);
+		auto& in = pNode->GetInternalNodes();
+		for (auto cN : pNode->GetInternalNodes())
+			RemoveNode(cN);
 
+		auto it = m_Nodes.find(std::size_t(pNode));
+
+		if (it != m_Nodes.end())
+			m_Nodes.erase(it);
+
+		pNode->GetParrentGraph()->RemoveNode(pNode);
+		pNode = nullptr, m_pSelectedNode = nullptr;
+		
 		return true;
 	}
 
@@ -653,10 +645,12 @@ void graph_editor::GraphEditor::Initialize(AnimationGraph* pGraph)
 	// Add to nodes !!
 	m_Nodes[std::size_t(pGraph)] = new AnimationGraphDeligate(pGraph, this);
 
-	m_Context.CurrentGraph = m_Nodes.at(std::size_t(pGraph));
+	m_Context.CurrentNode = pGraph;
 	m_pRootGraph = pGraph;
 
-	for (auto node : m_pRootGraph->GetNodes())
+	//Анимациооный граф не создается через контекст и пожтому его там нету и его нодов, надо пофиксить
+
+	for (auto node : m_pRootGraph->GetInternalNodes())
 	{
 		InitializeRecursively(node, m_Nodes);
 	}
@@ -667,6 +661,11 @@ void graph_editor::GraphEditor::Initialize(AnimationGraph* pGraph)
 	}
 
 	//m_pGraph->Initialize();
+}
+
+void graph_editor::GraphEditor::SetToRemove(graphs::BaseNode* pNode)
+{
+	m_pNodeToRemove = pNode;
 }
 
 bool graph_editor::GraphEditor::Edit(const char* title, const ImVec2& size)
@@ -695,7 +694,10 @@ bool graph_editor::GraphEditor::Edit(const char* title, const ImVec2& size)
 				}
 				else
 				{
-					m_Context.CurrentGraph->ProcessSideBar(&m_Context, m_Nodes, m_ReferNodes);
+					if (auto pN = GetPrototypedNode(m_Context.CurrentNode))
+					{
+						pN->ProcessSideBar(&m_Context, m_Nodes, m_ReferNodes);
+					}
 				}
 
 
@@ -787,7 +789,10 @@ bool graph_editor::GraphEditor::Edit(const char* title, const ImVec2& size)
 
 				std::string search; ImGuiLayer::InputTextCol("Search", search);
 
-				m_Context.CurrentGraph->ProcessPopup(&m_Context, m_Nodes, search);
+				if (auto pN = GetPrototypedNode(m_Context.CurrentNode))
+				{
+					pN->ProcessPopup(&m_Context, m_Nodes, search);
+				}
 				PopupMenu();
 
 				ImGui::EndPopup();
@@ -800,7 +805,7 @@ bool graph_editor::GraphEditor::Edit(const char* title, const ImVec2& size)
 	ImGuiLayer::BeginWindowOverlay("Path",
 		ImGui::GetWindowViewport(), 123124,
 		ImVec2{ m_Context.CanvasSize.x, ImGui::GetContentRegionAvail().y + 5.f },
-		m_Context.CanvasRect.Min, 0.0f, [&]() {DrawPathRecursevly(m_Context.CurrentGraph); });
+		m_Context.CanvasRect.Min, 0.0f, [&]() {DrawPathRecursevly(m_Context.CurrentNode); });
 
 	if (m_Context.ConnectionEstablish.IsInputSelect && m_Context.ConnectionEstablish.IsOutPutSelect)
 	{
@@ -811,6 +816,9 @@ bool graph_editor::GraphEditor::Edit(const char* title, const ImVec2& size)
 			m_Context.ConnectionEstablish.OutPutEndpointIdentifier);
 		m_Context.ConnectionEstablish.Reset();
 	}
+
+
+	RemoveNode(m_pNodeToRemove);
 
 	return false;
 
@@ -848,32 +856,34 @@ ImVec2 graph_editor::GraphEditor::CalculateMouseWorldPos(const ImVec2& mousePosi
 
 void graph_editor::GraphEditor::DrawNodes()
 {
-	std::size_t CurrentChannel = m_Context.CurrentGraph->GetNode()->GetNodes().size() - 1;
+	std::size_t CurrentChannel = m_Context.CurrentNode->GetInternalNodes().size() - 1;
 
 	//m_Context.DrawList->ChannelsSplit((m_Context.CurrentGraph->GetNode()->GetNodes().size()) ? m_Context.CurrentGraph->GetNode()->GetNodes().size() + 1 : 1);
 
-	for (auto node : m_Context.CurrentGraph->GetNode()->GetNodes())
+	for (auto node : m_Context.CurrentNode->GetInternalNodes())
 	{
-		if (m_pSelectedNode != nullptr && node != m_pSelectedNode->GetNode())
+		if (auto pN = GetPrototypedNode(node))
 		{
-			m_Nodes.at(std::size_t(node))->SetSelected(false);
+			pN->SetSelected(false);
+
+			if (m_pSelectedNode != nullptr && node != m_pSelectedNode->GetNode())
+			{
+				pN->SetSelected(false);
+			}
+			//m_Context.DrawList->ChannelsSetCurrent(CurrentChannel);
+
+			pN->Draw(&m_Context, &m_VisualStyle, m_Nodes);
+
+			if (ImGui::IsItemActive()) { m_pSelectedNode = pN; }
+
+			//if (m_pSelectedNode && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
+			//{
+			//	m_Path.push_back(m_Context.CurrentGraph); // Change container type
+			//	m_Context.CurrentGraph = prototype;
+			//}
+
+			CurrentChannel--;
 		}
-
-		//m_Context.DrawList->ChannelsSetCurrent(CurrentChannel);
-
-		GraphNodePrototype* prototype = GetPrototypedNode(node);
-
-		prototype->Draw(&m_Context, &m_VisualStyle, m_Nodes);
-
-		if (ImGui::IsItemActive()) { m_pSelectedNode = prototype; }
-
-		//if (m_pSelectedNode && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
-		//{
-		//	m_Path.push_back(m_Context.CurrentGraph); // Change container type
-		//	m_Context.CurrentGraph = prototype;
-		//}
-
-		CurrentChannel--;
 	}
 
 	//for (auto node : m_Context.CurrentGraph->GetNode()->GetReferNodes())
@@ -901,45 +911,48 @@ void graph_editor::GraphEditor::DrawNodes()
 
 void graph_editor::GraphEditor::DrawConnections()
 {
-	if (m_Context.CurrentGraph)
+	if (m_Context.CurrentNode)
 	{
-		for (auto& node : m_Context.CurrentGraph->GetNode()->GetNodes())
+		for (auto& node : m_Context.CurrentNode->GetInternalNodes())
 		{
-			GetPrototypedNode(node)->DrawConnections(&m_Context, &m_VisualStyle, m_Nodes);
-		}
-
-		for (auto& node : m_Context.CurrentGraph->GetNode()->GetReferNodes())
-		{
-			auto& connections = m_ReferNodes.begin()->second->GetNode()->GetGraphContext()->Connections;
-
-			if (connections.find(node) != connections.end())
+			if (auto prototypedNode = GetPrototypedNode(node))
 			{
-				auto& nodeConnections = connections.at(node);
-
-				for (const auto& connection : nodeConnections)
-				{
-					const float size = 150.f;
-					const ImVec2	p1 = m_Context.Offset + ImVec2{ connection.OutputScreenPosition.x - size, connection.OutputScreenPosition.y + size },
-						p2 = m_Context.Offset + ImVec2{ connection.OutputScreenPosition.x - size, connection.OutputScreenPosition.y - size },
-						p3 = m_Context.Offset + ImVec2{ connection.OutputScreenPosition.x, connection.OutputScreenPosition.y };
-
-					m_Context.DrawList->AddTriangle(p1, p2, p3, ImGui::ColorConvertFloat4ToU32({ 1,1,1,1 }), 5.f);
-
-
-					/*ImGuiGraphNodeRender::DrawConnection(
-						m_Context.DrawList,
-						m_Context.Offset,
-						m_Context.Scale.Factor,
-						ImVec2{ connection.InputScreenPosition.x,  connection.InputScreenPosition.y },
-						ImVec2{ connection.OutputScreenPosition.x, connection.OutputScreenPosition.y },
-
-						ImVec4{ 1, 1, 1, 1 },
-						m_VisualStyle.ConnectionThickness);*/
-				}
+				prototypedNode->DrawConnections(&m_Context, &m_VisualStyle, m_Nodes);
 			}
-
-			GetPrototypedReferNode(node)->DrawConnections(&m_Context, &m_VisualStyle, m_ReferNodes);
 		}
+
+		//for (auto& node : m_Context.CurrentGraph->GetNode()->GetReferNodes())
+		//{
+		//	auto& connections = m_ReferNodes.begin()->second->GetNode()->GetConnections();
+
+		//	if (connections.find(node) != connections.end())
+		//	{
+		//		auto& nodeConnections = connections.at(node);
+
+		//		for (const auto& connection : nodeConnections)
+		//		{
+		//			const float size = 150.f;
+		//			const ImVec2	p1 = m_Context.Offset + ImVec2{ connection.OutputScreenPosition.x - size, connection.OutputScreenPosition.y + size },
+		//				p2 = m_Context.Offset + ImVec2{ connection.OutputScreenPosition.x - size, connection.OutputScreenPosition.y - size },
+		//				p3 = m_Context.Offset + ImVec2{ connection.OutputScreenPosition.x, connection.OutputScreenPosition.y };
+
+		//			m_Context.DrawList->AddTriangle(p1, p2, p3, ImGui::ColorConvertFloat4ToU32({ 1,1,1,1 }), 5.f);
+
+
+		//			/*ImGuiGraphNodeRender::DrawConnection(
+		//				m_Context.DrawList,
+		//				m_Context.Offset,
+		//				m_Context.Scale.Factor,
+		//				ImVec2{ connection.InputScreenPosition.x,  connection.InputScreenPosition.y },
+		//				ImVec2{ connection.OutputScreenPosition.x, connection.OutputScreenPosition.y },
+
+		//				ImVec4{ 1, 1, 1, 1 },
+		//				m_VisualStyle.ConnectionThickness);*/
+		//		}
+		//	}
+
+		//	GetPrototypedReferNode(node)->DrawConnections(&m_Context, &m_VisualStyle, m_ReferNodes);
+		//}
 	}
 
 }
@@ -954,8 +967,8 @@ void graph_editor::GraphEditor::PopupMenu()
 
 	if (ImGui::BeginMenu("+ Int"))
 	{
-		if (ImGui::MenuItem("Int"))  InitializeRecursively(m_Context.CurrentGraph->GetNode()->CreateNode<graphs::IntNode>(), m_Nodes);
-		if (ImGui::MenuItem("Int equals"))  InitializeRecursively(m_Context.CurrentGraph->GetNode()->CreateNode<graphs::IntEqualsNode>(), m_Nodes);
+		if (ImGui::MenuItem("Int"))  InitializeRecursively(m_Context.CurrentNode->CreateNode<graphs::IntNode>(), m_Nodes);
+		if (ImGui::MenuItem("Int equals"))  InitializeRecursively(m_Context.CurrentNode->CreateNode<graphs::IntEqualsNode>(), m_Nodes);
 		ImGui::BeginDisabled();
 		ImGui::MenuItem("Int not equals");
 		ImGui::MenuItem("Int higher");
@@ -967,8 +980,8 @@ void graph_editor::GraphEditor::PopupMenu()
 	if (ImGui::BeginMenu("+ Float"))
 	{
 
-		if (ImGui::MenuItem("+ Float"))  InitializeRecursively(m_Context.CurrentGraph->GetNode()->CreateNode<graphs::FloatNode>(), m_Nodes);
-		if (ImGui::MenuItem("Float equals"))  InitializeRecursively(m_Context.CurrentGraph->GetNode()->CreateNode<graphs::FloatEqualsNode>(), m_Nodes);
+		if (ImGui::MenuItem("+ Float"))  InitializeRecursively(m_Context.CurrentNode->CreateNode<graphs::FloatNode>(), m_Nodes);
+		if (ImGui::MenuItem("Float equals"))  InitializeRecursively(m_Context.CurrentNode->CreateNode<graphs::FloatEqualsNode>(), m_Nodes);
 
 		ImGui::BeginDisabled();
 		ImGui::MenuItem("Float not equals");
@@ -1002,12 +1015,11 @@ void graph_editor::GraphEditor::PopupMenu()
 	{
 		shade::ImGuiLayer::DrawFontIcon(u8"\xe867", 1, 0.5f); ImGui::SameLine();
 
-
 		if (ImGui::Selectable(name.c_str()))
 		{
-			if (m_Context.CurrentGraph)
+			if (m_Context.CurrentNode)
 			{
-				m_Context.CurrentGraph->GetNode()->AddReferNode(node);
+				//m_Context.CurrentGraph->GetNode()->AddReferNode(node);
 			}
 		}
 
@@ -1020,24 +1032,23 @@ void graph_editor::GraphEditor::PopupMenu()
 		ImGui::CloseCurrentPopup();
 }
 
-void graph_editor::GraphEditor::DrawPathRecursevly(GraphNodePrototype* pNode)
+void graph_editor::GraphEditor::DrawPathRecursevly(graphs::BaseNode* pNode)
 {
-	if (m_Nodes.find(std::size_t(pNode->GetNode())) != m_Nodes.end())
+	if (auto pN = pNode->GetParrentGraph())
 	{
-		if (pNode->GetNode()->GetParrentGraph() != nullptr)
-		{
-			DrawPathRecursevly(m_Nodes.at(std::size_t(pNode->GetNode()->GetParrentGraph())));
-		}
+		DrawPathRecursevly(pN);
 
-		if (ImGui::Button(m_Nodes.at(std::size_t(pNode->GetNode()))->Style.Title.c_str()))
-		{
-			m_Context.CurrentGraph = m_Nodes.at(std::size_t(pNode->GetNode()));
-		}
-
-		ImGui::SameLine();
 	}
-}
 
+	ImGuiLayer::DrawFontIcon(u8"\xe982", 1, 0.6f); ImGui::SameLine();
+	
+	if (ImGui::Button(pNode->GetName().c_str()))
+	{
+		m_Context.CurrentNode = pNode;
+	}
+
+	ImGui::SameLine();
+}
 
 //
 //
@@ -1567,43 +1578,51 @@ void graph_editor::StateNodeDelegate::DrawTransition(const InternalContext* cont
 	for (auto transition : reinterpret_cast<animation::state_machine::StateNode*>(GetNode())->GetTransitions())
 	{
 		auto* source = this;
-		auto* destination = nodes.at(std::size_t(transition->GetTransitionData().DestinationState));
 
-		const ImRect sourceRect = source->GetScaledRectangle(context, graphStyle);
-		const ImRect destinationRect = destination->GetScaledRectangle(context, graphStyle);
-
-		ImVec2 sPosition = sourceRect.GetCenter();
-		ImVec2 ePosition = GetClosestPointOnRectBorder(destinationRect, sPosition);
-
-		ImVec2 arrowDir = ImVec2(ePosition - sPosition);
-
-		const float factor = 0.95;
-		ImVec2 sEPosition = { sPosition.x + factor * arrowDir.x, sPosition.y + factor * arrowDir.y };
-
-		float arrowLength = sqrt(ImLengthSqr(arrowDir));
-		if (arrowLength > 0.0) arrowDir /= arrowLength;
-
-		const ImVec2 orthogonal = ImVec2{ arrowDir.y, -arrowDir.x };
-
-		const float thickness = 3.f * context->Scale.Factor;
-
-		const ImVec2 arrowHeadSize = ImVec2{ thickness, thickness + (1.f * context->Scale.Factor) };
-
-		ImVec2 arrowEndPoint1 = sEPosition - arrowDir * arrowHeadSize.x + orthogonal * arrowHeadSize.y;
-		ImVec2 arrowEndPoint2 = sEPosition - arrowDir * arrowHeadSize.x - orthogonal * arrowHeadSize.y;
-
-		bool selected = IsPointOnLine(glm::vec2(sPosition.x, sPosition.y), glm::vec2(ePosition.x, ePosition.y), glm::vec2(ImGui::GetMousePos().x, ImGui::GetMousePos().y), thickness);
-
-		ImVec4 color = (selected) ? source->Style.BorderHovered : source->Style.BorderColor;
-
-		context->DrawList->AddLine(sPosition, sEPosition, ImGui::ColorConvertFloat4ToU32(color), thickness);
-		context->DrawList->AddTriangleFilled(ePosition, arrowEndPoint1, arrowEndPoint2, ImGui::ColorConvertFloat4ToU32(color));
-
-		if (selected && ImGui::IsMouseDoubleClicked(0))
+		if (auto* destination = GetEditor()->GetPrototypedNode(transition->GetTransitionData().DestinationState))
 		{
-			nodes.at(std::size_t(transition))->Style.Title = "Transition : " + source->Style.Title + " ---> " + destination->Style.Title;
+			const ImRect sourceRect = source->GetScaledRectangle(context, graphStyle);
+			const ImRect destinationRect = destination->GetScaledRectangle(context, graphStyle);
 
-			context->CurrentGraph = nodes.at(std::size_t(transition));
+			ImVec2 sPosition = sourceRect.GetCenter();
+			ImVec2 ePosition = GetClosestPointOnRectBorder(destinationRect, sPosition);
+
+			ImVec2 arrowDir = ImVec2(ePosition - sPosition);
+
+			const float factor = 0.95;
+			ImVec2 sEPosition = { sPosition.x + factor * arrowDir.x, sPosition.y + factor * arrowDir.y };
+
+			float arrowLength = sqrt(ImLengthSqr(arrowDir));
+			if (arrowLength > 0.0) arrowDir /= arrowLength;
+
+			const ImVec2 orthogonal = ImVec2{ arrowDir.y, -arrowDir.x };
+
+			const float thickness = 3.f * context->Scale.Factor;
+
+			const ImVec2 arrowHeadSize = ImVec2{ thickness, thickness + (1.f * context->Scale.Factor) };
+
+			ImVec2 arrowEndPoint1 = sEPosition - arrowDir * arrowHeadSize.x + orthogonal * arrowHeadSize.y;
+			ImVec2 arrowEndPoint2 = sEPosition - arrowDir * arrowHeadSize.x - orthogonal * arrowHeadSize.y;
+
+			bool selected = IsPointOnLine(glm::vec2(sPosition.x, sPosition.y), glm::vec2(ePosition.x, ePosition.y), glm::vec2(ImGui::GetMousePos().x, ImGui::GetMousePos().y), thickness);
+
+			ImVec4 color = (selected) ? source->Style.BorderHovered : source->Style.BorderColor;
+
+			context->DrawList->AddLine(sPosition, sEPosition, ImGui::ColorConvertFloat4ToU32(color), thickness);
+			context->DrawList->AddTriangleFilled(ePosition, arrowEndPoint1, arrowEndPoint2, ImGui::ColorConvertFloat4ToU32(color));
+
+
+			if (selected && ImGui::IsMouseDoubleClicked(0))
+			{
+				//pN->Style.Title = "Transition : " + source->Style.Title + " ---> " + destination->Style.Title;
+
+				context->CurrentNode = transition;
+			}
+
+			/*if (auto pN = GetEditor()->GetPrototypedNode(transition))
+			{
+
+			}*/
 		}
 	}
 }
@@ -1860,7 +1879,7 @@ void graph_editor::PoseNodeDelegate::ProcessSideBar(const InternalContext* conte
 
 void graph_editor::StateMachineNodeDeligate::ProcessSideBar(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, std::unordered_map<std::size_t, GraphNodePrototype*>& referNodes)
 {
-	for (auto state : GetNode()->As<state_machine::StateMachineNode>().GetNodes())
+	for (auto state : GetNode()->As<state_machine::StateMachineNode>().GetInternalNodes())
 	{
 		if (ImGui::Button(std::to_string((int)state).c_str()))
 		{

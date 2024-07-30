@@ -8,7 +8,8 @@ namespace shade
 		class SHADE_API IntEqualsNode : public BaseNode
 		{
 		public:
-			IntEqualsNode(GraphContext* context, NodeIdentifier identifier) : BaseNode(context, identifier, "IntEquals")
+			IntEqualsNode(GraphContext* context, NodeIdentifier identifier, BaseNode* pParentNode) :
+				BaseNode(context, identifier, pParentNode, "IntEquals")
 			{
 				m_CanBeOpen = false;
 				REGISTER_ENDPOINT<Connection::Input, NodeValueType::Int>(0);

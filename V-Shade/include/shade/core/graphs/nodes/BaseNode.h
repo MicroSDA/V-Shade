@@ -14,22 +14,16 @@ namespace shade
 		{
 		public:
 			SHADE_CAST_HELPER(BaseNode)
-
-				/// @brief Default BaseNode constructor.
-				/// @param NodeIdentifier node identifier.
-				BaseNode(GraphContext* context, NodeIdentifier identifier);
-
-
 			/// @brief Default BaseNode constructor.
 			/// @param NodeIdentifier node identifier.
-			BaseNode(GraphContext* context, NodeIdentifier identifier, const std::string& name);
+			BaseNode(GraphContext* context, NodeIdentifier identifier, BaseNode* pParentNode = nullptr, const std::string& name = "Node");
 
 			virtual ~BaseNode();
 
 		public:
 			/// @brief Initialization of node.
 			/// @param BaseGraph* The parent graph which can contains current node.
-			virtual void Initialize(BaseNode* pParentGraph = nullptr, BaseNode* pRootParrentNode = nullptr);
+			virtual void Initialize() {};
 
 			/// @brief Unparrent.
 			virtual void Shutdown();
@@ -40,14 +34,14 @@ namespace shade
 			/// @param
 			/// @param
 			/// @return
-			bool ConnectNodes(BaseNode* inputNode, EndpointIdentifier inputEndpoint, BaseNode* outputNode, EndpointIdentifier outputEndpoint);
+			bool ConnectNodes(BaseNode* pConnectedTo, EndpointIdentifier connectedToEndpoint, BaseNode* pConnectedFrom, EndpointIdentifier connectedFromEndpoint);
 			/// @brief
 			/// @param
 			/// @param
 			/// @param
 			/// @param
 			/// @return
-			bool DisconnectNodes(NodeIdentifier inputNode, EndpointIdentifier inputEndpoint, NodeIdentifier outputNode, EndpointIdentifier outputEndpoint);
+			bool DisconnectNodes(BaseNode* pConnectedTo, EndpointIdentifier connectedToEndpoint, BaseNode* pConnectedFrom, EndpointIdentifier connectedFromEndpoint);
 
 			/// @brief
 			/// @param
@@ -61,11 +55,6 @@ namespace shade
 			/// @brief
 			/// @return
 			const BaseNode* GetRootNode() const;
-
-			/// @brief
-			/// @param
-			/// @return
-			BaseNode* FindNode(NodeIdentifier identifier);
 
 			/// @brief
 			/// @return
@@ -116,25 +105,26 @@ namespace shade
 				return m_pParrentNode != nullptr;
 			}
 
-			/// @brief
-			void AddReferNode(BaseNode* node)
-			{
-				if (std::find(m_ReferNodes.begin(), m_ReferNodes.end(), node) == m_ReferNodes.end());
-				m_ReferNodes.emplace_back(node);
-			}
-
 			template<typename T, typename... Args>
 			T* CreateNode(Args&&... args)
 			{
-				T* node = SNEW T(GetGraphContext(), m_Nodes.size(), std::forward<Args>(args)...);
-				m_Nodes.emplace_back(node)->Initialize(this, (!m_pRootParrentNode) ? this : m_pRootParrentNode);
-				return node;
+				// Set created node as root in case theres no root allready ?
+				return GetGraphContext()->CreateNode<T>(this, std::forward<Args>(args)...);
 			}
 
 			/// @brief 
 			/// @return 
-			bool RemoveNode(BaseNode* pNode);
+			virtual bool RemoveNode(BaseNode* pNode);
 
+			SHADE_INLINE std::vector<Connection>& GetConnections()
+			{
+				return *m_pGraphContext->GetConnections(this);
+			}
+
+			SHADE_INLINE const std::vector<Connection>& GetConnections() const
+			{
+				return *m_pGraphContext->GetConnections(this);
+			}
 
 			/// @brief Getter for the node identifier
 			/// @return The index of the graph node
@@ -242,27 +232,16 @@ namespace shade
 			}
 			/// @brief Get all child nodes
 			/// @return A std::vector<BaseNode*>&
-			SHADE_INLINE std::vector<BaseNode*>& GetNodes()
+			SHADE_INLINE std::vector<BaseNode*>& GetInternalNodes()
 			{
-				return m_Nodes;
+				return m_pGraphContext->GetInternalNodes(this);
 			}
 			/// @brief Get all child nodes
 			/// @return A const std::vector<BaseNode*>&
-			SHADE_INLINE const std::vector<BaseNode*>& GetNodes() const
+			SHADE_INLINE const std::vector<BaseNode*>& GetInternalNodes() const
 			{
-				return m_Nodes;
+				return m_pGraphContext->GetInternalNodes(this);
 			}
-
-			SHADE_INLINE std::vector<BaseNode*>& GetReferNodes()
-			{
-				return m_ReferNodes;
-			}
-
-			SHADE_INLINE const std::vector<BaseNode*>& GetReferNodes() const
-			{
-				return m_ReferNodes;
-			}
-
 			/// @brief Function for processing the branch of nodes
 			/// @param deltaTime The time elapsed since the last processing
 			void ProcessBranch(const FrameTimer& deltaTime);
@@ -339,8 +318,6 @@ namespace shade
 			BaseNode* m_pRootParrentNode = nullptr;
 			BaseNode* m_pRootNode = nullptr;
 			glm::vec2							m_ScreenPosition = glm::vec2(0.f);
-			std::vector<BaseNode*>				m_Nodes;
-			std::vector<BaseNode*>				m_ReferNodes;
 			std::string							m_Name = "Node";
 			bool								m_IsRenamable = true;
 			bool								m_IsRemovable = true;
@@ -349,7 +326,6 @@ namespace shade
 			NodeIdentifier																	m_NodeIdentifier;
 			GraphContext* const 															m_pGraphContext = nullptr;
 			std::array<NodeValues, static_cast<std::size_t>(Connection::Type::MAX_ENUM)>	m_Endpoints;
-			void RemoveReferNodeRecursively(shade::graphs::BaseNode* pNode);
 		};
 	}
 }

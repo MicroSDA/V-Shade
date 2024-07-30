@@ -1,60 +1,45 @@
 #include "shade_pch.h"
 #include "BaseNode.h"
 
-shade::graphs::BaseNode::BaseNode(GraphContext* context, NodeIdentifier identifier) :
-	m_pGraphContext(context), m_NodeIdentifier(identifier)
-{
-}
-
-shade::graphs::BaseNode::BaseNode(GraphContext* context, NodeIdentifier identifier, const std::string& name) :
-	m_pGraphContext(context), m_NodeIdentifier(identifier), m_Name(name)
+shade::graphs::BaseNode::BaseNode(GraphContext* context, NodeIdentifier identifier, BaseNode* pParentNode, const std::string& name) :
+	m_pGraphContext(context), m_NodeIdentifier(identifier), m_Name(name), m_pParrentNode(pParentNode),
+	m_pRootParrentNode(pParentNode ? (pParentNode->GetParrentRootGraph() ? nullptr : pParentNode) : nullptr)
 {
 }
 
 shade::graphs::BaseNode::~BaseNode()
 {
-	assert(m_pParrentNode == nullptr);
-}
+	SHADE_CORE_DEBUG("~BaseNode : {0}, {1}", GetName(), (int)this);
 
-void shade::graphs::BaseNode::Initialize(BaseNode* pParentNode, BaseNode* pRootParrentNode)
-{
-	m_pParrentNode = pParentNode;
-	m_pRootParrentNode = pRootParrentNode;
+	assert(m_pParrentNode == nullptr);
+	assert(m_pRootParrentNode == nullptr);
 }
 
 void shade::graphs::BaseNode::Shutdown()
 {
-	for (const auto node : m_Nodes)
-	{
-		node->Shutdown();
-		SDELETE node;
-	}
-
-	m_Nodes.clear();
 	m_pParrentNode = nullptr;
+	m_pRootParrentNode = nullptr;
 }
 
-bool shade::graphs::BaseNode::ConnectNodes(BaseNode* inputNode, EndpointIdentifier inputEndpoint, BaseNode* outputNode, EndpointIdentifier outputEndpoint)
+bool shade::graphs::BaseNode::ConnectNodes(BaseNode* pConnectedTo, EndpointIdentifier connectedToEndpoint, BaseNode* pConnectedFrom, EndpointIdentifier connectedFromEndpoint)
 {
-	/*auto pInput  = FindNode(inputNode);
-	auto pOutput = FindNode(outputNode);*/
+	// TODO: Add assert 
+	if (pConnectedTo == pConnectedFrom) return false;
 
-	if (!inputNode || !outputNode || inputNode == outputNode) return false;
-
-	auto inputValue = inputNode->__GET_ENDPOINT<Connection::Input>(inputEndpoint);
-	auto outputValue = outputNode->__GET_ENDPOINT<Connection::Output>(outputEndpoint);
+	auto inputValue		= pConnectedTo->__GET_ENDPOINT<Connection::Input>(connectedToEndpoint);
+	auto outputValue	= pConnectedFrom->__GET_ENDPOINT<Connection::Output>(connectedFromEndpoint);
 
 	if (!inputValue || !outputValue) return false;
 
 	if (inputValue->get()->GetType() != outputValue->get()->GetType()) return false;
 
 
-	if (m_pGraphContext->AddConnection(inputNode, inputEndpoint, outputNode, outputEndpoint, Connection::Input))
+	if (m_pGraphContext->CreateConnection(pConnectedTo, connectedToEndpoint, pConnectedFrom, connectedFromEndpoint))
 	{
 		if (ConnectValues(inputValue, outputValue))
 		{
-			inputNode->OnConnect(Connection::Type::Input, inputValue->get()->GetType(), inputEndpoint);
-			outputNode->OnConnect(Connection::Type::Output, outputValue->get()->GetType(), outputEndpoint);
+			pConnectedTo->OnConnect(Connection::Type::Input, inputValue->get()->GetType(), connectedToEndpoint);
+			pConnectedFrom->OnConnect(Connection::Type::Output, outputValue->get()->GetType(), connectedFromEndpoint);
 
 			return true;
 		}
@@ -73,28 +58,21 @@ bool shade::graphs::BaseNode::ConnectValues(std::shared_ptr<NodeValue>* inputEnd
 	return true;
 }
 
-bool shade::graphs::BaseNode::DisconnectNodes(NodeIdentifier inputNode, EndpointIdentifier inputEndpoint, NodeIdentifier outputNode, EndpointIdentifier outputEndpoint)
+bool shade::graphs::BaseNode::DisconnectNodes(BaseNode* pConnectedTo, EndpointIdentifier connectedToEndpoint, BaseNode* pConnectedFrom, EndpointIdentifier connectedFromEndpoint)
 {
-	auto pInput  = FindNode(inputNode);
-	auto pOutput = FindNode(outputNode);
+	auto connection = m_pGraphContext->FindConnection(pConnectedTo, connectedToEndpoint, pConnectedFrom, connectedFromEndpoint);
 
-	if (!pInput) return false;
-
-	auto connection = m_pGraphContext->FindConnection(pInput, inputEndpoint, pOutput, outputEndpoint);
-
-	if (connection.InputEndpoint != INVALID_NODE_IDENTIFIER)
+	if (connection != nullptr && connection->ConnectedToEndpoint != INVALID_NODE_IDENTIFIER)
 	{
-		auto inputValue = pInput->__GET_ENDPOINT<Connection::Input>(inputEndpoint);
-		auto outputValue = pOutput->__GET_ENDPOINT<Connection::Output>(connection.OutputEndpoint);
+		NodeValues::Value* connectedToValue		= pConnectedTo->__GET_ENDPOINT<Connection::Input>(connectedToEndpoint);
+		NodeValues::Value* connectedFromValue	= pConnectedFrom->__GET_ENDPOINT<Connection::Output>(connectedFromEndpoint);
 
-		if (!inputValue || !outputValue) return false;
+		if (!connectedToValue || !connectedFromValue) return false;
 
-		//TODO: We need to garanty that there is only one same child connected once !!!!!!
-
-		if (m_pGraphContext->RemoveConnection(pInput, inputEndpoint, pOutput, outputEndpoint))
+		if (m_pGraphContext->RemoveConnection(pConnectedTo, connectedToEndpoint, pConnectedFrom, connectedFromEndpoint))
 		{
-			pInput->OnDisconnect(Connection::Type::Input, inputValue->get()->GetType(), inputEndpoint);
-			pOutput->OnDisconnect(Connection::Type::Output, outputValue->get()->GetType(), connection.OutputEndpoint);
+			pConnectedTo->OnDisconnect(Connection::Type::Input, connectedToValue->get()->GetType(), connectedToEndpoint);
+			pConnectedFrom->OnDisconnect(Connection::Type::Output, connectedFromValue->get()->GetType(), connectedFromEndpoint);
 
 			return true;
 		}
@@ -118,87 +96,10 @@ const shade::graphs::BaseNode* shade::graphs::BaseNode::GetRootNode() const
 	return m_pRootNode;
 }
 
-shade::graphs::BaseNode* shade::graphs::BaseNode::FindNode(NodeIdentifier identifier)
-{
-	auto it = std::find_if(m_Nodes.begin(), m_Nodes.end(), [identifier](const BaseNode* node)
-		{
-			return node->GetNodeIdentifier() == identifier;
-		});
-
-	if (it != m_Nodes.end()) return *it;
-
-	return nullptr;
-}
-
-void shade::graphs::BaseNode::RemoveReferNodeRecursively(shade::graphs::BaseNode* pNode)
-{
-	for (auto node : m_Nodes)
-	{
-		node->RemoveReferNodeRecursively(pNode);
-	}
-	
-	auto it = std::find_if(m_ReferNodes.begin(), m_ReferNodes.end(), [pNode](const BaseNode* node) { return node == pNode; });
-
-	if (it != m_ReferNodes.end())
-	{
-		GetGraphContext()->RemoveAllConnection((*it));
-		m_ReferNodes.erase(it, m_ReferNodes.end());
-	}
-}
-
 bool shade::graphs::BaseNode::RemoveNode(BaseNode* pNode)
 {
-	auto nodesIt = std::find_if(m_Nodes.begin(), m_Nodes.end(), [pNode](const BaseNode* node)
-		{
-			return node == pNode;
-		});
-
-	if (nodesIt != m_Nodes.end())
-	{
-		GetGraphContext()->RemoveAllConnection(pNode);
-
-		pNode->Shutdown();
-
-		SDELETE pNode;
-
-		m_Nodes.erase(nodesIt);
-		return true;
-	}
-	else
-	{
-		// If it's refer node 
-		auto refersIt = std::find_if(m_ReferNodes.begin(), m_ReferNodes.end(), [pNode](const BaseNode* node)
-			{
-				return node == pNode;
-			});
-
-		if (refersIt != m_ReferNodes.end())
-		{
-			GetGraphContext()->RemoveAllConnection((*refersIt));
-
-			if ((*refersIt)->GetParrentGraph() == this)
-			{
-				// wee need to go throu all nodes and remvoe refer from each node
-
-				auto node = (*refersIt);
-				node->GetParrentRootGraph()->RemoveReferNodeRecursively(pNode);
-
-				node->Shutdown();
-
-				SDELETE node;
-			}
-			else
-			{
-				m_ReferNodes.erase(refersIt);
-			}
-
-			return true;
-		}
-	}
-
-	return false;
+	return m_pGraphContext->RemoveNode(pNode);
 }
-
 
 void shade::graphs::BaseNode::OnDisconnect(Connection::Type connectionType, NodeValueType type, EndpointIdentifier endpoint)
 {
@@ -208,15 +109,17 @@ void shade::graphs::BaseNode::OnDisconnect(Connection::Type connectionType, Node
 
 void shade::graphs::BaseNode::ProcessBranch(const FrameTimer& deltaTime)
 {
+	SHADE_CORE_INFO("Node {0}", (int)this);
 	//1. If there no connections we need to Evaluate node and go back to parrent
 	//2. If there some connections we need go till end of branch
 	assert(m_pGraphContext != nullptr);
 
-	auto connections = m_pGraphContext->Connections.find(this);
-	if (connections != m_pGraphContext->Connections.end())
+	auto connections = m_pGraphContext->GetConnections(this);
+
+	if (connections)
 	{
-		for (auto& connection : connections->second)
-			connection.OutputNode->ProcessBranch(deltaTime);
+		for (auto& connection : *connections)
+			connection.PConnectedFrom->ProcessBranch(deltaTime);
 	}
 
 	Evaluate(deltaTime);

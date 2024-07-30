@@ -45,7 +45,7 @@ namespace graph_editor
 		ImVec2		CanvasPosition = ImVec2(0.f, 0.f);
 		ImVec2		Offset = ImVec2(0.f, 0.f);
 		ImDrawList* DrawList = nullptr;
-		mutable GraphNodePrototype* CurrentGraph = nullptr;
+		mutable graphs::BaseNode* CurrentNode = nullptr;
 
 		struct 
 		{
@@ -170,7 +170,7 @@ namespace graph_editor
 
 		graphs::BaseNode* GetRootGraph() { return m_pRootGraph; }
 
-		bool RemoveNode(graphs::BaseNode* pNode);
+		void SetToRemove(graphs::BaseNode* pNode);
 	public:
 		bool Edit(const char* title, const ImVec2& size);
 	private:
@@ -188,14 +188,16 @@ namespace graph_editor
 		GraphVisualStyle m_VisualStyle;
 	
 	private:
-		
+		bool RemoveNode(graphs::BaseNode*& pNode);
 		void ProcessScale();
 		ImVec2 CalculateMouseWorldPos(const ImVec2& mousePosition);
 		void DrawNodes();
 		void DrawConnections();
 		void PopupMenu();
 
-		void DrawPathRecursevly(GraphNodePrototype* pNode);
+		void DrawPathRecursevly(graphs::BaseNode* pNode);
+
+		graphs::BaseNode* m_pNodeToRemove = nullptr;
 	};
 
 	class AnimationGraphDeligate : public GraphNodePrototype
@@ -320,19 +322,6 @@ namespace graph_editor
 	private:
 		
 	};
-	// TODO Remove !
-	class ValueNodeDelegate : public GraphNodePrototype
-	{
-	public:
-		ValueNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor) {}
-		virtual ~ValueNodeDelegate() = default;
-
-		virtual void ProcessBodyContent(const InternalContext* context) override
-		{
-			ImGui::Text("Value");
-		}
-	};
-
 	class OutputPoseNodeDelegate : public GraphNodePrototype
 	{
 	public:

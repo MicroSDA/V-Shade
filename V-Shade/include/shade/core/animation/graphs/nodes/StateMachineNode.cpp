@@ -4,139 +4,18 @@
 #include <shade/core/event/Input.h>
 #include <glfw/glfw3.h>
 
-#include <shade/core/animation/graphs/AnimationGraph.h>
+// TIP : Do not create child nodes in constructor !!!
 
-shade::animation::state_machine::TransitionNode::TransitionNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, const Data& data) : BaseNode(context, identifier) , m_TransitionData(data)
+shade::animation::state_machine::OutputTransitionNode::OutputTransitionNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode)
+	: BaseNode(context, identifier, pParentNode, "OutputTransition")
 {
-	m_pOutputTransitionNode = CreateNode<OutputTransitionNode>();
-	SetRootNode(m_pOutputTransitionNode);
-}
-
-shade::animation::state_machine::TransitionNode::~TransitionNode()
-{
-}
-
-shade::animation::state_machine::TransitionNode::Data& shade::animation::state_machine::TransitionNode::GetTransitionData()
-{
-	return m_TransitionData;
-}
-
-const shade::animation::state_machine::TransitionNode::Data& shade::animation::state_machine::TransitionNode::GetTransitionData() const
-{
-	return m_TransitionData;
-}
-
-void shade::animation::state_machine::TransitionNode::Evaluate(const FrameTimer& deltaTime)
-{
-	GetRootNode()->ProcessBranch(deltaTime);
-}
-
-shade::animation::state_machine::StateNode::StateNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, const std::string& name) : BaseNode(context, identifier, name)
-{
-	m_pOutPutPoseNode = CreateNode<OutputPoseNode>();
-	// Not sure where there shoudl be blend node
-	auto pose = CreateNode<PoseNode>();
-	SetRootNode(m_pOutPutPoseNode);
-
-	ConnectNodes(m_pOutPutPoseNode, 0, pose, 0); // has to be removed ! for test only
-}
-
-shade::animation::state_machine::StateNode::~StateNode()
-{
-
-}
-void shade::animation::state_machine::StateNode::Evaluate(const FrameTimer& deltaTime)
-{
-	if (GetParrentRootGraph())
-	{
-		for (auto v : GetParrentRootGraph()->As<animation::AnimationGraph>().GetInputNodes())
-		{
-			//std::cout << (int)v.first->GetType() << std::endl;
-		}
-	}
-
-	if (m_pActiveTransition)
-	{
-		Pose* blendPose = m_pActiveTransition->GetRootNode()->As<OutputTransitionNode>().Transit(
-			m_pActiveTransition->GetTransitionData().SourceState,
-			m_pActiveTransition->GetTransitionData().DestinationState,
-			deltaTime
-		);
-
-		if (blendPose)
-		{
-			*&GetParrentGraph()->GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0) = blendPose;
-			
-		}
-		else
-		{
-			GetParrentGraph()->SetRootNode(m_pActiveTransition->GetTransitionData().DestinationState);
-			m_pActiveTransition = nullptr;
-		}
-	}
-	else
-	{
-		for (auto transition : GetTransitions())
-		{
-			transition->ProcessBranch(deltaTime);
-
-			if (transition->GetRootNode()->As<OutputTransitionNode>().ShouldTransit())
-			{
-				m_pActiveTransition = transition;
-			}
-		}
-
-		*&GetParrentGraph()->GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0) = GetRootNode()->As<OutputPoseNode>().GetEndpoint<graphs::Connection::Input>(0)->As<NodeValueType::Pose>();
-
-		GetRootNode()->ProcessBranch(deltaTime);
-	}
-}
-
-void shade::animation::state_machine::StateNode::Shutdown()
-{
-}
-
-shade::animation::state_machine::StateMachineNode::StateMachineNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier) : BaseNode(context, identifier, "State machine")
-{
-	REGISTER_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(nullptr);
-}
-
-shade::animation::state_machine::StateMachineNode::~StateMachineNode()
-{
-}
-
-void shade::animation::state_machine::StateMachineNode::Evaluate(const FrameTimer& deltaTime)
-{
-	// Should be aka default state, because state machine has only states
-	if (GetRootNode() != nullptr)
-	{
-		GetRootNode()->ProcessBranch(deltaTime);
-	}
-}
-
-shade::animation::state_machine::StateNode* shade::animation::state_machine::StateMachineNode::CreateState(const std::string& name)
-{
-	auto state = CreateNode<StateNode>(name);
-
-	if (GetRootNode() == nullptr) SetRootNode(state);
-
-	return state;
-}
-
-shade::animation::state_machine::OutputTransitionNode::OutputTransitionNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier) : BaseNode(context, identifier, "OutputTransition")
-{
-	m_IsRenamable	= false;
-	m_IsRemovable	= false;
-	m_CanBeOpen		= false;
+	m_IsRenamable = false;
+	m_IsRemovable = false;
+	m_CanBeOpen = false;
 
 	REGISTER_ENDPOINT<graphs::Connection::Input, NodeValueType::Bool>(false);
 	REGISTER_ENDPOINT<graphs::Connection::Input, NodeValueType::Float>(0.0);
 	REGISTER_ENDPOINT<graphs::Connection::Input, NodeValueType::Bool>(0.0);
-}
-
-shade::animation::state_machine::OutputTransitionNode::~OutputTransitionNode()
-{
-
 }
 
 void shade::animation::state_machine::OutputTransitionNode::Evaluate(const FrameTimer& deltaTime)
@@ -153,7 +32,7 @@ shade::animation::Pose* shade::animation::state_machine::OutputTransitionNode::T
 	// 4. Добавить Рут парент !
 	// 5. Проверить как будут работать рут вейльйус
 	// 6. Создать рут велью и дать возможность создавать соответствующий нод, но само значение брать из глобал вельюс
-	
+
 
 	if (GetTransitionAccumulator() > GetTransitionDuration() || GetTransitionDuration() == 0.f)
 	{
@@ -225,4 +104,173 @@ float shade::animation::state_machine::OutputTransitionNode::GetTransitionAccumu
 bool& shade::animation::state_machine::OutputTransitionNode::IsSync()
 {
 	return GET_ENDPOINT<graphs::Connection::Input, NodeValueType::Bool>(2);
+}
+
+shade::animation::state_machine::TransitionNode::TransitionNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode, const Data& data)
+	: BaseNode(context, identifier, pParentNode), m_TransitionData(data)
+{
+}
+
+void shade::animation::state_machine::TransitionNode::Initialize()
+{
+	SetName("Transition");
+
+	m_pOutputTransitionNode = CreateNode<OutputTransitionNode>();
+	SetRootNode(m_pOutputTransitionNode);
+}
+
+shade::animation::state_machine::TransitionNode::Data& shade::animation::state_machine::TransitionNode::GetTransitionData()
+{
+	return m_TransitionData;
+}
+
+const shade::animation::state_machine::TransitionNode::Data& shade::animation::state_machine::TransitionNode::GetTransitionData() const
+{
+	return m_TransitionData;
+}
+
+void shade::animation::state_machine::TransitionNode::Evaluate(const FrameTimer& deltaTime)
+{
+	GetRootNode()->ProcessBranch(deltaTime);
+}
+
+shade::animation::state_machine::StateNode::StateNode(
+	graphs::GraphContext* context,
+	graphs::NodeIdentifier identifier,
+	graphs::BaseNode* pParentNode,
+	const std::string& name)
+	:BaseNode(context, identifier, pParentNode, name)
+{
+}
+
+void shade::animation::state_machine::StateNode::Initialize()
+{
+	m_pOutPutPoseNode = CreateNode<OutputPoseNode>();
+	// Not sure where there shoudl be blend node
+	auto pose = CreateNode<PoseNode>();
+	SetRootNode(m_pOutPutPoseNode);
+
+	ConnectNodes(m_pOutPutPoseNode, 0, pose, 0); // has to be removed ! for test only
+}
+bool shade::animation::state_machine::StateNode::RemoveNode(BaseNode* pNode)
+{
+	auto it = std::find(m_Transitions.begin(), m_Transitions.end(), pNode);
+
+	// In case we are removing transition !
+	if (it != m_Transitions.end())
+	{
+		m_Transitions.erase(it);
+		return GetGraphContext()->RemoveNode(pNode);
+	}
+	else
+	{
+		return GetGraphContext()->RemoveNode(pNode);
+	}
+}
+
+void shade::animation::state_machine::StateNode::Evaluate(const FrameTimer& deltaTime)
+{
+	if (m_pActiveTransition)
+	{
+		Pose* blendPose = m_pActiveTransition->GetRootNode()->As<OutputTransitionNode>().Transit(
+			m_pActiveTransition->GetTransitionData().SourceState,
+			m_pActiveTransition->GetTransitionData().DestinationState,
+			deltaTime
+		);
+
+		if (blendPose)
+		{
+			*&GetParrentGraph()->GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0) = blendPose;
+		}
+		else
+		{
+			GetParrentGraph()->SetRootNode(m_pActiveTransition->GetTransitionData().DestinationState);
+			m_pActiveTransition = nullptr;
+		}
+	}
+	else
+	{
+		for (auto transition : GetTransitions())
+		{
+			transition->ProcessBranch(deltaTime);
+
+			if (transition->GetRootNode()->As<OutputTransitionNode>().ShouldTransit())
+			{
+				m_pActiveTransition = transition;
+			}
+		}
+
+		// Set Pose to state machine !
+		*&GetParrentGraph()->GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0) = GetRootNode()->As<OutputPoseNode>().GetEndpoint<graphs::Connection::Input>(0)->As<NodeValueType::Pose>();
+
+		GetRootNode()->ProcessBranch(deltaTime);
+	}
+}
+
+shade::animation::state_machine::TransitionNode* shade::animation::state_machine::StateNode::AddTransition(StateNode* destination)
+{
+	auto transition = CreateNode<TransitionNode>(TransitionNode::Data{ this, destination });
+	return m_Transitions.emplace_back(transition);
+}
+
+shade::animation::state_machine::StateMachineNode::StateMachineNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode)
+	: BaseNode(context, identifier, pParentNode, "State machine")
+{
+	REGISTER_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(nullptr);
+}
+
+bool shade::animation::state_machine::StateMachineNode::RemoveNode(BaseNode* pNode)
+{
+	for (BaseNode* node : GetInternalNodes())
+	{
+		StateNode& pState = node->As<StateNode>();
+		auto it = pState.GetTransitions().begin();
+
+		while (it != pState.GetTransitions().end())
+		{
+			it = std::find_if(pState.GetTransitions().begin(), pState.GetTransitions().end(), [pNode](const TransitionNode* pTransition)
+				{
+					return (pTransition->GetTransitionData().DestinationState == pNode);
+				});
+
+			if (it != pState.GetTransitions().end())
+			{
+				it = pState.GetTransitions().erase(it);
+			}
+			else
+			{
+				it++;
+			}
+		}
+	}
+	return GetGraphContext()->RemoveNode(pNode);
+}
+
+void shade::animation::state_machine::StateMachineNode::Evaluate(const FrameTimer& deltaTime)
+{
+	// Should be aka default state, because state machine has only states
+	if (auto pRoot = GetRootNode())
+	{
+		SHADE_CORE_INFO("ROOT {0}", (int)pRoot);
+		pRoot->ProcessBranch(deltaTime);
+	}
+}
+
+shade::animation::state_machine::StateNode* shade::animation::state_machine::StateMachineNode::CreateState(const std::string& name)
+{
+	auto state = CreateNode<StateNode>(name);
+
+	SHADE_CORE_INFO("Create State {0}", (int)state);
+
+	if (GetRootNode() == nullptr)
+	{
+		SHADE_CORE_INFO("Root State {0}", (int)state);
+		SetRootNode(state);
+	}
+
+	return state;
+}
+
+void shade::animation::state_machine::StateMachineNode::Initialize()
+{
 }

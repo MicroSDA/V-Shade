@@ -27,17 +27,15 @@ namespace shade
 			};
 
 			// TODO Make Constructor !!
-			BaseNode*				   InputNode = nullptr;
-			EndpointIdentifier         InputEndpoint = INVALID_NODE_IDENTIFIER;
+			BaseNode*				   PConnectedTo = nullptr;
+			EndpointIdentifier         ConnectedToEndpoint = INVALID_NODE_IDENTIFIER;
 
-			BaseNode*				   OutputNode = nullptr;
-			EndpointIdentifier         OutputEndpoint = INVALID_NODE_IDENTIFIER;
-
-			Type					   ConnectionType = MAX_ENUM;
+			BaseNode*				   PConnectedFrom = nullptr;
+			EndpointIdentifier         ConnectedFromEndpoint = INVALID_NODE_IDENTIFIER;
 
 			// Uses only for editor
-			glm::vec2 InputScreenPosition	= glm::vec2(0.f);
-			glm::vec2 OutputScreenPosition	= glm::vec2(0.f);
+			glm::vec2 ConnectedToPosition	= glm::vec2(0.f);
+			glm::vec2 ConnectedFromPosition = glm::vec2(0.f);
 		};
 
 		struct NodesPack
@@ -53,117 +51,176 @@ namespace shade
 		public:
 			///@brief Current entity
 			ecs::Entity Entity;
-			///@brief Connections
-			std::unordered_map<BaseNode*, std::vector<Connection>> Connections;
 
-			SHADE_INLINE bool IsEndpointFree(BaseNode* firstNode, EndpointIdentifier firstEndpoint,
-				BaseNode* secondNode, EndpointIdentifier secondEndpoint, Connection::Type type) const
+			template<typename T, typename... Args>
+			SHADE_INLINE T* CreateNode(BaseNode* pParrent, Args&&... args)
 			{
-				const auto node = Connections.find(firstNode);
+				std::unordered_map<BaseNode*, NodesPack>::iterator parrent = Nodes.find(pParrent);
 
-				if (node != Connections.end())
-				{
-					auto connection = std::find_if(
-						node->second.begin(),
-						node->second.end(),
-						[secondNode, firstEndpoint](const Connection& connection)
-						{
-							return (connection.InputEndpoint != firstEndpoint);
-						});
-
-					return connection != node->second.end();
-				}
-				else
-				{
-					return true;
-				}
-			}
-
-			SHADE_INLINE bool IsConnectionExist(BaseNode* firstNode, EndpointIdentifier firstEndpoint, 
-				BaseNode* secondNode, EndpointIdentifier secondEndpoint, Connection::Type type) const 
-			{
-				const auto node = Connections.find(firstNode);
-
-				if (node != Connections.end())
-				{
-					auto connection = std::find_if(node->second.begin(), node->second.end(), [secondNode, secondEndpoint](const Connection& connection)
-						{
-							return (connection.OutputNode == secondNode && connection.OutputEndpoint == secondEndpoint);
-						});
-
-					return connection != node->second.end();
-				}
-				else
-				{
-					return false;
-				}	
-			}
-
-			SHADE_INLINE bool AddConnection(BaseNode* firstNode, EndpointIdentifier firstEndpoint,
-				BaseNode* secondNode, EndpointIdentifier secondEndpoint, Connection::Type type)
-			{
-				if (IsEndpointFree(firstNode, firstEndpoint, secondNode, secondEndpoint, type) && !IsConnectionExist(firstNode, firstEndpoint, secondNode, secondEndpoint, type))
-				{
-					auto connection = Connections.find(firstNode);
-					if (connection != Connections.end())
-						connection->second.emplace_back(firstNode, firstEndpoint, secondNode, secondEndpoint, type);
-					else
-						Connections[firstNode].emplace_back(firstNode, firstEndpoint, secondNode, secondEndpoint, type);
-
-					return true;
-				}
-
-				return false;
-
-			}
-
-			SHADE_INLINE bool RemoveConnection(BaseNode* firstNode, EndpointIdentifier firstEndpoint,
-				BaseNode* secondNode, EndpointIdentifier secondEndpoint) // Private ??
-			{
-				const auto node = Connections.find(firstNode);
-
-				if (node != Connections.end())
-				{
-					auto connection = std::find_if(node->second.begin(), node->second.end(), [secondNode, secondEndpoint](const Connection& connection)
-						{
-							return (connection.OutputNode == secondNode && connection.OutputEndpoint == secondEndpoint);
-						});
-
-					if (connection != node->second.end())
-					{
-						node->second.erase(connection); return true;
-					}
-				}
-
-				return false;
-			}
-
-			SHADE_API bool RemoveAllInputConnection(BaseNode* firstNode);
+				const NodeIdentifier id = (parrent != Nodes.end()) ? parrent->second.InternalNodes.size() : 0;
 			
-			SHADE_API bool RemoveAllOutputConnection(BaseNode* firstNode);
-			
-			SHADE_INLINE bool RemoveAllConnection(BaseNode* firstNode)
-			{
-				return (RemoveAllOutputConnection(firstNode) | RemoveAllInputConnection(firstNode));
-			}
+				T* node = SNEW T(this, id, pParrent, std::forward<Args>(args)...);
 
-			SHADE_INLINE Connection FindConnection(BaseNode* firstNode, EndpointIdentifier firstEndpoint,
-				BaseNode* secondNode, EndpointIdentifier secondEndpoint) const
-			{
-				const auto node = Connections.find(firstNode);
+				if (parrent != Nodes.end()) { parrent->second.InternalNodes.emplace_back(node); }
 
-				if (node != Connections.end())
-				{
-					auto connection = std::find_if(node->second.begin(), node->second.end(), [secondNode, secondEndpoint](const Connection& connection)
-						{
-							return (connection.OutputNode == secondNode && connection.OutputEndpoint == secondEndpoint);
-						});
-
-					return *connection;
-				}
+				InitializeNode(node, pParrent);
 				
-				return Connection();
+				return node;
 			}
+		
+			/*SHADE_INLINE BaseNode* FindInternalNode(BaseNode* pParrent, NodeIdentifier identifier)
+			{
+				std::unordered_map<BaseNode*, NodesPack>::iterator parrent = Nodes.find(pParrent);
+
+				assert(parrent != Nodes.end() && "");
+
+				std::vector<BaseNode*>& internalNodes = (*parrent).second.InternalNodes;
+
+				std::vector<BaseNode*>::iterator node = std::find_if(internalNodes.begin(), internalNodes.end(), [identifier](const BaseNode* pNode)
+					{
+						return identifier == pNode->GetNodeIdentifier();
+					});
+				
+				return (node != internalNodes.end()) ? *node : nullptr;
+			}*/
+
+			SHADE_API bool RemoveNode(BaseNode* pNode);
+
+			SHADE_INLINE const Connection* FindConnection(
+				BaseNode* pConnectedTo,
+				EndpointIdentifier connectedToEndpoint,
+				BaseNode* pConnectedFrom,
+				EndpointIdentifier connectedFromEndpoint) const
+			{
+				std::unordered_map<BaseNode*, NodesPack>::const_iterator to		= Nodes.find(pConnectedTo);
+				std::unordered_map<BaseNode*, NodesPack>::const_iterator from	= Nodes.find(pConnectedFrom);
+				// TODO Assert and do not check 
+
+				assert(to != Nodes.end() && from != Nodes.end() && "");
+
+				const std::vector<Connection>& connections = to->second.Connections;
+
+				auto connection = std::find_if(connections.begin(), connections.end(), [pConnectedTo, pConnectedFrom, connectedToEndpoint, connectedFromEndpoint](const Connection& connection)
+					{
+						return (connection.PConnectedTo == pConnectedTo &&
+							connection.PConnectedFrom == pConnectedFrom &&
+							connection.ConnectedToEndpoint == connectedToEndpoint &&
+							connection.ConnectedFromEndpoint == connectedFromEndpoint);
+					});
+
+				return (connection != connections.end()) ? &(*connection) : nullptr;
+			} 
+
+			SHADE_INLINE const std::vector<Connection>* GetConnections(const BaseNode* pConnectedTo) const
+			{
+				std::unordered_map<BaseNode*, NodesPack>::const_iterator to = Nodes.find(const_cast<BaseNode*>(pConnectedTo));
+				return (to != Nodes.end()) ? &to->second.Connections : nullptr;
+			}
+
+			SHADE_INLINE std::vector<Connection>* GetConnections(BaseNode* pConnectedTo)
+			{
+				std::unordered_map<BaseNode*, NodesPack>::iterator to = Nodes.find(pConnectedTo);
+				return (to != Nodes.end()) ? &to->second.Connections : nullptr;
+			}
+
+			SHADE_INLINE bool IsEndpointFree(BaseNode* pConnectedTo, EndpointIdentifier connectedToEndpoint) const
+			{
+				std::unordered_map<BaseNode*, NodesPack>::const_iterator to = Nodes.find(pConnectedTo);
+
+				if (to != Nodes.end())
+				{
+					const std::vector<Connection>& connections = to->second.Connections;
+
+					auto connection = std::find_if(connections.begin(), connections.end(), [pConnectedTo, connectedToEndpoint](const Connection& connection)
+						{
+							return (connection.ConnectedToEndpoint != connectedToEndpoint);
+						});
+
+					return connection != connections.end();
+				}
+
+				return false;
+			}
+
+			SHADE_INLINE bool CreateConnection(
+				BaseNode* pConnectedTo,
+				EndpointIdentifier connectedToEndpoint,
+				BaseNode* pConnectedFrom,
+				EndpointIdentifier connectedFromEndpoint)
+			{
+				// That means you cannot conenect same node twice !
+				// If you want then need to check if endpoint free !
+				if (!FindConnection(pConnectedTo, connectedToEndpoint, pConnectedFrom, connectedFromEndpoint))
+				{
+					std::unordered_map<BaseNode*, NodesPack>::iterator to = Nodes.find(pConnectedTo);
+					to->second.Connections.emplace_back(Connection{pConnectedTo, connectedToEndpoint, pConnectedFrom, connectedFromEndpoint });
+					return true;
+				}
+
+				return false;
+			}
+			SHADE_INLINE bool RemoveConnection(
+				BaseNode* pConnectedTo,
+				EndpointIdentifier connectedToEndpoint,
+				BaseNode* pConnectedFrom,
+				EndpointIdentifier connectedFromEndpoint)
+			{
+				std::unordered_map<BaseNode*, NodesPack>::iterator to   = Nodes.find(pConnectedTo);
+				// TODO Assert and do not check 
+
+				assert(to != Nodes.end() && "");
+
+				std::vector<Connection>& connections = to->second.Connections;
+
+				auto connection = std::find_if(connections.begin(), connections.end(), [pConnectedTo, pConnectedFrom, connectedToEndpoint, connectedFromEndpoint](const Connection& connection)
+					{
+						return (connection.PConnectedTo == pConnectedTo &&
+							connection.PConnectedFrom == pConnectedFrom &&
+							connection.ConnectedToEndpoint == connectedToEndpoint &&
+							connection.ConnectedFromEndpoint == connectedFromEndpoint);
+					});
+
+				if (connection != connections.end())
+				{
+					connections.erase(connection, connections.end());
+					return true;
+				}
+
+				return false;
+			}
+
+
+			SHADE_INLINE std::vector<BaseNode*>& GetInternalNodes(BaseNode* pNode)
+			{
+				return Nodes.at(pNode).InternalNodes;
+			}
+
+			SHADE_INLINE const std::vector<BaseNode*>& GetInternalNodes(const BaseNode* pNode) const
+			{
+				return Nodes.at(const_cast<BaseNode*>(pNode)).InternalNodes;
+			}
+
+			SHADE_API bool RemoveAllInputConnection(BaseNode* pConnectedTo);
+			
+			SHADE_API bool RemoveAllOutputConnection(BaseNode* pConnectedFrom);
+			
+			SHADE_INLINE bool RemoveAllConnection(BaseNode* pNode)
+			{
+				return (RemoveAllOutputConnection(pNode) | RemoveAllInputConnection(pNode));
+			}
+
+			SHADE_INLINE const std::unordered_map<BaseNode*, NodesPack>& GetNodes() const
+			{
+				return Nodes;
+			}
+			SHADE_INLINE  std::unordered_map<BaseNode*, NodesPack>& GetNodes()
+			{
+				return Nodes;
+			}
+		private:
+			SHADE_API void InitializeNode(BaseNode* pNode, BaseNode* pParrent);
+			///@brief Connections
+			std::unordered_map<BaseNode*, NodesPack>	Nodes;
 		};
 	}
 }

@@ -17,12 +17,11 @@ namespace shade
 {
 	namespace animation
 	{
-		class SHADE_API AnimationGraph : public graphs::BaseNode//, ASSET_INHERITANCE(AnimationGraph)
+		class SHADE_API AnimationGraph : public graphs::BaseNode //, ASSET_INHERITANCE(AnimationGraph)
 		{
 			//ASSET_DEFINITION_HELPER(AnimationGraph)
-
 		public:
-			AnimationGraph(graphs::GraphContext* context, graphs::NodeIdentifier identifier = 0u);
+			AnimationGraph(graphs::GraphContext* context);
 			virtual ~AnimationGraph() = default;
 
 			void ProcessGraph(const shade::FrameTimer& deltaTime);
@@ -32,13 +31,15 @@ namespace shade
 			template<typename T, typename... Args>
 			SHADE_INLINE T* CreateInputNode(const std::string& name, Args&&... args)
 			{
-				T* node = SNEW T(GetGraphContext(), m_InputNodes.size(), std::forward<Args>(args)...);
-				node->SetName(name);
-
 				if (m_InputNodes.find(name) != m_InputNodes.end())
 					return nullptr;
 
-				m_InputNodes.emplace(name, node).first->second->Initialize(this, this);
+				auto node = GetGraphContext()->CreateNode<T>(this, std::forward<Args>(args)...);
+
+				node->SetName(name);
+
+				m_InputNodes.emplace(name, node);
+
 				return node;
 			}
 

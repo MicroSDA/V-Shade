@@ -11,8 +11,8 @@ namespace shade
 		{
 
 		public:
-			PoseNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier) :
-				BaseNode(context, identifier,"Pose")
+			PoseNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode) :
+				BaseNode(context, identifier, pParentNode, "Pose")
 			{
 				m_CanBeOpen = false;
 				REGISTER_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(nullptr);

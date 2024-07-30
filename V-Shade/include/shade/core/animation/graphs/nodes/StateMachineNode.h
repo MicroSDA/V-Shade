@@ -2,7 +2,6 @@
 #include <shade/config/ShadeAPI.h>
 #include <shade/core/memory/Memory.h>
 #include <shade/core/graphs/nodes/BaseNode.h>
-#include <shade/core/graphs/nodes/ValueNode.h>
 #include <shade/core/graphs/nodes/IntEqualsNode.h>
 #include <shade/core/animation/graphs/nodes/OutputPoseNode.h>
 #include <shade/core/animation/graphs/nodes/BlendNode2D.h>
@@ -19,8 +18,8 @@ namespace shade
 			class  SHADE_API OutputTransitionNode : public graphs::BaseNode
 			{
 			public:
-				OutputTransitionNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier);
-				virtual ~OutputTransitionNode();
+				OutputTransitionNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode);
+				virtual ~OutputTransitionNode() = default;
 
 				void Evaluate(const FrameTimer& deltaTime) override;
 				Pose* Transit(StateNode* sourceState, StateNode* destinationState, const FrameTimer& deltaTime);
@@ -42,8 +41,10 @@ namespace shade
 					StateNode* DestinationState		= nullptr;
 				};
 			public:
-				TransitionNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, const Data& data);
-				virtual ~TransitionNode();
+				TransitionNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode, const Data& data);
+				virtual ~TransitionNode() = default;
+
+				virtual void Initialize() override;
 
 				Data& GetTransitionData();
 				const Data& GetTransitionData() const;
@@ -67,25 +68,19 @@ namespace shade
 					float Offset = 0.f;
 				};
 
-				StateNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, const std::string& name);
-				virtual ~StateNode();
+				StateNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode, const std::string& name);
+				virtual ~StateNode() = default;
+
+				virtual void Initialize() override;
+
+				/// @brief 
+				/// @return 
+				virtual bool RemoveNode(BaseNode* pNode) override;
 
 				void Evaluate(const FrameTimer& deltaTime) override;
 
-				/// @brief Unparrent.
-				virtual void Shutdown() override;
-
-				template<typename... Args>
-				TransitionNode* AddTransition(StateNode* destination, Args&&... args)
-				{
-					// TODO !
-					// Need to check if this already exist transition !!
-					TransitionNode* transition = SNEW TransitionNode(GetGraphContext(), m_Transitions.size(), TransitionNode::Data{ this, destination });
-
-					transition->Initialize(this);
-
-					return m_Transitions.emplace_back(transition);
-				}
+				// TODO ! Need to check if this already exist transition !!
+				TransitionNode* AddTransition(StateNode* destination);
 
 				SHADE_INLINE std::vector<TransitionNode*>& GetTransitions() { return m_Transitions; }
 				SHADE_INLINE const std::vector<TransitionNode*>& GetTransitions() const { return m_Transitions; }
@@ -102,11 +97,17 @@ namespace shade
 			class SHADE_API StateMachineNode : public graphs::BaseNode
 			{
 			public:
-				StateMachineNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier);
-				virtual ~StateMachineNode();
+				StateMachineNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode);
+				virtual ~StateMachineNode() = default;
+
+				/// @brief 
+				/// @return 
+				virtual bool RemoveNode(BaseNode* pNode) override;
+
 			public:
 				void Evaluate(const FrameTimer& deltaTime) override;
 				StateNode* CreateState(const std::string& name);
+				virtual void Initialize() override;
 			private:
 				//1. Current(Active State)
 				//2. Every State has to have output pose node

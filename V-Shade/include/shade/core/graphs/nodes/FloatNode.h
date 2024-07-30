@@ -8,7 +8,8 @@ namespace shade
 		class SHADE_API FloatNode : public BaseNode
 		{
 		public:
-			FloatNode(GraphContext* context, NodeIdentifier identifier) : BaseNode(context, identifier, "Float")
+			FloatNode(GraphContext* context, NodeIdentifier identifier, BaseNode* pParentNode) :
+				BaseNode(context, identifier, pParentNode, "Float")
 			{
 				m_CanBeOpen = false;
 				REGISTER_ENDPOINT<Connection::Output, NodeValueType::Float>(0);

@@ -8,7 +8,8 @@ namespace shade
 		class SHADE_API IntNode : public BaseNode
 		{
 		public:
-			IntNode(GraphContext* context, NodeIdentifier identifier) : BaseNode(context, identifier, "Int")
+			IntNode(GraphContext* context, NodeIdentifier identifier, BaseNode* pParentNode) 
+				: BaseNode(context, identifier, pParentNode, "Int")
 			{
 				m_CanBeOpen = false;
 				REGISTER_ENDPOINT<Connection::Output, NodeValueType::Int>(0);

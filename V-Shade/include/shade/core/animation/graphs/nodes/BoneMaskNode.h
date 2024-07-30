@@ -10,12 +10,11 @@ namespace shade
 		{
 
 		public:
-			BoneMaskNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier) :
-				BaseNode(context, identifier, "BoneMask")
+			BoneMaskNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode) :
+				BaseNode(context, identifier, pParentNode, "BoneMask")
 			{
 				m_CanBeOpen = false;
 				REGISTER_ENDPOINT<graphs::Connection::Output, NodeValueType::BoneMask>(context->As<AnimationGraphContext>().Skeleton);
-				//REGISTER_ENDPOINT<graphs::Connection::Output, NodeValueType::BoneMask>(nullptr);
 			}
 			virtual ~BoneMaskNode() = default;
 			virtual void Evaluate(const FrameTimer& delatTime) override;

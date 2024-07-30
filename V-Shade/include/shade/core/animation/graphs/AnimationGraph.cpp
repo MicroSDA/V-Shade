@@ -68,8 +68,10 @@
 //	return std::size_t();
 //}
 
-shade::animation::AnimationGraph::AnimationGraph(graphs::GraphContext* context, graphs::NodeIdentifier identifier) : BaseNode(context, identifier)
+shade::animation::AnimationGraph::AnimationGraph(graphs::GraphContext* context) : BaseNode(context, 0u)
 {
+	context->GetNodes().emplace(this, graphs::NodesPack{});
+
 	m_OutPutPoseNode = CreateNode<OutputPoseNode>();
 	SetRootNode(m_OutPutPoseNode);
 }

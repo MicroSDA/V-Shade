@@ -10,8 +10,8 @@ namespace shade
 		class SHADE_API OutputPoseNode : public graphs::BaseNode
 		{
 		public:
-			OutputPoseNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier) :
-				BaseNode(context, identifier, "OutputPose")
+			OutputPoseNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode) :
+				BaseNode(context, identifier, pParentNode, "OutputPose")
 			{
 				m_IsRenamable = false;
 				m_IsRemovable = false;

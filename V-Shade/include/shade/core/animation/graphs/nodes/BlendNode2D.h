@@ -9,8 +9,8 @@ namespace shade
 		class SHADE_API BlendNode2D : public graphs::BaseNode
 		{
 		public:
-			BlendNode2D(graphs::GraphContext* context, graphs::NodeIdentifier identifier) :
-				BaseNode(context, identifier, "Blend2D"), DefaultWeightValue(0.0f), Mask(BoneMask{nullptr})
+			BlendNode2D(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode) :
+				BaseNode(context, identifier, pParentNode, "Blend2D"), DefaultWeightValue(0.0f), Mask(BoneMask{nullptr})
 			{
 				m_CanBeOpen = false;
 

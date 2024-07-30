@@ -8,7 +8,8 @@ namespace shade
 		class SHADE_API FloatEqualsNode : public BaseNode
 		{
 		public:
-			FloatEqualsNode(GraphContext* context, NodeIdentifier identifier) : BaseNode(context, identifier, "FloatEquals")
+			FloatEqualsNode(GraphContext* context, NodeIdentifier identifier, BaseNode* pParentNode) :
+				BaseNode(context, identifier, pParentNode, "FloatEquals")
 			{
 				m_CanBeOpen = false;
 
