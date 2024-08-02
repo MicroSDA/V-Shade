@@ -91,9 +91,16 @@ public: \
 
 #define SHADE_CAST_HELPER(type) \
 public: \
-	template<typename T> \
-	inline T& As()\
-	{ \
-		static_assert(std::is_base_of<type, T>::value, "Is not base"); \
-		return static_cast<T&>(*this); \
-	};
+    template<typename T> \
+    SHADE_INLINE T& As() \
+    { \
+        static_assert(std::is_base_of<type, T>::value, "Is not base"); \
+        return static_cast<T&>(*this); \
+    } \
+    template<typename T> \
+    SHADE_INLINE const T& As() const \
+    { \
+        static_assert(std::is_base_of<type, T>::value, "Is not base"); \
+        return static_cast<const T&>(*this); \
+    }
+

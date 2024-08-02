@@ -9,8 +9,6 @@ shade::graphs::BaseNode::BaseNode(GraphContext* context, NodeIdentifier identifi
 
 shade::graphs::BaseNode::~BaseNode()
 {
-	SHADE_CORE_DEBUG("~BaseNode : {0}, {1}", GetName(), (int)this);
-
 	assert(m_pParrentNode == nullptr);
 	assert(m_pRootParrentNode == nullptr);
 }
@@ -109,7 +107,6 @@ void shade::graphs::BaseNode::OnDisconnect(Connection::Type connectionType, Node
 
 void shade::graphs::BaseNode::ProcessBranch(const FrameTimer& deltaTime)
 {
-	SHADE_CORE_INFO("Node {0}", (int)this);
 	//1. If there no connections we need to Evaluate node and go back to parrent
 	//2. If there some connections we need go till end of branch
 	assert(m_pGraphContext != nullptr);

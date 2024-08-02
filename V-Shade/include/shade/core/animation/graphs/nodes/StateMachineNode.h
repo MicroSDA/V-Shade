@@ -29,6 +29,8 @@ namespace shade
 				float GetTransitionAccumulator();
 				bool& IsSync();
 			private:
+				void ResetTransitionAccumulator();
+				void ProcessTransitionAccumulator(const FrameTimer& deltaTime);
 				float m_TimeAccumulator = 0.f;
 			};
 
@@ -51,6 +53,10 @@ namespace shade
 
 				void Evaluate(const FrameTimer& deltaTime) override;
 
+				SHADE_INLINE bool ShouldTransit() const
+				{
+					return GetRootNode()->As<OutputTransitionNode>().ShouldTransit();
+				}
 			private:
 				Data m_TransitionData;
 				OutputTransitionNode* m_pOutputTransitionNode = nullptr;
@@ -86,6 +92,15 @@ namespace shade
 				SHADE_INLINE const std::vector<TransitionNode*>& GetTransitions() const { return m_Transitions; }
 				SHADE_INLINE void  SetTransitionSyncData(const TransitionSyncData& data) { m_TransitionSyncData = data; }
 				SHADE_INLINE TransitionSyncData& GetTransitionSyncData() { return m_TransitionSyncData; }
+
+				SHADE_INLINE Pose* GetOutPutPose()
+				{
+					return GetRootNode()->As<OutputPoseNode>().GetEndpoint<graphs::Connection::Input>(0)->As<NodeValueType::Pose>();
+				}
+				SHADE_INLINE const Pose* GetOutPutPose() const
+				{
+					return GetRootNode()->As<OutputPoseNode>().GetEndpoint<graphs::Connection::Input>(0)->As<NodeValueType::Pose>();
+				}
 			private:
 				std::vector<TransitionNode*> m_Transitions;
 				TransitionNode* m_pActiveTransition = nullptr;
@@ -107,8 +122,8 @@ namespace shade
 			public:
 				void Evaluate(const FrameTimer& deltaTime) override;
 				StateNode* CreateState(const std::string& name);
-				virtual void Initialize() override;
 			private:
+				TransitionNode* m_pActiveTransition = nullptr;
 				//1. Current(Active State)
 				//2. Every State has to have output pose node
 				//3. At end of state machine evaluate need to set output pose from active state to state machine
