@@ -96,5 +96,7 @@ namespace shade
 		SHADE_API void DecomposeMatrix(const glm::mat4& matrix, glm::vec3& translation, glm::quat& rotation, glm::vec3& scale);
 
 		SHADE_API float Lerp(float a, float b, float f);
+		SHADE_API int BinomialCoefficient(int n, int k);
+		SHADE_API float CalculateBezierFactor(float currentTime, float start, float end, float blendMin, float blendMax, const std::vector<float>& points);
 	}
 }

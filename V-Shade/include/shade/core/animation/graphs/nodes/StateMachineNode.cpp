@@ -15,137 +15,7 @@ shade::animation::state_machine::OutputTransitionNode::OutputTransitionNode(grap
 
 	REGISTER_ENDPOINT<graphs::Connection::Input, NodeValueType::Bool>(false);
 	REGISTER_ENDPOINT<graphs::Connection::Input, NodeValueType::Float>(1.0);
-	REGISTER_ENDPOINT<graphs::Connection::Input, NodeValueType::Bool>(0.0);
-}
-
-void shade::animation::state_machine::OutputTransitionNode::Evaluate(const FrameTimer& deltaTime)
-{
-	//assert(false);
-}
-
-shade::animation::Pose* shade::animation::state_machine::OutputTransitionNode::Transit(StateNode* sourceState, StateNode* destinationState, const FrameTimer& deltaTime)
-{
-	// Но сначала нужно сделать эдитр что бы создавать ноды, удалять, делать и удалять конекшены
-	// 1. Сделать синхронизацию, сних с сурс аниацией, синх с дестинейшен анимацией, синх в обе стороны, не сихн вообще
-	// 2. Дать возможность ресетить анимацию, или проигрывать с того момента на котором оно остановилось
-	// 3. Добавить оффсет по времени, если стоит инхронихация значит оффсет тоже нужно перемножить
-	// 5. Проверить как будут работать рут вейльйус
-	// 6. Создать рут велью и дать возможность создавать соответствующий нод, но само значение брать из глобал вельюс
-
-
-	// If accumulator more than duration that means transition has been done, or duration is 0 so transition should be immediately
-	if (GetTransitionAccumulator() > GetTransitionDuration() || !GetTransitionDuration())
-	{
-		// Reset transition data
-		sourceState->SetTransitionSyncData(StateNode::TransitionSyncData{}); destinationState->SetTransitionSyncData(StateNode::TransitionSyncData{});
-		// Reset accamulator
-		ResetTransitionAccumulator();
-	}
-	else // We need make a transition
-	{
-		auto& controller	= GetGraphContext()->As<AnimationGraphContext>().Controller;
-		auto& skeleton		= GetGraphContext()->As<AnimationGraphContext>().Skeleton;
-
-		const animation::Pose* sPose	= sourceState->GetRootNode()->As<OutputPoseNode>().GetFinalPose();
-		const animation::Pose* dPose	= destinationState->GetRootNode()->As<OutputPoseNode>().GetFinalPose();
-
-		if (sPose && dPose)
-		{
-			float blendFactor = glm::clamp(GetTransitionAccumulator() / GetTransitionDuration(), 0.0f, 1.0f);
-
-			if (IsSync())
-			{
-				float duration1 = sPose->GetDuration();
-				float duration2 = dPose->GetDuration();
-
-				float currentTime1 = sPose->GetCurrentPlayTime();
-				float currentTime2 = dPose->GetCurrentPlayTime();
-
-
-				float normalizedTime1 = currentTime1 / duration1;
-				float normalizedTime2 = currentTime2 / duration2;
-
-				float targetNormalizedTime = (normalizedTime1 * (1.0f - blendFactor)) + (normalizedTime2 * blendFactor);
-
-				float targetTime1 = targetNormalizedTime * duration1;
-				float targetTime2 = targetNormalizedTime * duration2;
-
-
-				sourceState->SetTransitionSyncData({
-					.PStateAnimationDuration = dPose->GetDuration(),
-					.PStateAnimationCurrentPlayTime = dPose->GetCurrentPlayTime(),
-					.CurrentTransitionTime = GetTransitionAccumulator(),
-					.BlendFactor = blendFactor
-					});
-
-				destinationState->SetTransitionSyncData({
-						.PStateAnimationDuration = sPose->GetDuration(),
-						.PStateAnimationCurrentPlayTime = sPose->GetCurrentPlayTime(),
-						.CurrentTransitionTime = GetTransitionAccumulator(),
-						.BlendFactor = blendFactor
-					});
-			}
-
-			destinationState->Evaluate(deltaTime); sourceState->Evaluate(deltaTime);
-
-			ProcessTransitionAccumulator(deltaTime);
-
-			return controller->Blend(skeleton, sPose, dPose, blendFactor, animation::BoneMask{ nullptr });
-		}
-	}
-
-	return nullptr;
-
-	if (GetTransitionAccumulator() > GetTransitionDuration() || GetTransitionDuration() == 0.f)
-	{
-		sourceState->SetTransitionSyncData(StateNode::TransitionSyncData{}); sourceState->SetTransitionSyncData(StateNode::TransitionSyncData{});
-		m_TimeAccumulator = 0.f;
-		return nullptr;
-	}
-	else
-	{
-		auto& controller = GetGraphContext()->As<AnimationGraphContext>().Controller;
-		auto& skeleton = GetGraphContext()->As<AnimationGraphContext>().Skeleton;
-
-		const animation::Pose* sourcePose = sourceState->GetRootNode()->As<OutputPoseNode>().GetFinalPose();
-		const animation::Pose* destinationPose = nullptr;
-
-		float blendFactor = glm::clamp(GetTransitionAccumulator() / GetTransitionDuration(), 0.0f, 1.0f);
-
-		if (IsSync())
-		{
-			destinationState->SetTransitionSyncData({
-				.PStateAnimationDuration = sourcePose->GetDuration(),
-				.PStateAnimationCurrentPlayTime = sourcePose->GetCurrentPlayTime(),
-				.CurrentTransitionTime = GetTransitionAccumulator(),
-				.BlendFactor = blendFactor
-				});
-
-			destinationState->GetRootNode()->ProcessBranch(deltaTime);
-
-			destinationPose = destinationState->GetRootNode()->As<OutputPoseNode>().GetFinalPose();
-
-			destinationState->SetTransitionSyncData({
-				.PStateAnimationDuration = destinationPose->GetDuration(),
-				.PStateAnimationCurrentPlayTime = destinationPose->GetCurrentPlayTime(),
-				.CurrentTransitionTime = GetTransitionAccumulator(),
-				.BlendFactor = blendFactor
-				});
-
-			sourceState->GetRootNode()->ProcessBranch(deltaTime);
-		}
-		else
-		{
-			sourceState->GetRootNode()->ProcessBranch(deltaTime);
-			destinationState->GetRootNode()->ProcessBranch(deltaTime);
-
-			destinationPose = destinationState->GetRootNode()->As<OutputPoseNode>().GetFinalPose();
-		}
-
-		m_TimeAccumulator += deltaTime.GetInSeconds<float>();
-
-		return controller->Blend(skeleton, sourcePose, destinationPose, blendFactor, animation::BoneMask{ nullptr });
-	}
+	//REGISTER_ENDPOINT<graphs::Connection::Input, NodeValueType::Bool>(0.0);
 }
 
 bool shade::animation::state_machine::OutputTransitionNode::ShouldTransit() const
@@ -172,12 +42,6 @@ void shade::animation::state_machine::OutputTransitionNode::ProcessTransitionAcc
 {
 	m_TimeAccumulator += deltaTime.GetInSeconds<float>();
 }
-
-bool& shade::animation::state_machine::OutputTransitionNode::IsSync()
-{
-	return GET_ENDPOINT<graphs::Connection::Input, NodeValueType::Bool>(2);
-}
-
 
 shade::animation::state_machine::TransitionNode::TransitionNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode, const Data& data)
 	: BaseNode(context, identifier, pParentNode), m_TransitionData(data)
@@ -224,7 +88,7 @@ void shade::animation::state_machine::StateNode::Initialize()
 	SetRootNode(m_pOutPutPoseNode);
 
 	ConnectNodes(m_pOutPutPoseNode, 0, pose, 0); // has to be removed ! for test only
-	ProcessBranch(FrameTimer{});
+	ProcessBranch(FrameTimer{}); // ??
 }
 
 bool shade::animation::state_machine::StateNode::RemoveNode(BaseNode* pNode)
@@ -260,6 +124,13 @@ shade::animation::state_machine::StateMachineNode::StateMachineNode(graphs::Grap
 	REGISTER_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(nullptr);
 }
 
+shade::animation::state_machine::StateNode* shade::animation::state_machine::StateMachineNode::CreateState(const std::string& name)
+{
+	auto state = CreateNode<StateNode>(name);
+	if (GetRootNode() == nullptr) SetRootNode(state);
+	return state;
+}
+
 bool shade::animation::state_machine::StateMachineNode::RemoveNode(BaseNode* pNode)
 {
 	for (BaseNode* node : GetInternalNodes())
@@ -289,20 +160,21 @@ bool shade::animation::state_machine::StateMachineNode::RemoveNode(BaseNode* pNo
 
 void shade::animation::state_machine::StateMachineNode::Evaluate(const FrameTimer& deltaTime)
 {
+	// Но сначала нужно сделать эдитр что бы создавать ноды, удалять, делать и удалять конекшены
+	// 1. Сделать синхронизацию, сних с сурс аниацией, синх с дестинейшен анимацией, синх в обе стороны, не сихн вообще
+	// 2. Дать возможность ресетить анимацию, или проигрывать с того момента на котором оно остановилось
+	// 3. Добавить оффсет по времени, если стоит инхронихация значит оффсет тоже нужно перемножить
+	// 5. Проверить как будут работать рут вейльйус
+	// 6. Создать рут велью и дать возможность создавать соответствующий нод, но само значение брать из глобал вельюс
+
 	// TODO: Make transition interruptible
 	// Should be aka default state, because state machine has only states
 	if (StateNode* pState = &GetRootNode()->As<StateNode>())
 	{
 		if (m_pActiveTransition)
 		{
-			Pose* blendPose = m_pActiveTransition->GetRootNode()->As<OutputTransitionNode>().Transit(
-				m_pActiveTransition->GetTransitionData().SourceState,
-				m_pActiveTransition->GetTransitionData().DestinationState,
-				deltaTime
-			);
-
 			// When transition active, set blended pose to state machine 
-			if (blendPose)
+			if (Pose* blendPose = Transit(m_pActiveTransition, deltaTime))
 			{
 				GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, blendPose);
 			}
@@ -338,9 +210,95 @@ void shade::animation::state_machine::StateMachineNode::Evaluate(const FrameTime
 	}
 }
 
-shade::animation::state_machine::StateNode* shade::animation::state_machine::StateMachineNode::CreateState(const std::string& name)
+shade::animation::Pose* shade::animation::state_machine::StateMachineNode::Transit(TransitionNode* pTransition, const FrameTimer& deltaTime)
 {
-	auto state = CreateNode<StateNode>(name);
-	if (GetRootNode() == nullptr) SetRootNode(state);
-	return state;
+	OutputTransitionNode& transition		= pTransition->GetRootNode()->As<OutputTransitionNode>();
+	TransitionNode::Data& transitionData	= pTransition->GetTransitionData();
+
+	// If accumulator more than duration that means transition has been done, or duration is 0 so transition should be immediately
+	if (transition.GetTransitionAccumulator() > transition.GetTransitionDuration() || !transition.GetTransitionDuration())
+	{
+		// Reset transition data
+		transitionData.SourceState->SetTransitionSyncData(TransitionSyncData{}); transitionData.DestinationState->SetTransitionSyncData(TransitionSyncData{});
+		// Reset accamulator
+		transition.ResetTransitionAccumulator();
+	}
+	else // We need make a transition
+	{
+		auto& controller = GetGraphContext()->As<AnimationGraphContext>().Controller;
+		auto& skeleton = GetGraphContext()->As<AnimationGraphContext>().Skeleton;
+
+		const animation::Pose* sPose = transitionData.SourceState->GetOutPutPose();
+		const animation::Pose* dPose = transitionData.DestinationState->GetOutPutPose();
+
+		if (sPose && dPose)
+		{ 
+			TransitionStatus status = transition.GetTransitionAccumulator() ? TransitionStatus::InProcess : TransitionStatus::Start;
+			SyncPreferences& syncPreferences =  transition.GetSyncPreferences();
+			
+			float blendFactor = math::CalculateBezierFactor(transition.GetTransitionAccumulator(), 0.f, transition.GetTransitionDuration(), 0.f, 1.f, transition.GetCurveControllPoints());
+
+			//float blendFactor = glm::clamp(transition.GetTransitionAccumulator(), transition.GetTransitionDuration(), 0.f, 1.f);
+		
+			auto [sMultiplier, dMultiplier] = controller->GetTimeMultiplier(sPose->GetDuration(), dPose->GetDuration(), blendFactor);
+
+			switch (syncPreferences.Style)
+			{
+				case SyncStylePreferences::Async:
+				case SyncStylePreferences::SourceFrozen:
+				{
+					sMultiplier = 1.f; dMultiplier = 1.f;
+					break;
+				}
+				case SyncStylePreferences::SourceToDestinationTimeSync:
+				{
+					dMultiplier = 1.f;
+					break;
+				}
+				case SyncStylePreferences::DestinationToSourceTimeSync:
+				{
+					sMultiplier = 1.f;
+					break;
+				}
+				case SyncStylePreferences::DestinationAndSourceTimeSync:
+				{
+					//
+					break;
+				}
+				case SyncStylePreferences::KeyFrameSync:
+				{
+					break;
+				}
+			}
+
+			transitionData.SourceState->SetTransitionSyncData({
+					.Preferences = {.Style = syncPreferences.Style,.ResetFromStart = false,.Offset = 0.f },
+					.BlendFactor = blendFactor,
+					.CurrentTransitionTime = transition.GetTransitionAccumulator(),
+					.TimeMultiplier = sMultiplier,
+					.PStateAnimationDuration = dPose->GetDuration(),
+					.PStateAnimationCurrentPlayTime = dPose->GetCurrentPlayTime(),
+					.Status = status
+				});
+
+			transitionData.DestinationState->SetTransitionSyncData({
+				.Preferences = {.Style = SyncStylePreferences::Async,.ResetFromStart = syncPreferences.ResetFromStart,.Offset = syncPreferences.Offset },
+				.BlendFactor = blendFactor,
+				.CurrentTransitionTime = transition.GetTransitionAccumulator(),
+				.TimeMultiplier = dMultiplier,
+				.PStateAnimationDuration = sPose->GetDuration(),
+				.PStateAnimationCurrentPlayTime = sPose->GetCurrentPlayTime(),
+				.Status = status
+				});
+			
+
+			transitionData.SourceState->Evaluate(deltaTime); transitionData.DestinationState->Evaluate(deltaTime);
+
+			transition.ProcessTransitionAccumulator(deltaTime);
+
+			return controller->Blend(skeleton, sPose, dPose, blendFactor, animation::BoneMask{ nullptr });
+		}
+	}
+
+	return nullptr;
 }

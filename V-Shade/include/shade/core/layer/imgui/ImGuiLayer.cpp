@@ -196,6 +196,106 @@ bool shade::ImGuiLayer::DrawCombo(const char* title, std::string& selected, std:
 	return hasBeenSelected;
 }
 
+void shade::ImGuiLayer::ToggleButtonIcon(const char* str_id, bool* v, const char8_t* c, std::size_t fontIndex, float scale)
+{
+	ImVec2 p = ImGui::GetCursorScreenPos();
+	ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+	float size = ImGui::GetIO().Fonts->Fonts[fontIndex]->FontSize * scale;
+
+	ImGui::InvisibleButton(str_id, ImVec2(size, size));
+	if (ImGui::IsItemClicked())
+		*v = !*v;
+
+	ImU32 col_bg;
+	if (ImGui::IsItemHovered())
+		col_bg = ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered]);
+	else
+	{
+		if (*v)
+		{
+			col_bg = col_bg = ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_Text]);
+		}
+		else
+		{
+			col_bg = col_bg = ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_Button]);
+		}
+	}
+		
+
+	ImGui::SetCursorScreenPos(p);
+
+	ImGui::PushStyleColor(ImGuiCol_Text, col_bg);
+	ImGuiLayer::DrawFontIcon(c, fontIndex, scale);
+	ImGui::PopStyleColor();
+}
+
+void shade::ImGuiLayer::ToggleButton(const char* str_id, bool* v)
+{
+	ImVec2 p = ImGui::GetCursorScreenPos();
+	ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+	float height = ImGui::GetFrameHeight();
+	float width = height * 1.55f;
+	float radius = height * 0.50f;
+
+	ImGui::InvisibleButton(str_id, ImVec2(width, height));
+	if (ImGui::IsItemClicked())
+		*v = !*v;
+
+	float t = *v ? 1.0f : 0.0f;
+
+	ImGuiContext& g = *GImGui;
+	float ANIM_SPEED = 0.08f;
+	if (g.LastActiveId == g.CurrentWindow->GetID(str_id))// && g.LastActiveIdTimer < ANIM_SPEED)
+	{
+		float t_anim = ImSaturate(g.LastActiveIdTimer / ANIM_SPEED);
+		t = *v ? (t_anim) : (1.0f - t_anim);
+	}
+
+	ImU32 col_bg;
+	if (ImGui::IsItemHovered())
+		col_bg = ImGui::GetColorU32(ImLerp(ImVec4(0.78f, 0.78f, 0.78f, 1.0f), ImVec4(0.64f, 0.83f, 0.34f, 1.0f), t));
+	else
+		col_bg = ImGui::GetColorU32(ImLerp(ImVec4(0.85f, 0.85f, 0.85f, 1.0f), ImVec4(0.56f, 0.83f, 0.26f, 1.0f), t));
+
+	draw_list->AddRectFilled(p, ImVec2(p.x + width, p.y + height), col_bg, height * 0.5f);
+	draw_list->AddCircleFilled(ImVec2(p.x + radius + t * (width - radius * 2.0f), p.y + radius), radius - 1.5f, IM_COL32(255, 255, 255, 255));
+}
+
+bool shade::ImGuiLayer::DragFloatR(const char* id, float* v, float reset, float min, float max, float step, float length)
+{
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+	const float radius = ImGui::GetFrameHeight() / 2.7f, thickness = 2.5f, trinagleLength = 5.5f, halfLength = trinagleLength / 2.f, halfThickness = thickness / 2.f;
+
+	const bool isEdit = ImGui::DragFloat(id, v, step, min, max); ImGui::SameLine();
+
+	const ImVec2 position = ImGui::GetCursorScreenPos(), center = position + ImVec2{ radius, ImGui::GetFrameHeight() / 2.f };
+	const ImRect rect = { position, { position.x + radius * 2.f, position.y + ImGui::GetFrameHeight()} };
+	
+	const ImVec2 p1 = { center.x - halfLength, center.y - radius + trinagleLength + halfThickness },
+		p2 = { center.x - halfLength, center.y - radius - trinagleLength + halfThickness },
+		p3 = { center.x + halfLength, center.y - radius + halfThickness };
+
+	const ImU32 bc  = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_Button]);
+	const ImU32 bca = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]);
+	const ImU32 bch = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered]);
+
+	const bool isClick = ImGui::InvisibleButton(std::string(id + std::string("ResetButton")).c_str(), {radius * 2.f, ImGui::GetFrameHeight()});
+
+	if(isClick) *v = reset;
+
+	const ImU32 col = isClick ? bca : ImGui::IsItemHovered() ? bch : bc;
+
+	drawList->AddCircle(center, radius, col, 0, thickness);
+	drawList->AddTriangleFilled(p1, p2, p3, col);
+	// Debug frame
+	//drawList->AddRect(rect.Min, rect.Max, col);
+	
+	return isEdit || isClick;
+}
+
 bool shade::ImGuiLayer::DragFloat(const char* title, float* data, float step, float min, float max, float cw1, float cw2)
 {
 	std::string _title = std::string("##") + title;
@@ -376,13 +476,15 @@ void shade::ImGuiLayer::DrawFontIcon(const char8_t* c, std::size_t fontIndex, fl
 
 bool shade::ImGuiLayer::IconButton(const char8_t* c, std::size_t fontIndex, float iconScale, float scale)
 {
+	ImGuiContext& g = *GImGui;
+
+	bool isButtonPressed = false;
+
 	const ImVec2 screenPoss = ImGui::GetCursorScreenPos();
 
 	const float fontSize = ImGui::GetIO().Fonts->Fonts[fontIndex]->FontSize;
 
-	const ImRect buttonRect = { screenPoss, screenPoss + ImVec2 { fontSize * (1.5f * iconScale), fontSize * (1.5f * iconScale) } * scale };
-
-	bool isButtonPressed = false;
+	const ImRect buttonRect = { screenPoss, screenPoss + ImVec2 { fontSize * (1.5f * iconScale), fontSize * (1.5f * iconScale) } *scale };
 
 	// Button hover
 	if (buttonRect.Contains(ImGui::GetIO().MousePos))
@@ -391,7 +493,7 @@ bool shade::ImGuiLayer::IconButton(const char8_t* c, std::size_t fontIndex, floa
 		{
 			ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]);
 		}
-		else if(ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+		else if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ((g.CurrentItemFlags & ImGuiItemFlags_Disabled) == 0))
 		{
 			ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_Button]);
 			isButtonPressed = true;
@@ -400,13 +502,14 @@ bool shade::ImGuiLayer::IconButton(const char8_t* c, std::size_t fontIndex, floa
 		{
 			ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered]);
 		}
+
 	}
 	else
 	{
 		ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_Button]);
 	}
 
-	
+
 	//ImGui::GetWindowDrawList()->AddRectFilled(buttonRect.Min, buttonRect.Max, ImGui::ColorConvertFloat4ToU32({ 1,1,1,1 }));
 
 	DrawFontIcon(c, fontIndex, iconScale);

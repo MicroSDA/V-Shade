@@ -5,6 +5,7 @@
 #include <ImGuizmo/ImGuizmo.h>
 #include <ImGuizmo/ImSequencer.h>
 #include <shade/core/layer/imgui/ImGuiGraph.h>
+#include <shade/core/layer/imgui/ImGuiCurve.h>
 
 namespace shade
 {
@@ -185,7 +186,13 @@ namespace shade
 		static bool InputTextCol(const char* title, std::string& str, float cw1 = 0.0f, float cw2 = 0.0);
 		static bool InputTextD(const char* title, std::string& str);
 		static bool ComboCol(const char* id, std::string& selected, std::vector<std::string>& elements, ImGuiSelectableFlags selectedFlags, ImGuiComboFlags comboFlags, const float& cw1 = 0.0f, const float& cw2 = 0.0);
-		bool DrawCombo(const char* id, std::string& selected, std::vector<std::string>& elements, ImGuiSelectableFlags selectedFlags, ImGuiComboFlags comboFlags);
+		static bool DrawCombo(const char* id, std::string& selected, std::vector<std::string>& elements, ImGuiSelectableFlags selectedFlags, ImGuiComboFlags comboFlags);
+
+		static void ToggleButton(const char* str_id, bool* v);
+		static void ToggleButtonIcon(const char* str_id, bool* v, const char8_t* c, std::size_t fontIndex, float scale);
+
+
+		bool DragFloatR(const char* id, float* v, float reset, float min = 0.f, float max = FLT_MAX, float step = 0.01f, float length = 0.f);
 
 		bool DragFloat(const char* title, float* data, float step = 0.01f, float min = 0.0, float max = FLT_MAX, float cw1 = 0.0f, float cw2 = 0.0);
 		bool DragFloat3(const char* title, float* data, float resetValue, float step = 0.01f, float min = 0.0, float max = FLT_MAX, float cw1 = 0.0f, float cw2 = 0.0);
@@ -194,6 +201,8 @@ namespace shade
 		bool DrawImGuizmo(glm::mat4& transform, const SharedPointer<Camera>& camera, ImGuizmo::OPERATION operation, const ImVec4& window);
 		bool ColorEdit3(const char* title, float* data, float cw1 = 0.0f, float cw2 = 0.0);
 		bool DrawButton(const char* title, const char* buttonTitle, float cw1 = 0.0f, float cw2 = 0.0f);
+
+
 
 		static void TextUTF8(const std::u8string& string);
 		static void DrawFontIcon(const char8_t* c, std::size_t fontIndex, float size);

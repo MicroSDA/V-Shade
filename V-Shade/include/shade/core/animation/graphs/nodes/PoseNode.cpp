@@ -12,26 +12,45 @@ void shade::animation::PoseNode::Evaluate(const FrameTimer& deltaTime)
 	{
 		if (dynamic_cast<state_machine::StateNode*>(GetParrentGraph())) // Need to fix thix dynamic cast
 		{
-			const state_machine::StateNode::TransitionSyncData syncData = GetParrentGraph()->As<state_machine::StateNode>().GetTransitionSyncData();
+			const state_machine::TransitionSyncData syncData = GetParrentGraph()->As<state_machine::StateNode>().GetTransitionSyncData();
 
-			if (syncData.PStateAnimationDuration > 0.f)
+			switch (syncData.Status)
 			{
-				auto multiplier = controller->GetTimeMultiplier(AnimationData.Duration, syncData.PStateAnimationDuration, syncData.BlendFactor);
-
-				if (!syncData.CurrentTransitionTime)
+				case state_machine::TransitionStatus::Start:
 				{
-					AnimationData.CurrentPlayTime = 0.f;
+					if (syncData.Preferences.ResetFromStart)
+						AnimationData.CurrentPlayTime = AnimationData.Start;
 				}
-				if (syncData.Offset)
+				case state_machine::TransitionStatus::InProcess:
 				{
-					AnimationData.CurrentPlayTime  = syncData.Offset;
-				}
+					switch (syncData.Preferences.Style)
+					{
+					case state_machine::SyncStylePreferences::SourceFrozen:
 
-				GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, controller->ProcessPose(skeleton, AnimationData, deltaTime, multiplier.first));
-			}
-			else
-			{
-				GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, controller->ProcessPose(skeleton, AnimationData, deltaTime));
+						AnimationData.State = Animation::State::Pause;
+						GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, controller->ProcessPose(skeleton, AnimationData, deltaTime, syncData.TimeMultiplier));
+						break;
+
+					case state_machine::SyncStylePreferences::SourceToDestinationTimeSync:
+
+					case state_machine::SyncStylePreferences::DestinationToSourceTimeSync:
+
+					case state_machine::SyncStylePreferences::DestinationAndSourceTimeSync:
+
+					case state_machine::SyncStylePreferences::KeyFrameSync: break;
+
+					default:
+						AnimationData.State = Animation::State::Play;
+						GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, controller->ProcessPose(skeleton, AnimationData, deltaTime, syncData.TimeMultiplier));
+						break;
+					}
+					break;
+				}
+				case state_machine::TransitionStatus::End: // When transition end or non transition occurs
+				{
+					GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, controller->ProcessPose(skeleton, AnimationData, deltaTime, syncData.TimeMultiplier));
+					break;
+				}
 			}
 		}
 		else

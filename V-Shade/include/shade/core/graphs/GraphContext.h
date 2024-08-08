@@ -133,10 +133,10 @@ namespace shade
 
 					auto connection = std::find_if(connections.begin(), connections.end(), [pConnectedTo, connectedToEndpoint](const Connection& connection)
 						{
-							return (connection.ConnectedToEndpoint != connectedToEndpoint);
+							return (connection.ConnectedToEndpoint == connectedToEndpoint);
 						});
 
-					return connection != connections.end();
+					return connection == connections.end();
 				}
 
 				return false;
@@ -150,7 +150,7 @@ namespace shade
 			{
 				// That means you cannot conenect same node twice !
 				// If you want then need to check if endpoint free !
-				if (!FindConnection(pConnectedTo, connectedToEndpoint, pConnectedFrom, connectedFromEndpoint))
+				if (IsEndpointFree(pConnectedTo, connectedToEndpoint) && !FindConnection(pConnectedTo, connectedToEndpoint, pConnectedFrom, connectedFromEndpoint))
 				{
 					std::unordered_map<BaseNode*, NodesPack>::iterator to = Nodes.find(pConnectedTo);
 					to->second.Connections.emplace_back(Connection{pConnectedTo, connectedToEndpoint, pConnectedFrom, connectedFromEndpoint });

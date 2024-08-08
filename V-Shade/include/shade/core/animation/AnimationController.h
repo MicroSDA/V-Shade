@@ -9,8 +9,8 @@
 namespace shade
 {
 
-	/* 1. Create Pose task 
-	
+	/*  1. Create Pose task 
+		2. Create addative creating and blending !
 	*/
 	namespace animation
 	{
@@ -21,8 +21,7 @@ namespace shade
 		}
 
 		class SHADE_API AnimationController
-		{
-		public:
+		{			
 		public:
 			struct AnimationControlData
 			{
@@ -37,8 +36,9 @@ namespace shade
 				{}
 
 				Asset<Animation>		Animation;
-				Animation::State		State = Animation::State::Stop;
-				float					Start = 0.f, End = 0.f, Duration = 0.f, CurrentPlayTime = 0.f, TicksPerSecond = 0.f;
+				Animation::State		State  = Animation::State::Play;
+				float					Start  = 0.f, End = 0.f, Duration = 0.f, CurrentPlayTime = 0.f, TicksPerSecond = 0.f;
+				bool					IsLoop = true;
 			};
 			template<typename T, typename Data>
 			struct Task
@@ -64,6 +64,7 @@ namespace shade
 			animation::Pose* ProcessPose(const Asset<Skeleton>& skeleton, AnimationControlData& animationData, const FrameTimer& deltaTime, float timeMultiplier = 1.f);
 			animation::Pose* Blend(const Asset<Skeleton>& skeleton, const animation::Pose* first, const animation::Pose* second, float blendFactor, const animation::BoneMask& boneMask);
 			std::pair<float, float> GetTimeMultiplier(float firstDuration, float secondDuration, float blendFactor) const;
+
 		private:
 			AnimationController() = default;
 			std::unordered_map<std::size_t, animation::Pose> m_Poses; //NOTE: Thats can be a problem !!
@@ -73,6 +74,7 @@ namespace shade
 			animation::Pose* CreatePose(const Asset<Skeleton>& skeleton, std::size_t hash);
 			animation::Pose* CalculatePose(animation::Pose* targetPose, AnimationControlData& animationData, const FrameTimer& deltaTime, float timeMultiplier = 1.f);
 			animation::Pose* ReceiveAnimationPose(const Asset<Skeleton>& skeleton, std::size_t hash);
+		
 
 			template<typename... Args>
 			inline animation::Pose* ReceiveAnimationPose(const Asset<Skeleton>& skeleton, Args&&... args)

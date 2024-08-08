@@ -15,23 +15,69 @@ namespace shade
 		{
 			class StateNode;
 
+			enum class TransitionStatus
+			{
+				Start = 0,
+				InProcess,
+				End
+			};
+
+			enum class SyncStylePreferences
+			{
+				Async = 0,
+				// Freeze source animation
+				SourceFrozen,
+				// Sync destination animation time based on source animation
+				SourceToDestinationTimeSync,
+				// Sync source animation time based on destination animation
+				DestinationToSourceTimeSync,
+				// Sync both animations based on their own time
+				DestinationAndSourceTimeSync,
+				// Sync by keyframes
+				KeyFrameSync
+			};
+
+			struct SyncPreferences
+			{
+				SyncStylePreferences Style = SyncStylePreferences::Async;
+				bool  ResetFromStart = false;
+				float Offset = 0.f;
+			};
+
+			struct TransitionSyncData
+			{
+				SyncPreferences Preferences;
+				float BlendFactor = 0.f;
+				float CurrentTransitionTime = 0.f;
+				float TimeMultiplier = 1.f;
+				// Describes another animation 
+				float PStateAnimationDuration = 0.f;
+				float PStateAnimationCurrentPlayTime = 0.f;
+				TransitionStatus Status = TransitionStatus::End;
+			};
+
 			class  SHADE_API OutputTransitionNode : public graphs::BaseNode
 			{
 			public:
 				OutputTransitionNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode);
 				virtual ~OutputTransitionNode() = default;
 
-				void Evaluate(const FrameTimer& deltaTime) override;
-				Pose* Transit(StateNode* sourceState, StateNode* destinationState, const FrameTimer& deltaTime);
-
+				void Evaluate(const FrameTimer& deltaTime) override {};
+		
 				bool ShouldTransit() const;
 				float GetTransitionDuration();
 				float GetTransitionAccumulator();
-				bool& IsSync();
+				std::vector<float>& GetCurveControllPoints() { return m_CurveControlPoints; }
+				SyncPreferences& GetSyncPreferences() { return m_SyncPreferences; }
 			private:
 				void ResetTransitionAccumulator();
 				void ProcessTransitionAccumulator(const FrameTimer& deltaTime);
+			private:
 				float m_TimeAccumulator = 0.f;
+				std::vector<float> m_CurveControlPoints = {0.5f};
+				SyncPreferences m_SyncPreferences;
+			private:
+				friend class StateMachineNode;
 			};
 
 			class SHADE_API TransitionNode : public graphs::BaseNode
@@ -65,15 +111,7 @@ namespace shade
 			class SHADE_API StateNode : public graphs::BaseNode
 			{
 			public:
-				struct TransitionSyncData
-				{
-					float PStateAnimationDuration = 0.f;
-					float PStateAnimationCurrentPlayTime = 0.f;
-					float CurrentTransitionTime = 0.f;
-					float BlendFactor = 0.f;
-					float Offset = 0.f;
-				};
-
+				
 				StateNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode, const std::string& name);
 				virtual ~StateNode() = default;
 
@@ -93,13 +131,13 @@ namespace shade
 				SHADE_INLINE void  SetTransitionSyncData(const TransitionSyncData& data) { m_TransitionSyncData = data; }
 				SHADE_INLINE TransitionSyncData& GetTransitionSyncData() { return m_TransitionSyncData; }
 
-				SHADE_INLINE Pose* GetOutPutPose()
+				/*SHADE_INLINE Pose* GetOutPutPose()
 				{
 					return GetRootNode()->As<OutputPoseNode>().GetEndpoint<graphs::Connection::Input>(0)->As<NodeValueType::Pose>();
-				}
+				}*/
 				SHADE_INLINE const Pose* GetOutPutPose() const
 				{
-					return GetRootNode()->As<OutputPoseNode>().GetEndpoint<graphs::Connection::Input>(0)->As<NodeValueType::Pose>();
+					return GetRootNode()->As<OutputPoseNode>().GetFinalPose();
 				}
 			private:
 				std::vector<TransitionNode*> m_Transitions;
@@ -124,6 +162,8 @@ namespace shade
 				StateNode* CreateState(const std::string& name);
 			private:
 				TransitionNode* m_pActiveTransition = nullptr;
+			private:
+				Pose* Transit(TransitionNode* pTransition, const FrameTimer& deltaTime);
 				//1. Current(Active State)
 				//2. Every State has to have output pose node
 				//3. At end of state machine evaluate need to set output pose from active state to state machine

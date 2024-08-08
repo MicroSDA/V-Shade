@@ -348,6 +348,8 @@ namespace graph_editor
 		OutputTransitionNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor);
 		virtual ~OutputTransitionNodeDelegate() = default;
 		virtual void ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint) override;
+		virtual void ProcessBodyContent(const InternalContext* context) override;
+		virtual void ProcessSideBar(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, std::unordered_map<std::size_t, GraphNodePrototype*>& referNodes) override;
 	};
 
 	class BlendNode2DNodeDelegate : public GraphNodePrototype

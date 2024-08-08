@@ -36,12 +36,12 @@ void shade::animation::AnimationController::CalculateBoneTransforms(
 }
 
 void shade::animation::AnimationController::CalculateBoneTransformsBlend(
-	const shade::Skeleton::BoneNode* bone, 
+	const shade::Skeleton::BoneNode* bone,
 	animation::Pose* targetPose,
 	const animation::Pose* first,
-	const animation::Pose* second, 
-	const glm::mat4& parrentTransform, 
-	float blendFactor, 
+	const animation::Pose* second,
+	const glm::mat4& parrentTransform,
+	float blendFactor,
 	const animation::BoneMask& boneMask)
 {
 	const glm::mat4& firstPose = first->GetBoneLocalTransform(bone->ID);
@@ -49,7 +49,7 @@ void shade::animation::AnimationController::CalculateBoneTransformsBlend(
 
 	float blendFactorWithBoneMask = blendFactor * boneMask.GetWeight(bone->ID);
 
-	glm::mat4 combined	    = glm::mat4_cast(glm::slerp(glm::quat_cast(firstPose), glm::quat_cast(secondPose), blendFactorWithBoneMask));
+	glm::mat4 combined = glm::mat4_cast(glm::slerp(glm::quat_cast(firstPose), glm::quat_cast(secondPose), blendFactorWithBoneMask));
 	//glm::vec3 translate	    = glm::mix(firstPose[3], secondPose[3], blendFactor);
 	//glm::vec3 scale		= glm::mix(firstPose[3], secondPose[3], blendFactor);
 
@@ -103,16 +103,78 @@ shade::animation::Pose* shade::animation::AnimationController::CreatePose(const 
 }
 
 shade::animation::Pose* shade::animation::AnimationController::CalculatePose(animation::Pose* targetPose, AnimationControlData& animationData, const FrameTimer& deltaTime, float timeMultiplier)
-{	
-	animationData.CurrentPlayTime += animationData.TicksPerSecond * deltaTime.GetInSeconds<float>() * timeMultiplier;
-	animationData.CurrentPlayTime  = glm::fmod(animationData.CurrentPlayTime, animationData.End);
+{
+#if 1
+	switch (animationData.State)
+	{
+	case Animation::State::Play:
+		if (animationData.CurrentPlayTime == animationData.End && !animationData.IsLoop)
+		{
+			animationData.CurrentPlayTime = animationData.Start;
+		}
 
-	animationData.CurrentPlayTime  = glm::clamp(animationData.CurrentPlayTime, animationData.Start, animationData.End);
+		animationData.CurrentPlayTime += animationData.TicksPerSecond * deltaTime.GetInSeconds<float>() * timeMultiplier;
 
-	targetPose->SetCurrentPlayTime(animationData.CurrentPlayTime);
-	targetPose->SetDuration(animationData.Duration);
+		if (!animationData.IsLoop && animationData.CurrentPlayTime > animationData.End)
+		{
+			animationData.State = Animation::State::Pause;
+			animationData.CurrentPlayTime = animationData.End;
+		}
+		else
+		{
+			animationData.CurrentPlayTime = glm::fmod(animationData.CurrentPlayTime, animationData.End);
+			animationData.CurrentPlayTime = glm::clamp(animationData.CurrentPlayTime, animationData.Start, animationData.End);
+		}
+		break;
 
-	CalculateBoneTransforms(targetPose, animationData, targetPose->GetSkeleton()->GetRootNode(), glm::mat4(1.0), targetPose->GetSkeleton()->GetArmature());
+	case Animation::State::Stop:
+		animationData.CurrentPlayTime = 0.f;
+		break;
+
+	case Animation::State::Pause:
+		// Do nothing
+		break;
+	}
+#else
+
+	const float epsilon = 1e-5f; // Small value for float comparison
+
+	switch (animationData.State)
+	{
+	case Animation::State::Play:
+		// Check if CurrentPlayTime is approximately equal to End
+		if (fabs(animationData.CurrentPlayTime - animationData.End) < epsilon && !animationData.IsLoop)
+		{
+			animationData.CurrentPlayTime = animationData.Start;
+		}
+
+		animationData.CurrentPlayTime += animationData.TicksPerSecond * deltaTime.GetInSeconds<float>() * timeMultiplier;
+
+		if (!animationData.IsLoop && animationData.CurrentPlayTime > animationData.End)
+		{
+			animationData.State = Animation::State::Pause;
+			animationData.CurrentPlayTime = animationData.End;
+		}
+		else
+		{
+			animationData.CurrentPlayTime = glm::fmod(animationData.CurrentPlayTime, animationData.End);
+			animationData.CurrentPlayTime = glm::clamp(animationData.CurrentPlayTime, animationData.Start, animationData.End);
+		}
+		break;
+
+	case Animation::State::Stop:
+		animationData.CurrentPlayTime = animationData.Start;
+		break;
+
+	case Animation::State::Pause:
+		// Do nothing
+		break;
+	}
+
+#endif // 0
+
+	targetPose->SetDuration(animationData.Duration); targetPose->SetCurrentPlayTime(animationData.CurrentPlayTime);
+	CalculateBoneTransforms(targetPose, animationData, targetPose->GetSkeleton()->GetRootNode(), glm::identity<glm::mat4>(), targetPose->GetSkeleton()->GetArmature());
 
 	return targetPose;
 }

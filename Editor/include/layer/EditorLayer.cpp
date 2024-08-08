@@ -161,6 +161,18 @@ void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shad
 			ShowWindowBar("Assets", &EditorLayer::AssetsExplorer, this);
 			ShowWindowBar("Inspector", &EditorLayer::EntityInspector, this, m_SelectedEntity);
 
+			//ShowWindowBar("Curve", []() 
+			//	{
+			//		static std::vector<float> points{ 0.0,  0.0,  0, 0, 0,0};
+			//		static float values[4] = { 0, 1, 0, 1 };
+			//		static float time = 0.5f;
+
+			//		//ImGui::DragFloat4("Value", values, 0.01, 0.0, 1.0);
+			//		//ImGui::DragFloat("Time", &time, 0.01, 0.0, 1.0);
+
+			//		shade::CurveEditor("Hello", time, values[0], values[1], values[2], values[3], points);
+			//	});
+
 			ShowWindowBar("Material", &EditorLayer::MaterialEdit, this, (m_SelectedMaterial != nullptr) ? *m_SelectedMaterial : *shade::Renderer::GetDefaultMaterial());
 			ShowWindowBar("Render settings", &EditorLayer::RenderSettings, this, m_SceneRenderer);
 		}
