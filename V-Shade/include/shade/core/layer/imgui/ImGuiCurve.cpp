@@ -435,7 +435,8 @@ bool shade::CurveEditor(const char* lable, float v, float bMin, float bMax, floa
 	// Draw time point
 	//drawList->AddCircle(screenPosition + GetPointPositionOnScreen(v, math::CalculateBezierFactor(v, tMin, tMax, bMin, bMax, points), tMin, tMax, size), 7.0f, ImGui::GetColorU32(ImGuiCol_Text));
 	drawList->AddCircleFilled(screenPosition + GetPointPositionOnScreen(v, math::CalculateBezierFactor(v, tMin, tMax, bMin, bMax, points), tMin, tMax, size), oCr, ImGui::GetColorU32(ImGuiCol_Text));
-	std::cout << math::CalculateBezierFactor(v, tMin, tMax, bMin, bMax, points) << std::endl;
+	
+	ImGui::DragFloat("#Time", &v, 0.01, FLT_MAX, FLT_MAX);
 
 	ImGui::SetCursorScreenPos({ screenPosition.x, screenPosition.y + size.y + 15.f });
 

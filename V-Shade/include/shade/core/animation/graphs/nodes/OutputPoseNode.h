@@ -11,7 +11,7 @@ namespace shade
 		{
 		public:
 			OutputPoseNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode) :
-				BaseNode(context, identifier, pParentNode, "OutputPose")
+				BaseNode(context, identifier, pParentNode, "Output pose")
 			{
 				m_IsRenamable = false;
 				m_IsRemovable = false;

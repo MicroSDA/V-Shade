@@ -27,8 +27,8 @@ namespace shade
 
 	struct AnimationGraphComponent
 	{
-		//Asset<animation::AnimationGraph> AnimationGraph;
-		SharedPointer<animation::AnimationGraph> AnimationGraph;
+		Asset<animation::AnimationGraph> AnimationGraph;
+		//SharedPointer<animation::AnimationGraph> AnimationGraph;
 		animation::AnimationGraphContext GraphContext;
 	};
 

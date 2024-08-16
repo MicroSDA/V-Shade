@@ -19,25 +19,25 @@ void shade::animation::PoseNode::Evaluate(const FrameTimer& deltaTime)
 				case state_machine::TransitionStatus::Start:
 				{
 					if (syncData.Preferences.ResetFromStart)
-						AnimationData.CurrentPlayTime = AnimationData.Start;
+						AnimationData.CurrentPlayTime = AnimationData.Start + syncData.Preferences.Offset;
 				}
 				case state_machine::TransitionStatus::InProcess:
 				{
 					switch (syncData.Preferences.Style)
 					{
-					case state_machine::SyncStylePreferences::SourceFrozen:
+					case state_machine::SyncStyle::SourceFrozen:
 
 						AnimationData.State = Animation::State::Pause;
 						GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, controller->ProcessPose(skeleton, AnimationData, deltaTime, syncData.TimeMultiplier));
 						break;
 
-					case state_machine::SyncStylePreferences::SourceToDestinationTimeSync:
+					case state_machine::SyncStyle::SourceToDestinationTimeSync:
 
-					case state_machine::SyncStylePreferences::DestinationToSourceTimeSync:
+					case state_machine::SyncStyle::DestinationToSourceTimeSync:
 
-					case state_machine::SyncStylePreferences::DestinationAndSourceTimeSync:
+					case state_machine::SyncStyle::DestinationAndSourceTimeSync:
 
-					case state_machine::SyncStylePreferences::KeyFrameSync: break;
+					case state_machine::SyncStyle::KeyFrameSync: break;
 
 					default:
 						AnimationData.State = Animation::State::Play;

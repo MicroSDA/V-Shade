@@ -103,7 +103,7 @@ namespace shade
 	};
 	/* Get attribute as string.*/
 	template<>
-	inline std::string AssetData::GetAttribute(const std::string& name) const
+	SHADE_INLINE std::string AssetData::GetAttribute(const std::string& name) const
 	{
 		auto search = m_Attributes.find(name);
 		if (search != m_Attributes.end())
@@ -114,19 +114,19 @@ namespace shade
 	}
 	/* Set attribute as string.*/
 	template<>
-	inline void AssetData::SetAttribute(const std::string& name, const std::string& attribute)
+	SHADE_INLINE void AssetData::SetAttribute(const std::string& name, const std::string& attribute)
 	{
 		m_Attributes[name] = attribute;
 	}
 	/* Set attribute as string.*/
 	template<>
-	inline void AssetData::SetAttribute(const std::string& name, const char* attribute)
+	SHADE_INLINE void AssetData::SetAttribute(const std::string& name, const char* attribute)
 	{
 		m_Attributes[name] = attribute;
 	}
 	/* Get attribute as std::uint32_t.*/
 	template<>
-	inline std::uint32_t AssetData::GetAttribute(const std::string& name) const
+	SHADE_INLINE std::uint32_t AssetData::GetAttribute(const std::string& name) const
 	{
 		auto search = m_Attributes.find(name);
 		if (search != m_Attributes.end())
@@ -136,13 +136,13 @@ namespace shade
 	}
 	/* Set attribute as std::uint32_t.*/
 	template<>
-	inline void AssetData::SetAttribute(const std::string& name, const std::uint32_t& attribute)
+	SHADE_INLINE void AssetData::SetAttribute(const std::string& name, const std::uint32_t& attribute)
 	{
 		m_Attributes[name] = std::to_string(attribute);
 	}
 	/* Get attribute as std::uint64_t.*/
 	template<>
-	inline std::uint64_t AssetData::GetAttribute(const std::string& name) const
+	SHADE_INLINE std::uint64_t AssetData::GetAttribute(const std::string& name) const
 	{
 		auto search = m_Attributes.find(name);
 		if (search != m_Attributes.end())
@@ -152,13 +152,13 @@ namespace shade
 	}
 	/* Set attribute as std::uint64_t.*/
 	template<>
-	inline void AssetData::SetAttribute(const std::string& name, const std::uint64_t& attribute)
+	SHADE_INLINE void AssetData::SetAttribute(const std::string& name, const std::uint64_t& attribute)
 	{
 		m_Attributes[name] = std::to_string(attribute);
 	}
 	/* Get attribute as float.*/
 	template<>
-	inline float AssetData::GetAttribute(const std::string& name) const
+	SHADE_INLINE float AssetData::GetAttribute(const std::string& name) const
 	{
 		auto search = m_Attributes.find(name);
 		if (search != m_Attributes.end())
@@ -168,13 +168,13 @@ namespace shade
 	}
 	/* Set attribute as float.*/
 	template<>
-	inline void AssetData::SetAttribute(const std::string& name, const float& attribute)
+	SHADE_INLINE void AssetData::SetAttribute(const std::string& name, const float& attribute)
 	{
 		m_Attributes[name] = std::to_string(attribute);
 	}
 	/* Get attribute as char.*/
 	template<>
-	inline char AssetData::GetAttribute(const std::string& name) const
+	SHADE_INLINE char AssetData::GetAttribute(const std::string& name) const
 	{
 		auto search = m_Attributes.find(name);
 		if (search != m_Attributes.end())
@@ -184,13 +184,13 @@ namespace shade
 	}
 	/* Set attribute as char.*/
 	template<>
-	inline void AssetData::SetAttribute(const std::string& name, const char& attribute)
+	SHADE_INLINE void AssetData::SetAttribute(const std::string& name, const char& attribute)
 	{
 		m_Attributes[name] = attribute;
 	}
 	/* Get attribute as double.*/
 	template<>
-	inline double AssetData::GetAttribute(const std::string& name) const
+	SHADE_INLINE double AssetData::GetAttribute(const std::string& name) const
 	{
 		auto search = m_Attributes.find(name);
 		if (search != m_Attributes.end())
@@ -200,13 +200,13 @@ namespace shade
 	}
 	/* Set attribute as double.*/
 	template<>
-	inline void AssetData::SetAttribute(const std::string& name, const double& attribute)
+	SHADE_INLINE void AssetData::SetAttribute(const std::string& name, const double& attribute)
 	{
 		m_Attributes[name] = std::to_string(attribute);
 	}
 	/* Get attribute as std::uint16_t.*/
 	template<>
-	inline std::uint16_t AssetData::GetAttribute(const std::string& name) const
+	SHADE_INLINE std::uint16_t AssetData::GetAttribute(const std::string& name) const
 	{
 		// TIP: No speciasl checking if value outside of std::uint16_t range !
 		auto search = m_Attributes.find(name);
@@ -217,13 +217,13 @@ namespace shade
 	}
 	/* Set attribute as std::uint16_t.*/
 	template<>
-	inline void AssetData::SetAttribute(const std::string& name, const std::uint16_t& attribute)
+	SHADE_INLINE void AssetData::SetAttribute(const std::string& name, const std::uint16_t& attribute)
 	{
 		m_Attributes[name] = std::to_string(attribute);
 	}
 	/* Get attribute as std::uint8_t.*/
 	template<>
-	inline std::uint8_t AssetData::GetAttribute(const std::string& name) const
+	SHADE_INLINE std::uint8_t AssetData::GetAttribute(const std::string& name) const
 	{
 		// TIP: No speciasl checking if value outside of std::uint8_t range !
 		auto search = m_Attributes.find(name);
@@ -234,7 +234,7 @@ namespace shade
 	}
 	/* Set attribute as std::uint8_t.*/
 	template<>
-	inline void AssetData::SetAttribute(const std::string& name, const std::uint8_t& attribute)
+	SHADE_INLINE void AssetData::SetAttribute(const std::string& name, const std::uint8_t& attribute)
 	{
 		m_Attributes[name] = std::to_string(attribute);
 	}
@@ -282,38 +282,74 @@ namespace shade
 		friend class AssetManager;
 	};
 
-#define ASSET_INHERITANCE(type) public shade::BaseAsset //,public shade::Asset<type>
-#define ASSET_STATIC_TYPE_HELPER(type) \
-		public: \
-			static inline AssetMeta::Type GetAssetStaticType() { return AssetMeta::Type::##type; }; \
-			virtual inline AssetMeta::Type GetAssetType() const override { return GetAssetStaticType(); }; \
 
-#define ASSET_DEFINITION_HELPER(type, ...) \
+#define ASSET_DEFINITION_CREATE_0(atype) SHADE_INLINE static atype* Create(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour) { return new atype(assetData, lifeTime, behaviour); }
+#define ASSET_DEFINITION_CREATE_1(atype, type, name) SHADE_INLINE static atype* Create(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour, type name) { return new atype(assetData, lifeTime, behaviour, name); }
+#define ASSET_DEFINITION_CREATE_2(atype, type1, name1, type2, name2) SHADE_INLINE static atype* Create(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour, type1 name1, type2, name2) { return new atype(assetData, lifeTime, behaviour, name1, name2); }
+#define ASSET_DEFINITION_CREATE_3(atype, type1, name1, type2, name2, type3, name3) SHADE_INLINE static atype* Create(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour, type1 name1, type2, name2, atype3, name3) { return new type(assetData, lifeTime, behaviour, name1, name2, name3); }
+
+#define ASSET_INHERITANCE(atype) public shade::BaseAsset //,public shade::Asset<type>
+#define ASSET_STATIC_TYPE_HELPER(atype) \
 		public: \
-			ASSET_STATIC_TYPE_HELPER(type) \
-			static inline SharedPointer<##type> CreateEXP() { return SharedPointer<##type>::Create(); }\
+			static inline AssetMeta::Type GetAssetStaticType() { return AssetMeta::Type::##atype; } \
+			virtual inline AssetMeta::Type GetAssetType() const override { return GetAssetStaticType(); } \
+
+#define ASSET_DEFINITION_HELPER(atype) \
+		public: \
+			ASSET_STATIC_TYPE_HELPER(atype) \
+			static inline SharedPointer<##atype> CreateEXP() { return SharedPointer<##atype>::Create(); }\
 		private:  \
-			type() = default; \
-			static type* Create(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour, ##__VA_ARGS__) { return new type(assetData, lifeTime, behaviour, ##__VA_ARGS__); }\
-			friend class SharedPointer<type>;\
-			friend class Asset<type>;
+			atype() = default; \
+			ASSET_DEFINITION_CREATE_0(atype) \
+			friend class SharedPointer<atype>;\
+			friend class Asset<atype>;
+
+#define ASSET_DEFINITION_HELPER_1(atype, type1, name1) \
+		public: \
+			ASSET_STATIC_TYPE_HELPER(atype) \
+			static inline SharedPointer<##atype> CreateEXP() { return SharedPointer<##atype>::Create(); }\
+		private:  \
+			atype() = default; \
+			ASSET_DEFINITION_CREATE_1(atype, type1, name1)  \
+			friend class SharedPointer<atype>;\
+			friend class Asset<atype>;
+
+#define ASSET_DEFINITION_HELPER_2(atype, type1, name1, type2, name2) \
+		public: \
+			ASSET_STATIC_TYPE_HELPER(atype) \
+			static inline SharedPointer<##atype> CreateEXP() { return SharedPointer<##atype>::Create(); }\
+		private:  \
+			atype() = default; \
+			ASSET_DEFINITION_CREATE_2(atype, type1, name1, type2, name2)  \
+			friend class SharedPointer<atype>;\
+			friend class Asset<atype>;
+
+#define ASSET_DEFINITION_HELPER_3(atype, type1, name1, type2, name2, type3, name3) \
+		public: \
+			ASSET_STATIC_TYPE_HELPER(atype, atype) \
+			static inline SharedPointer<##atype> CreateEXP() { return SharedPointer<##atype>::Create(); }\
+		private:  \
+			atype() = default; \
+			ASSET_DEFINITION_CREATE_3(atype, type1, name1, type2, name2)  \
+			friend class SharedPointer<atype>;\
+			friend class Asset<atype>;
 
 	/* Serialize AssetData.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const SharedPointer<AssetData>& assetData, std::size_t)
+	SHADE_INLINE std::size_t shade::Serializer::Serialize(std::ostream& stream, const SharedPointer<AssetData>& assetData, std::size_t)
 	{
 		return assetData->Serialize(stream);
 	}
 	/* Deserialize AssetData.*/
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, SharedPointer<AssetData>& assetData, std::size_t count)
+	SHADE_INLINE std::size_t shade::Serializer::Deserialize(std::istream& stream, SharedPointer<AssetData>& assetData, std::size_t count)
 	{
 		return assetData->Deserialize(stream);
 	}
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/* Serialize std::vector<AssetData>.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const std::vector<SharedPointer<AssetData>>& array, std::size_t)
+	SHADE_INLINE std::size_t shade::Serializer::Serialize(std::ostream& stream, const std::vector<SharedPointer<AssetData>>& array, std::size_t)
 	{
 		std::uint32_t size = static_cast<std::uint32_t>(array.size());
 		if (size == UINT32_MAX)
@@ -333,7 +369,7 @@ namespace shade
 	}
 	/* Deserialize std::vector<AssetData>.*/
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, std::vector<SharedPointer<AssetData>>& array, std::size_t count)
+	SHADE_INLINE std::size_t shade::Serializer::Deserialize(std::istream& stream, std::vector<SharedPointer<AssetData>>& array, std::size_t count)
 	{
 		std::uint32_t size = 0;
 		// Read size first.

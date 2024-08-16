@@ -187,6 +187,7 @@ namespace shade
 		static bool InputTextD(const char* title, std::string& str);
 		static bool ComboCol(const char* id, std::string& selected, std::vector<std::string>& elements, ImGuiSelectableFlags selectedFlags, ImGuiComboFlags comboFlags, const float& cw1 = 0.0f, const float& cw2 = 0.0);
 		static bool DrawCombo(const char* id, std::string& selected, std::vector<std::string>& elements, ImGuiSelectableFlags selectedFlags, ImGuiComboFlags comboFlags);
+		static bool DrawComboWithIndex(const char* id, std::uint32_t& selected, std::vector<std::string>& elements, ImGuiSelectableFlags selectedFlags, ImGuiComboFlags comboFlags);
 
 		static void ToggleButton(const char* str_id, bool* v);
 		static void ToggleButtonIcon(const char* str_id, bool* v, const char8_t* c, std::size_t fontIndex, float scale);
@@ -206,7 +207,7 @@ namespace shade
 
 		static void TextUTF8(const std::u8string& string);
 		static void DrawFontIcon(const char8_t* c, std::size_t fontIndex, float size);
-		static bool IconButton(const char8_t* c, std::size_t fontIndex, float iconScale, float scale);
+		static bool IconButton(const char* id, const char8_t* c, std::size_t fontIndex, float scale = 1.f);
         // Dummy data structure provided for the example.
         // Note that we storing links as indices (not ID) to make example code shorter.
 		static void ShowExampleAppCustomNodeGraph(bool* opened);

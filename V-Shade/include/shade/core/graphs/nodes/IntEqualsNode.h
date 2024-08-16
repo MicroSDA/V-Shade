@@ -9,7 +9,7 @@ namespace shade
 		{
 		public:
 			IntEqualsNode(GraphContext* context, NodeIdentifier identifier, BaseNode* pParentNode) :
-				BaseNode(context, identifier, pParentNode, "IntEquals")
+				BaseNode(context, identifier, pParentNode, "Int equals")
 			{
 				m_CanBeOpen = false;
 				REGISTER_ENDPOINT<Connection::Input, NodeValueType::Int>(0);

@@ -5,9 +5,13 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 
 #include <ImGui/imgui_internal.h>
+#include <glm/glm/glm.hpp>
 
 namespace shade
 {
+	// Conversion function from ImVec2 to glm::vec2
+	glm::vec2 ToGLMVec2(const ImVec2& v) noexcept;
+
 	struct SHADE_API ImGuiGraphNodeRender
 	{
 		static void DrawGrid(
@@ -22,8 +26,13 @@ namespace shade
 
 		static void DrawGridLines(const ImVec2& start, const ImVec2& canvasSize, const float gridSpace, const ImVec2& windowPos, const ImColor& gridColor, const ImColor& gridColor2, ImDrawList* drawList, int divx, int divy);
 		static bool DrawEndpoint(ImDrawList* drawList, const ImVec2& offset, float radius, float scaleFactor, const ImVec2& screenPosition, const ImVec4& color, const ImVec4& hoveredColor);
-		static void DrawConnection(ImDrawList* drawList, const ImVec2& offset, float scaleFactor, const ImVec2& from, const ImVec2& till, const ImVec4& connectionColor, float thickness);
+		static bool DrawConnection(ImDrawList* drawList, const ImVec2& offset, float scaleFactor, const ImVec2& from, const ImVec2& till, const ImVec4& color, const ImVec4& colorHovered, float thickness);
 		static bool DrawReferNodeConnection(ImDrawList* drawList,const ImVec2& offset,float scaleFactor,const ImVec2& point,const ImVec2& fontSizePx,const ImVec4& connectionColor,float iconSize);
+		static bool DrawTransition(ImDrawList* drawList, const ImRect& sR, const ImRect& dR, const ImVec4& color, float thickness, float scale);
+		static void DrawArrowLine(ImDrawList* drawList, const ImVec2& p1, const ImVec2& p2, const ImVec4& color, float factor, float thickness, float scale);
+		static ImVec2 GetClosestPointOnRectBorder(const ImRect& rect, const ImVec2& point);
+		static bool IsPointOnLine(const ImVec2& A, const ImVec2& B, const ImVec2& P, float thickness);
+		static bool IsPointOnBezierCurve(const ImVec2& P1, const ImVec2& P2, const ImVec2& P3, const ImVec2& P4, const ImVec2& P, float tolerance = 0.01f);
 	};
 
 

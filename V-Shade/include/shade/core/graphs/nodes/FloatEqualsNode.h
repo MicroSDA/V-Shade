@@ -9,7 +9,7 @@ namespace shade
 		{
 		public:
 			FloatEqualsNode(GraphContext* context, NodeIdentifier identifier, BaseNode* pParentNode) :
-				BaseNode(context, identifier, pParentNode, "FloatEquals")
+				BaseNode(context, identifier, pParentNode, "Float equals")
 			{
 				m_CanBeOpen = false;
 

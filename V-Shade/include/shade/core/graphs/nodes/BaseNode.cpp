@@ -19,64 +19,14 @@ void shade::graphs::BaseNode::Shutdown()
 	m_pRootParrentNode = nullptr;
 }
 
-bool shade::graphs::BaseNode::ConnectNodes(BaseNode* pConnectedTo, EndpointIdentifier connectedToEndpoint, BaseNode* pConnectedFrom, EndpointIdentifier connectedFromEndpoint)
+bool shade::graphs::BaseNode::ConnectNodes(EndpointIdentifier connectedToEndpoint, BaseNode* pConnectedFrom, EndpointIdentifier connectedFromEndpoint)
 {
-	// TODO: Add assert 
-	if (pConnectedTo == pConnectedFrom) return false;
-
-	auto inputValue		= pConnectedTo->__GET_ENDPOINT<Connection::Input>(connectedToEndpoint);
-	auto outputValue	= pConnectedFrom->__GET_ENDPOINT<Connection::Output>(connectedFromEndpoint);
-
-	if (!inputValue || !outputValue) return false;
-
-	if (inputValue->get()->GetType() != outputValue->get()->GetType()) return false;
-
-
-	if (m_pGraphContext->CreateConnection(pConnectedTo, connectedToEndpoint, pConnectedFrom, connectedFromEndpoint))
-	{
-		if (ConnectValues(inputValue, outputValue))
-		{
-			pConnectedTo->OnConnect(Connection::Type::Input, inputValue->get()->GetType(), connectedToEndpoint);
-			pConnectedFrom->OnConnect(Connection::Type::Output, outputValue->get()->GetType(), connectedFromEndpoint);
-
-			return true;
-		}
-	}
-	return false;
+	return m_pGraphContext->ConnectNodes(this, connectedToEndpoint, pConnectedFrom, connectedFromEndpoint);
 }
 
-
-bool shade::graphs::BaseNode::ConnectValues(std::shared_ptr<NodeValue>* inputEndpoint, const std::shared_ptr<NodeValue>* outputEndpoint)
+bool shade::graphs::BaseNode::DisconnectNodes(EndpointIdentifier connectedToEndpoint, BaseNode* pConnectedFrom, EndpointIdentifier connectedFromEndpoint)
 {
-	if (!inputEndpoint || !outputEndpoint)
-		return false;
-
-	*inputEndpoint = *outputEndpoint;
-
-	return true;
-}
-
-bool shade::graphs::BaseNode::DisconnectNodes(BaseNode* pConnectedTo, EndpointIdentifier connectedToEndpoint, BaseNode* pConnectedFrom, EndpointIdentifier connectedFromEndpoint)
-{
-	auto connection = m_pGraphContext->FindConnection(pConnectedTo, connectedToEndpoint, pConnectedFrom, connectedFromEndpoint);
-
-	if (connection != nullptr && connection->ConnectedToEndpoint != INVALID_NODE_IDENTIFIER)
-	{
-		NodeValues::Value* connectedToValue		= pConnectedTo->__GET_ENDPOINT<Connection::Input>(connectedToEndpoint);
-		NodeValues::Value* connectedFromValue	= pConnectedFrom->__GET_ENDPOINT<Connection::Output>(connectedFromEndpoint);
-
-		if (!connectedToValue || !connectedFromValue) return false;
-
-		if (m_pGraphContext->RemoveConnection(pConnectedTo, connectedToEndpoint, pConnectedFrom, connectedFromEndpoint))
-		{
-			pConnectedTo->OnDisconnect(Connection::Type::Input, connectedToValue->get()->GetType(), connectedToEndpoint);
-			pConnectedFrom->OnDisconnect(Connection::Type::Output, connectedFromValue->get()->GetType(), connectedFromEndpoint);
-
-			return true;
-		}
-	}
-
-	return false;
+	return m_pGraphContext->DisconnectNodes(this, connectedToEndpoint, pConnectedFrom, connectedFromEndpoint);
 }
 
 void shade::graphs::BaseNode::SetRootNode(BaseNode* node)

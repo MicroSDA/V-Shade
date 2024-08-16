@@ -6,8 +6,42 @@ namespace graph_editor
 {
 	using namespace shade;
 	using namespace animation;
-	//using namespace graphs;
+	
+#define POSE_VALUE_COLOR  { 0.5f, 0.7f, 0.f, 1.f }
+#define FLOAT_VALUE_COLOR { 0.28f, 0.6f, 0.83f, 1.f }
+#define BOOL_VALUE_COLOR  { 0.9f, 0.2f, 0.2f, 1.f }
+#define STRING_VALUE_COLOR  { 0.3f, 0.8f, 0.60f, 1.f }
+#define INT_VALUE_COLOR FLOAT_VALUE_COLOR
+#define BONEMASK_VALUE_COLOR { 0.6f, 0.4f, 0.f, 1.f }
 
+#define STATE_NODE_COLOR STRING_VALUE_COLOR
+	
+	static ImVec4 GetValueColor(shade::NodeValueType type)
+	{
+		switch (type)
+		{
+		case shade::NodeValueType::Undefined:
+		case shade::NodeValueType::Bool: return BOOL_VALUE_COLOR;
+		case shade::NodeValueType::Int8: return INT_VALUE_COLOR;
+		case shade::NodeValueType::Int:  return INT_VALUE_COLOR;
+		case shade::NodeValueType::Uint8:
+		case shade::NodeValueType::Uint:
+		case shade::NodeValueType::Float:  return FLOAT_VALUE_COLOR;
+		case shade::NodeValueType::Double: return FLOAT_VALUE_COLOR;
+		case shade::NodeValueType::String: return STRING_VALUE_COLOR;
+		case shade::NodeValueType::Pose: return POSE_VALUE_COLOR;
+		case shade::NodeValueType::BoneMask: return BONEMASK_VALUE_COLOR;
+		case shade::NodeValueType::Vector2:
+		case shade::NodeValueType::Vector3:
+		case shade::NodeValueType::Vector4:
+		case shade::NodeValueType::Matrix3:
+		case shade::NodeValueType::Matrix4:
+		case shade::NodeValueType::Quaternion:
+		default: return ImVec4{ 1, 1, 1, 1 };
+			break;
+		}
+	}
+	
 	struct GraphVisualStyle
 	{
 		ImVec4 BackgroundColor = ImVec4{ 0.1f, 0.1f, 0.1f, 1.f };
@@ -30,7 +64,7 @@ namespace graph_editor
 		float TargetFactor = 1.f;
 		float Factor = 1.f;
 		float MinFactor = 0.01f;
-		float MaxFactor = 2.f;
+		float MaxFactor = 1.8f;
 		float LerpFactor = 0.2f;
 		float RatioFactor = 0.1f;
 	};
@@ -72,21 +106,14 @@ namespace graph_editor
 	public:
 		struct VisualStyle
 		{
-			ImVec4 HeaderColor = ImVec4{ 0.5f, 0.7f, 0.f, 1.f };
-			ImVec4 HeaderTextColor = ImVec4{ 0.0f, 0.0f, 0.f, 1.f };
-
-			ImVec4 InputEndpointsColor = ImVec4{ 0.5f, 0.7f, 0.f, 1.f };
-			ImVec4 InputEndpointsColorHovered = ImVec4{ InputEndpointsColor.x * 2.f,InputEndpointsColor.y * 2.f, InputEndpointsColor.z * 2.f, InputEndpointsColor.w };
-
-			ImVec4 OutPutEndpointsColor = ImVec4{ 0.5f, 0.7f, 0.f, 1.f };
-			ImVec4 OutPutEndpointsColorHovered = ImVec4{ OutPutEndpointsColor.x * 2.f,OutPutEndpointsColor.y * 2.f, OutPutEndpointsColor.z * 2.f, OutPutEndpointsColor.w };
-
+			ImVec4 HeaderColor		= ImVec4{ 0.7f, 0.7f, 0.7f, 1.f };
+			ImVec4 HeaderTextColor	= ImVec4{ 0.0f, 0.0f, 0.f, 1.f };
 			ImVec4 BorderColor		= ImVec4{ 0.4f, 0.4f, 0.4f, 1.f };
 			ImVec4 BorderHovered	= ImVec4{ 0.0f, 0.3f, 0.7f, 1.f };
-			ImVec4 BackgroundColor = ImVec4{ 0.15f, 0.15f, 0.15f, 1.f };
-			ImVec4 TextColor = ImVec4{ 0.0f, 0.0f, 0.0f, 1.f };
+			ImVec4 BackgroundColor	= ImVec4{ 0.15f, 0.15f, 0.15f, 1.f };
+			ImVec4 TextColor		= ImVec4{ 0.0f, 0.0f, 0.0f, 1.f };
 
-			ImVec2 Size = ImVec2{ 230.f, 200.f };
+			ImVec2 Size = ImVec2{ 200.f, 150.f };
 			std::string	Title = "Node title";
 		};
 
@@ -116,7 +143,7 @@ namespace graph_editor
 		virtual void ProcessPopup(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, const std::string& search);
 
 
-		virtual void Draw(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes);
+		virtual bool Draw(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes);
 		virtual void DrawHeader(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes);
 		virtual void DrawBorder(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes);
 		virtual void DrawBody(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes);
@@ -131,21 +158,6 @@ namespace graph_editor
 		GraphEditor* m_pEditor;
 		bool m_IsSelected = false;
 	};
-
-	// To Delete ? 
-	/*class GraphPrototype : public GraphNodePrototype
-	{
-	public:
-		GraphPrototype(graphs::BaseNode* pGraph) : GraphNodePrototype(pGraph) {}
-		virtual ~GraphPrototype() = default;
-		void Intialize();
-	public:
-		SHADE_INLINE std::vector<GraphNodePrototype*>& GetNodes()	{ return m_Nodes; }
-		SHADE_INLINE const	graphs::BaseNode* GetGraph()	const	{ return reinterpret_cast<graphs::BaseNode*>(const_cast<graphs::BaseNode*>(GetNode())); }
-		SHADE_INLINE		graphs::BaseNode* GetGraph()			{ return reinterpret_cast<graphs::BaseNode*>(GetNode()); }
-	private:
-		std::vector<GraphNodePrototype*> m_Nodes;
-	};*/
 
 	struct ConnectionsPrototype
 	{
@@ -174,8 +186,13 @@ namespace graph_editor
 	public:
 		bool Edit(const char* title, const ImVec2& size);
 	private:
-		//AnimationGraph*		m_pGraph		= nullptr;
-		//graphs::BaseNode*	m_pCurrentGraph	= nullptr;
+
+		template<typename T>
+		void CreateNode(shade::graphs::BaseNode* pNode, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes)
+		{
+			nodes.insert({ std::size_t(pNode) ^ pNode->GetNodeIdentifier(), new T(pNode, this) });
+		}
+
 		graphs::BaseNode*	m_pRootGraph	= nullptr;
 		GraphNodePrototype*	m_pSelectedNode = nullptr;
 
@@ -228,69 +245,25 @@ namespace graph_editor
 	class TransitionNodeDelegate : public GraphNodePrototype
 	{
 	public:
-		TransitionNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
-		{
-			Style.Title = "Transition";
-		}
+		TransitionNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor);
 		virtual ~TransitionNodeDelegate() = default;
-
 	};
 
 	class StateNodeDelegate : public GraphNodePrototype
 	{
 	public:
-		StateNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
-		{
-			Style.HeaderColor = ImVec4{ 0.1, 0.4, 0.4, 1.0 };
-			Style.Size = ImVec2{ 200, 75};
-			Style.Title = "State : " + reinterpret_cast<animation::state_machine::StateNode*>(GetNode())->GetName();
-		}
+		StateNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor);
 		virtual ~StateNodeDelegate() = default;
 
 		virtual void ProcessBodyContent(const InternalContext* context) override
 		{
 			ImGui::Text(reinterpret_cast<animation::state_machine::StateNode*>(GetNode())->GetName().c_str());
 		}
-		virtual void Draw(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes) override;
+		virtual bool Draw(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes) override;
 		virtual void DrawBody(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes) override;
 
 		void DrawTransition(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes);
-		/*virtual void DrawHeader(const InternalContext* context, const GraphVisualStyle* graphStyle);
-		virtual void DrawBorder(const InternalContext* context, const GraphVisualStyle* graphStyle);
-
-		virtual void DrawFooter(const InternalContext* context, const GraphVisualStyle* graphStyle);*/
-		ImVec2 GetClosestPointOnRectBorder(const ImRect& rect, const ImVec2& point)
-		{
-			ImVec2 const points[4] =
-			{
-				ImLineClosestPoint(rect.GetTL(), rect.GetTR(), point),
-				ImLineClosestPoint(rect.GetBL(), rect.GetBR(), point),
-				ImLineClosestPoint(rect.GetTL(), rect.GetBL(), point),
-				ImLineClosestPoint(rect.GetTR(), rect.GetBR(), point)
-			};
-
-			float distancesSq[4] =
-			{
-				ImLengthSqr(points[0] - point),
-				ImLengthSqr(points[1] - point),
-				ImLengthSqr(points[2] - point),
-				ImLengthSqr(points[3] - point)
-			};
-
-			float lowestDistance = FLT_MAX;
-			int32_t closestPointIdx = -1;
-			for (auto i = 0; i < 4; i++)
-			{
-				if (distancesSq[i] < lowestDistance)
-				{
-					closestPointIdx = i;
-					lowestDistance = distancesSq[i];
-				}
-			}
-
-			return points[closestPointIdx];
-		}
-
+		
 	private:
 		struct TransitionEstablish
 		{
@@ -306,17 +279,11 @@ namespace graph_editor
 	class StateMachineNodeDeligate : public GraphNodePrototype
 	{
 	public:
-		StateMachineNodeDeligate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
-		{
-			Style.HeaderColor = ImVec4{ 0.1, 0.9, 0.7, 1.0 };
-			Style.Title = "State Machine";
-		}
+		StateMachineNodeDeligate(graphs::BaseNode* pNode, GraphEditor* pEditor);
 		virtual ~StateMachineNodeDeligate() = default;
 
-		virtual void ProcessBodyContent(const InternalContext* context) override
-		{
-			ImGui::Text("State Machine");
-		}
+		virtual void ProcessBodyContent(const InternalContext* context) override;
+
 		virtual void ProcessSideBar(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, std::unordered_map<std::size_t, GraphNodePrototype*>& referNodes) override;
 		virtual void ProcessPopup(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, const std::string& search) override;
 	private:
@@ -403,6 +370,22 @@ namespace graph_editor
 		FloatNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor);
 		virtual ~FloatNodeDelegate() = default;
 		virtual void ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint) override;
+		virtual void ProcessBodyContent(const InternalContext* context) override;
+	};
+
+	class StringNodeDelegate : public GraphNodePrototype
+	{
+	public:
+		StringNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor);
+		virtual ~StringNodeDelegate() = default;
+		virtual void ProcessBodyContent(const InternalContext* context) override;
+	};
+
+	class BoolNodeDelegate : public GraphNodePrototype
+	{
+	public:
+		BoolNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor);
+		virtual ~BoolNodeDelegate() = default;
 		virtual void ProcessBodyContent(const InternalContext* context) override;
 	};
 }

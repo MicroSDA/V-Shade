@@ -1,81 +1,309 @@
+//#include "shade_pch.h"
+//#include "GraphContext.h"
+//#include <shade/core/graphs/nodes/BaseNode.h>
+//
+//SHADE_API void shade::graphs::GraphContext::InitializeNode(BaseNode* pNode, BaseNode* pParrent)
+//{
+//	Nodes.emplace(pNode, NodesPack{}).first->first->Initialize();
+//}
+//
+//SHADE_API bool shade::graphs::GraphContext::RemoveNode(BaseNode* pNode)
+//{
+//	std::unordered_map<BaseNode*, NodesPack>::iterator node = Nodes.find(pNode);
+//
+//	assert(node != Nodes.end() && "");
+//
+//	RemoveAllConnection(pNode);
+//
+//	for (BaseNode* internalNode : GetInternalNodes(pNode))
+//	{
+//		RemoveNode(internalNode);
+//	}
+//
+//	BaseNode* pParrent = pNode->GetParrentGraph();
+//
+//	if (pParrent != nullptr)
+//	{
+//		std::unordered_map<BaseNode*, NodesPack>::iterator parrent = Nodes.find(pParrent);
+//		assert(parrent != Nodes.end() && "");
+//
+//		std::vector<BaseNode*>& internalNodes = parrent->second.InternalNodes;
+//
+//		auto asInternalNode = std::find_if(internalNodes.begin(), internalNodes.end(), [pNode](const BaseNode* node)
+//			{
+//				return node == pNode;
+//			});
+//
+//		internalNodes.erase(asInternalNode); // Need to remove them recursevly ?
+//	}
+//
+//	pNode->Shutdown(); SDELETE pNode; Nodes.erase(node);
+//
+//	return true;
+//}
+//
+//bool shade::graphs::GraphContext::ConnectNodes(BaseNode* pConnectedTo, EndpointIdentifier connectedToEndpoint, BaseNode* pConnectedFrom, EndpointIdentifier connectedFromEndpoint)
+//{
+//	if (pConnectedTo == pConnectedFrom) return false;
+//
+//	auto inputValue = pConnectedTo->__GET_ENDPOINT<Connection::Input>(connectedToEndpoint);
+//	auto outputValue = pConnectedFrom->__GET_ENDPOINT<Connection::Output>(connectedFromEndpoint);
+//
+//	if (!inputValue || !outputValue) return false;
+//
+//	if (inputValue->get()->GetType() != outputValue->get()->GetType()) return false;
+//
+//
+//	if (CreateConnection(pConnectedTo, connectedToEndpoint, pConnectedFrom, connectedFromEndpoint))
+//	{
+//		if (ConnectValues(inputValue, outputValue))
+//		{
+//			pConnectedTo->OnConnect(Connection::Type::Input, inputValue->get()->GetType(), connectedToEndpoint);
+//			pConnectedFrom->OnConnect(Connection::Type::Output, outputValue->get()->GetType(), connectedFromEndpoint);
+//
+//			return true;
+//		}
+//	}
+//	return false;
+//}
+//
+//bool shade::graphs::GraphContext::DisconnectNodes(BaseNode* pConnectedTo, EndpointIdentifier connectedToEndpoint, BaseNode* pConnectedFrom, EndpointIdentifier connectedFromEndpoint)
+//{
+//	auto connection = FindConnection(pConnectedTo, connectedToEndpoint, pConnectedFrom, connectedFromEndpoint);
+//
+//	if (connection != nullptr && connection->ConnectedToEndpoint != INVALID_NODE_IDENTIFIER)
+//	{
+//		NodeValues::Value* connectedToValue = pConnectedTo->__GET_ENDPOINT<Connection::Input>(connectedToEndpoint);
+//		NodeValues::Value* connectedFromValue = pConnectedFrom->__GET_ENDPOINT<Connection::Output>(connectedFromEndpoint);
+//
+//		if (!connectedToValue || !connectedFromValue) return false;
+//
+//		if (RemoveConnection(pConnectedTo, connectedToEndpoint, pConnectedFrom, connectedFromEndpoint))
+//		{
+//			pConnectedTo->OnDisconnect(Connection::Type::Input, connectedToValue->get()->GetType(), connectedToEndpoint);
+//			pConnectedFrom->OnDisconnect(Connection::Type::Output, connectedFromValue->get()->GetType(), connectedFromEndpoint);
+//
+//			return true;
+//		}
+//	}
+//
+//	return false;
+//}
+//
+//bool shade::graphs::GraphContext::RemoveAllInputConnection(BaseNode* pConnectedTo)
+//{
+//	bool wasRemoved = false;
+//
+//	if (std::vector<Connection>* pConnections = GetConnections(pConnectedTo))
+//	{
+//		std::vector<Connection> connections = *pConnections;
+//
+//		for (Connection& connection : connections)
+//		{
+//			DisconnectNodes(
+//				connection.PConnectedTo,
+//				connection.ConnectedToEndpoint,
+//				connection.PConnectedFrom,
+//				connection.ConnectedFromEndpoint
+//			);
+//
+//			wasRemoved = true;
+//		}
+//	}
+//	return wasRemoved;
+//}
+//
+//
+//bool shade::graphs::GraphContext::RemoveAllOutputConnection(BaseNode* pConnectedFrom)
+//{
+//	bool wasRemoved = false;
+//
+//	for (auto& [node, pack] : Nodes)
+//	{
+//		// Keep as copy
+//		std::vector<Connection> connections = pack.Connections;
+//
+//		for (Connection& connection : connections)
+//		{
+//			if (connection.PConnectedFrom == pConnectedFrom)
+//			{
+//				DisconnectNodes(
+//					connection.PConnectedTo,
+//					connection.ConnectedToEndpoint,
+//					connection.PConnectedFrom,
+//					connection.ConnectedFromEndpoint
+//				);
+//				wasRemoved = true;
+//			}
+//		}
+//	}
+//
+//	return wasRemoved;
+//}
+
 #include "shade_pch.h"
 #include "GraphContext.h"
 #include <shade/core/graphs/nodes/BaseNode.h>
 
-SHADE_API void shade::graphs::GraphContext::InitializeNode(BaseNode* pNode, BaseNode* pParrent)
+void shade::graphs::GraphContext::InitializeNode(BaseNode* pNode, BaseNode* pParrent)
 {
-	Nodes.emplace(pNode, NodesPack{}).first->first->Initialize();
+    // Add the node to the Nodes map and initialize it.
+    Nodes.emplace(pNode, NodesPack{}).first->first->Initialize();
 }
 
-SHADE_API bool shade::graphs::GraphContext::RemoveNode(BaseNode* pNode)
+bool shade::graphs::GraphContext::RemoveNode(BaseNode* pNode)
 {
-	std::unordered_map<BaseNode*, NodesPack>::iterator node = Nodes.find(pNode);
+    // Find the node in the Nodes map.
+    std::unordered_map<BaseNode*, NodesPack>::iterator node = Nodes.find(pNode);
 
-	assert(node != Nodes.end() && "");
+    // Ensure the node exists.
+    assert(node != Nodes.end() && "Node not found in the Nodes map.");
 
-	RemoveAllConnection(pNode);
+    // Remove all connections associated with the node.
+    RemoveAllConnection(pNode);
 
-	for (BaseNode* internalNode : GetInternalNodes(pNode))
-	{
-		RemoveNode(internalNode);
-	}
+    // Recursively remove all internal nodes associated with the node.
+    for (BaseNode* internalNode : GetInternalNodes(pNode))
+    {
+        RemoveNode(internalNode);
+    }
 
-	BaseNode* pParrent = pNode->GetParrentGraph();
+    // Get the parent of the node.
+    BaseNode* pParrent = pNode->GetParrentGraph();
 
-	if (pParrent != nullptr)
-	{
-		std::unordered_map<BaseNode*, NodesPack>::iterator parrent = Nodes.find(pParrent);
-		assert(parrent != Nodes.end() && "");
+    if (pParrent != nullptr)
+    {
+        // Find the parent node in the Nodes map.
+        std::unordered_map<BaseNode*, NodesPack>::iterator parrent = Nodes.find(pParrent);
+        assert(parrent != Nodes.end() && "Parent node not found in the Nodes map.");
 
-		std::vector<BaseNode*>& internalNodes = parrent->second.InternalNodes;
+        // Get the internal nodes of the parent.
+        std::vector<BaseNode*>& internalNodes = parrent->second.InternalNodes;
 
-		auto asInternalNode = std::find_if(internalNodes.begin(), internalNodes.end(), [pNode](const BaseNode* node)
-			{
-				return node == pNode;
-			});
+        // Remove the node from the parent's internal nodes.
+        auto asInternalNode = std::find_if(internalNodes.begin(), internalNodes.end(), [pNode](const BaseNode* node)
+            {
+                return node == pNode;
+            });
 
-		internalNodes.erase(asInternalNode, internalNodes.end()); // Need to remove them recursevly!
-	}
+        internalNodes.erase(asInternalNode); // Remove the node from the parent's list of internal nodes.
+    }
 
-	pNode->Shutdown(); SDELETE pNode; Nodes.erase(node);
+    // Shutdown the node and deallocate its memory.
+    pNode->Shutdown();
+    SDELETE pNode;
+    Nodes.erase(node);
 
-	return true;
+    return true;
+}
+
+bool shade::graphs::GraphContext::ConnectNodes(BaseNode* pConnectedTo, EndpointIdentifier connectedToEndpoint, BaseNode* pConnectedFrom, EndpointIdentifier connectedFromEndpoint)
+{
+    // Ensure the source and destination nodes are not the same.
+    if (pConnectedTo == pConnectedFrom) return false;
+
+    // Get the input and output values for the specified endpoints.
+    auto inputValue = pConnectedTo->__GET_ENDPOINT<Connection::Input>(connectedToEndpoint);
+    auto outputValue = pConnectedFrom->__GET_ENDPOINT<Connection::Output>(connectedFromEndpoint);
+
+    // Ensure both input and output values are valid.
+    if (!inputValue || !outputValue) return false;
+
+    // Ensure the types of the input and output values match.
+    if (inputValue->get()->GetType() != outputValue->get()->GetType()) return false;
+
+    // Create the connection between the nodes.
+    if (CreateConnection(pConnectedTo, connectedToEndpoint, pConnectedFrom, connectedFromEndpoint))
+    {
+        // Connect the values and notify the nodes of the connection.
+        if (ConnectValues(inputValue, outputValue))
+        {
+            pConnectedTo->OnConnect(Connection::Type::Input, inputValue->get()->GetType(), connectedToEndpoint);
+            pConnectedFrom->OnConnect(Connection::Type::Output, outputValue->get()->GetType(), connectedFromEndpoint);
+
+            return true;
+        }
+    }
+    return false;
+}
+
+bool shade::graphs::GraphContext::DisconnectNodes(BaseNode* pConnectedTo, EndpointIdentifier connectedToEndpoint, BaseNode* pConnectedFrom, EndpointIdentifier connectedFromEndpoint)
+{
+    // Find the connection between the specified nodes and endpoints.
+    auto connection = FindConnection(pConnectedTo, connectedToEndpoint, pConnectedFrom, connectedFromEndpoint);
+
+    // Ensure the connection is valid and not to an invalid endpoint.
+    if (connection != nullptr && connection->ConnectedToEndpoint != INVALID_NODE_IDENTIFIER)
+    {
+        NodeValues::Value* connectedToValue = pConnectedTo->__GET_ENDPOINT<Connection::Input>(connectedToEndpoint);
+        NodeValues::Value* connectedFromValue = pConnectedFrom->__GET_ENDPOINT<Connection::Output>(connectedFromEndpoint);
+
+        // Ensure both input and output values are valid.
+        if (!connectedToValue || !connectedFromValue) return false;
+
+        // Remove the connection and notify the nodes of the disconnection.
+        if (RemoveConnection(pConnectedTo, connectedToEndpoint, pConnectedFrom, connectedFromEndpoint))
+        {
+            pConnectedTo->OnDisconnect(Connection::Type::Input, connectedToValue->get()->GetType(), connectedToEndpoint);
+            pConnectedFrom->OnDisconnect(Connection::Type::Output, connectedFromValue->get()->GetType(), connectedFromEndpoint);
+
+            return true;
+        }
+    }
+
+    return false;
 }
 
 bool shade::graphs::GraphContext::RemoveAllInputConnection(BaseNode* pConnectedTo)
 {
-	std::vector<Connection>* connections = GetConnections(pConnectedTo);
+    bool wasRemoved = false;
 
-	if (connections != nullptr)
-	{
-		connections->clear();
-		return true;
-	}
+    // Get all connections for the node.
+    if (std::vector<Connection>* pConnections = GetConnections(pConnectedTo))
+    {
+        std::vector<Connection> connections = *pConnections;
 
-	return false;
+        // Disconnect each connection.
+        for (Connection& connection : connections)
+        {
+            DisconnectNodes(
+                connection.PConnectedTo,
+                connection.ConnectedToEndpoint,
+                connection.PConnectedFrom,
+                connection.ConnectedFromEndpoint
+            );
+
+            wasRemoved = true;
+        }
+    }
+    return wasRemoved;
 }
-
 
 bool shade::graphs::GraphContext::RemoveAllOutputConnection(BaseNode* pConnectedFrom)
 {
-	bool wasRemoved = false;
+    bool wasRemoved = false;
 
-	for (auto& [node, pack] : Nodes)
-	{
-		std::vector<Connection>& connections = pack.Connections;
+    // Iterate over all nodes in the graph context.
+    for (auto& [node, pack] : Nodes)
+    {
+        // Keep a copy of the connections.
+        std::vector<Connection> connections = pack.Connections;
 
-		auto remove = std::remove_if(connections.begin(), connections.end(), [pConnectedFrom](const Connection& connection)
-			{
-				return connection.PConnectedFrom == pConnectedFrom;
-			});
+        // Disconnect connections where the node is the source.
+        for (Connection& connection : connections)
+        {
+            if (connection.PConnectedFrom == pConnectedFrom)
+            {
+                DisconnectNodes(
+                    connection.PConnectedTo,
+                    connection.ConnectedToEndpoint,
+                    connection.PConnectedFrom,
+                    connection.ConnectedFromEndpoint
+                );
+                wasRemoved = true;
+            }
+        }
+    }
 
-		if (remove != connections.end())
-		{
-			connections.erase(remove, connections.end());
-			wasRemoved = true;
-		}
-	}
-
-	return wasRemoved;
+    return wasRemoved;
 }
-

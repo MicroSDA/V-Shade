@@ -80,8 +80,10 @@ void EditorLayer::OnUpdate(shade::SharedPointer<shade::Scene>& scene, const shad
 					state = 2;
 				if (shade::Input::IsKeyPressed(shade::Key::S) && shade::Input::IsKeyPressed(shade::Key::LeftShift))
 					state = 3;
+				if (shade::Input::IsKeyPressed(shade::Key::Space))
+					state = 4;
 
-				//graph.AnimationGraph->SetInputValue("DirectState", state);
+				graph.AnimationGraph->SetInputValue("DirectState", state);
 
 				graph.AnimationGraph->ProcessBranch(deltaTime);
 			}
@@ -1933,7 +1935,6 @@ void EditorLayer::RgidBodyComponent(shade::ecs::Entity& entity)
 
 void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 {
-
 	auto& graph = entity.GetComponent<shade::AnimationGraphComponent>();
 
 	if (!graph.GraphContext.Controller)
@@ -1949,10 +1950,11 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 	
 	if (!graph.AnimationGraph)
 	{
-		graph.AnimationGraph = graph.AnimationGraph.Create(&graph.GraphContext);
+		graph.AnimationGraph = shade::SharedPointer<shade::animation::AnimationGraph>::Create(&graph.GraphContext);
+		//graph.AnimationGraph = graph.AnimationGraph.Create(&graph.GraphContext);
 		
 		auto machine = graph.AnimationGraph->CreateNode<shade::animation::state_machine::StateMachineNode>();
-		graph.AnimationGraph->ConnectNodes(graph.AnimationGraph->GetRootNode(), 0, machine, 0);
+		graph.AnimationGraph->GetRootNode()->ConnectNodes(0, machine, 0);
 
 		auto idle = machine->CreateState("Idle");
 		machine->SetRootNode(idle);
@@ -1963,7 +1965,7 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 
 		// Idle -> Walk
 		auto tr1 = idle->AddTransition(walk);
-		tr1->ConnectNodes(tr1->GetRootNode(), 0, tr1->CreateNode<shade::graphs::IntEqualsNode>(), 0);
+		tr1->GetRootNode()->ConnectNodes(0, tr1->CreateNode<shade::graphs::IntEqualsNode>(), 0);
 
 		//// Idle -> Run
 		//auto tr2 = idle->AddTransition(run);
@@ -1971,7 +1973,7 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 
 		// Walk -> Idle
 		auto tr3 = walk->AddTransition(idle);
-		tr3->ConnectNodes(tr3->GetRootNode(), 0, tr3->CreateNode<shade::graphs::IntEqualsNode>(), 0);
+		tr3->GetRootNode()->ConnectNodes(0, tr3->CreateNode<shade::graphs::IntEqualsNode>(), 0);
 
 		//// Walk -> Run
 		//auto tr4 = walk->AddTransition(run);

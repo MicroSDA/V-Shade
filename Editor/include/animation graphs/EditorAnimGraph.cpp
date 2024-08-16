@@ -8,7 +8,6 @@ ImRect graph_editor::GraphNodePrototype::GetScaledRectangle(const InternalContex
 {
 	const ImVec2 scaledPosition = ImVec2{ GetScreenPosition().x, GetScreenPosition().y } *context->Scale.Factor;
 	const ImVec2 pMin = (context->Offset + scaledPosition);
-	//const ImVec2 pMax = (context->Offset + scaledPosition + (ImVec2{ Style.Size.x, graphStyle->HeaderHeight } *context->Scale.Factor));
 	const ImVec2 pMax = (context->Offset + scaledPosition + (Style.Size * context->Scale.Factor));
 
 	return ImRect{ pMin, pMax };
@@ -48,67 +47,36 @@ void graph_editor::GraphNodePrototype::ProcessPopup(const InternalContext* conte
 	}
 }
 
-void graph_editor::GraphNodePrototype::Draw(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes)
+bool graph_editor::GraphNodePrototype::Draw(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes)
 {
-	{
-		ImGui::SetCursorScreenPos(context->Offset + ImVec2{ GetScreenPosition().x , GetScreenPosition().y } *context->Scale.Factor);
-
-		if (ImGui::BeginChild(std::size_t(this) + 123, Style.Size * context->Scale.Factor, false))
-		{
-			ImGui::InvisibleButton(std::format("##NodeBox_{}", std::size_t(this)).c_str(), Style.Size * context->Scale.Factor);
-
-			if (ImGui::IsItemClicked())
-			{
-				std::cout << int(this) << std::endl;
-			}
-
-
-			const ImVec2 nodeRectMin = context->Offset + GetScreenPosition() * context->Scale.Factor;
-			const ImVec2 nodeRectMax = nodeRectMin + Style.Size * context->Scale.Factor;
-
-			const ImVec4 bckColor = IsSelected() ? ImVec4(
-				Style.BackgroundColor.x * 1.5f,
-				Style.BackgroundColor.y * 1.5f,
-				Style.BackgroundColor.z * 1.5f,
-				Style.BackgroundColor.w) : Style.BackgroundColor;
-
-			context->DrawList->AddRectFilled(nodeRectMin, nodeRectMax, ImGui::ColorConvertFloat4ToU32(bckColor), graphStyle->Rounding);
-
-
-			MoveNode(context->Scale.Factor);
-
-			
-		} ImGui::EndChild();
-	}
-
-
-
-	return;
-
-
+	bool isClicked = false;
 
 	ImGui::PushID(GetNode()->GetNodeIdentifier());
 
 	ImGui::SetCursorScreenPos(context->Offset + ImVec2{ GetScreenPosition().x , GetScreenPosition().y } *context->Scale.Factor);
 
-	//DrawBody(context, graphStyle, nodes);
+	DrawBody(context, graphStyle, nodes);
 
 	ImGui::SetCursorScreenPos(context->Offset + ImVec2{ GetScreenPosition().x, GetScreenPosition().y } *context->Scale.Factor);
 
 	ImGui::InvisibleButton(std::format("##NodeBox_{}", std::size_t(this)).c_str(), Style.Size * context->Scale.Factor);
 
-	if (ImGui::IsItemActive()) 
+	if (ImGui::IsItemActive())
 	{
-		//this->SetSelected(true); 
+		isClicked = true;
 	}
 
 	MoveNode(context->Scale.Factor);
 
 	ImGui::PopID();
+
+	return isClicked;
 }
 
 void graph_editor::GraphNodePrototype::DrawHeader(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes)
 {
+	auto node = GetNode();
+
 	const ImVec2 scaledPosition = ImVec2{ GetScreenPosition().x, GetScreenPosition().y } *context->Scale.Factor;
 	const ImVec2 pMin = (context->Offset + scaledPosition);
 	const ImVec2 pMax = (context->Offset + scaledPosition + (ImVec2{ Style.Size.x, graphStyle->HeaderHeight } *context->Scale.Factor));
@@ -118,70 +86,65 @@ void graph_editor::GraphNodePrototype::DrawHeader(const InternalContext* context
 	ImGui::SetCursorScreenPos(context->Offset + (graphStyle->Padding + ImVec2{ GetScreenPosition().x, GetScreenPosition().y }) * context->Scale.Factor);
 	ImGui::PushStyleColor(ImGuiCol_Text, Style.HeaderTextColor);
 
-	ImGui::SetWindowFontScale(ImGui::GetCurrentWindow()->FontWindowScale * 1.5f);
+	const float wfs = ImGui::GetCurrentWindow()->FontWindowScale;
+	ImGui::SetWindowFontScale(ImGui::GetCurrentWindow()->FontWindowScale * 1.3f);
 
-	ImGui::BeginGroup();
+	const float columnsCount = node->CanBeOpen() ? 3 : 2;
+
+	ImGui::PushID(node->GetNodeIdentifier());
+
+	const std::string id = std::to_string(node->GetNodeIdentifier());
+
+	if (ImGui::BeginTable(std::string(id+ "##HeaderTableGeneral").c_str(), columnsCount, ImGuiTableFlags_SizingStretchProp, ImVec2{Style.Size.x - graphStyle->Padding.x * 2.f, graphStyle->HeaderHeight} *context->Scale.Factor))
 	{
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0 ,0 ,0 ,1 });
-
-		if (GetNode()->CanBeOpen())
+		if (node->CanBeOpen())
 		{
-			if (shade::ImGuiLayer::IconButton(u8"\xe867", 1, 0.5f, context->Scale.Factor))
+			ImGui::TableNextColumn();
 			{
-				context->CurrentNode = GetNode();
+				if(ImGuiLayer::IconButton(std::string(id + "##Open").c_str(), u8"\xe867", 1, 0.8f))
+					context->CurrentNode = node;
 			}
-
-			ImGui::SameLine();
 		}
-
-		if (GetNode()->IsRenamable())
+		ImGui::TableNextColumn();
 		{
-			ImGui::PushItemWidth((Style.Size.x - 75.f) * context->Scale.Factor);
-
-			std::string nodeName = GetNode()->GetName();
-			if (ImGuiLayer::InputTextD("", nodeName))
+			std::string name = node->GetName();
+			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4{ 0,0,0, Style.HeaderColor.w * 0.2f });
+			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+			if (!node->IsRenamable())
 			{
-				GetNode()->SetName(nodeName);
+				ImGui::Text(name.c_str());
 			}
-
+			else
+			{
+				if (ImGuiLayer::InputTextD(std::string(id+ "##Name").c_str(), name))
+					node->SetName(name);
+			}
 			ImGui::PopItemWidth();
+			ImGui::PopStyleColor(1);
 		}
-		else
+		ImGui::TableNextColumn();
 		{
-			ImGui::Text(GetNode()->GetName().c_str());
-		}
-
-		ImGui::SameLine((Style.Size.x - 45.f) * context->Scale.Factor);
-
-		
-		
-		if (shade::ImGuiLayer::IconButton(u8"\xf127", 1, 0.3f, context->Scale.Factor))
-		{
-			if(IsSelected()) GetNode()->GetGraphContext()->RemoveAllConnection(GetNode());	
-			//if(IsSelected()) GetNode()->DisconnectNodes()GetGraphContext()->RemoveAllConnection(GetNode());	
-		}
-
-		if (GetNode()->IsRemovable())
-		{
-			ImGui::SameLine();
-
-			if (shade::ImGuiLayer::IconButton(u8"\xe85d", 1, 0.3f, context->Scale.Factor))
+			if (ImGuiLayer::IconButton("##RemoveConenctions", u8"\xf127", 1, 0.8f))
 			{
-				GetEditor()->SetToRemove(GetNode()); // So there wee need to stop executing this node bacuse we are remove it, or make call back for removing !!
+				node->GetGraphContext()->RemoveAllConnection(node);
+			}
+			if (node->IsRemovable())
+			{
+				ImGui::SameLine();
+				if (ImGuiLayer::IconButton(std::string(id + "##RemoveNode").c_str(), u8"\xe85d", 1, 0.8f))
+				{
+					GetEditor()->SetToRemove(node);
+				}
 			}
 		}
 
-		
-
-		ImGui::PopStyleColor();
+		ImGui::EndTable();
 	}
-	ImGui::EndGroup();
-
-	ImGui::SetWindowFontScale(ImGui::GetCurrentWindow()->FontWindowScale / 1.5f);
-
+	ImGui::PopID();
+	
 	ImGui::PopStyleColor(1);
 
-	//return nodePosition.y + m_VisualStyle.HeaderHeight;
+	ImGui::SetWindowFontScale(wfs);
 }
 
 void graph_editor::GraphNodePrototype::DrawBorder(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes)
@@ -201,7 +164,7 @@ void graph_editor::GraphNodePrototype::DrawBorder(const InternalContext* context
 
 void graph_editor::GraphNodePrototype::DrawBody(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes)
 {
-	
+
 	const ImVec2 nodeRectMin = context->Offset + GetScreenPosition() * context->Scale.Factor;
 	const ImVec2 nodeRectMax = nodeRectMin + Style.Size * context->Scale.Factor;
 
@@ -248,14 +211,7 @@ void graph_editor::GraphNodePrototype::DrawBody(const InternalContext* context, 
 
 	//DrawFooter(context, graphStyle, nodes);
 
-
-	if (ImGui::GetCursorScreenPos().y < GetScreenPosition().y + graphStyle->HeaderHeight * 2)
-	{
-		Style.Size *= 2.f;
-	}
-
-
-
+	Style.Size.y += ImGui::GetCursorScreenPos().y - nodeRectMax.y;
 
 	ImGui::Dummy({ 0, 0 });
 }
@@ -305,7 +261,7 @@ void graph_editor::GraphNodePrototype::DrawEndpoints(const InternalContext* cont
 	auto& connections = GetNode()->GetConnections();
 	bool needToOpenPopup = false;
 
-	static std::function<void(graphs::BaseNode*)> Callback;
+	static std::function<void(graphs::BaseNode*, graphs::EndpointIdentifier)> Callback;
 
 	if (ImGui::BeginTableEx("##EndpointsTable", std::size_t(this) + 1000, (outputCount) ? 2 : 1,
 		ImGuiTableFlags_BordersOuterV |
@@ -324,6 +280,8 @@ void graph_editor::GraphNodePrototype::DrawEndpoints(const InternalContext* cont
 				const ImVec2 endpointScreenPosition = ImVec2{ deltaPosition.x - cellPaddingZoomed.x, deltaPosition.y + cellPaddingZoomed.y };
 
 				graphs::EndpointIdentifier endpoint = std::distance(endpoints[shade::graphs::Connection::Input].begin(), inputs);
+
+				const ImVec4 color = GetValueColor(node->GetEndpoint<shade::graphs::Connection::Input>(endpoint)->GetType());
 
 				ProcessEndpoint(endpoint, shade::graphs::Connection::Input, *inputs->first);
 
@@ -351,8 +309,8 @@ void graph_editor::GraphNodePrototype::DrawEndpoints(const InternalContext* cont
 						graphStyle->EndpointRadius,
 						context->Scale.Factor,
 						endpointScreenPosition,
-						Style.InputEndpointsColor,
-						Style.InputEndpointsColorHovered))
+						color,
+						{ color.x * 1.5f, color.y * 1.5f, color.z * 1.5f, color.w }))
 					{
 						if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && context->ConnectionEstablish.IsOutPutSelect)
 						{
@@ -362,9 +320,9 @@ void graph_editor::GraphNodePrototype::DrawEndpoints(const InternalContext* cont
 						}
 						else if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 						{
-							Callback = [node, endpoint](graphs::BaseNode* pNode)
+							Callback = [node, endpoint](graphs::BaseNode* pNode, graphs::EndpointIdentifier connectedFromEndpoint)
 								{
-									node->ConnectNodes(node, endpoint, pNode, 0);
+									node->ConnectNodes(endpoint, pNode, 0);
 								};
 
 							needToOpenPopup = true;
@@ -406,6 +364,8 @@ void graph_editor::GraphNodePrototype::DrawEndpoints(const InternalContext* cont
 
 				graphs::EndpointIdentifier endpoint = std::distance(endpoints[shade::graphs::Connection::Output].begin(), outputs);
 
+				const ImVec4 color = GetValueColor(node->GetEndpoint<shade::graphs::Connection::Output>(endpoint)->GetType());
+
 				ProcessEndpoint(endpoint, shade::graphs::Connection::Output, *outputs->first);
 
 				if (ImGuiGraphNodeRender::DrawEndpoint(context->DrawList,
@@ -413,8 +373,8 @@ void graph_editor::GraphNodePrototype::DrawEndpoints(const InternalContext* cont
 					graphStyle->EndpointRadius,
 					context->Scale.Factor,
 					endpointScreenPosition,
-					Style.OutPutEndpointsColor,
-					Style.OutPutEndpointsColorHovered))
+					color,
+					{ color.x * 1.5f, color.y * 1.5f, color.z * 1.5f, color.w }))
 				{
 					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 					{
@@ -432,7 +392,7 @@ void graph_editor::GraphNodePrototype::DrawEndpoints(const InternalContext* cont
 				for (auto& [n, pack] : graphContext->GetNodes())
 				{
 					graphs::EndpointIdentifier endpoint = std::distance(endpoints[shade::graphs::Connection::Output].begin(), outputs);
-				
+
 					auto it = pack.Connections.begin();
 
 					while (it != pack.Connections.end())
@@ -445,7 +405,7 @@ void graph_editor::GraphNodePrototype::DrawEndpoints(const InternalContext* cont
 						if (it != pack.Connections.end())
 						{
 							it->ConnectedFromPosition = glm::vec2(endpointScreenPosition.x, endpointScreenPosition.y);
-							++it; 
+							++it;
 						}
 					}
 				}
@@ -458,7 +418,7 @@ void graph_editor::GraphNodePrototype::DrawEndpoints(const InternalContext* cont
 		}
 
 		ImGui::EndTable();
-		
+
 	}
 
 	ImGui::PopStyleVar();
@@ -482,8 +442,7 @@ void graph_editor::GraphNodePrototype::DrawEndpoints(const InternalContext* cont
 			{
 				if (context->CurrentNode)
 				{
-					//context->CurrentGraph->GetNode()->AddReferNode(referNode);
-					Callback(referNode);
+					Callback(referNode, 0);
 					Callback = {}; // reset
 				}
 			}
@@ -496,27 +455,81 @@ void graph_editor::GraphNodePrototype::DrawEndpoints(const InternalContext* cont
 
 void graph_editor::GraphNodePrototype::DrawConnections(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes)
 {
+	// Blink animation 
+	static clock_t epoch = clock();
+	static float duration = 1.0f, colorMultMin = 0.5f, colorMultMax = 1.5f;
+
+	double t = std::fmod((clock() - epoch) / (double)CLOCKS_PER_SEC, duration) / duration;
+
+	float sineWave = std::sin(t * 2.0 * IM_PI); 
+	float lerpValue = (sineWave + 1.0f) * 0.5f;
+
+	float time = ImLerp(colorMultMin, colorMultMax, lerpValue);
+	// !Blink animation 
+
 	auto& connections = GetNode()->GetConnections();
 
 	for (auto& connection : connections)
 	{
-		if (nodes.find(std::size_t(connection.PConnectedFrom)) == nodes.end())
+		const auto& endpoint = connection.PConnectedFrom->GetEndpoint<shade::graphs::Connection::Type::Output>(connection.ConnectedFromEndpoint);
+
+		const ImVec4 color = GetValueColor(endpoint->GetType());
+	
+		if (nodes.find(std::size_t(connection.PConnectedFrom) ^ connection.PConnectedFrom->GetNodeIdentifier()) == nodes.end())
 		{
-			ImGuiGraphNodeRender::DrawReferNodeConnection(context->DrawList, context->Offset, context->Scale.Factor, ImVec2{ connection.ConnectedToPosition.x, connection.ConnectedToPosition.y },
+			if (ImGuiGraphNodeRender::DrawReferNodeConnection(context->DrawList, context->Offset, context->Scale.Factor, ImVec2{ connection.ConnectedToPosition.x, connection.ConnectedToPosition.y },
 				ImVec2{ 30.f, 30.f },
-				ImVec4{ 0.7f, 0.7f, 0.1f, 1.f }, 1.f);
+				{ color.x * time, color.y * time, color.z * time, color.w }, 1.f))
+			{
+
+				if (ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+				{
+					GetNode()->DisconnectNodes(connection.ConnectedToEndpoint, connection.PConnectedFrom, connection.ConnectedFromEndpoint);
+					break;
+				}
+				else if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
+				{
+					ImGui::BeginTooltipEx(0, ImGuiWindowFlags_NoBackground);
+					ImGui::PushStyleColor(ImGuiCol_Text, { 0.8f, 0.2f, 0.2f, 1.f });
+					ImGuiLayer::DrawFontIcon(u8"\xf127", 1, 1.8f);
+					ImGui::PopStyleColor();
+					ImGui::EndTooltip();
+				}
+				else
+				{
+					ImGui::BeginTooltip();
+					ImGui::Text(connection.PConnectedFrom->GetName().c_str());
+					ImGui::EndTooltip();
+				}
+			}
 		}
 		else
 		{
-			ImGuiGraphNodeRender::DrawConnection(
+			if (ImGuiGraphNodeRender::DrawConnection(
 				context->DrawList,
 				context->Offset,
 				context->Scale.Factor,
 				ImVec2{ connection.ConnectedToPosition.x,  connection.ConnectedToPosition.y },
 				ImVec2{ connection.ConnectedFromPosition.x, connection.ConnectedFromPosition.y },
-
-				ImVec4{ 1, 1, 1, 1 },
-				graphStyle->ConnectionThickness);
+				color,
+				ImVec4{ color.x * 1.5f, color.y * 1.5f, color.z * 1.5f, color.w },
+				graphStyle->ConnectionThickness))
+			{
+				if (ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+				{
+					GetNode()->DisconnectNodes(connection.ConnectedToEndpoint, connection.PConnectedFrom, connection.ConnectedFromEndpoint);
+					break;
+				}
+				else if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
+				{
+					ImGui::BeginTooltipEx(0, ImGuiWindowFlags_NoBackground);
+					ImGui::PushStyleColor(ImGuiCol_Text, {0.8f, 0.2f, 0.2f, 1.f});
+					ImGuiLayer::DrawFontIcon(u8"\xf127", 1, 1.8f);
+					ImGui::PopStyleColor();
+					ImGui::EndTooltip();
+				}
+					
+			}
 		}
 	}
 
@@ -525,13 +538,16 @@ void graph_editor::GraphNodePrototype::DrawConnections(const InternalContext* co
 		auto& endpoints = GetNode()->GetEndpoints();
 		const auto& endpoint = endpoints[EndpointPrototype::EndpointType::Output].At(context->ConnectionEstablish.OutPutEndpointIdentifier);
 
+		const ImVec4 color = GetValueColor(endpoint->GetType());
+
 		ImGuiGraphNodeRender::DrawConnection(
 			context->DrawList,
 			context->Offset,
 			context->Scale.Factor,
 			ImGui::GetMousePos() - context->Offset,
 			context->ConnectionEstablish.OutPutEndpointScreenPosition,
-			Style.InputEndpointsColor,
+			color,
+			{ color.x * time, color.y * time, color.z * time, color.w },
 			graphStyle->ConnectionThickness);
 	}
 }
@@ -557,13 +573,9 @@ void graph_editor::GraphEditor::InitializeRecursively(graphs::BaseNode* pNode, s
 	if (dynamic_cast<state_machine::StateNode*>(pNode))
 	{
 		state_machine::StateNode* state = reinterpret_cast<state_machine::StateNode*>(pNode);
-		nodes[std::size_t(pNode)] = new StateNodeDelegate(pNode, this);
-		//// Transitions nodes aka logic
-		//for (auto transition : state->GetTransitions())
-		//{
-		//	InitializeRecursively(transition, nodes);
-		//}
-		// Play animation nodes aka
+
+		CreateNode<StateNodeDelegate>(pNode, nodes);
+
 		for (auto node : state->GetInternalNodes())
 		{
 			InitializeRecursively(node, nodes);
@@ -584,8 +596,8 @@ void graph_editor::GraphEditor::InitializeRecursively(graphs::BaseNode* pNode, s
 	{
 		// Transition as graph node, contains nodes
 		state_machine::StateMachineNode* machine = reinterpret_cast<state_machine::StateMachineNode*>(pNode);
-		nodes[std::size_t(pNode)] = new StateMachineNodeDeligate(pNode, this);
 
+		CreateNode<StateMachineNodeDeligate>(pNode, nodes);
 		// Aka states
 		for (auto state : machine->GetInternalNodes())
 		{
@@ -597,54 +609,67 @@ void graph_editor::GraphEditor::InitializeRecursively(graphs::BaseNode* pNode, s
 		if (dynamic_cast<shade::animation::OutputPoseNode*>(pNode))
 		{
 			shade::animation::OutputPoseNode* value = reinterpret_cast<shade::animation::OutputPoseNode*>(pNode);
-			nodes[std::size_t(pNode)] = new OutputPoseNodeDelegate(pNode, this);
+
+			CreateNode<OutputPoseNodeDelegate>(pNode, nodes);
 		}
 		if (dynamic_cast<shade::animation::BlendNode2D*>(pNode))
 		{
 			shade::animation::BlendNode2D* value = reinterpret_cast<shade::animation::BlendNode2D*>(pNode);
-			nodes[std::size_t(pNode)] = new BlendNode2DNodeDelegate(pNode, this);
+
+			CreateNode<BlendNode2DNodeDelegate>(pNode, nodes);
 		}
 		if (dynamic_cast<shade::animation::state_machine::OutputTransitionNode*>(pNode))
 		{
 			shade::animation::state_machine::OutputTransitionNode* value = reinterpret_cast<shade::animation::state_machine::OutputTransitionNode*>(pNode);
-			nodes[std::size_t(pNode)] = new OutputTransitionNodeDelegate(pNode, this);
+
+			CreateNode<OutputTransitionNodeDelegate>(pNode, nodes);
 		}
 		if (dynamic_cast<shade::animation::PoseNode*>(pNode))
 		{
 			shade::animation::PoseNode* value = reinterpret_cast<shade::animation::PoseNode*>(pNode);
-			nodes[std::size_t(pNode)] = new PoseNodeDelegate(pNode, this);
+			CreateNode<PoseNodeDelegate>(pNode, nodes);
 		}
 		if (dynamic_cast<shade::graphs::IntEqualsNode*>(pNode))
 		{
 			shade::graphs::IntEqualsNode* value = reinterpret_cast<shade::graphs::IntEqualsNode*>(pNode);
-			nodes[std::size_t(pNode)] = new IntEqualsNodeDelegate(pNode, this);
+			CreateNode<IntEqualsNodeDelegate>(pNode, nodes);
 		}
 		if (dynamic_cast<shade::graphs::IntNode*>(pNode))
 		{
 			shade::graphs::IntNode* value = reinterpret_cast<shade::graphs::IntNode*>(pNode);
-			nodes[std::size_t(pNode)] = new IntNodeDelegate(pNode, this);
+			CreateNode<IntNodeDelegate>(pNode, nodes);
 		}
 		if (dynamic_cast<shade::graphs::FloatEqualsNode*>(pNode))
 		{
 			shade::graphs::FloatEqualsNode* value = reinterpret_cast<shade::graphs::FloatEqualsNode*>(pNode);
-			nodes[std::size_t(pNode)] = new FloatEqualsNodeDelegate(pNode, this);
+			CreateNode<FloatEqualsNodeDelegate>(pNode, nodes);
 		}
 		if (dynamic_cast<shade::graphs::FloatNode*>(pNode))
 		{
 			shade::graphs::FloatNode* value = reinterpret_cast<shade::graphs::FloatNode*>(pNode);
-			nodes[std::size_t(pNode)] = new FloatNodeDelegate(pNode, this);
+			CreateNode<FloatNodeDelegate>(pNode, nodes);
+		}
+		if (dynamic_cast<shade::graphs::StringNode*>(pNode))
+		{
+			shade::graphs::StringNode* value = reinterpret_cast<shade::graphs::StringNode*>(pNode);
+			CreateNode<StringNodeDelegate>(pNode, nodes);
+		}
+		if (dynamic_cast<shade::graphs::BoolNode*>(pNode))
+		{
+			shade::graphs::BoolNode* value = reinterpret_cast<shade::graphs::BoolNode*>(pNode);
+			CreateNode<BoolNodeDelegate>(pNode, nodes);
 		}
 		if (dynamic_cast<shade::animation::BoneMaskNode*>(pNode))
 		{
 			shade::animation::BoneMaskNode* value = reinterpret_cast<shade::animation::BoneMaskNode*>(pNode);
-			nodes[std::size_t(pNode)] = new BoneMaskNodeDelegate(pNode, this);
+			CreateNode<BoneMaskNodeDelegate>(pNode, nodes);
 		}
 	}
 }
 
 graph_editor::GraphNodePrototype* graph_editor::GraphEditor::GetPrototypedNode(graphs::BaseNode* pNode)
 {
-	auto node = m_Nodes.find(std::size_t(pNode));
+	auto node = m_Nodes.find(std::size_t(pNode) ^ pNode->GetNodeIdentifier());
 
 	if (node != m_Nodes.end())
 		return node->second;
@@ -654,7 +679,7 @@ graph_editor::GraphNodePrototype* graph_editor::GraphEditor::GetPrototypedNode(g
 
 graph_editor::GraphNodePrototype* graph_editor::GraphEditor::GetPrototypedReferNode(graphs::BaseNode* pNode)
 {
-	auto node = m_ReferNodes.find(std::size_t(pNode));
+	auto node = m_ReferNodes.find(std::size_t(pNode) ^ pNode->GetNodeIdentifier());
 
 	if (node != m_ReferNodes.end())
 		return node->second;
@@ -666,18 +691,25 @@ bool graph_editor::GraphEditor::RemoveNode(graphs::BaseNode*& pNode)
 {
 	if (pNode)
 	{
-		auto& in = pNode->GetInternalNodes();
-		for (auto cN : pNode->GetInternalNodes())
+		// Keep as copy !!
+		auto iNodes = pNode->GetInternalNodes();
+
+		for (auto cN : iNodes)
 			RemoveNode(cN);
 
-		auto it = m_Nodes.find(std::size_t(pNode));
+		auto itN  = m_Nodes.find(std::size_t(pNode) ^ pNode->GetNodeIdentifier());
+		auto itRN = m_ReferNodes.find(std::size_t(pNode) ^ pNode->GetNodeIdentifier());
 
-		if (it != m_Nodes.end())
-			m_Nodes.erase(it);
+		if (itN != m_Nodes.end())
+			m_Nodes.erase(itN);
+
+		if (itRN != m_ReferNodes.end())
+			m_ReferNodes.erase(itRN);
+
 
 		pNode->GetParrentGraph()->RemoveNode(pNode);
 		pNode = nullptr, m_pSelectedNode = nullptr;
-		
+
 		return true;
 	}
 
@@ -687,8 +719,8 @@ bool graph_editor::GraphEditor::RemoveNode(graphs::BaseNode*& pNode)
 void graph_editor::GraphEditor::Initialize(AnimationGraph* pGraph)
 {
 	// Add to nodes !!
-	m_Nodes[std::size_t(pGraph)] = new AnimationGraphDeligate(pGraph, this);
-
+	CreateNode<AnimationGraphDeligate>(pGraph, m_Nodes);
+	
 	m_Context.CurrentNode = pGraph;
 	m_pRootGraph = pGraph;
 
@@ -733,20 +765,24 @@ bool graph_editor::GraphEditor::Edit(const char* title, const ImVec2& size)
 			{
 
 				GetPrototypedNode(m_pRootGraph)->ProcessSideBar(&m_Context, m_Nodes, m_ReferNodes);
-
-				if (m_pSelectedNode)
+				//if (ImGui::BeginChildEx("##ProcessSideBarChild", std::size_t(m_pSelectedNode), { 0,0 }, true, 0))
 				{
-					m_pSelectedNode->ProcessSideBar(&m_Context, m_Nodes, m_ReferNodes);
-				}
-				else
-				{
-					if (m_pRootGraph != m_Context.CurrentNode)
+					if (m_pSelectedNode)
 					{
-						if (auto pN = GetPrototypedNode(m_Context.CurrentNode))
+						m_pSelectedNode->ProcessSideBar(&m_Context, m_Nodes, m_ReferNodes);
+					}
+					else
+					{
+						if (m_pRootGraph != m_Context.CurrentNode)
 						{
-							pN->ProcessSideBar(&m_Context, m_Nodes, m_ReferNodes);
+							if (auto pN = GetPrototypedNode(m_Context.CurrentNode))
+							{
+								pN->ProcessSideBar(&m_Context, m_Nodes, m_ReferNodes);
+							}
 						}
 					}
+
+					//ImGui::EndChild();
 				}
 
 				ImGui::EndChild();
@@ -857,7 +893,7 @@ bool graph_editor::GraphEditor::Edit(const char* title, const ImVec2& size)
 
 	if (m_Context.ConnectionEstablish.IsInputSelect && m_Context.ConnectionEstablish.IsOutPutSelect)
 	{
-		m_pRootGraph->ConnectNodes(
+		m_pRootGraph->GetGraphContext()->ConnectNodes(
 			m_Context.ConnectionEstablish.InputNode,
 			m_Context.ConnectionEstablish.InputEndpointIdentifier,
 			m_Context.ConnectionEstablish.OutPutNode,
@@ -865,7 +901,8 @@ bool graph_editor::GraphEditor::Edit(const char* title, const ImVec2& size)
 		m_Context.ConnectionEstablish.Reset();
 	}
 
-
+	// TODO: ноды по адресу не уникальны потому что мапа делает ресайз и адреса путаются,
+	// нужно сделать так что бы BaseNode был уникльным присоздании как SharedPointer !!
 	RemoveNode(m_pNodeToRemove);
 
 	return false;
@@ -904,62 +941,44 @@ ImVec2 graph_editor::GraphEditor::CalculateMouseWorldPos(const ImVec2& mousePosi
 
 void graph_editor::GraphEditor::DrawNodes()
 {
-	std::size_t CurrentChannel = m_Context.CurrentNode->GetInternalNodes().size() - 1;
+	m_Context.DrawList->ChannelsSplit(2);
 
-	//m_Context.DrawList->ChannelsSplit((m_Context.CurrentGraph->GetNode()->GetNodes().size()) ? m_Context.CurrentGraph->GetNode()->GetNodes().size() + 1 : 1);
+	GraphNodePrototype* pnOnTopOf = nullptr;
 
 	for (auto node : m_Context.CurrentNode->GetInternalNodes())
 	{
 		if (auto pN = GetPrototypedNode(node))
 		{
-			
-			//m_Context.DrawList->ChannelsSetCurrent(CurrentChannel);
+			if (pN->IsSelected())
+				pnOnTopOf = pN;
 
-			pN->Draw(&m_Context, &m_VisualStyle, m_Nodes);
+			if (pnOnTopOf != pN)
+			{
+				m_Context.DrawList->ChannelsSetCurrent(0);
 
-			if (ImGui::IsItemActive()) 
-			{ 
-				m_pSelectedNode = pN; 
-				pN->SetSelected(true);  
+				if (pN->Draw(&m_Context, &m_VisualStyle, m_Nodes))
+				{
+					m_pSelectedNode = pN;
+					pN->SetSelected(true);
+
+				}
+
 			}
 
-			if (m_pSelectedNode != nullptr && node != m_pSelectedNode->GetNode())
+			if (m_pSelectedNode != nullptr && pN != m_pSelectedNode)
 			{
 				pN->SetSelected(false);
 			}
-
-
-			//if (m_pSelectedNode && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
-			//{
-			//	m_Path.push_back(m_Context.CurrentGraph); // Change container type
-			//	m_Context.CurrentGraph = prototype;
-			//}
-
-			CurrentChannel--;
 		}
 	}
 
-	//for (auto node : m_Context.CurrentGraph->GetNode()->GetReferNodes())
-	//{
-	//	//m_Context.DrawList->ChannelsSetCurrent(CurrentChannel);
+	if (pnOnTopOf)
+	{
+		m_Context.DrawList->ChannelsSetCurrent(1);
+		pnOnTopOf->Draw(&m_Context, &m_VisualStyle, m_Nodes);
+	}
 
-	//	GraphNodePrototype* prototype = GetPrototypedReferNode(node);
-
-	//	prototype->Draw(&m_Context, &m_VisualStyle, m_Nodes);
-
-	//	if (ImGui::IsItemActive()) { m_pSelectedNode = prototype; }
-
-	//	if (m_pSelectedNode && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
-	//	{
-	//		m_Path.push_back(m_Context.CurrentGraph); // Change container type
-	//		m_Context.CurrentGraph = prototype;
-	//	}
-
-	//	CurrentChannel--;
-	//}
-
-	//m_Context.DrawList->ChannelsMerge();
-
+	m_Context.DrawList->ChannelsMerge();
 }
 
 void graph_editor::GraphEditor::DrawConnections()
@@ -1046,12 +1065,20 @@ void graph_editor::GraphEditor::PopupMenu()
 	}
 	if (ImGui::BeginMenu("+ Bool"))
 	{
-		ImGui::BeginDisabled();
+		if (ImGui::MenuItem("Bool")) InitializeRecursively(m_Context.CurrentNode->CreateNode<graphs::BoolNode>(), m_Nodes);
 
-		ImGui::MenuItem("Bool");
+		ImGui::BeginDisabled();
 		ImGui::MenuItem("And");
 		ImGui::MenuItem("Or");
 		ImGui::MenuItem("Not");
+		ImGui::EndDisabled();
+
+		ImGui::EndMenu();
+	}
+	if (ImGui::BeginMenu("+ String"))
+	{
+		if (ImGui::MenuItem("String")) InitializeRecursively(m_Context.CurrentNode->CreateNode<graphs::StringNode>(), m_Nodes);
+		ImGui::BeginDisabled();
 		ImGui::EndDisabled();
 
 		ImGui::EndMenu();
@@ -1089,12 +1116,19 @@ void graph_editor::GraphEditor::DrawPathRecursevly(graphs::BaseNode* pNode)
 {
 	if (auto pN = pNode->GetParrentGraph())
 	{
-		DrawPathRecursevly(pN);
-
+		if (auto spN = dynamic_cast<shade::animation::state_machine::TransitionNode*>(pNode))
+		{
+			DrawPathRecursevly(pN->GetParrentGraph());
+		}
+		else
+		{
+			DrawPathRecursevly(pN);
+		}
+		
 	}
 
 	ImGuiLayer::DrawFontIcon(u8"\xe982", 1, 0.6f); ImGui::SameLine();
-	
+
 	if (ImGui::Button(pNode->GetName().c_str()))
 	{
 		m_Context.CurrentNode = pNode;
@@ -1507,19 +1541,51 @@ void graph_editor::GraphEditor::DrawPathRecursevly(graphs::BaseNode* pNode)
 //	}
 //}
 
-void graph_editor::StateNodeDelegate::Draw(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes)
+graph_editor::StateNodeDelegate::StateNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
 {
+	Style.HeaderColor = STATE_NODE_COLOR;
+}
 
-	static GraphNodePrototype* pLastSelectedNode = nullptr;
-	//ImGui::IsKeyPressed(ImGuiKey_LeftCtrl)
+bool graph_editor::StateNodeDelegate::Draw(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes)
+{
+	const ImVec2 nodeRectMin = context->Offset + GetScreenPosition() * context->Scale.Factor;
+	const ImVec2 nodeRectMax = nodeRectMin + (Style.Size - ImVec2{ 15.f, 15.f }) * context->Scale.Factor;
+	const ImRect nodeRect(nodeRectMin, nodeRectMax);
 
-	DrawTransition(context, graphStyle, nodes); // Draw Transitions!!
+	if (m_TransitionEstablish.To && m_TransitionEstablish.From)
+	{
+		if (auto transition = m_TransitionEstablish.From->As<animation::state_machine::StateNode>().AddTransition((animation::state_machine::StateNode*)m_TransitionEstablish.To))
+		{
+			GetEditor()->InitializeRecursively(transition, GetEditor()->GetNodes());
+		}
+		m_TransitionEstablish.Reset();
+	}
+	else if (m_TransitionEstablish.From && m_TransitionEstablish.From == GetNode() && ImGui::IsKeyDown(ImGuiKey_LeftCtrl))
+	{
+		ImGuiGraphNodeRender::DrawArrowLine(context->DrawList, nodeRect.GetCenter(), ImGui::GetIO().MousePos, Style.HeaderColor, 0.95, 3.f, context->Scale.Factor);
+	}
+	else if (ImGui::IsKeyReleased(ImGuiKey_LeftCtrl))
+	{
+		m_TransitionEstablish.Reset();
+	}
+
+	bool isClicked = false;
+
+	DrawTransition(context, graphStyle, nodes);
 
 	ImGui::PushID(GetNode()->GetNodeIdentifier());
 
 	ImGui::SetCursorScreenPos(context->Offset + ImVec2{ GetScreenPosition().x , GetScreenPosition().y } *context->Scale.Factor);
 
+
 	DrawBody(context, graphStyle, nodes);
+
+
+
+	if (GetNode() == GetNode()->GetParrentGraph()->GetRootNode())
+	{
+		context->DrawList->AddCircleFilled(nodeRectMax, 5.f * context->Scale.Factor, ImGui::ColorConvertFloat4ToU32(Style.HeaderColor), 0);
+	}
 
 	ImGui::SetCursorScreenPos(context->Offset + ImVec2{ GetScreenPosition().x, GetScreenPosition().y } *context->Scale.Factor);
 
@@ -1532,27 +1598,21 @@ void graph_editor::StateNodeDelegate::Draw(const InternalContext* context, const
 		else
 		{
 			m_TransitionEstablish.From = GetNode();
+
 		}
 	}
 
-
-	if (m_TransitionEstablish.To && m_TransitionEstablish.From)
+	if (ImGui::IsItemActive())
 	{
-		auto tr = m_TransitionEstablish.From->As<animation::state_machine::StateNode>().AddTransition((animation::state_machine::StateNode*)m_TransitionEstablish.To);
-		
-		GetEditor()->InitializeRecursively(tr, GetEditor()->GetNodes());
-
-		m_TransitionEstablish.Reset();
+		isClicked = true;
 	}
 
-	if (IsSelected()) { pLastSelectedNode = this; }
-	
-	if (ImGui::IsItemActive()) { this->SetSelected(true); } //else {this->SetSelected(false); }
 
-	//if (!(m_ConnectionEstablish.IsOutPutSelect))
 	MoveNode(context->Scale.Factor);
 
 	ImGui::PopID();
+
+	return isClicked;
 }
 
 void graph_editor::StateNodeDelegate::DrawBody(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes)
@@ -1600,36 +1660,16 @@ void graph_editor::StateNodeDelegate::DrawBody(const InternalContext* context, c
 	}
 	ImGui::EndGroup();
 
+	Style.Size.y += ImGui::GetCursorScreenPos().y - nodeRectMax.y;
+
 	ImGui::Dummy({ 0, 0 });
 }
 
-bool IsPointOnLine(const glm::vec2& A, const glm::vec2& B, const glm::vec2& P, float thickness) {
-	glm::vec2 lineDirection = glm::normalize(B - A);
-	glm::vec2 pointDirection = glm::normalize(P - A);
-
-	float dotProduct = glm::dot(pointDirection, lineDirection);
-	float distance = glm::length(P - A);
-
-	float projectionLength = dotProduct * distance;
-
-	// Check if the projection is within the bounds of the line segment
-	if (projectionLength >= 0.0f && projectionLength <= glm::length(B - A)) {
-		// Calculate the distance between the point and the line
-		float distanceToLine = glm::length(P - (A + lineDirection * projectionLength));
-
-		// Check if the distance is within the thickness
-		if (distanceToLine <= thickness) {
-			return true; // Point is within the line with thickness
-		}
-	}
-
-	return false; // Point is not within the line with thickness
-}
 void graph_editor::StateNodeDelegate::DrawTransition(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes)
 {
-	auto state = reinterpret_cast<animation::state_machine::StateNode*>(GetNode());
+	auto& state = GetNode()->As<animation::state_machine::StateNode>();
 
-	for (auto transition : reinterpret_cast<animation::state_machine::StateNode*>(GetNode())->GetTransitions())
+	for (auto transition : state.GetTransitions())
 	{
 		auto* source = this;
 
@@ -1638,58 +1678,41 @@ void graph_editor::StateNodeDelegate::DrawTransition(const InternalContext* cont
 			const ImRect sourceRect = source->GetScaledRectangle(context, graphStyle);
 			const ImRect destinationRect = destination->GetScaledRectangle(context, graphStyle);
 
-			ImVec2 sPosition = sourceRect.GetCenter();
-			ImVec2 ePosition = GetClosestPointOnRectBorder(destinationRect, sPosition);
-
-			ImVec2 arrowDir = ImVec2(ePosition - sPosition);
-
-			const float factor = 0.95;
-			ImVec2 sEPosition = { sPosition.x + factor * arrowDir.x, sPosition.y + factor * arrowDir.y };
-
-			float arrowLength = sqrt(ImLengthSqr(arrowDir));
-			if (arrowLength > 0.0) arrowDir /= arrowLength;
-
-			const ImVec2 orthogonal = ImVec2{ arrowDir.y, -arrowDir.x };
-
-			const float thickness = 3.f * context->Scale.Factor;
-
-			const ImVec2 arrowHeadSize = ImVec2{ thickness, thickness + (1.f * context->Scale.Factor) };
-
-			ImVec2 arrowEndPoint1 = sEPosition - arrowDir * arrowHeadSize.x + orthogonal * arrowHeadSize.y;
-			ImVec2 arrowEndPoint2 = sEPosition - arrowDir * arrowHeadSize.x - orthogonal * arrowHeadSize.y;
-
-			bool selected = IsPointOnLine(glm::vec2(sPosition.x, sPosition.y), glm::vec2(ePosition.x, ePosition.y), glm::vec2(ImGui::GetMousePos().x, ImGui::GetMousePos().y), thickness);
-
-			ImVec4 color = (selected) ? source->Style.BorderHovered : source->Style.BorderColor;
-
-			context->DrawList->AddLine(sPosition, sEPosition, ImGui::ColorConvertFloat4ToU32(color), thickness);
-			context->DrawList->AddTriangleFilled(ePosition, arrowEndPoint1, arrowEndPoint2, ImGui::ColorConvertFloat4ToU32(color));
-
-
-			if (selected && ImGui::IsMouseDoubleClicked(0))
+			if (ImGuiGraphNodeRender::DrawTransition(context->DrawList,
+				sourceRect,
+				destinationRect,
+				source->Style.BorderColor,
+				3.f, context->Scale.Factor))
 			{
-				//pN->Style.Title = "Transition : " + source->Style.Title + " ---> " + destination->Style.Title;
-
-				context->CurrentNode = transition;
+				if (ImGui::IsMouseDoubleClicked(0))
+				{
+					context->CurrentNode = transition;
+				}
+				else if (ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+				{
+					state.RemoveTransition(transition); break;
+				}
+				else if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
+				{
+					ImGui::BeginTooltipEx(0, ImGuiWindowFlags_NoBackground);
+					ImGui::PushStyleColor(ImGuiCol_Text, { 0.8f, 0.2f, 0.2f, 1.f });
+					ImGuiLayer::DrawFontIcon(u8"\xf127", 1, 1.8f);
+					ImGui::PopStyleColor();
+					ImGui::EndTooltip();
+				}
 			}
-
-			/*if (auto pN = GetEditor()->GetPrototypedNode(transition))
-			{
-
-			}*/
 		}
 	}
 }
 
 graph_editor::OutputPoseNodeDelegate::OutputPoseNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
 {
-	Style.HeaderColor = ImVec4{ 0.7, 0.7, 0.7, 1.0 };
-	Style.Size = ImVec2{ 150.f, 100.f };
-	Style.Title = "Out Pose";
+	Style.Title = "Out pose";
 }
 
 graph_editor::BlendNode2DNodeDelegate::BlendNode2DNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
 {
+	Style.HeaderColor = POSE_VALUE_COLOR;
 	Style.Title = "Blend";
 }
 
@@ -1700,22 +1723,16 @@ void graph_editor::BlendNode2DNodeDelegate::ProcessEndpoint(graphs::EndpointIden
 	case NodeValueType::Float:
 	{
 		ImGui::Text("Blend weight");
-		Style.InputEndpointsColor = ImVec4{ 0.3, 0.5, 1.0, 1.0 };
-		/*ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
-		ImGui::DragFloat("##value", &endpoint.As<NodeValueType::Float>(), 0.001, 0.0, 1.0);
-		ImGui::PopItemWidth();*/
 		break;
 	}
 	case NodeValueType::Pose:
 	{
-		Style.InputEndpointsColor = ImVec4{ 0.5f, 0.69f ,0.f, 1.f };
 		ImGui::Text("Pose");
 		break;
 	}
 	case NodeValueType::BoneMask:
 	{
-		Style.InputEndpointsColor = ImVec4{ 0.3, 0.5, 1.0, 1.0 };
-		ImGui::Text("BoneMask");
+		ImGui::Text("Bone mask");
 		break;
 	}
 	}
@@ -1723,9 +1740,9 @@ void graph_editor::BlendNode2DNodeDelegate::ProcessEndpoint(graphs::EndpointIden
 
 graph_editor::OutputTransitionNodeDelegate::OutputTransitionNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
 {
-	Style.HeaderColor = ImVec4{ 0.7, 0.2, 0.2, 1.0 };
-	Style.Size = ImVec2{ 250.f, 150.f };
+	Style.HeaderColor = BOOL_VALUE_COLOR;
 	Style.Title = "Transition";
+	Style.Size.x = 310.f;
 }
 
 void graph_editor::OutputTransitionNodeDelegate::ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint)
@@ -1737,42 +1754,36 @@ void graph_editor::OutputTransitionNodeDelegate::ProcessEndpoint(graphs::Endpoin
 		if (identifier == 0)
 		{
 			ImGui::Text("Transition");
-			Style.InputEndpointsColor = { 0.8, 0.2, 0.2, 1.0 };
-			break;
-		}
-		if (identifier == 2)
-		{
-			Style.InputEndpointsColor = { 0.8, 0.2, 0.2, 1.0 };
-
-			//enum class SyncPreferences
-			//{
-			//	Async = 0,
-			//	// Sync destination animation time based on source animation
-			//	SourceToDestinationTimeSync,
-			//	// Sync source animation time based on destination animation
-			//	DestinationToSourceTimeSync,
-			//	// Sync both animations based on their own time
-			//	DestinationAndSourceTimeSync,
-			//	// Sync by keyframes
-			//	KeyFrameSync
-			//};
-
 			
-
-			//ImGui::Checkbox("Sync", &GetNode()->As<shade::animation::state_machine::OutputTransitionNode>().IsSync());
-			break;
 		}
-
+		if (identifier == 3)
+		{
+			ImGui::Text("Reset play time"); ImGui::SameLine(ImGui::GetContentRegionAvail().x / 2.f);
+			ImGui::Checkbox("##Reset", &endpoint.As<NodeValueType::Bool>());
+		}
+		if (identifier == 4)
+		{
+			ImGui::Text("Can be interrupted"); ImGui::SameLine(ImGui::GetContentRegionAvail().x / 2.f);
+			ImGui::Checkbox("##Interrupted", &endpoint.As<NodeValueType::Bool>());
+		}
+		break;
 	}
 	case NodeValueType::Float:
 	{
-		Style.InputEndpointsColor = ImVec4{ 0.3, 0.5, 1.0, 1.0 };
-
-		ImGui::Text("Duration"); ImGui::SameLine();
-
-		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
-		ImGui::DragFloat("##value", &endpoint.As<NodeValueType::Float>(), 0.001, 0.0, 1.0);
-		ImGui::PopItemWidth();
+		if (identifier == 1)
+		{
+			ImGui::Text("Duration"); ImGui::SameLine(ImGui::GetContentRegionAvail().x / 2.f);
+			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+			ImGui::DragFloat("##Duration", &endpoint.As<NodeValueType::Float>(), 0.001, 0.0, 1.0);
+			ImGui::PopItemWidth();
+		}
+		if (identifier == 2)
+		{
+			ImGui::Text("Offset"); ImGui::SameLine(ImGui::GetContentRegionAvail().x / 2.f);
+			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+			ImGui::DragFloat("##Offset", &endpoint.As<NodeValueType::Float>(), 0.001, 0.0, 1.0);
+			ImGui::PopItemWidth();
+		}
 		break;
 	}
 	}
@@ -1781,29 +1792,52 @@ void graph_editor::OutputTransitionNodeDelegate::ProcessEndpoint(graphs::Endpoin
 void graph_editor::OutputTransitionNodeDelegate::ProcessBodyContent(const InternalContext* context)
 {
 	auto& node = GetNode()->As<shade::animation::state_machine::OutputTransitionNode>();
+	auto& style = node.GetSynStyle();
 
-	auto& sync = node.GetSyncPreferences();
+	if (ImGui::BeginTable("##SynchronizationTable", 2))
+	{
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+		{
+			ImGui::Text("Synchronization");
+		}
+		ImGui::TableNextColumn();
+		{
 
-	ImGui::Checkbox("ResetFromStart", &sync.ResetFromStart);
+			static std::vector<std::string> elements = { "None", "Src frozen", "Src to dest", "Dest to src", "Dest and src", "Key frame" };
+			static std::uint32_t selected = (std::uint32_t)style;
+
+			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+			ImGuiLayer::DrawComboWithIndex("##Sync", (std::uint32_t&)style, elements, 0, 0);
+			ImGui::PopItemWidth();
+		}
+		ImGui::EndTable();
+	}
+
 }
 
 void graph_editor::OutputTransitionNodeDelegate::ProcessSideBar(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, std::unordered_map<std::size_t, GraphNodePrototype*>& referNodes)
 {
-	auto& node = GetNode()->As<shade::animation::state_machine::OutputTransitionNode>();
+	if (ImGui::BeginChild("##TransitionCurveEdit"))
+	{
+		auto& node = GetNode()->As<shade::animation::state_machine::OutputTransitionNode>();
 
-	auto& control = node.GetCurveControllPoints();
+		auto& control = node.GetCurveControllPoints();
 
-	float blendMin = 0.f, blendMax = 1.f, transitionStart = 0.f, transitionEnd = node.GetTransitionDuration(), currentTime = node.GetTransitionAccumulator();
+		float blendMin = 0.f, blendMax = 1.f, transitionStart = 0.f, transitionEnd = node.GetTransitionDuration(), currentTime = node.GetTransitionAccumulator();
 
-	//ImGui::BeginDisabled();
+		//ImGui::BeginDisabled();
 
-	shade::CurveEditor("BlendCurve", currentTime, blendMin, blendMax, transitionStart, transitionEnd, control);
+		shade::CurveEditor("BlendCurve", currentTime, blendMin, blendMax, transitionStart, transitionEnd, control);
 
-	//ImGui::EndDisabled();
+		//ImGui::EndDisabled();
+	}ImGui::EndChild();
+
 }
 
 graph_editor::PoseNodeDelegate::PoseNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
 {
+	Style.HeaderColor = POSE_VALUE_COLOR;
 	Style.Title = "Pose";
 }
 
@@ -1844,8 +1878,8 @@ void graph_editor::PoseNodeDelegate::ProcessSideBar(const InternalContext* conte
 	float& end = node.GetAnimationData().End;
 	float& duration = node.GetAnimationData().Duration;
 	float& ticksPerSecond = node.GetAnimationData().TicksPerSecond;
-	bool&  isloop = node.GetAnimationData().IsLoop;
-	auto&  state = node.GetAnimationData().State;
+	bool& isloop = node.GetAnimationData().IsLoop;
+	auto& state = node.GetAnimationData().State;
 
 	if (ImGui::BeginChildEx("Node: Pose", std::size_t(&node), ImGui::GetContentRegionAvail(), true, 0))
 	{
@@ -1856,11 +1890,10 @@ void graph_editor::PoseNodeDelegate::ProcessSideBar(const InternalContext* conte
 		{
 			ImGui::TableNextColumn();
 			ImGui::TableNextColumn();
-			if (ImGuiLayer::IconButton(u8"\xe88b", 1, 0.7f, 1)) state = Animation::State::Play;  ImGui::SameLine(); ImGui::Dummy({ 10.f, 0 }); ImGui::SameLine();
-			if (ImGuiLayer::IconButton(u8"\xe88e", 1, 0.7f, 1)) state = Animation::State::Pause; ImGui::SameLine(); ImGui::Dummy({ 10.f, 0 }); ImGui::SameLine();
-			if (ImGuiLayer::IconButton(u8"\xe88d", 1, 0.7f, 1)) state = Animation::State::Stop;
+			if (ImGuiLayer::IconButton("Play", u8"\xe88b", 1, 1.0f)) state = Animation::State::Play;  ImGui::SameLine(); ImGui::Dummy({10.f, 0}); ImGui::SameLine();
+			if (ImGuiLayer::IconButton("Pause",u8"\xe88e", 1, 1.0f)) state = Animation::State::Pause; ImGui::SameLine(); ImGui::Dummy({10.f, 0}); ImGui::SameLine();
+			if (ImGuiLayer::IconButton("Stop",u8"\xe88d", 1,  1.0f)) state = Animation::State::Stop;
 			ImGui::TableNextColumn();
-			
 			ImGui::EndTable();
 		}
 
@@ -1908,16 +1941,16 @@ void graph_editor::PoseNodeDelegate::ProcessSideBar(const InternalContext* conte
 							ImGui::DragFloat("##Start", &start, 0.01f, 0.0f, end); ImGui::SameLine();
 							ImGui::PopItemWidth();
 
-							if (ImGuiLayer::IconButton(u8"\xe888", 1, 0.6f, 1)) { start = 0.f; }
+							if (ImGuiLayer::IconButton("Reset", u8"\xe888", 1, 0.6f)) { start = 0.f; }
 						}
 						ImGui::TableNextColumn();
 						{
-							ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - 25.f); 
+							ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - 25.f);
 							ImGui::DragFloat("##End", &end, 0.01f, start, duration); ImGui::SameLine();
 							ImGui::PopItemWidth();
-							if (ImGuiLayer::IconButton(u8"\xe888", 1, 0.6f, 1)) { end = duration; }
+							if (ImGuiLayer::IconButton("Reset", u8"\xe888", 1, 0.6f)) { end = duration; }
 						}
-						
+
 
 
 						ImGui::EndTable();
@@ -2009,14 +2042,35 @@ void graph_editor::PoseNodeDelegate::ProcessSideBar(const InternalContext* conte
 	}
 }
 
+graph_editor::StateMachineNodeDeligate::StateMachineNodeDeligate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
+{
+}
+
+void graph_editor::StateMachineNodeDeligate::ProcessBodyContent(const InternalContext* context)
+{
+	ImGui::Text("State Machine");
+}
+
 void graph_editor::StateMachineNodeDeligate::ProcessSideBar(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, std::unordered_map<std::size_t, GraphNodePrototype*>& referNodes)
 {
-	for (auto state : GetNode()->As<state_machine::StateMachineNode>().GetInternalNodes())
+	static std::string search;
+	ImGuiLayer::InputTextCol("Search", search);
+
+	auto& node = GetNode()->As<state_machine::StateMachineNode>();
+
+	if (ImGui::BeginListBox("##States", ImGui::GetContentRegionAvail()))
 	{
-		if (ImGui::Button(std::to_string((int)state).c_str()))
+		for (auto state : node.GetInternalNodes())
 		{
-			GetNode()->SetRootNode(state);
+			if (state->GetName().find(search) != std::string::npos)
+			{
+				if (ImGui::RadioButton(std::string(state->GetName() + "##" + std::to_string(std::size_t(state))).c_str(), state == node.GetRootNode()))
+				{
+					node.SetRootNode(state);
+				}
+			}
 		}
+		ImGui::EndListBox();
 	}
 }
 
@@ -2035,65 +2089,92 @@ void graph_editor::StateMachineNodeDeligate::ProcessPopup(const InternalContext*
 	}
 }
 
-// TODO: Add GraphStyle !!
 void graph_editor::AnimationGraphDeligate::ProcessSideBar(const InternalContext* pContext, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, std::unordered_map<std::size_t, GraphNodePrototype*>& referNodes)
 {
-	ImGui::Text("Inputs:"); ImGui::Separator();
-
-	InternalContext   context;
-	GraphVisualStyle  style;
-	context.DrawList = ImGui::GetWindowDrawList();
-	style.Rounding = 0.f;
-	ImVec2 offset{ 5, 30 };
-	//ImVec2 offset = ImGui::GetCursorScreenPos();
-
 	auto inputs = GetNode()->As<AnimationGraph>().GetInputNodes();
-	for (auto [name, input] : GetNode()->As<AnimationGraph>().GetInputNodes())
+
+	InternalContext	context; GraphVisualStyle  style; ImVec2 offset(5.f, 30.f);
+
+	context.DrawList = ImGui::GetWindowDrawList();
+
+	context.Offset = ImGui::GetWindowPos();
+
+	static std::string search;
+	ImGuiLayer::InputTextCol("Search", search);
+
+
+	if (ImGui::BeginChild("Inputs", { 0, ImGui::GetContentRegionAvail().y / 2.f }, true))
 	{
-		ImGui::PushID(GetNode()->GetNodeIdentifier());
-
-		auto node = referNodes.at(std::size_t(input));
-		auto nodeStyle = node->Style;
-
-		node->Style.Title = name;
-
-		node->Style.Size = ImVec2{ ImGui::GetContentRegionAvail().x, 75.f };
-
-		context.Offset = ImGui::GetWindowPos() - referNodes.at(std::size_t(input))->GetScreenPosition() + offset;
-
-		node->DrawHeader(&context, &style, referNodes);
-
-		ImGui::BeginGroup();
+		for (auto [name, input] : inputs)
 		{
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, style.Padding * context.Scale.Factor);
-			ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, style.CellPadding * context.Scale.Factor);
-			ImGui::PushStyleColor(ImGuiCol_TableBorderStrong, ImVec4{ 0.f, 0.f, 0.f, 0.f });
-
-			if (ImGui::BeginTableEx("##BodyContentTable", std::size_t(this) + 2000, 1, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersOuterV))
+			if (name.find(search) != std::string::npos)
 			{
-				ImGui::TableNextRow();
+				auto node = referNodes.at(std::size_t(input) ^ input->GetNodeIdentifier());
+
+				const std::string id = std::to_string(node->GetNode()->GetNodeIdentifier());
+
+				ImGui::PushStyleColor(ImGuiCol_ChildBg, node->Style.HeaderColor);
+				ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, style.Rounding);
+				ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, style.Rounding);
+
+				ImGui::Dummy({ 0.f, 5.f });
+
+				if (ImGui::BeginChildEx("##Inputs", std::size_t(input), { 0.f, node->Style.Size.y / 2.f }, true, 0))
 				{
-					ImGui::TableNextColumn();
+					if (ImGui::BeginTable("##HeaderTable", 2, ImGuiTableFlags_SizingStretchProp))
 					{
-						node->ProcessBodyContent(&context);
+						ImGui::PushStyleColor(ImGuiCol_Text, Style.HeaderTextColor);
+						ImGui::TableNextColumn();
+						{
+							std::string name = node->GetNode()->GetName();
+							ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4{ 0,0,0, Style.HeaderColor.w * 0.2f });
+							ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+							if (ImGuiLayer::InputTextD(std::string(id + "##Name").c_str(), name))
+							{
+								GetNode()->As<AnimationGraph>().RenameInputNode(node->GetNode(), name);
+							}
+							ImGui::PopItemWidth();
+							ImGui::PopStyleColor(1);
+
+						}
+						ImGui::TableNextColumn();
+						{
+							if (ImGui::BeginTable("Buttons", 2))
+							{
+								ImGui::TableNextColumn();
+								if (ImGuiLayer::IconButton("##RemoveConenctions", u8"\xf127", 1, 1.0f))
+								{
+									node->GetNode()->GetGraphContext()->RemoveAllConnection(node->GetNode());
+								}
+								
+								ImGui::TableNextColumn();
+
+								if (ImGuiLayer::IconButton("##RemoveNode", u8"\xe85d", 1, 1.0f))
+								{
+									GetEditor()->SetToRemove(node->GetNode());
+								}
+								
+								ImGui::EndTable();
+							}
+						}
+						ImGui::PopStyleColor();
+
+						ImGui::EndTable();
 					}
-				}
-				ImGui::EndTable();
+
+					node->ProcessBodyContent(&context);
+
+
+				} ImGui::EndChild();
+
+				ImGui::PopStyleColor(); ImGui::PopStyleVar(2);
 			}
-			ImGui::PopStyleVar(2);
-			ImGui::PopStyleColor();
+
 		}
-		ImGui::EndGroup();
 
-		node->DrawBorder(&context, &style, referNodes);
-
-
-		offset.y += node->Style.Size.y + 15.f;
-
-		ImGui::PopID();
-
-		node->Style = nodeStyle;
+		ImGui::EndChild();
 	}
+
 
 	if (ImGui::GetCurrentWindow()->Rect().Contains(ImGui::GetIO().MousePos))
 	{
@@ -2111,16 +2192,20 @@ void graph_editor::AnimationGraphDeligate::ProcessSideBar(const InternalContext*
 
 		if (ImGui::Selectable("+ Int"))
 		{
-			CreateReferNode<graphs::IntNode>("Int :")->Style.HeaderColor = { 0, 0.5, 0.5, 1 };
+			CreateReferNode<graphs::IntNode>("Int :");
 		}
 		if (ImGui::Selectable("+ Float"))
 		{
-			CreateReferNode<graphs::FloatNode>("Float :")->Style.HeaderColor = { 0, 0.5, 0.5, 1 };
+			CreateReferNode<graphs::FloatNode>("Float :");
 		}
-		ImGui::BeginDisabled();
-		ImGui::Selectable("+ Bool");
-		ImGui::Selectable("+ String");
-		ImGui::EndDisabled();
+		if (ImGui::Selectable("+ String"))
+		{
+			CreateReferNode<graphs::StringNode>("String :");
+		}
+		if (ImGui::Selectable("+ Bool"))
+		{
+			CreateReferNode<graphs::BoolNode>("Bool :");
+		}
 
 		ImGui::Dummy(ImVec2{ 0, 10.f });
 
@@ -2138,8 +2223,7 @@ bool graph_editor::AnimationGraphDeligate::DeleteReferNode(const std::string& na
 
 graph_editor::IntEqualsNodeDelegate::IntEqualsNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
 {
-	Style.HeaderColor = ImVec4{ 0.2, 0.4, 0.99, 1.0 };
-	Style.Size = ImVec2{ 200.f, 150.f };
+	Style.HeaderColor = INT_VALUE_COLOR;
 	Style.Title = "Int == ?";
 }
 
@@ -2164,8 +2248,6 @@ void graph_editor::IntEqualsNodeDelegate::ProcessEndpoint(graphs::EndpointIdenti
 			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
 			ImGui::DragInt(std::string("##" + std::to_string(identifier)).c_str(), &endpoint.As<NodeValueType::Int>(), 0.1, 0, INT_MAX);
 			ImGui::PopItemWidth();
-
-			Style.InputEndpointsColor = Style.HeaderColor = { 0.2, 0.4, 0.99, 1.0 };
 			break;
 		}
 		}
@@ -2177,7 +2259,6 @@ void graph_editor::IntEqualsNodeDelegate::ProcessEndpoint(graphs::EndpointIdenti
 		case NodeValueType::Bool:
 		{
 			ImGui::Text("Result ");
-			Style.OutPutEndpointsColor = { 0.8, 0.2, 0.2, 1.0 };
 			break;
 		}
 		}
@@ -2186,14 +2267,8 @@ void graph_editor::IntEqualsNodeDelegate::ProcessEndpoint(graphs::EndpointIdenti
 
 graph_editor::IntNodeDelegate::IntNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
 {
-	Style.HeaderColor = ImVec4{ 0.2, 0.4, 0.99, 1.0 };
-
-	Style.OutPutEndpointsColor = ImVec4{ 0.2, 0.4, 0.99, 1.0 };
-	Style.InputEndpointsColor = ImVec4{ 0.2, 0.4, 0.99, 1.0 };
-
-	Style.Size = ImVec2{ 125.f, 100.f };
+	Style.HeaderColor = INT_VALUE_COLOR;
 	Style.Title = "Int";
-
 }
 
 void graph_editor::IntNodeDelegate::ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint)
@@ -2205,16 +2280,13 @@ void graph_editor::IntNodeDelegate::ProcessBodyContent(const InternalContext* co
 {
 	auto node = GetNode();
 	ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
-	ImGui::DragInt("", &node->GetEndpoint<shade::graphs::Connection::Output>(0)->As<NodeValueType::Int>(), 0.1, -INT32_MAX, INT32_MAX);
+	ImGui::DragInt("##Value", &node->GetEndpoint<shade::graphs::Connection::Output>(0)->As<NodeValueType::Int>(), 0.1, -INT32_MAX, INT32_MAX);
 	ImGui::PopItemWidth();
 }
 
 graph_editor::FloatEqualsNodeDelegate::FloatEqualsNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
 {
-
-	Style.HeaderColor = ImVec4{ 0.2, 0.4, 0.99, 1.0 };
-
-	Style.Size = ImVec2{ 200.f, 150.f };
+	Style.HeaderColor = FLOAT_VALUE_COLOR;
 	Style.Title = "Float equals";
 }
 
@@ -2237,8 +2309,6 @@ void graph_editor::FloatEqualsNodeDelegate::ProcessEndpoint(graphs::EndpointIden
 			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
 			ImGui::DragFloat(std::string("##" + std::to_string(identifier)).c_str(), &endpoint.As<NodeValueType::Float>(), 0.1, -FLT_MAX, FLT_MAX);
 			ImGui::PopItemWidth();
-
-			Style.InputEndpointsColor = Style.HeaderColor = { 0.2, 0.4, 0.99, 1.0 };
 			break;
 		}
 		}
@@ -2250,7 +2320,6 @@ void graph_editor::FloatEqualsNodeDelegate::ProcessEndpoint(graphs::EndpointIden
 		case NodeValueType::Bool:
 		{
 			ImGui::Text("Result ");
-			Style.OutPutEndpointsColor = { 0.8, 0.2, 0.2, 1.0 };
 			break;
 		}
 		}
@@ -2259,12 +2328,7 @@ void graph_editor::FloatEqualsNodeDelegate::ProcessEndpoint(graphs::EndpointIden
 
 graph_editor::FloatNodeDelegate::FloatNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
 {
-	Style.HeaderColor = ImVec4{ 0.2, 0.4, 0.99, 1.0 };
-
-	Style.OutPutEndpointsColor = ImVec4{ 0.2, 0.4, 0.99, 1.0 };
-	Style.InputEndpointsColor = ImVec4{ 0.2, 0.4, 0.99, 1.0 };
-
-	Style.Size = ImVec2{ 125.f, 100.f };
+	Style.HeaderColor = FLOAT_VALUE_COLOR;
 	Style.Title = "Float";
 }
 
@@ -2277,15 +2341,14 @@ void graph_editor::FloatNodeDelegate::ProcessBodyContent(const InternalContext* 
 {
 	auto node = GetNode();
 	ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
-	ImGui::DragFloat("", &node->GetEndpoint<shade::graphs::Connection::Output>(0)->As<NodeValueType::Float>(), 0.1, -FLT_MAX, FLT_MAX);
+	ImGui::DragFloat("##Value", &node->GetEndpoint<shade::graphs::Connection::Output>(0)->As<NodeValueType::Float>(), 0.1, -FLT_MAX, FLT_MAX);
 	ImGui::PopItemWidth();
 }
 
 graph_editor::BoneMaskNodeDelegate::BoneMaskNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
 {
 	Style.Title = "Bone Mask";
-	Style.HeaderColor = ImVec4{ 0.6, 0.4, 0.0, 1.0 };
-	Style.Size = ImVec2{ 180, 120 };
+	Style.HeaderColor = BONEMASK_VALUE_COLOR;
 }
 
 void  graph_editor::BoneMaskNodeDelegate::ProcessSideBar(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, std::unordered_map<std::size_t, GraphNodePrototype*>& referNodes)
@@ -2338,5 +2401,37 @@ void graph_editor::BoneMaskNodeDelegate::ProcessBodyContent(const InternalContex
 void graph_editor::BoneMaskNodeDelegate::ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint)
 {
 	ImGui::Text("Result");
-	Style.OutPutEndpointsColor = { 0.8, 0.2, 0.2, 1.0 };
+}
+
+graph_editor::StringNodeDelegate::StringNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
+{
+	Style.Title = "String";
+	Style.HeaderColor = STRING_VALUE_COLOR;
+}
+
+void graph_editor::StringNodeDelegate::ProcessBodyContent(const InternalContext* context)
+{
+	auto node = GetNode();
+	ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+	ImGuiLayer::InputTextD("##Value", node->GetEndpoint<shade::graphs::Connection::Output>(0)->As<NodeValueType::String>());
+	ImGui::PopItemWidth();
+}
+
+graph_editor::BoolNodeDelegate::BoolNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
+{
+	Style.Title = "Bool";
+	Style.HeaderColor = BOOL_VALUE_COLOR;
+}
+
+void graph_editor::BoolNodeDelegate::ProcessBodyContent(const InternalContext* context)
+{
+	auto node = GetNode();
+	std::vector<std::string> elements = { "False", {"True"} };
+	ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+	ImGuiLayer::DrawComboWithIndex("##Bool", (std::uint32_t&)node->GetEndpoint<shade::graphs::Connection::Output>(0)->As<NodeValueType::Bool>(), elements, 0, 0);
+	ImGui::PopItemWidth();
+}
+
+graph_editor::TransitionNodeDelegate::TransitionNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
+{
 }
