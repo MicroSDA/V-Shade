@@ -9,6 +9,7 @@ namespace shade
 	{
 		class SHADE_API PoseNode : public graphs::BaseNode
 		{
+			NODE_STATIC_TYPE_HELPER(PoseNode)
 
 		public:
 			PoseNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode) :

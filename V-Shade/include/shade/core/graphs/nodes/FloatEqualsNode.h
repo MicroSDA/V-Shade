@@ -7,6 +7,8 @@ namespace shade
 	{
 		class SHADE_API FloatEqualsNode : public BaseNode
 		{
+			NODE_STATIC_TYPE_HELPER(FloatEqualsNode)
+
 		public:
 			FloatEqualsNode(GraphContext* context, NodeIdentifier identifier, BaseNode* pParentNode) :
 				BaseNode(context, identifier, pParentNode, "Float equals")

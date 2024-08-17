@@ -8,6 +8,7 @@ namespace shade
 	{
 		class SHADE_API BoneMaskNode : public  graphs::BaseNode
 		{
+			NODE_STATIC_TYPE_HELPER(BoneMaskNode)
 
 		public:
 			BoneMaskNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode) :

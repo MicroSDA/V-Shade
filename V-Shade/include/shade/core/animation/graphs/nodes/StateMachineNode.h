@@ -250,6 +250,8 @@ namespace shade
 			/// @brief Represents the output node for a transition in an animation state machine.
 			class  SHADE_API OutputTransitionNode : public graphs::BaseNode
 			{
+				NODE_STATIC_TYPE_HELPER(OutputTransitionNode)
+
 			public:
 				/// @brief Constructor for OutputTransitionNode.
 				/// @param context Pointer to the graph context.
@@ -326,6 +328,8 @@ namespace shade
 			/// @brief Represents a transition between states in an animation state machine.
 			class SHADE_API TransitionNode : public graphs::BaseNode
 			{
+				NODE_STATIC_TYPE_HELPER(TransitionNode)
+
 			public:
 				struct Data
 				{
@@ -388,8 +392,9 @@ namespace shade
 			/// @brief Represents a state node in an animation state machine.
 			class SHADE_API StateNode : public graphs::BaseNode
 			{
-			public:
+				NODE_STATIC_TYPE_HELPER(StateNode)
 
+			public:
 				/// @brief Constructor for StateNode.
 				/// @param context Pointer to the graph context.
 				/// @param identifier Unique node identifier.
@@ -472,6 +477,8 @@ namespace shade
 			/// @brief Represents a state machine node in an animation graph.
 			class SHADE_API StateMachineNode : public graphs::BaseNode
 			{
+				NODE_STATIC_TYPE_HELPER(StateMachineNode)
+
 			public:
 				/// @brief Constructor for StateMachineNode.
 				/// @param context Pointer to the graph context.

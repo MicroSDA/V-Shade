@@ -337,6 +337,18 @@ namespace shade
 {
 	namespace graphs
 	{
+		// Risky!! 
+		template <typename T>
+		SHADE_INLINE std::uint32_t GetNodeTypeId() 
+		{
+			return typeid(T).hash_code();
+		}
+
+#define NODE_STATIC_TYPE_HELPER(atype) \
+		public: \
+			static SHADE_INLINE std::uint32_t GetNodeStaticType() { return graphs::GetNodeTypeId<atype>(); } \
+			virtual SHADE_INLINE std::uint32_t GetNodeType() const override { return GetNodeStaticType(); } \
+
 		/// @brief Represent base graph node implementation.
 		class SHADE_API BaseNode
 		{
@@ -350,6 +362,9 @@ namespace shade
 			/// @brief Virtual destructor for BaseNode.
 			virtual ~BaseNode();
 
+			static std::uint32_t GetNodeStaticType();
+			
+			virtual std::uint32_t GetNodeType() const;
 		public:
 			/// @brief Initialization of node.
 			/// @param BaseGraph* The parent graph which can contain the current node.

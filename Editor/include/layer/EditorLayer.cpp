@@ -1950,6 +1950,14 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 	
 	if (!graph.AnimationGraph)
 	{
+		/*SHADE_CORE_INFO("AnimationGraph {0}", shade::animation::AnimationGraph::GetNodeStaticType());
+		SHADE_CORE_INFO("StateMachine {0}", shade::animation::state_machine::StateMachineNode::GetNodeStaticType());
+		SHADE_CORE_INFO("State {0}", shade::animation::state_machine::StateNode::GetNodeStaticType());
+		SHADE_CORE_INFO("Transition {0}", shade::animation::state_machine::TransitionNode::GetNodeStaticType());
+		SHADE_CORE_INFO("Pose {0}", shade::animation::PoseNode::GetNodeStaticType());*/
+
+
+
 		graph.AnimationGraph = shade::SharedPointer<shade::animation::AnimationGraph>::Create(&graph.GraphContext);
 		//graph.AnimationGraph = graph.AnimationGraph.Create(&graph.GraphContext);
 		

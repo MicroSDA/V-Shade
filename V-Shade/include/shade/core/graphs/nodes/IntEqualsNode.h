@@ -7,6 +7,8 @@ namespace shade
 	{
 		class SHADE_API IntEqualsNode : public BaseNode
 		{
+			NODE_STATIC_TYPE_HELPER(IntEqualsNode)
+
 		public:
 			IntEqualsNode(GraphContext* context, NodeIdentifier identifier, BaseNode* pParentNode) :
 				BaseNode(context, identifier, pParentNode, "Int equals")

@@ -7,6 +7,8 @@ namespace shade
 	{
 		class SHADE_API IntNode : public BaseNode
 		{
+			NODE_STATIC_TYPE_HELPER(IntNode)
+
 		public:
 			IntNode(GraphContext* context, NodeIdentifier identifier, BaseNode* pParentNode) 
 				: BaseNode(context, identifier, pParentNode, "Int")

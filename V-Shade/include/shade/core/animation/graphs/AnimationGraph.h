@@ -22,6 +22,8 @@ namespace shade
 		{
 			ASSET_DEFINITION_HELPER_1(AnimationGraph, graphs::GraphContext*, context)
 
+			NODE_STATIC_TYPE_HELPER(AnimationGraph)
+
 		public:
 			/// @brief Constructs an AnimationGraph with the given context and optional name.
 			/// @param context The context to be used for the graph.

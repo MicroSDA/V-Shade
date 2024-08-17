@@ -7,6 +7,8 @@ namespace shade
 	{
 		class SHADE_API FloatNode : public BaseNode
 		{
+			NODE_STATIC_TYPE_HELPER(FloatNode)
+
 		public:
 			FloatNode(GraphContext* context, NodeIdentifier identifier, BaseNode* pParentNode) :
 				BaseNode(context, identifier, pParentNode, "Float")

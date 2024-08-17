@@ -51,6 +51,51 @@ const shade::graphs::BaseNode* shade::animation::AnimationGraph::GetInputNode(co
 	return node->second;
 }
 
+
+std::size_t  SerializeNode(std::ostream& stream, const shade::graphs::BaseNode* pNode)
+{
+	// Serrialzie Identifier
+	shade::Serializer::Serialize(stream, std::uint32_t(pNode->GetNodeIdentifier()));
+	// Serialize type
+	shade::Serializer::Serialize(stream, std::uint32_t(pNode->GetNodeType()));
+	// Serialize count of internal nodes
+	shade::Serializer::Serialize(stream, std::uint32_t(pNode->GetInternalNodes().size()));
+
+	// Body sections
+	
+	const auto& input  = pNode->GetEndpoints().at(shade::graphs::Connection::Type::Input);
+	const auto& output = pNode->GetEndpoints().at(shade::graphs::Connection::Type::Output);
+
+	shade::Serializer::Serialize(stream, std::uint8_t(input.GetSize()));
+
+	// d means default value
+	for (const auto& [i, d] : input)
+	{
+		shade::Serializer::Serialize(stream, std::uint8_t(d->GetType()));
+		
+		// TODO: Add Serrirliziation for each type !!
+		shade::Serializer::Serialize(stream, d.get());
+	}
+
+	shade::Serializer::Serialize(stream, std::uint8_t(output.GetSize()));
+	// d means default value
+	for (const auto& [i, d] : output)
+	{
+		shade::Serializer::Serialize(stream, std::uint8_t(d->GetType()));
+
+		// TODO: Add Serrirliziation for each type !!
+		shade::Serializer::Serialize(stream, d);
+	}
+	
+	// !Body Section
+	for (const auto node : pNode->GetInternalNodes())
+	{
+		SerializeNode(stream, node);
+	}
+
+	return 0u;
+}
+
 std::size_t shade::animation::AnimationGraph::Serialize(std::ostream& stream) const
 {
 
@@ -60,24 +105,8 @@ std::size_t shade::animation::AnimationGraph::Serialize(std::ostream& stream) co
 	//4. Возможно добавить уникальный нод идетнификатор что бы было проще потом устанавливать конекшены
 	//5. Проблема состоит в серриализации инпут нодов и их конекшенов к остальным, видимо надо создавать пометку что это инпут
 	//6. Создать типы для каждого нода, может сделать как компонет сериализация
-	// How many childrens 
-	Serializer::Serialize(stream, std::uint32_t(GetInternalNodes().size()));
-
-	for (const auto node : GetInternalNodes())
-	{
-		/*Serializer::Serialize(stream, std::uint32_t(lod.Vertices.size()));
-		Serializer::Serialize(stream, std::uint32_t(lod.Indices.size()));
-		Serializer::Serialize(stream, std::uint32_t(lod.Bones.size()));*/
-	}
-
-	for (std::uint32_t i = 0; i < GetInternalNodes().size(); ++i)
-	{
-		GetInternalNodes();
-	}
 	
-
-	GetGraphContext()->GetConnections(this);
-	return std::size_t();
+	return SerializeNode(stream, this);;
 }
 
 std::size_t shade::animation::AnimationGraph::Deserialize(std::istream& stream)

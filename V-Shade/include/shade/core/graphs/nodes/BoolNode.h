@@ -7,6 +7,8 @@ namespace shade
 	{
 		class SHADE_API BoolNode : public BaseNode
 		{
+			NODE_STATIC_TYPE_HELPER(BoolNode)
+
 		public:
 			BoolNode(GraphContext* context, NodeIdentifier identifier, BaseNode* pParentNode) :
 				BaseNode(context, identifier, pParentNode, "Bool")

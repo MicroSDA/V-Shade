@@ -9,6 +9,8 @@ namespace shade
 	{
 		class SHADE_API OutputPoseNode : public graphs::BaseNode
 		{
+			NODE_STATIC_TYPE_HELPER(OutputPoseNode)
+
 		public:
 			OutputPoseNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode) :
 				BaseNode(context, identifier, pParentNode, "Output pose")

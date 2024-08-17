@@ -13,6 +13,16 @@ shade::graphs::BaseNode::~BaseNode()
 	assert(m_pRootParrentNode == nullptr);
 }
 
+std::uint32_t shade::graphs::BaseNode::GetNodeStaticType()
+{
+	return GetNodeTypeId<BaseNode>();
+}
+
+std::uint32_t shade::graphs::BaseNode::GetNodeType() const
+{
+	return GetNodeStaticType();
+}
+
 void shade::graphs::BaseNode::Shutdown()
 {
 	m_pParrentNode = nullptr;

@@ -7,6 +7,8 @@ namespace shade
 	{
 		class SHADE_API StringNode : public BaseNode
 		{
+			NODE_STATIC_TYPE_HELPER(StringNode)
+
 		public:
 			StringNode(GraphContext* context, NodeIdentifier identifier, BaseNode* pParentNode)
 				: BaseNode(context, identifier, pParentNode, "String")

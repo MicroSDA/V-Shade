@@ -8,6 +8,8 @@ namespace shade
 	{
 		class SHADE_API BlendNode2D : public graphs::BaseNode
 		{
+			NODE_STATIC_TYPE_HELPER(BlendNode2D)
+
 		public:
 			BlendNode2D(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode) :
 				BaseNode(context, identifier, pParentNode, "Blend2D"), DefaultWeightValue(0.0f), Mask(BoneMask{nullptr})

@@ -304,7 +304,9 @@ namespace shade
 			{
 				std::unordered_map<BaseNode*, NodesPack>::iterator parrent = Nodes.find(pParrent);
 
-				const NodeIdentifier id = (parrent != Nodes.end()) ? parrent->second.InternalNodes.size() : 0;
+				//const NodeIdentifier id = (parrent != Nodes.end()) ? parrent->second.InternalNodes.size() : 0;
+
+				const NodeIdentifier id = GetCurrentTimeStamp<std::chrono::microseconds>();
 
 				T* node = SNEW T(this, id, pParrent, std::forward<Args>(args)...);
 

@@ -318,13 +318,13 @@ namespace shade
 		 * @brief Const iterator to the beginning of the NodeValues vector.
 		 * @return Const iterator pointing to the beginning of the NodeValues vector.
 		 */
-		SHADE_INLINE std::vector<Values>::const_iterator cbegin() const { return m_Values.cbegin(); }
+		SHADE_INLINE std::vector<Values>::const_iterator begin() const { return m_Values.cbegin(); }
 
 		/**
 		 * @brief Const iterator to the end of the NodeValues vector.
 		 * @return Const iterator pointing to the end of the NodeValues vector.
 		 */
-		SHADE_INLINE std::vector<Values>::const_iterator cend() const { return m_Values.cend(); }
+		SHADE_INLINE std::vector<Values>::const_iterator end() const { return m_Values.cend(); }
 
 	public:
 		/**
