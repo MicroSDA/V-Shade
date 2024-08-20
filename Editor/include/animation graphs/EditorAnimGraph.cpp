@@ -1,6 +1,6 @@
 ﻿#include "shade_pch.h"
 #include "EditorAnimGraph.h"
-
+#include <shade/core/system/FileDialog.h>
 
 graph_editor::StateNodeDelegate::TransitionEstablish graph_editor::StateNodeDelegate::m_TransitionEstablish;
 
@@ -718,6 +718,8 @@ bool graph_editor::GraphEditor::RemoveNode(graphs::BaseNode*& pNode)
 
 void graph_editor::GraphEditor::Initialize(AnimationGraph* pGraph)
 {
+	m_Nodes.clear();
+	m_ReferNodes.clear();
 	// Add to nodes !!
 	CreateNode<AnimationGraphDeligate>(pGraph, m_Nodes);
 	
@@ -756,6 +758,44 @@ bool graph_editor::GraphEditor::Edit(const char* title, const ImVec2& size)
 	{
 		if (ImGui::Begin(title, (bool*)0))
 		{
+			if (ImGuiLayer::IconButton("Open", u8"\xe85f", 1, 1.f))
+			{
+				auto path = shade::FileDialog::OpenFile("Shade graph(*.graph) \0*.graph\0");
+
+				if (!path.empty())
+				{
+					shade::File file(path.string(), shade::File::In, "@s_animgraph", shade::File::VERSION(0, 0, 1));
+					if (file.IsOpen())
+					{
+						file.Read(m_pRootGraph->As<AnimationGraph>());
+
+						Initialize(&m_pRootGraph->As<AnimationGraph>());
+					}
+					else
+					{
+						SHADE_CORE_WARNING("Couldn't open graph file, path ={0}", path);
+					}
+				}
+			}
+			ImGui::SameLine();
+			if (ImGuiLayer::IconButton("Save", u8"\xe8b9", 1, 1.f))
+			{
+				auto path = shade::FileDialog::SaveFile("Shade graph(*.graph) \0*.graph\0");
+
+				if (!path.empty())
+				{
+					shade::File file(path.string(), shade::File::Out, "@s_animgraph", shade::File::VERSION(0, 0, 1));
+					if (file.IsOpen())
+					{
+						file.Write(m_pRootGraph->As<AnimationGraph>());
+					}
+					else
+					{
+						SHADE_CORE_WARNING("Couldn't open graph file, path ={0}", path);
+					}
+				}
+			}
+
 			if (ImGui::BeginChild("##ImGuiGraphPrototype::ContentSideBar",
 				ImVec2(300, ImGui::GetContentRegionAvail().y),
 				true,

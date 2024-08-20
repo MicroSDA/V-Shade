@@ -1,5 +1,6 @@
 #include "shade_pch.h"
 #include "AnimationController.h"
+#include <shade/core/asset/AssetManager.h>
 #include <glm/glm/gtx/common.hpp>
 
 void shade::animation::AnimationController::CalculateBoneTransforms(
@@ -224,4 +225,41 @@ void shade::animation::Pose::Reset()
 	m_LocalTransforms->resize(RenderAPI::MAX_BONES_PER_INSTANCE, glm::identity<glm::mat4>());
 
 	m_State = State::ZeroPose;
+}
+
+std::size_t shade::animation::AnimationController::AnimationControlData::Serialize(std::ostream& stream) const
+{
+	std::size_t size = Serializer::Serialize(stream, (Animation) ? Animation->GetAssetData()->GetId() : "");
+	size += Serializer::Serialize(stream, std::uint8_t(State));
+	size += Serializer::Serialize(stream, Start);
+	size += Serializer::Serialize(stream, End);
+	size += Serializer::Serialize(stream, Duration);
+	size += Serializer::Serialize(stream, CurrentPlayTime);
+	size += Serializer::Serialize(stream, TicksPerSecond);
+	size += Serializer::Serialize(stream, IsLoop);
+
+	return size;
+}
+
+std::size_t shade::animation::AnimationController::AnimationControlData::Deserialize(std::istream& stream)
+{
+	std::string assetId; std::size_t size = Serializer::Deserialize(stream, assetId);
+	size += Serializer::Deserialize(stream, static_cast<Animation::State&>(State));
+	size += Serializer::Deserialize(stream, Start);
+	size += Serializer::Deserialize(stream, End);
+	size += Serializer::Deserialize(stream, Duration);
+	size += Serializer::Deserialize(stream, CurrentPlayTime);
+	size += Serializer::Deserialize(stream, TicksPerSecond);
+	size += Serializer::Deserialize(stream, IsLoop);
+
+	shade::AssetManager::GetAsset<shade::Animation,
+		shade::BaseAsset::InstantiationBehaviour::Synchronous>(assetId,
+			shade::AssetMeta::Category::Secondary,
+			shade::BaseAsset::LifeTime::KeepAlive,
+			[&](auto& animation) mutable
+			{
+				Animation = animation;
+			});
+
+	return size;
 }

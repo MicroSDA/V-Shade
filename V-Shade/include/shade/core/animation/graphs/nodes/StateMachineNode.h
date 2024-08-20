@@ -248,7 +248,7 @@ namespace shade
 			};
 
 			/// @brief Represents the output node for a transition in an animation state machine.
-			class  SHADE_API OutputTransitionNode : public graphs::BaseNode
+			class SHADE_API OutputTransitionNode : public graphs::BaseNode
 			{
 				NODE_STATIC_TYPE_HELPER(OutputTransitionNode)
 
@@ -344,6 +344,12 @@ namespace shade
 				/// @param data Transition data containing source and destination states.
 				TransitionNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode, const Data& data);
 
+				/// @brief Constructor for TransitionNode.
+				/// @param context Pointer to the graph context.
+				/// @param identifier Unique node identifier.
+				/// @param pParentNode Pointer to the parent node.
+				TransitionNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode);
+
 				/// @brief Destructor for TransitionNode.
 				virtual ~TransitionNode() = default;
 
@@ -357,6 +363,10 @@ namespace shade
 				/// @brief Gets the transition data (const version).
 				/// @return A const reference to the transition data.
 				const Data& GetTransitionData() const;
+
+				/// @brief Sets the transition data.
+				/// @param data the transition data.
+				void SetTransitionData(const Data& data);
 
 				/// @brief Evaluates the transition logic.
 				/// @param deltaTime The time elapsed since the last frame.
@@ -400,7 +410,7 @@ namespace shade
 				/// @param identifier Unique node identifier.
 				/// @param pParentNode Pointer to the parent node.
 				/// @param name Name of the state.
-				StateNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode, const std::string& name);
+				StateNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode, const std::string& name = "State");
 
 				/// @brief Destructor for StateNode.
 				virtual ~StateNode() = default;

@@ -483,6 +483,13 @@ namespace shade
 				return *m_pGraphContext->GetConnections(this);
 			}
 
+			/// @brief Setter for the node identifier.
+			/// @param The identifier of the graph node.
+			SHADE_INLINE void SetNodeIdentifier(NodeIdentifier id)
+			{
+				m_NodeIdentifier = id;
+			};
+
 			/// @brief Getter for the node identifier.
 			/// @return The identifier of the graph node.
 			SHADE_INLINE NodeIdentifier GetNodeIdentifier() const

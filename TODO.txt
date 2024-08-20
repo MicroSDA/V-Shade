@@ -2,6 +2,6 @@
 2. Pack srcipts ?
 3. Use Vk_mem_alloc ?
 4. Use enum bit shift for asset type and add space for sub type like TextureType 
-5. Add animation
 6. Switch physic to SAT to get proper stable contact points
 7. Make shade::AssetData constructor reciving id as argument 
+8. Add ctti library to achive constexpr types name : https://github.com/Manu343726/ctti

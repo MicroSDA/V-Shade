@@ -65,6 +65,11 @@ shade::animation::state_machine::TransitionNode::TransitionNode(graphs::GraphCon
 {
 }
 
+shade::animation::state_machine::TransitionNode::TransitionNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode)
+	: BaseNode(context, identifier, pParentNode)
+{
+}
+
 void shade::animation::state_machine::TransitionNode::Initialize()
 {
 	SetName(GetTransitionData().SourceState->GetName() + " -> " +GetTransitionData().DestinationState->GetName());

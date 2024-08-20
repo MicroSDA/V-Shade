@@ -8,9 +8,9 @@ void shade::animation::PoseNode::Evaluate(const FrameTimer& deltaTime)
 	auto& controller	= GetGraphContext()->As<AnimationGraphContext>().Controller;
 	auto& skeleton		= GetGraphContext()->As<AnimationGraphContext>().Skeleton;
 
-	if (AnimationData.Animation)
+	if (m_AnimationData.Animation)
 	{
-		if (dynamic_cast<state_machine::StateNode*>(GetParrentGraph())) // Need to fix thix dynamic cast
+		if (graphs::GetNodeTypeId<state_machine::StateNode>() == GetParrentGraph()->GetNodeType())
 		{
 			const state_machine::TransitionSyncData syncData = GetParrentGraph()->As<state_machine::StateNode>().GetTransitionSyncData();
 
@@ -19,7 +19,7 @@ void shade::animation::PoseNode::Evaluate(const FrameTimer& deltaTime)
 				case state_machine::TransitionStatus::Start:
 				{
 					if (syncData.Preferences.ResetFromStart)
-						AnimationData.CurrentPlayTime = AnimationData.Start + syncData.Preferences.Offset;
+						m_AnimationData.CurrentPlayTime = m_AnimationData.Start + syncData.Preferences.Offset;
 				}
 				case state_machine::TransitionStatus::InProcess:
 				{
@@ -27,8 +27,8 @@ void shade::animation::PoseNode::Evaluate(const FrameTimer& deltaTime)
 					{
 					case state_machine::SyncStyle::SourceFrozen:
 
-						AnimationData.State = Animation::State::Pause;
-						GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, controller->ProcessPose(skeleton, AnimationData, deltaTime, syncData.TimeMultiplier));
+						m_AnimationData.State = Animation::State::Pause;
+						GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, controller->ProcessPose(skeleton, m_AnimationData, deltaTime, syncData.TimeMultiplier));
 						break;
 
 					case state_machine::SyncStyle::SourceToDestinationTimeSync:
@@ -40,22 +40,22 @@ void shade::animation::PoseNode::Evaluate(const FrameTimer& deltaTime)
 					case state_machine::SyncStyle::KeyFrameSync: break;
 
 					default:
-						AnimationData.State = Animation::State::Play;
-						GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, controller->ProcessPose(skeleton, AnimationData, deltaTime, syncData.TimeMultiplier));
+						m_AnimationData.State = Animation::State::Play;
+						GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, controller->ProcessPose(skeleton, m_AnimationData, deltaTime, syncData.TimeMultiplier));
 						break;
 					}
 					break;
 				}
 				case state_machine::TransitionStatus::End: // When transition end or non transition occurs
 				{
-					GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, controller->ProcessPose(skeleton, AnimationData, deltaTime, syncData.TimeMultiplier));
+					GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, controller->ProcessPose(skeleton, m_AnimationData, deltaTime, syncData.TimeMultiplier));
 					break;
 				}
 			}
 		}
 		else
 		{
-			GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, controller->ProcessPose(skeleton, AnimationData, deltaTime));
+			GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, controller->ProcessPose(skeleton, m_AnimationData, deltaTime));
 		}
 	}
 	
@@ -63,10 +63,15 @@ void shade::animation::PoseNode::Evaluate(const FrameTimer& deltaTime)
 
 void shade::animation::PoseNode::ResetAnimationData(const Asset<Animation>& animation)
 {
-	AnimationData = AnimationController::AnimationControlData(animation);
+	m_AnimationData = AnimationController::AnimationControlData(animation);
+}
+
+const shade::animation::AnimationController::AnimationControlData& shade::animation::PoseNode::GetAnimationData() const
+{
+	return m_AnimationData;
 }
 
 shade::animation::AnimationController::AnimationControlData& shade::animation::PoseNode::GetAnimationData()
 {
-	return AnimationData;
+	return m_AnimationData;
 }

@@ -39,6 +39,18 @@ namespace shade
 				Animation::State		State  = Animation::State::Play;
 				float					Start  = 0.f, End = 0.f, Duration = 0.f, CurrentPlayTime = 0.f, TicksPerSecond = 0.f;
 				bool					IsLoop = true;
+			private:
+				/// @brief Serializes the animation graph to the given output stream.
+				/// @param stream The output stream to serialize to.
+				/// @return The number of bytes written.
+				std::size_t Serialize(std::ostream& stream) const;
+
+				/// @brief Deserializes the animation graph from the given input stream.
+				/// @param stream The input stream to deserialize from.
+				/// @return The number of bytes read.
+				std::size_t Deserialize(std::istream& stream);
+
+				friend class Serializer;
 			};
 			template<typename T, typename Data>
 			struct Task
@@ -99,5 +111,19 @@ namespace shade
 				float blendFactor, 
 				const animation::BoneMask& boneMask);
 		};
+	}
+
+	// Serialize AnimationGraph
+	template<>
+	SHADE_INLINE std::size_t shade::Serializer::Serialize(std::ostream& stream, const animation::AnimationController::AnimationControlData& data, std::size_t)
+	{
+		return data.Serialize(stream);
+	}
+
+	// Deserialize AnimationGraph
+	template<>
+	SHADE_INLINE std::size_t shade::Serializer::Deserialize(std::istream& stream, animation::AnimationController::AnimationControlData& data, std::size_t)
+	{
+		return data.Deserialize(stream);
 	}
 }

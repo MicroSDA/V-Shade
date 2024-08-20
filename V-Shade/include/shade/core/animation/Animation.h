@@ -13,7 +13,7 @@ namespace shade
 		ASSET_DEFINITION_HELPER(Animation)
 
 	public:
-		enum class State
+		enum class State : std::uint8_t
 		{
 			Stop,
 			Play,

@@ -24,9 +24,10 @@ namespace shade
 			virtual void OnConnect(graphs::Connection::Type connectionType, NodeValueType type, graphs::EndpointIdentifier endpoint) override {};
 
 			void ResetAnimationData(const Asset<Animation>& animation);
+			const AnimationController::AnimationControlData& GetAnimationData() const;
 			AnimationController::AnimationControlData& GetAnimationData();
 		private:
-			AnimationController::AnimationControlData AnimationData;
+			AnimationController::AnimationControlData m_AnimationData;
 		};
 	}
 }

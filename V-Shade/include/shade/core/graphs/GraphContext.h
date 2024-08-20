@@ -242,6 +242,7 @@
 #include <shade/utils/Utils.h>
 #include <shade/core/entity/Entity.h>
 #include <shade/core/graphs/nodes/NodeValue.h>
+#include <shade/core/serializing/Serializer.h>
 
 namespace shade
 {
@@ -304,8 +305,6 @@ namespace shade
 			{
 				std::unordered_map<BaseNode*, NodesPack>::iterator parrent = Nodes.find(pParrent);
 
-				//const NodeIdentifier id = (parrent != Nodes.end()) ? parrent->second.InternalNodes.size() : 0;
-
 				const NodeIdentifier id = GetCurrentTimeStamp<std::chrono::microseconds>();
 
 				T* node = SNEW T(this, id, pParrent, std::forward<Args>(args)...);
@@ -355,6 +354,17 @@ namespace shade
 
 				return (connection != connections.end()) ? &(*connection) : nullptr; // Return the found connection or nullptr
 			}
+
+			/// @brief Gets the internal node for a given parrent node.
+			/// @param BaseNode* pParrent pointer to the parrent node.
+			/// @param NodeIdentifier identifier of internal node.
+			/// @return A pointer to the internal node, or nullptr if none exist.
+			SHADE_API BaseNode* FindInternalNode(BaseNode* pParrent, NodeIdentifier identifier);
+
+			/// @brief Gets the node.
+			/// @param NodeIdentifier identifier of node.
+			/// @return A pointer to the node, or nullptr if none exist.
+			SHADE_API BaseNode* FindNode(NodeIdentifier identifier);
 
 			/// @brief Gets the connections for a given node.
 			/// @param pConnectedTo Pointer to the node whose connections are to be retrieved.
@@ -540,6 +550,32 @@ namespace shade
 
 			/// @brief Contains all nodes and their connections within the graph context.
 			std::unordered_map<BaseNode*, NodesPack> Nodes;
+
+			/// @brief Serializes node's connections to the given output stream.
+			/// @param stream The output stream to serialize to.
+			/// @return The number of bytes written.
+			std::size_t Serialize(std::ostream& stream) const;
+
+			/// @brief Deserializes node's connections from the given input stream.
+			/// @param stream The input stream to deserialize from.
+			/// @return The number of bytes read.
+			std::size_t Deserialize(std::istream& stream);
+
+			friend class Serializer;
 		};
+	}
+
+	// Serialize GraphContext
+	template<>
+	SHADE_INLINE std::size_t shade::Serializer::Serialize(std::ostream& stream, const graphs::GraphContext& context, std::size_t)
+	{
+		return context.Serialize(stream);
+	}
+
+	// Deserialize GraphContext
+	template<>
+	SHADE_INLINE std::size_t shade::Serializer::Deserialize(std::istream& stream, graphs::GraphContext& context, std::size_t)
+	{
+		return context.Deserialize(stream);
 	}
 }

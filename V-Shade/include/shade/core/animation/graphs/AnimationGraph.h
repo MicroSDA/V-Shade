@@ -177,13 +177,11 @@ namespace shade
 			/// @param context A pointer to the GraphContext associated with this animation graph.
 			AnimationGraph(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour, graphs::GraphContext* context);
 
-			// Serialize the animation graph object and write the serialized data to the given output stream
 			/// @brief Serializes the animation graph to the given output stream.
 			/// @param stream The output stream to serialize to.
 			/// @return The number of bytes written.
 			std::size_t Serialize(std::ostream& stream) const;
 
-			// Deserialize the animation graph object from the given input stream and return the number of bytes read
 			/// @brief Deserializes the animation graph from the given input stream.
 			/// @param stream The input stream to deserialize from.
 			/// @return The number of bytes read.
