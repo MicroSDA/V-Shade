@@ -394,8 +394,12 @@ namespace shade
 				}
 			private:
 				Data m_TransitionData;                         ///< Data containing source and destination states.
-				OutputTransitionNode* m_pOutputTransitionNode = nullptr; ///< Pointer to the output transition node.
+				//OutputTransitionNode* m_pOutputTransitionNode = nullptr; ///< Pointer to the output transition node.
 				bool m_CanBeInterrupted = false;               ///< Indicates if the transition can be interrupted.
+
+				virtual std::size_t SerializeBody(std::ostream& stream) const override;
+
+				virtual std::size_t DeserializeBody(std::istream& stream) override;
 
 			};
 
@@ -427,10 +431,20 @@ namespace shade
 				/// @param deltaTime The time elapsed since the last frame.
 				void Evaluate(const FrameTimer& deltaTime) override;
 
-				/// @brief Adds a transition from this state to a destination state.
+				/// @brief Adds an existing transition.
+				/// @param transitions Pointer to the transition node.
+				/// @return Pointer to the added TransitionNode.
+				TransitionNode* AddTransition(TransitionNode* transition);
+
+				/// @brief Create a transition from this state to a destination state.
 				/// @param destination Pointer to the destination state node.
 				/// @return Pointer to the created TransitionNode.
-				TransitionNode* AddTransition(StateNode* destination);
+				TransitionNode* CreateTransition(StateNode* destination);
+
+				/// @brief Create a transition from this state to a destination state.
+				/// @param destination Pointer to the destination state node.
+				/// @return Pointer to the created TransitionNode.
+				TransitionNode* EmplaceTransition(StateNode* destination);
 
 				/// @brief Removes a transition from this state.
 				/// @param transition Pointer to the transition node to be removed.
@@ -469,7 +483,7 @@ namespace shade
 				/// @return Pointer to the Pose object.
 				SHADE_INLINE Pose* GetOutPutPose()
 				{
-					return GetRootNode()->As<OutputPoseNode>().GetEndpoint<graphs::Connection::Input>(0)->As<NodeValueType::Pose>();
+					return GetRootNode()->GET_ENDPOINT<graphs::Connection::Input, NodeValueType::Pose>(0);
 				}
 
 				/// @brief Gets the output pose of the state (const version).
@@ -482,6 +496,8 @@ namespace shade
 				std::vector<TransitionNode*> m_Transitions;       ///< List of transitions from this state.
 				TransitionNode* m_pActiveTransition = nullptr;    ///< Pointer to the currently active transition.
 				TransitionSyncData m_TransitionSyncData;          ///< Synchronization data for the transition.
+
+				virtual std::size_t Serialize(std::ostream& stream) const override;
 			};
 
 			/// @brief Represents a state machine node in an animation graph.
@@ -524,6 +540,10 @@ namespace shade
 				Pose* Transit(TransitionNode* pTransition, const FrameTimer& deltaTime, Pose* pPTPose = nullptr);
 			private:
 				bool m_IsTransitionHasBeenInterrupted = false;    ///< Flag indicating if the transition was interrupted.
+
+				virtual std::size_t Serialize(std::ostream& stream) const override;
+				virtual std::size_t Deserialize(std::istream& stream) override;
+
 			};
 		}
 	}

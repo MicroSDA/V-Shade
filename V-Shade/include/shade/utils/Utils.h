@@ -1,6 +1,4 @@
 #pragma once
-#include <unordered_map>
-#include <map>
 #include <glm/glm/gtx/hash.hpp>
 
 namespace shade
@@ -18,7 +16,28 @@ namespace shade
 	{
 		return static_cast<size_t>(std::chrono::duration_cast<T>(std::chrono::system_clock::now().time_since_epoch()).count());
 	}
+	
+	template<typename T>
+	T GenerateRandomValue(T min, T max)
+	{
+		static_assert(std::is_scalar<T>::value, "T must be a scalar type");
 
+		std::random_device rd; std::mt19937 gen(rd());
+		
+		if constexpr (std::is_integral<T>::value) 
+		{
+			std::uniform_int_distribution<T> dist(min, max); return dist(gen);
+		}
+		else if constexpr (std::is_floating_point<T>::value)
+		{
+			std::uniform_real_distribution<T> dist(min, max); return dist(gen);
+		}
+		else
+		{
+			return static_cast<T>(0);
+		}
+	}
+	
 	template<typename T, std::size_t Size>
 	class StackArray
 	{

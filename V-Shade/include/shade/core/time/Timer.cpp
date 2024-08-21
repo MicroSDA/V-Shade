@@ -8,7 +8,7 @@ shade::FrameTimer::FrameTimer():
 }
 
 shade::FrameTimer::FrameTimer(float time) : 
-	m_TimeNow(glfwGetTime()), m_TimeLast(0.0), m_DeltaTime(time)
+	m_TimeNow(time), m_TimeLast(0.0), m_DeltaTime(time)
 {
 }
 

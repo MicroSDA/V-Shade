@@ -72,10 +72,8 @@ shade::animation::state_machine::TransitionNode::TransitionNode(graphs::GraphCon
 
 void shade::animation::state_machine::TransitionNode::Initialize()
 {
-	SetName(GetTransitionData().SourceState->GetName() + " -> " +GetTransitionData().DestinationState->GetName());
-
-	m_pOutputTransitionNode = CreateNode<OutputTransitionNode>();
-	SetRootNode(m_pOutputTransitionNode);
+	//SetName(GetTransitionData().SourceState->GetName() + " -> " +GetTransitionData().DestinationState->GetName());
+	SetRootNode(CreateNode<OutputTransitionNode>());
 }
 
 shade::animation::state_machine::TransitionNode::Data& shade::animation::state_machine::TransitionNode::GetTransitionData()
@@ -93,6 +91,19 @@ void shade::animation::state_machine::TransitionNode::Evaluate(const FrameTimer&
 	GetRootNode()->ProcessBranch(deltaTime);
 }
 
+std::size_t shade::animation::state_machine::TransitionNode::SerializeBody(std::ostream& stream) const
+{
+	return Serializer::Serialize(stream, m_TransitionData.DestinationState->GetNodeIdentifier());
+}
+
+std::size_t shade::animation::state_machine::TransitionNode::DeserializeBody(std::istream& stream)
+{
+	graphs::NodeIdentifier id; std::size_t size = Serializer::Deserialize(stream, id);
+	BaseNode* pParrent = GetParrentGraph()->GetParrentGraph();
+	m_TransitionData.DestinationState = &GetGraphContext()->FindInternalNode(pParrent, id)->As<StateNode>();
+	return size;
+}
+
 shade::animation::state_machine::StateNode::StateNode(
 	graphs::GraphContext* context,
 	graphs::NodeIdentifier identifier,
@@ -105,9 +116,6 @@ shade::animation::state_machine::StateNode::StateNode(
 void shade::animation::state_machine::StateNode::Initialize()
 {
 	SetRootNode(CreateNode<OutputPoseNode>());
-	GetRootNode()->ConnectNodes(0, CreateNode<PoseNode>(), 0);
-	// Trying to process ??
-	Evaluate(FrameTimer{}); 
 }
 
 bool shade::animation::state_machine::StateNode::RemoveNode(BaseNode* pNode)
@@ -131,7 +139,7 @@ void shade::animation::state_machine::StateNode::Evaluate(const FrameTimer& delt
 	GetRootNode()->ProcessBranch(deltaTime);
 }
 
-shade::animation::state_machine::TransitionNode* shade::animation::state_machine::StateNode::AddTransition(StateNode* destination)
+shade::animation::state_machine::TransitionNode* shade::animation::state_machine::StateNode::EmplaceTransition(StateNode* destination)
 {
 	auto it = std::find_if(m_Transitions.begin(), m_Transitions.end(), [this, destination](const TransitionNode* tr)
 		{
@@ -144,6 +152,36 @@ shade::animation::state_machine::TransitionNode* shade::animation::state_machine
 	{
 		auto transition = CreateNode<TransitionNode>(TransitionNode::Data{ this, destination });
 		return m_Transitions.emplace_back(transition);
+	}
+}
+
+shade::animation::state_machine::TransitionNode* shade::animation::state_machine::StateNode::AddTransition(TransitionNode* transition)
+{
+	auto it = std::find_if(m_Transitions.begin(), m_Transitions.end(), [this, transition](const TransitionNode* tr)
+		{
+			return tr->GetTransitionData().SourceState == this && tr->GetTransitionData().DestinationState == transition->GetTransitionData().DestinationState;
+		});
+
+	if (it != m_Transitions.end())
+		return nullptr;
+	else
+	{
+		return m_Transitions.emplace_back(transition);
+	}
+}
+
+shade::animation::state_machine::TransitionNode* shade::animation::state_machine::StateNode::CreateTransition(StateNode* destination)
+{
+	auto it = std::find_if(m_Transitions.begin(), m_Transitions.end(), [this, destination](const TransitionNode* tr)
+		{
+			return tr->GetTransitionData().SourceState == this && tr->GetTransitionData().DestinationState == destination;
+		});
+
+	if (it != m_Transitions.end())
+		return nullptr;
+	else
+	{
+		return CreateNode<TransitionNode>(TransitionNode::Data{ this, destination });
 	}
 }
 
@@ -309,7 +347,7 @@ shade::animation::Pose* shade::animation::state_machine::StateMachineNode::Trans
 		const animation::Pose* sPose = transitionData.SourceState->GetOutPutPose();
 		const animation::Pose* dPose = transitionData.DestinationState->GetOutPutPose();
 
-		if (sPose && dPose)
+		if (sPose && dPose) // Почему то dPose nullptr в transitionData.DestinationState->GetOutPutPose(); нужно проплеить все стейты при десериализации ? после востановления конекшенов ?
 		{ 
 			TransitionStatus status = transition.GetTransitionAccumulator() ? TransitionStatus::InProcess : TransitionStatus::Start;
 			SyncStyle style =  transition.GetSynStyle();
@@ -376,7 +414,7 @@ shade::animation::Pose* shade::animation::state_machine::StateMachineNode::Trans
 				.Status = status
 				});
 			
-
+			// Сначала евалуейт а потом уже бленд ! вне if (sPose && dPose) 
 			transitionData.SourceState->Evaluate(deltaTime); transitionData.DestinationState->Evaluate(deltaTime);
 
 			transition.ProcessTransitionAccumulator(deltaTime);
@@ -386,4 +424,216 @@ shade::animation::Pose* shade::animation::state_machine::StateMachineNode::Trans
 	}
 
 	return nullptr;
+}
+
+std::size_t shade::animation::state_machine::StateNode::Serialize(std::ostream& stream) const
+{
+	// Serialzie Identifier
+	std::size_t size = shade::Serializer::Serialize(stream, GetNodeIdentifier());
+	// Serialzie Name
+	size += shade::Serializer::Serialize(stream, GetName());
+
+	// Serialzie screen position
+	size += shade::Serializer::Serialize(stream, GetScreenPosition());
+	// Serialzie count of internal nodes
+	size += shade::Serializer::Serialize(stream, std::uint32_t(GetInternalNodes().size() - GetTransitions().size()));
+
+	//------------------------------------------------------------------------
+	// Body section
+	//------------------------------------------------------------------------
+	size += SerializeBody(stream);
+	//------------------------------------------------------------------------
+	// !Body section
+	//------------------------------------------------------------------------
+
+	const auto& inputs = GetEndpoints().at(shade::graphs::Connection::Type::Input);
+	const auto& outputs = GetEndpoints().at(shade::graphs::Connection::Type::Output);
+
+	//------------------------------------------------------------------------
+	// Endpoints section
+	//------------------------------------------------------------------------
+
+	size += shade::Serializer::Serialize(stream, std::uint32_t(inputs.GetSize()));
+	for (const auto& [i, d] : inputs)
+	{
+		size += shade::Serializer::Serialize(stream, d); // d means default value
+	}
+
+	size += shade::Serializer::Serialize(stream, std::uint32_t(outputs.GetSize()));
+	for (const auto& [i, d] : outputs)
+	{
+		size += shade::Serializer::Serialize(stream, d); // d means default value
+	}
+
+	//------------------------------------------------------------------------
+	// !Endpoints section
+	//------------------------------------------------------------------------
+
+	// Serialize states
+	for (const BaseNode* pNode : GetInternalNodes())
+	{
+		if (GetTransitions().end() == std::find_if(GetTransitions().begin(), GetTransitions().end(), [pNode](const TransitionNode* transition)
+			{
+				return transition == pNode;
+			}))
+		{
+			// Serialize type
+			size += shade::Serializer::Serialize(stream, pNode->GetNodeType());
+			// Serialize node
+			size += shade::Serializer::Serialize(stream, *pNode);
+		}
+	}
+	// Serialize root node id 
+	size += shade::Serializer::Serialize(stream, (GetRootNode()) ? GetRootNode()->GetNodeIdentifier() : shade::graphs::INVALID_NODE_IDENTIFIER);
+
+	return size;
+}
+
+std::size_t shade::animation::state_machine::StateMachineNode::Serialize(std::ostream& stream) const
+{
+	// Serialzie Identifier
+	std::size_t size = shade::Serializer::Serialize(stream, GetNodeIdentifier());
+	// Serialzie Name
+	size += shade::Serializer::Serialize(stream, GetName());
+
+	// Serialzie screen position
+	size += shade::Serializer::Serialize(stream, GetScreenPosition());
+	// Serialzie count of internal nodes
+	size += shade::Serializer::Serialize(stream, std::uint32_t(GetInternalNodes().size()));
+	
+	//------------------------------------------------------------------------
+	// Body section
+	//------------------------------------------------------------------------
+	size += SerializeBody(stream);
+	//------------------------------------------------------------------------
+	// !Body section
+	//------------------------------------------------------------------------
+
+	const auto& inputs = GetEndpoints().at(shade::graphs::Connection::Type::Input);
+	const auto& outputs = GetEndpoints().at(shade::graphs::Connection::Type::Output);
+
+	//------------------------------------------------------------------------
+	// Endpoints section
+	//------------------------------------------------------------------------
+
+	size += shade::Serializer::Serialize(stream, std::uint32_t(inputs.GetSize()));
+	for (const auto& [i, d] : inputs)
+	{
+		size += shade::Serializer::Serialize(stream, d); // d means default value
+	}
+
+	size += shade::Serializer::Serialize(stream, std::uint32_t(outputs.GetSize()));
+	for (const auto& [i, d] : outputs)
+	{
+		size += shade::Serializer::Serialize(stream, d); // d means default value
+	}
+
+	//------------------------------------------------------------------------
+	// !Endpoints section
+	//------------------------------------------------------------------------
+
+	// Serialize states
+	for (const BaseNode* pNode : GetInternalNodes())
+	{
+		// SerialzieSerialzie type
+		size += shade::Serializer::Serialize(stream, pNode->GetNodeType());
+		size += shade::Serializer::Serialize(stream, *pNode);
+	}
+	// Serialize transitions
+	for (const BaseNode* node : GetInternalNodes())
+	{
+		// Serialzie count of transition nodes
+		size += shade::Serializer::Serialize(stream, std::uint32_t(node->As<StateNode>().GetTransitions().size()));
+
+		for (const BaseNode* transition : node->As<StateNode>().GetTransitions())
+		{
+			// Serialzie type
+			size += shade::Serializer::Serialize(stream, transition->GetNodeType());
+			// Serialzie transition
+			size += shade::Serializer::Serialize(stream, *transition);
+		}
+	}
+
+	// Serialize root node id 
+	size += shade::Serializer::Serialize(stream, (GetRootNode()) ? GetRootNode()->GetNodeIdentifier() : shade::graphs::INVALID_NODE_IDENTIFIER);
+
+	return size;
+}
+
+std::size_t shade::animation::state_machine::StateMachineNode::Deserialize(std::istream& stream)
+{
+	// Deserialize Identifier
+	shade::graphs::NodeIdentifier id; std::size_t size = shade::Serializer::Deserialize(stream, id);
+	// Deserialize Name
+	std::string name; 					size += shade::Serializer::Deserialize(stream, name);
+
+	// Deserialize Screen position
+	glm::vec2 screenPosition;			size += shade::Serializer::Deserialize(stream, screenPosition);
+	// Deserialize count of internal nodes
+	std::uint32_t internalNodesCount;	size += shade::Serializer::Deserialize(stream, internalNodesCount);
+
+	//------------------------------------------------------------------------
+	// Body section
+	//------------------------------------------------------------------------
+	size += DeserializeBody(stream); SetName(name); SetNodeIdentifier(id); GetScreenPosition() = screenPosition;
+	//------------------------------------------------------------------------
+	// !Body section
+	//------------------------------------------------------------------------
+
+	auto& inputs  = GetEndpoints().at(shade::graphs::Connection::Type::Input);
+	auto& outputs = GetEndpoints().at(shade::graphs::Connection::Type::Output);
+
+	//------------------------------------------------------------------------
+	// Endpoints section
+	//------------------------------------------------------------------------
+
+	std::uint32_t inputEndpointsCount;	size += shade::Serializer::Deserialize(stream, inputEndpointsCount);
+
+	for (std::uint32_t i = 0; i < inputEndpointsCount; ++i)
+	{
+		size += shade::Serializer::Deserialize(stream, inputs.At(i)); // d means default value
+	}
+
+	std::uint32_t outputEndpointsCount;  size += shade::Serializer::Deserialize(stream, outputEndpointsCount);
+
+	for (std::uint32_t i = 0; i < outputEndpointsCount; ++i)
+	{
+		size += shade::Serializer::Deserialize(stream, outputs.At(i)); // d means default value
+	}
+
+	//------------------------------------------------------------------------
+	// !Endpoints section
+	//------------------------------------------------------------------------
+
+	for (std::size_t i = 0; i < internalNodesCount; ++i)
+	{
+		// Deserialize Type
+		graphs::NodeType type;	size += shade::Serializer::Deserialize(stream, type);
+		BaseNode*				pNode = CreateNodeByType(type);
+		// Deserialize node
+		size += Serializer::Deserialize(stream, *pNode);
+	}
+
+	// Deserialize transitions
+	for (BaseNode* node : GetInternalNodes())
+	{
+		// Deserialzie count of transition nodes
+		std::uint32_t transitionCount; size += shade::Serializer::Deserialize(stream, transitionCount);
+
+		for (std::size_t j = 0; j < transitionCount; ++j)
+		{
+			graphs::NodeType type;	size	+= shade::Serializer::Deserialize(stream, type);
+			TransitionNode* pTransition		= node->As<StateNode>().CreateTransition(nullptr);
+			size += shade::Serializer::Deserialize(stream, pTransition->As<BaseNode>());
+
+			node->As<StateNode>().AddTransition(pTransition);
+		}
+	}
+	// Deserialize root node id  
+	shade::graphs::NodeIdentifier rootId;	  size += shade::Serializer::Deserialize(stream, rootId);
+
+	if (rootId != shade::graphs::INVALID_NODE_IDENTIFIER)
+		SetRootNode(GetGraphContext()->FindInternalNode(this, rootId));
+
+	return size;
 }

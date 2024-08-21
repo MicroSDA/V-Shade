@@ -337,9 +337,10 @@ namespace shade
 {
 	namespace graphs
 	{
-		// Risky!! 
+		using NodeType = std::uint32_t;
+		// Risky!! Try use STTI lib
 		template <typename T>
-		SHADE_INLINE std::uint32_t GetNodeTypeId() 
+		SHADE_INLINE NodeType GetNodeTypeId()
 		{
 			return typeid(T).hash_code();
 		}
@@ -349,6 +350,7 @@ namespace shade
 			static SHADE_INLINE std::uint32_t GetNodeStaticType() { return graphs::GetNodeTypeId<atype>(); } \
 			virtual SHADE_INLINE std::uint32_t GetNodeType() const override { return GetNodeStaticType(); } \
 
+		
 		/// @brief Represent base graph node implementation.
 		class SHADE_API BaseNode
 		{
@@ -722,6 +724,45 @@ namespace shade
 
 			/// @brief Array of node values for input and output connections.
 			std::array<NodeValues, static_cast<std::size_t>(Connection::Type::MAX_ENUM)> m_Endpoints;
+
+			/// @brief Serializes the base node to the given output stream.
+			/// @param stream The output stream to serialize to.
+			/// @return The number of bytes written.
+			virtual std::size_t Serialize(std::ostream& stream) const;
+
+			/// @brief Deserializes the base node from the given input stream.
+			/// @param stream The input stream to deserialize from.
+			/// @return The number of bytes read.
+			virtual std::size_t Deserialize(std::istream& stream);
+
+			/// @brief Serializes the body of base node to the given output stream.
+			/// @param stream The output stream to serialize to.
+			/// @return The number of bytes written.
+			virtual std::size_t SerializeBody(std::ostream& stream) const;
+
+			/// @brief Deserializes the body of base node to the given output stream.
+			/// @param stream The output stream to deserialize from.
+			/// @return The number of bytes written.
+			virtual std::size_t DeserializeBody(std::istream& stream);
+
+		
+			BaseNode* CreateNodeByType(NodeType type);
+
+			friend class Serializer;
 		};
+	}
+
+	// Serialize AnimationGraph
+	template<>
+	SHADE_INLINE std::size_t shade::Serializer::Serialize(std::ostream& stream, const shade::graphs::BaseNode& node, std::size_t)
+	{
+		return node.Serialize(stream);
+	}
+
+	// Deserialize AnimationGraph
+	template<>
+	SHADE_INLINE std::size_t shade::Serializer::Deserialize(std::istream& stream, shade::graphs::BaseNode& node, std::size_t)
+	{
+		return node.Deserialize(stream);
 	}
 }

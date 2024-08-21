@@ -294,6 +294,7 @@ namespace graph_editor
 	public:
 		OutputPoseNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor);
 		virtual ~OutputPoseNodeDelegate() = default;
+		virtual void ProcessBodyContent(const InternalContext* context) override;
 	};
 
 	class PoseNodeDelegate : public GraphNodePrototype
@@ -304,6 +305,7 @@ namespace graph_editor
 
 		virtual void ProcessBodyContent(const InternalContext* context) override;
 		virtual void ProcessSideBar(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, std::unordered_map<std::size_t, GraphNodePrototype*>& referNodes) override;
+		virtual void ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint) override;
 	private:
 		std::string m_Search;
 		bool m_IsAnimationPopupActive = false;

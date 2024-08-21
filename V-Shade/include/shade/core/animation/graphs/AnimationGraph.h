@@ -41,6 +41,9 @@ namespace shade
 			/// @return A pointer to the current Pose object, or nullptr if there is no output pose.
 			const Pose* GetOutPutPose() const;
 
+			/// @brief Initializes the AnimationGraph.
+			virtual void Initialize() override;
+
 			/// @brief Creates an input node of the specified type and adds it to the graph.
 			/// @tparam T The type of the node to be created.
 			/// @param name The name of the new input node.
@@ -90,8 +93,10 @@ namespace shade
 				auto node = m_InputNodes.find(name);
 				if (node != m_InputNodes.end())
 				{
+					BaseNode* pNode = node->second;
 					m_InputNodes.erase(node);
-					return true;
+
+					return GetGraphContext()->RemoveNode(node->second);;
 				}
 
 				return false;
@@ -180,12 +185,12 @@ namespace shade
 			/// @brief Serializes the animation graph to the given output stream.
 			/// @param stream The output stream to serialize to.
 			/// @return The number of bytes written.
-			std::size_t Serialize(std::ostream& stream) const;
+			virtual std::size_t Serialize(std::ostream& stream) const override;
 
 			/// @brief Deserializes the animation graph from the given input stream.
 			/// @param stream The input stream to deserialize from.
 			/// @return The number of bytes read.
-			std::size_t Deserialize(std::istream& stream);
+			virtual std::size_t Deserialize(std::istream& stream) override;
 
 		private:
 			friend class Serializer;

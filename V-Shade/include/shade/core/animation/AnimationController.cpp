@@ -98,7 +98,7 @@ shade::animation::Pose* shade::animation::AnimationController::Blend(const Asset
 
 shade::animation::Pose* shade::animation::AnimationController::CreatePose(const Asset<Skeleton>& skeleton, std::size_t hash)
 {
-	if (m_Poses.find(hash) == m_Poses.end()) m_Poses.emplace(hash, animation::Pose(skeleton, hash));
+	if (m_Poses.find(hash) == m_Poses.end()) m_Poses.emplace(std::piecewise_construct, std::forward_as_tuple(hash), std::forward_as_tuple(skeleton, hash));
 
 	return &m_Poses.at(hash);
 }
@@ -216,9 +216,14 @@ shade::animation::Pose::Pose(Type initial) :
 	}
 }
 
+shade::animation::Pose::~Pose()
+{
+	//SHADE_CORE_DEBUG("~Pose() :{0}, {1}", std::size_t(this), this->GetDuration());
+}
+
 void shade::animation::Pose::Reset()
 {
-	m_GlobalTransforms->clear();
+	m_GlobalTransforms->clear(); // mby dont need to clear, resize will do this ??
 	m_GlobalTransforms->resize(RenderAPI::MAX_BONES_PER_INSTANCE, glm::identity<glm::mat4>());
 
 	m_LocalTransforms->clear();
@@ -248,7 +253,9 @@ std::size_t shade::animation::AnimationController::AnimationControlData::Deseria
 	size += Serializer::Deserialize(stream, Start);
 	size += Serializer::Deserialize(stream, End);
 	size += Serializer::Deserialize(stream, Duration);
-	size += Serializer::Deserialize(stream, CurrentPlayTime);
+	float c; size += Serializer::Deserialize(stream, c);
+	//size += Serializer::Deserialize(stream, CurrentPlayTime);
+	
 	size += Serializer::Deserialize(stream, TicksPerSecond);
 	size += Serializer::Deserialize(stream, IsLoop);
 

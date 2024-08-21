@@ -1972,7 +1972,7 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 		//auto run_bakcword  = machine->CreateState("Run-Backword");
 
 		// Idle -> Walk
-		auto tr1 = idle->AddTransition(walk);
+		auto tr1 = idle->EmplaceTransition(walk);
 		tr1->GetRootNode()->ConnectNodes(0, tr1->CreateNode<shade::graphs::IntEqualsNode>(), 0);
 
 		//// Idle -> Run
@@ -1980,7 +1980,7 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 		//tr2->ConnectNodes(tr2->GetRootNode(), 0, tr2->CreateNode<shade::graphs::IntEqualsNode>(), 0);
 
 		// Walk -> Idle
-		auto tr3 = walk->AddTransition(idle);
+		auto tr3 = walk->EmplaceTransition(idle);
 		tr3->GetRootNode()->ConnectNodes(0, tr3->CreateNode<shade::graphs::IntEqualsNode>(), 0);
 
 		//// Walk -> Run

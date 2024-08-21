@@ -26,7 +26,7 @@ namespace shade
 		public:
 			Pose(const Asset<Skeleton>& skeleton, std::size_t animationHash = 0, Type initianType = Type::DontKnow1);
 			Pose(Type initianType = Type::DontKnow1);
-			virtual ~Pose() = default;
+			virtual ~Pose();
 		public:
 			void Reset();
 			SHADE_INLINE const	SharedPointer<std::vector<glm::mat4>>& GetBoneGlobalTransforms()		const	{ return m_GlobalTransforms; }

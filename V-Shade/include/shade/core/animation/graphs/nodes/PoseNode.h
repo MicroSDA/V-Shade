@@ -24,9 +24,15 @@ namespace shade
 			virtual void OnConnect(graphs::Connection::Type connectionType, NodeValueType type, graphs::EndpointIdentifier endpoint) override {};
 
 			void ResetAnimationData(const Asset<Animation>& animation);
+			void ResetAnimationData(const AnimationController::AnimationControlData& data);
+
 			const AnimationController::AnimationControlData& GetAnimationData() const;
 			AnimationController::AnimationControlData& GetAnimationData();
 		private:
+			
+			virtual std::size_t SerializeBody(std::ostream& stream) const override;
+			virtual std::size_t DeserializeBody(std::istream& stream) override;
+
 			AnimationController::AnimationControlData m_AnimationData;
 		};
 	}

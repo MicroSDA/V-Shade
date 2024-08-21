@@ -27,7 +27,7 @@ std::size_t shade::NodeValue::Serialize(std::ostream& stream) const
 			[&stream](const double& v) -> std::size_t { return Serializer::Serialize(stream, v); },
 			[&stream](const std::string& v) -> std::size_t { return Serializer::Serialize(stream, v); },
 			[&stream](const animation::Pose* v)->std::size_t { return Serializer::Serialize(stream, std::uint32_t(0u)); },
-			[&stream](const animation::BoneMask& v)->std::size_t { return Serializer::Serialize(stream, v); },
+			[&stream](const animation::BoneMask& v)->std::size_t { return Serializer::Serialize(stream, std::uint32_t(0u)); },
 			[&stream](const glm::vec2& v)->std::size_t { return Serializer::Serialize(stream, v); },
 			[&stream](const glm::vec3& v)->std::size_t { return Serializer::Serialize(stream, v); },
 			[&stream](const glm::vec4& v)->std::size_t { return Serializer::Serialize(stream, v); },
@@ -74,9 +74,9 @@ std::size_t shade::NodeValue::Deserialize(std::istream& stream)
 	case shade::NodeValueType::Pose:
 		Initialize<NodeValueType::Pose>(); std::uint32_t dummy; shade::Serializer::Deserialize(stream, dummy);
 		break;
-		/*case shade::NodeValueType::BoneMask:
-			Initialize<NodeValueType::BoneMask>(); shade::Serializer::Deserialize(stream, As<shade::NodeValueType::BoneMask>());
-			break;*/
+		case shade::NodeValueType::BoneMask:
+			Initialize<NodeValueType::BoneMask>(nullptr); shade::Serializer::Deserialize(stream, dummy);
+		break;
 	case shade::NodeValueType::Vector2:
 		Initialize<NodeValueType::Vector2>(); shade::Serializer::Deserialize(stream, As<shade::NodeValueType::Vector2>());
 		break;

@@ -60,10 +60,27 @@ void shade::animation::PoseNode::Evaluate(const FrameTimer& deltaTime)
 	}
 	
 }
-
+// TODO: При добавлении анимации нужно хотябы раз ее процеснуть на 0 делта времени что бы поза генерировалась 
 void shade::animation::PoseNode::ResetAnimationData(const Asset<Animation>& animation)
 {
 	m_AnimationData = AnimationController::AnimationControlData(animation);
+	
+	/*auto oldState = m_AnimationData.State;
+
+	m_AnimationData.State = Animation::State::Play;
+	Evaluate({ 0 });
+	m_AnimationData.State = oldState;*/
+}
+
+void shade::animation::PoseNode::ResetAnimationData(const AnimationController::AnimationControlData& data)
+{
+	m_AnimationData = data;
+
+	/*auto oldState = m_AnimationData.State;
+
+	m_AnimationData.State = Animation::State::Play;
+	Evaluate({ 0 });
+	m_AnimationData.State = oldState;*/
 }
 
 const shade::animation::AnimationController::AnimationControlData& shade::animation::PoseNode::GetAnimationData() const
@@ -74,4 +91,18 @@ const shade::animation::AnimationController::AnimationControlData& shade::animat
 shade::animation::AnimationController::AnimationControlData& shade::animation::PoseNode::GetAnimationData()
 {
 	return m_AnimationData;
+}
+
+std::size_t shade::animation::PoseNode::SerializeBody(std::ostream& stream) const
+{
+	SHADE_CORE_INFO("Serialize '{0}' body section...", GetName());
+	return shade::Serializer::Serialize(stream, m_AnimationData);
+}
+
+std::size_t shade::animation::PoseNode::DeserializeBody(std::istream& stream)
+{
+	SHADE_CORE_INFO("Deserialize '{0}' body section...", GetName());
+	AnimationController::AnimationControlData animationData;
+	std::size_t size =  shade::Serializer::Deserialize(stream, animationData); ResetAnimationData(animationData);
+	return size;
 }

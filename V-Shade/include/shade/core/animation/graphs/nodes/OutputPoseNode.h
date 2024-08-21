@@ -23,7 +23,7 @@ namespace shade
 			}
 
 			virtual ~OutputPoseNode() = default;
-			virtual void Evaluate(const FrameTimer& delatTime) override {};
+			virtual void Evaluate(const FrameTimer& delatTime) override;
 			virtual void OnConnect(graphs::Connection::Type connectionType, NodeValueType type, graphs::EndpointIdentifier endpoint) override {};
 
 			const Pose* GetFinalPose() const;

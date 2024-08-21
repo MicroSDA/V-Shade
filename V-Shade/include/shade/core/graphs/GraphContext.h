@@ -305,7 +305,7 @@ namespace shade
 			{
 				std::unordered_map<BaseNode*, NodesPack>::iterator parrent = Nodes.find(pParrent);
 
-				const NodeIdentifier id = GetCurrentTimeStamp<std::chrono::microseconds>();
+				const NodeIdentifier id = GenerateRandomValue<std::uint32_t>(0, std::numeric_limits<std::uint32_t>::max());
 
 				T* node = SNEW T(this, id, pParrent, std::forward<Args>(args)...);
 
@@ -427,12 +427,12 @@ namespace shade
 			/// @param inputEndpoint Pointer to the input endpoint.
 			/// @param outputEndpoint Pointer to the output endpoint.
 			/// @return True if the values were successfully connected, otherwise false.
-			SHADE_INLINE bool ConnectValues(std::shared_ptr<NodeValue>* inputEndpoint, const std::shared_ptr<NodeValue>* outputEndpoint)
+			SHADE_INLINE bool ConnectValues(std::shared_ptr<NodeValue>* pConnectedToEndpoint, std::shared_ptr<NodeValue>* pConnectedFromEndpoint)
 			{
-				if (!inputEndpoint || !outputEndpoint)
+				if (!pConnectedToEndpoint || !pConnectedFromEndpoint)
 					return false;
 
-				*inputEndpoint = *outputEndpoint; // Connect the input to the output
+				*pConnectedToEndpoint = *pConnectedFromEndpoint;
 
 				return true; // Return true if the connection was successful
 			}
