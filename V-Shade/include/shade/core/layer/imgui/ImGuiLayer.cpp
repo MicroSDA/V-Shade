@@ -85,7 +85,7 @@ void shade::ImGuiLayer::DrawImage(SharedPointer<Texture2D>& texture, const ImVec
 
 void shade::ImGuiLayer::HelpMarker(const char* marker, const char* desc)
 {
-	ImGui::SameLine();
+	//ImGui::SameLine();
 	ImGui::TextDisabled(marker);
 	if (ImGui::IsItemHovered())
 	{

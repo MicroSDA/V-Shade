@@ -1761,12 +1761,15 @@ graph_editor::OutputPoseNodeDelegate::OutputPoseNodeDelegate(graphs::BaseNode* p
 
 void graph_editor::OutputPoseNodeDelegate::ProcessBodyContent(const InternalContext* context)
 {
-	std::size_t hash = 0;
+	
 	auto pose = GetNode()->GET_ENDPOINT<graphs::Connection::Input, NodeValueType::Pose>(0);
-	if (pose) hash = pose->GetAnimationHash();
-
-	ImGui::Text("Pose");
+	std::size_t hash = (pose) ? pose->GetAnimationHash() :0;
 	ImGuiLayer::HelpMarker("#", std::format("{:x}", hash).c_str());
+}
+
+void graph_editor::OutputPoseNodeDelegate::ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint)
+{
+	ImGui::Text("Income pose");
 }
 
 graph_editor::BlendNode2DNodeDelegate::BlendNode2DNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
@@ -1928,11 +1931,10 @@ void graph_editor::PoseNodeDelegate::ProcessBodyContent(const InternalContext* c
 	shade::ImGuiLayer::DrawFontIcon(u8"\xe823", 1, 0.5f);
 	ImGui::SameLine(); ImGui::Text(animation.c_str());
 
-	std::size_t hash = 0;
+	
 	auto pose = GetNode()->GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0);
-	if (pose) hash = pose->GetAnimationHash();
-
-	ImGui::Text("Pose");
+	std::size_t hash = (pose) ? pose->GetAnimationHash() : 0;
+	ImGui::Dummy({0, 5.f});
 	ImGuiLayer::HelpMarker("#", std::format("{:x}", hash).c_str());
 }
 
@@ -2110,16 +2112,18 @@ void graph_editor::PoseNodeDelegate::ProcessSideBar(const InternalContext* conte
 
 void graph_editor::PoseNodeDelegate::ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint)
 {
-
+	//std::size_t hash = (endpoint.As<NodeValueType::Pose>()) ? endpoint.As<NodeValueType::Pose>()->GetAnimationHash() : 0;
+	ImGui::Text("Pose"); //ImGui::SameLine(); ImGuiLayer::HelpMarker("#", std::format("{:x}", hash).c_str());
 }
 
 graph_editor::StateMachineNodeDeligate::StateMachineNodeDeligate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
 {
+	Style.HeaderColor = STATE_MACHINE_NODE_COLOR;
 }
 
 void graph_editor::StateMachineNodeDeligate::ProcessBodyContent(const InternalContext* context)
 {
-	ImGui::Text("State Machine");
+	
 }
 
 void graph_editor::StateMachineNodeDeligate::ProcessSideBar(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, std::unordered_map<std::size_t, GraphNodePrototype*>& referNodes)
@@ -2158,6 +2162,11 @@ void graph_editor::StateMachineNodeDeligate::ProcessPopup(const InternalContext*
 		auto state = GetNode()->As<animation::state_machine::StateMachineNode>().CreateState("State");
 		GetEditor()->InitializeRecursively(state, GetEditor()->GetNodes());
 	}
+}
+
+void graph_editor::StateMachineNodeDeligate::ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint)
+{
+	ImGui::Text("Outcome pose");
 }
 
 void graph_editor::AnimationGraphDeligate::ProcessSideBar(const InternalContext* pContext, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, std::unordered_map<std::size_t, GraphNodePrototype*>& referNodes)

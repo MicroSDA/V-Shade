@@ -15,6 +15,7 @@ namespace graph_editor
 #define BONEMASK_VALUE_COLOR { 0.6f, 0.4f, 0.f, 1.f }
 
 #define STATE_NODE_COLOR STRING_VALUE_COLOR
+#define STATE_MACHINE_NODE_COLOR {0.f, 0.6f, 0.4f, 1.f}
 	
 	static ImVec4 GetValueColor(shade::NodeValueType type)
 	{
@@ -286,6 +287,7 @@ namespace graph_editor
 
 		virtual void ProcessSideBar(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, std::unordered_map<std::size_t, GraphNodePrototype*>& referNodes) override;
 		virtual void ProcessPopup(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, const std::string& search) override;
+		virtual void ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint) override;
 	private:
 		
 	};
@@ -295,6 +297,7 @@ namespace graph_editor
 		OutputPoseNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor);
 		virtual ~OutputPoseNodeDelegate() = default;
 		virtual void ProcessBodyContent(const InternalContext* context) override;
+		virtual void ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint) override;
 	};
 
 	class PoseNodeDelegate : public GraphNodePrototype

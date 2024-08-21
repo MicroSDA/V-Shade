@@ -354,7 +354,6 @@ shade::animation::Pose* shade::animation::state_machine::StateMachineNode::Trans
 			
 			float blendFactor = math::CalculateBezierFactor(transition.GetTransitionAccumulator(), 0.f, transition.GetTransitionDuration(), 0.f, 1.f, transition.GetCurveControllPoints());
 
-			transition.GET_ENDPOINT<graphs::Connection::Input, NodeValueType::Float>(2, blendFactor);
 			//float blendFactor = glm::clamp(transition.GetTransitionAccumulator(), transition.GetTransitionDuration(), 0.f, 1.f);
 		
 			auto [sMultiplier, dMultiplier] = controller->GetTimeMultiplier(sPose->GetDuration(), dPose->GetDuration(), blendFactor);

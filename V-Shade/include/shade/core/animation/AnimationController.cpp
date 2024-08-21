@@ -3,6 +3,11 @@
 #include <shade/core/asset/AssetManager.h>
 #include <glm/glm/gtx/common.hpp>
 
+shade::animation::Pose* shade::animation::AnimationController::ReceiveAnimationPose(const Asset<Skeleton>& skeleton, std::size_t hash)
+{
+	return CreatePose(skeleton, hash);
+}
+
 void shade::animation::AnimationController::CalculateBoneTransforms(
 	animation::Pose* pose,
 	const  AnimationControlData& animationData,
@@ -180,58 +185,6 @@ shade::animation::Pose* shade::animation::AnimationController::CalculatePose(ani
 	return targetPose;
 }
 
-shade::animation::Pose* shade::animation::AnimationController::ReceiveAnimationPose(const Asset<Skeleton>& skeleton, std::size_t hash)
-{
-	return CreatePose(skeleton, hash);
-}
-
-shade::animation::Pose::Pose(const Asset<Skeleton>& skeleton, std::size_t animationHash, Type initial) :
-	m_Skeleton(skeleton),
-	m_AnimationCombinationHash(animationHash),
-	m_GlobalTransforms(SharedPointer<std::vector<glm::mat4>>::Create()),
-	m_LocalTransforms(SharedPointer<std::vector<glm::mat4>>::Create()),
-	m_State(State::Unset)
-{
-	switch (initial)
-	{
-	case Type::DontKnow1:
-	{
-		Reset();
-	}
-	}
-}
-
-shade::animation::Pose::Pose(Type initial) :
-	m_AnimationCombinationHash(0),
-	m_GlobalTransforms(SharedPointer<std::vector<glm::mat4>>::Create()),
-	m_LocalTransforms(SharedPointer<std::vector<glm::mat4>>::Create()),
-	m_State(State::ZeroPose)
-{
-	switch (initial)
-	{
-	case Type::DontKnow1:
-	{
-		Reset();
-	}
-	}
-}
-
-shade::animation::Pose::~Pose()
-{
-	//SHADE_CORE_DEBUG("~Pose() :{0}, {1}", std::size_t(this), this->GetDuration());
-}
-
-void shade::animation::Pose::Reset()
-{
-	m_GlobalTransforms->clear(); // mby dont need to clear, resize will do this ??
-	m_GlobalTransforms->resize(RenderAPI::MAX_BONES_PER_INSTANCE, glm::identity<glm::mat4>());
-
-	m_LocalTransforms->clear();
-	m_LocalTransforms->resize(RenderAPI::MAX_BONES_PER_INSTANCE, glm::identity<glm::mat4>());
-
-	m_State = State::ZeroPose;
-}
-
 std::size_t shade::animation::AnimationController::AnimationControlData::Serialize(std::ostream& stream) const
 {
 	std::size_t size = Serializer::Serialize(stream, (Animation) ? Animation->GetAssetData()->GetId() : "");
@@ -253,9 +206,7 @@ std::size_t shade::animation::AnimationController::AnimationControlData::Deseria
 	size += Serializer::Deserialize(stream, Start);
 	size += Serializer::Deserialize(stream, End);
 	size += Serializer::Deserialize(stream, Duration);
-	float c; size += Serializer::Deserialize(stream, c);
-	//size += Serializer::Deserialize(stream, CurrentPlayTime);
-	
+	size += Serializer::Deserialize(stream, CurrentPlayTime);
 	size += Serializer::Deserialize(stream, TicksPerSecond);
 	size += Serializer::Deserialize(stream, IsLoop);
 
