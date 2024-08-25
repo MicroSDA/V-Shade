@@ -1,146 +1,3 @@
-//#include "shade_pch.h"
-//#include "GraphContext.h"
-//#include <shade/core/graphs/nodes/BaseNode.h>
-//
-//SHADE_API void shade::graphs::GraphContext::InitializeNode(BaseNode* pNode, BaseNode* pParrent)
-//{
-//	Nodes.emplace(pNode, NodesPack{}).first->first->Initialize();
-//}
-//
-//SHADE_API bool shade::graphs::GraphContext::RemoveNode(BaseNode* pNode)
-//{
-//	std::unordered_map<BaseNode*, NodesPack>::iterator node = Nodes.find(pNode);
-//
-//	assert(node != Nodes.end() && "");
-//
-//	RemoveAllConnection(pNode);
-//
-//	for (BaseNode* internalNode : GetInternalNodes(pNode))
-//	{
-//		RemoveNode(internalNode);
-//	}
-//
-//	BaseNode* pParrent = pNode->GetParrentGraph();
-//
-//	if (pParrent != nullptr)
-//	{
-//		std::unordered_map<BaseNode*, NodesPack>::iterator parrent = Nodes.find(pParrent);
-//		assert(parrent != Nodes.end() && "");
-//
-//		std::vector<BaseNode*>& internalNodes = parrent->second.InternalNodes;
-//
-//		auto asInternalNode = std::find_if(internalNodes.begin(), internalNodes.end(), [pNode](const BaseNode* node)
-//			{
-//				return node == pNode;
-//			});
-//
-//		internalNodes.erase(asInternalNode); // Need to remove them recursevly ?
-//	}
-//
-//	pNode->Shutdown(); SDELETE pNode; Nodes.erase(node);
-//
-//	return true;
-//}
-//
-//bool shade::graphs::GraphContext::ConnectNodes(BaseNode* pConnectedTo, EndpointIdentifier connectedToEndpoint, BaseNode* pConnectedFrom, EndpointIdentifier connectedFromEndpoint)
-//{
-//	if (pConnectedTo == pConnectedFrom) return false;
-//
-//	auto inputValue = pConnectedTo->__GET_ENDPOINT<Connection::Input>(connectedToEndpoint);
-//	auto outputValue = pConnectedFrom->__GET_ENDPOINT<Connection::Output>(connectedFromEndpoint);
-//
-//	if (!inputValue || !outputValue) return false;
-//
-//	if (inputValue->get()->GetType() != outputValue->get()->GetType()) return false;
-//
-//
-//	if (CreateConnection(pConnectedTo, connectedToEndpoint, pConnectedFrom, connectedFromEndpoint))
-//	{
-//		if (ConnectValues(inputValue, outputValue))
-//		{
-//			pConnectedTo->OnConnect(Connection::Type::Input, inputValue->get()->GetType(), connectedToEndpoint);
-//			pConnectedFrom->OnConnect(Connection::Type::Output, outputValue->get()->GetType(), connectedFromEndpoint);
-//
-//			return true;
-//		}
-//	}
-//	return false;
-//}
-//
-//bool shade::graphs::GraphContext::DisconnectNodes(BaseNode* pConnectedTo, EndpointIdentifier connectedToEndpoint, BaseNode* pConnectedFrom, EndpointIdentifier connectedFromEndpoint)
-//{
-//	auto connection = FindConnection(pConnectedTo, connectedToEndpoint, pConnectedFrom, connectedFromEndpoint);
-//
-//	if (connection != nullptr && connection->ConnectedToEndpoint != INVALID_NODE_IDENTIFIER)
-//	{
-//		NodeValues::Value* connectedToValue = pConnectedTo->__GET_ENDPOINT<Connection::Input>(connectedToEndpoint);
-//		NodeValues::Value* connectedFromValue = pConnectedFrom->__GET_ENDPOINT<Connection::Output>(connectedFromEndpoint);
-//
-//		if (!connectedToValue || !connectedFromValue) return false;
-//
-//		if (RemoveConnection(pConnectedTo, connectedToEndpoint, pConnectedFrom, connectedFromEndpoint))
-//		{
-//			pConnectedTo->OnDisconnect(Connection::Type::Input, connectedToValue->get()->GetType(), connectedToEndpoint);
-//			pConnectedFrom->OnDisconnect(Connection::Type::Output, connectedFromValue->get()->GetType(), connectedFromEndpoint);
-//
-//			return true;
-//		}
-//	}
-//
-//	return false;
-//}
-//
-//bool shade::graphs::GraphContext::RemoveAllInputConnection(BaseNode* pConnectedTo)
-//{
-//	bool wasRemoved = false;
-//
-//	if (std::vector<Connection>* pConnections = GetConnections(pConnectedTo))
-//	{
-//		std::vector<Connection> connections = *pConnections;
-//
-//		for (Connection& connection : connections)
-//		{
-//			DisconnectNodes(
-//				connection.PConnectedTo,
-//				connection.ConnectedToEndpoint,
-//				connection.PConnectedFrom,
-//				connection.ConnectedFromEndpoint
-//			);
-//
-//			wasRemoved = true;
-//		}
-//	}
-//	return wasRemoved;
-//}
-//
-//
-//bool shade::graphs::GraphContext::RemoveAllOutputConnection(BaseNode* pConnectedFrom)
-//{
-//	bool wasRemoved = false;
-//
-//	for (auto& [node, pack] : Nodes)
-//	{
-//		// Keep as copy
-//		std::vector<Connection> connections = pack.Connections;
-//
-//		for (Connection& connection : connections)
-//		{
-//			if (connection.PConnectedFrom == pConnectedFrom)
-//			{
-//				DisconnectNodes(
-//					connection.PConnectedTo,
-//					connection.ConnectedToEndpoint,
-//					connection.PConnectedFrom,
-//					connection.ConnectedFromEndpoint
-//				);
-//				wasRemoved = true;
-//			}
-//		}
-//	}
-//
-//	return wasRemoved;
-//}
-
 #include "shade_pch.h"
 #include "GraphContext.h"
 #include <shade/core/graphs/nodes/BaseNode.h>
@@ -149,6 +6,11 @@ void shade::graphs::GraphContext::InitializeNode(BaseNode* pNode, BaseNode* pPar
 {
 	// Add the node to the Nodes map and initialize it.
 	Nodes.emplace(pNode, NodesPack{}).first->first->Initialize();
+}
+
+shade::graphs::GraphContext::~GraphContext()
+{
+	Drop();
 }
 
 bool shade::graphs::GraphContext::RemoveNode(BaseNode* pNode)
@@ -195,6 +57,38 @@ bool shade::graphs::GraphContext::RemoveNode(BaseNode* pNode)
 	Nodes.erase(node);
 
 	return true;
+}
+
+void shade::graphs::GraphContext::RemoveAll()
+{
+	for (auto [pNode, pack] : Nodes)
+	{
+		pNode->Shutdown();
+		SDELETE pNode;
+	}
+	Nodes.clear(); pRoot = nullptr;
+	
+}
+
+void shade::graphs::GraphContext::Drop()
+{
+	for (auto node = Nodes.begin(); node != Nodes.end();)
+	{
+		if (node->first != pRoot)
+		{
+			node->first->Shutdown();
+			SDELETE node->first;
+
+			node = Nodes.erase(node);
+		}
+		else
+		{
+			node->first->Shutdown();
+			node = Nodes.erase(node);
+		}
+	}
+
+	pRoot = nullptr;
 }
 
 shade::graphs::BaseNode* shade::graphs::GraphContext::FindInternalNode(BaseNode* pParrent, NodeIdentifier identifier)

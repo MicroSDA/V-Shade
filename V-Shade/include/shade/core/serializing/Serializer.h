@@ -441,6 +441,42 @@ namespace shade
 			return stream.tellg();
 	}
 	/////////////////////////////////////////////////////////////////////////////////////
+	/* Serrialize std::vector<float>. Vector's size will be std::uin32_t.*/
+	template<>
+	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::vector<float>& array, std::size_t count)
+	{
+		std::uint32_t size = static_cast<std::uint32_t>(array.size());
+		if (size == UINT32_MAX)
+			throw std::out_of_range(std::format("Incorrect array size = {}", size));
+
+		// Write size first.
+		stream.write(reinterpret_cast<char*>(&size), sizeof(std::uint32_t));
+		// If size is more then 0 need to write data.
+		if (size)
+			return stream.write(reinterpret_cast<const char*>(array.data()), array.size() * sizeof(float)).tellp();
+		else
+			return stream.tellp();
+	}
+	/* Deserialize std::vector<std::float>. Vector's size will be std::uin32_t.*/
+	template<>
+	inline std::size_t Serializer::Deserialize(std::istream& stream, std::vector<float>& array, std::size_t count)
+	{
+		std::uint32_t size = 0;
+		// Read size first.
+		stream.read(reinterpret_cast<char*>(&size), sizeof(std::uint32_t));
+		if (size == UINT32_MAX)
+			throw std::out_of_range(std::format("Incorrect array size = {}", size));
+
+		// If size is more then 0 need to read data.
+		if (size)
+		{
+			array.resize(size);
+			return stream.read(reinterpret_cast<char*>(array.data()), array.size() * sizeof(float)).tellg();
+		}
+		else
+			return stream.tellg();
+	}
+	/////////////////////////////////////////////////////////////////////////////////////
 	/* Serrialize std::unordered_map<std::string, std::uint32_t>. Map's size will be std::uin32_t.*/
 	template<>
 	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::unordered_map<std::string, std::uint32_t>& map, std::size_t count)

@@ -88,15 +88,12 @@ void shade::Scene::NativeScriptsUpdate(const shade::FrameTimer& deltaTime)
         });
 }
 
-void shade::Scene::AnimationsUpdate(const shade::FrameTimer& deltaTime)
+void shade::Scene::GraphsUpdate(const shade::FrameTimer& deltaTime)
 {
-   /*View<AnimationGraphComponent>().Each([&](ecs::Entity& entity, AnimationGraphComponent& graph)
+   View<shade::AnimationGraphComponent>().Each([&](shade::ecs::Entity& entity, shade::AnimationGraphComponent& graph)
         {
-            if (graph)
-            {
-                graph->Evaluate(deltaTime);
-            }
-        });*/
+            if (graph.AnimationGraph) graph.AnimationGraph->ProcessBranch(deltaTime);
+        });
 }
 
 shade::ecs::Entity shade::Scene::GetPrimaryCamera()
@@ -119,7 +116,7 @@ void shade::Scene::OnPlayStart()
 void shade::Scene::OnPlaying(const shade::FrameTimer& deltaTime)
 {
     NativeScriptsUpdate(deltaTime);
-    AnimationsUpdate(deltaTime);
+    GraphsUpdate(deltaTime);
 }
 
 void shade::Scene::OnPlayStop()

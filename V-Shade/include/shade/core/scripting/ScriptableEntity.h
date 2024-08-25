@@ -21,6 +21,8 @@ namespace shade
 			T& GetComponent();
 			template<typename T, typename... Args>
 			T& AddComponent(Args&&... args);
+			template<typename T>
+			bool HasComponent();
 
 			const std::string& GetModuleName() const;
 			const std::string& GetName() const;
@@ -43,6 +45,11 @@ namespace shade
 
 		inline void ScriptableEntity::SetUpdate(bool update) { m_IsUpdate = update; }
 
+		template<typename T>
+		inline bool ScriptableEntity::HasComponent()
+		{
+			return m_Entity.HasComponent<T>();
+		}
 		template<typename T>
 		inline T& ScriptableEntity::GetComponent()
 		{

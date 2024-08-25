@@ -291,6 +291,10 @@ namespace shade
 		{
 			SHADE_CAST_HELPER(GraphContext)
 		public:
+
+			/// @brief The virtual destructor of the graph context.
+			SHADE_API virtual ~GraphContext();
+
 			/// @brief The current entity associated with the graph context.
 			ecs::Entity Entity;
 
@@ -319,10 +323,21 @@ namespace shade
 				return node; // Return the created node
 			}
 
+			SHADE_INLINE void SetContextRootNode(BaseNode* pNode)
+			{
+				pRoot = pNode;
+			}
+
 			/// @brief Removes a node from the graph context.
 			/// @param pNode Pointer to the node to be removed.
 			/// @return True if the node was successfully removed, otherwise false.
 			SHADE_API bool RemoveNode(BaseNode* pNode);
+
+			/// @brief Removes all nodes from the graph context.
+			SHADE_API void RemoveAll();
+
+			/// @brief Removes all nodes from the graph context instead of Root.
+			SHADE_API void Drop();
 
 			/// @brief Finds a connection between two nodes.
 			/// @param pConnectedTo Pointer to the node that is the destination of the connection.
@@ -550,6 +565,9 @@ namespace shade
 
 			/// @brief Contains all nodes and their connections within the graph context.
 			std::unordered_map<BaseNode*, NodesPack> Nodes;
+
+			/// @brief First created node.
+			BaseNode* pRoot = nullptr;
 
 			/// @brief Serializes node's connections to the given output stream.
 			/// @param stream The output stream to serialize to.

@@ -60,6 +60,20 @@ void shade::animation::state_machine::OutputTransitionNode::ReverseTransition()
 	m_IsReverse = !m_IsReverse;
 }
 
+std::size_t shade::animation::state_machine::OutputTransitionNode::SerializeBody(std::ostream& stream) const
+{
+	std::size_t size = Serializer::Serialize(stream, m_CurveControlPoints);
+	size += Serializer::Serialize(stream, m_SyncStyle);
+	return size;
+}
+
+std::size_t shade::animation::state_machine::OutputTransitionNode::DeserializeBody(std::istream& stream)
+{
+	std::size_t size = Serializer::Deserialize(stream, m_CurveControlPoints);
+	size += Serializer::Deserialize(stream, m_SyncStyle);
+	return size;
+}
+
 shade::animation::state_machine::TransitionNode::TransitionNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode, const Data& data)
 	: BaseNode(context, identifier, pParentNode), m_TransitionData(data)
 {

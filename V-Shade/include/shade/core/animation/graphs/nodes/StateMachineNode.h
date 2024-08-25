@@ -213,7 +213,7 @@ namespace shade
 				End
 			};
 
-			enum class SyncStyle
+			enum class SyncStyle : std::uint8_t
 			{
 				Async = 0,
 				// Freeze source animation
@@ -323,6 +323,11 @@ namespace shade
 				bool m_IsReverse = false;                          ///< Indicates if the transition is reversed.
 			private:
 				friend class StateMachineNode;                      ///< Friend class for state machine integration.
+
+				virtual std::size_t SerializeBody(std::ostream& stream) const override;
+
+				virtual std::size_t DeserializeBody(std::istream& stream) override;
+
 			};
 
 			/// @brief Represents a transition between states in an animation state machine.

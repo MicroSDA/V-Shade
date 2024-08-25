@@ -91,7 +91,7 @@ shade::SharedPointer<shade::animation::AnimationController> shade::animation::An
 
 shade::animation::Pose* shade::animation::AnimationController::ProcessPose(const Asset<Skeleton>& skeleton, AnimationControlData& animationData, const FrameTimer& deltaTime, float timeMultiplier)
 {
-	return CalculatePose(ReceiveAnimationPose(skeleton, animationData.Animation), animationData, deltaTime, timeMultiplier);
+	return (skeleton) ? CalculatePose(ReceiveAnimationPose(skeleton, animationData.Animation), animationData, deltaTime, timeMultiplier) : nullptr;
 }
 
 shade::animation::Pose* shade::animation::AnimationController::Blend(const Asset<Skeleton>& skeleton, const animation::Pose* first, const animation::Pose* second, float blendFactor, const animation::BoneMask& boneMask)

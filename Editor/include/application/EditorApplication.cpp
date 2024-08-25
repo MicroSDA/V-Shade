@@ -21,7 +21,7 @@ void EditorApplication::OnCreate()
 
 	shade::ScriptManager::Initialize("./resources/scripts");
 
-	auto cameraEntity  = shade::Scene::GetActiveScene()->CreateEntity();
+	auto cameraEntity  = shade::Scene::GetActiveScene()->CreateEntity(); 
 	auto script = shade::ScriptManager::InstantiateScript<shade::ecs::ScriptableEntity*>("Scripts", "Camera");
 	
 	if (script)

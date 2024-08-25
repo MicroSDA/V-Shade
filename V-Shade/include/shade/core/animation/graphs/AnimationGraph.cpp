@@ -1,16 +1,19 @@
 #include "shade_pch.h"
 #include "AnimationGraph.h"
+#include <shade/core/asset/AssetManager.h>
 
 shade::animation::AnimationGraph::AnimationGraph(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour, graphs::GraphContext* context) : BaseAsset(assetData, lifeTime, behaviour),
 BaseNode(context, 0u, nullptr)
 {
 	context->GetNodes().emplace(this, graphs::NodesPack{});
+	context->SetContextRootNode(this);
 	Initialize();
 }
 
 shade::animation::AnimationGraph::AnimationGraph(graphs::GraphContext* context, const std::string& name) : BaseNode(context, 0u, nullptr, name)
 {
 	context->GetNodes().emplace(this, graphs::NodesPack{});
+	context->SetContextRootNode(this);
 	Initialize();
 }
 
@@ -59,8 +62,17 @@ const shade::graphs::BaseNode* shade::animation::AnimationGraph::GetInputNode(co
 
 std::size_t shade::animation::AnimationGraph::Serialize(std::ostream& stream) const
 {
+	//------------------------------------------------------------------------
+	// Skeleton section
+	//------------------------------------------------------------------------
+	auto skeleton = GetGraphContext()->As<AnimationGraphContext>().Skeleton;
+	std::size_t size = shade::Serializer::Serialize(stream, (skeleton && skeleton->GetAssetData()) ? skeleton->GetAssetData()->GetId() : std::string(""));
+	//------------------------------------------------------------------------
+	// !Skeleton section
+	//------------------------------------------------------------------------
+	
 	// Serialzie type
-	std::size_t size = shade::Serializer::Serialize(stream, GetNodeType());
+	size += shade::Serializer::Serialize(stream, GetNodeType());
 	// Serialzie Identifier
 	size += shade::Serializer::Serialize(stream, GetNodeIdentifier());
 	// Serialzie Name
@@ -139,22 +151,42 @@ std::size_t shade::animation::AnimationGraph::Serialize(std::ostream& stream) co
 
 std::size_t shade::animation::AnimationGraph::Deserialize(std::istream& stream)
 {
+	//------------------------------------------------------------------------
+	// Skeleton section
+	//------------------------------------------------------------------------
+	std::string assetId; std::size_t size = shade::Serializer::Deserialize(stream, assetId);
+
+	if (!assetId.empty())
+	{
+		shade::AssetManager::GetAsset<shade::Skeleton,
+			shade::BaseAsset::InstantiationBehaviour::Synchronous>(assetId,
+				shade::AssetMeta::Category::Secondary,
+				shade::BaseAsset::LifeTime::KeepAlive,
+				[&](auto& skeleton) mutable
+				{
+					GetGraphContext()->As<AnimationGraphContext>().Skeleton = skeleton;
+				});
+	}
+	//------------------------------------------------------------------------
+	// !Skeleton section
+	//------------------------------------------------------------------------
+	
 	// Deserialize type
-	graphs::NodeType type; std::size_t  size = shade::Serializer::Deserialize(stream, type);
+	graphs::NodeType type;				size += shade::Serializer::Deserialize(stream, type);
 	// Deserialize Identifier
 	shade::graphs::NodeIdentifier id;   size += shade::Serializer::Deserialize(stream, id);
 	// Deserialize Name
 	std::string name; 					size += shade::Serializer::Deserialize(stream, name);
 
 	// Deserialize Screen position
-	glm::vec2 screenPosition;			size += shade::Serializer::Deserialize(stream, screenPosition);
+	glm::vec2 screenPosition;			size += shade::Serializer::Deserialize(stream, GetScreenPosition());
 	// Deserialize count of internal nodes
 	std::uint32_t internalNodesCount;	size += shade::Serializer::Deserialize(stream, internalNodesCount);
 
 	//------------------------------------------------------------------------
 	// Body section
 	//------------------------------------------------------------------------
-	size += DeserializeBody(stream); SetName(name); SetNodeIdentifier(id); GetScreenPosition() = screenPosition;
+	size += DeserializeBody(stream); SetName(name); SetNodeIdentifier(id);
 	//------------------------------------------------------------------------
 	// !Body section
 	//------------------------------------------------------------------------

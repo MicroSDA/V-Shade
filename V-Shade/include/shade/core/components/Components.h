@@ -28,10 +28,7 @@ namespace shade
 	struct AnimationGraphComponent
 	{
 		Asset<animation::AnimationGraph> AnimationGraph;
-		//SharedPointer<animation::AnimationGraph> AnimationGraph;
 		animation::AnimationGraphContext GraphContext;
 	};
 
-	//using PlayerStateMachineComponent	= SharedPointer<state_machine::PlayerStateMachine>;
-	//using AiStateMachineComponent		= SharedPointer<state_machine::AIStateMachine>;
 }

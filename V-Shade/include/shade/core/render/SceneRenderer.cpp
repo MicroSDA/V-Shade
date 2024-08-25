@@ -318,7 +318,6 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 
 		scene->View<Asset<Model>, TransformComponent>().Each([&](ecs::Entity& entity, Asset<Model>& model, TransformComponent& transform)
 			{
-
 				auto pcTransform = scene->ComputePCTransform(entity);
 
 				Asset<animation::AnimationGraph> animationGraph = (entity.HasComponent<AnimationGraphComponent>()) ? entity.GetComponent<AnimationGraphComponent>().AnimationGraph : nullptr;
@@ -403,24 +402,11 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTime
 					}
 				}
 
-
+				
 				if (isModelInFrustrum && animationGraph && finalPose && model->GetSkeleton())
 				{
 					 Renderer::SubmitBoneTransforms(m_MainGeometryPipelineAnimated, model, finalPose->GetBoneGlobalTransforms()); 		
 				}
-
-				/*if (isModelInFrustrum && animationController && animationController->GetCurentAnimation() && model->GetSkeleton())
-				{
-					if (animationController->GetAnimations().size() >= 2)
-					{
-						animationController->Blend(model->GetSkeleton(), animationController->GetAnimations().begin()->first, (++animationController->GetAnimations().begin())->first, deltaTime);
-					}
-
-					animationController->UpdateCurrentAnimation(model->GetSkeleton(), deltaTime);
-					Renderer::SubmitBoneTransforms(m_MainGeometryPipelineAnimated, model, animationController->GetBoneTransforms());
-				}*/
-
-
 
 				// AABB Visualization
 				if (entity.HasComponent<RigidBodyComponent>())

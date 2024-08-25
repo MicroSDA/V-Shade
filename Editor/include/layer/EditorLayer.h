@@ -22,6 +22,7 @@ private:
 	shade::ecs::Entity			m_SelectedEntity;
 	shade::MaterialComponent	m_SelectedMaterial;
 	shade::MeshComponent		m_SelectedMesh;
+	shade::AnimationGraphComponent m_SelectedAnimationGraphComponent;
 
 	shade::SharedPointer<shade::Model> m_ImportedModel;
 	shade::ecs::Entity m_ImportedEntity;
@@ -65,7 +66,7 @@ private:
 	void ModelComponent(shade::ecs::Entity& entity);
 	void RgidBodyComponent(shade::ecs::Entity& entity);
 	void AnimationGraphComponent(shade::ecs::Entity& entity);
-	void PlayerStateMachineComponent(shade::ecs::Entity& entity);
+	void NativeScriptComponent(shade::ecs::Entity& entity);
 	///////
 	void MaterialEdit(shade::Material& material);
 	void BoneMaskEdnitor(const shade::Skeleton::BoneNode* node, shade::animation::BoneMask& boneMask);

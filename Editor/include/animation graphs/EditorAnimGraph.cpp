@@ -21,6 +21,8 @@ void graph_editor::GraphNodePrototype::ProcessPopup(const InternalContext* conte
 	ImGui::SameLine();
 	shade::ImGuiLayer::DrawFontIcon(u8"\xf2d1\xf2d1\xf2d1\xf2d1", 1, 0.5f);
 
+	!GetNode()->GetGraphContext()->As<AnimationGraphContext>().Skeleton ? ImGui::BeginTooltip(), ImGui::Text("Add skeleton to animation graph first!"), ImGui::EndTooltip(), ImGui::BeginDisabled(): void();
+
 	if (ImGui::BeginMenu("+ Blend"))
 	{
 		if (ImGui::MenuItem("Blend 2D"))
@@ -45,6 +47,8 @@ void graph_editor::GraphNodePrototype::ProcessPopup(const InternalContext* conte
 		auto node = GetNode()->CreateNode<animation::PoseNode>();
 		GetEditor()->InitializeRecursively(node, GetEditor()->GetNodes());
 	}
+
+	!GetNode()->GetGraphContext()->As<AnimationGraphContext>().Skeleton ? ImGui::EndDisabled() : void();
 }
 
 bool graph_editor::GraphNodePrototype::Draw(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes)
@@ -716,24 +720,48 @@ bool graph_editor::GraphEditor::RemoveNode(graphs::BaseNode*& pNode)
 	return false;
 }
 
-void graph_editor::GraphEditor::Initialize(AnimationGraph* pGraph)
+graph_editor::GraphEditor::~GraphEditor()
 {
+	for (auto [hash, node] : m_Nodes)
+	{
+		delete node;
+	}
+	for (auto [hash, node] : m_ReferNodes)
+	{
+		delete node;
+	}
+	m_Nodes.clear();
+	m_ReferNodes.clear();
+}
+
+void graph_editor::GraphEditor::Initialize(SharedPointer<AnimationGraph>& graph)
+{
+	for (auto [hash, node] : m_Nodes)
+	{
+		delete node;
+	}
+	for (auto [hash, node] : m_ReferNodes)
+	{
+		delete node;
+	}
+
+	m_pSelectedNode = nullptr;
+	m_pRootGraph = nullptr;
+
 	m_Nodes.clear();
 	m_ReferNodes.clear();
 	// Add to nodes !!
-	CreateNode<AnimationGraphDeligate>(pGraph, m_Nodes);
+	CreateNode<AnimationGraphDeligate>(graph.Raw(), m_Nodes);
 
-	m_Context.CurrentNode = pGraph;
-	m_pRootGraph = pGraph;
-
-	//Анимациооный граф не создается через контекст и пожтому его там нету и его нодов, надо пофиксить
+	m_Context.CurrentNode = graph.Raw();
+	m_pRootGraph = graph;
 
 	// Serialize internal nodes only
 	for (auto pNode : m_pRootGraph->GetInternalNodes())
 	{
-		if (pGraph->GetInputNodes().end() == std::find_if(
-			pGraph->GetInputNodes().begin(),
-			pGraph->GetInputNodes().end(), [pNode](const std::pair<std::string, shade::graphs::BaseNode*>& input
+		if (graph->GetInputNodes().end() == std::find_if(
+			graph->GetInputNodes().begin(),
+			graph->GetInputNodes().end(), [pNode](const std::pair<std::string, shade::graphs::BaseNode*>& input
 				)
 			{
 				return input.second == pNode;
@@ -743,7 +771,7 @@ void graph_editor::GraphEditor::Initialize(AnimationGraph* pGraph)
 		}
 	}
 
-	for (auto [name, node] : pGraph->GetInputNodes())
+	for (auto [name, node] : graph->GetInputNodes())
 	{
 		InitializeRecursively(node, m_ReferNodes);
 	}
@@ -756,7 +784,7 @@ void graph_editor::GraphEditor::SetToRemove(graphs::BaseNode* pNode)
 	m_pNodeToRemove = pNode;
 }
 
-bool graph_editor::GraphEditor::Edit(const char* title, const ImVec2& size)
+bool graph_editor::GraphEditor::Edit(const char* title, const ImVec2& size, const std::function<void()>& menuCallBack)
 {
 	if (!m_pRootGraph)
 		return false;
@@ -768,42 +796,7 @@ bool graph_editor::GraphEditor::Edit(const char* title, const ImVec2& size)
 	{
 		if (ImGui::Begin(title, (bool*)0))
 		{
-			if (ImGuiLayer::IconButton("Open", u8"\xe85f", 1, 1.f))
-			{
-				auto path = shade::FileDialog::OpenFile("Shade graph(*.graph) \0*.graph\0");
-
-				if (!path.empty())
-				{
-					shade::File file(path.string(), shade::File::In, "@s_animgraph", shade::File::VERSION(0, 0, 1));
-					if (file.IsOpen())
-					{
-						file.Read(m_pRootGraph->As<AnimationGraph>());
-						Initialize(&m_pRootGraph->As<AnimationGraph>());
-					}
-					else
-					{
-						SHADE_CORE_WARNING("Couldn't open graph file, path ={0}", path);
-					}
-				}
-			}
-			ImGui::SameLine();
-			if (ImGuiLayer::IconButton("Save", u8"\xe8b9", 1, 1.f))
-			{
-				auto path = shade::FileDialog::SaveFile("Shade graph(*.graph) \0*.graph\0");
-
-				if (!path.empty())
-				{
-					shade::File file(path.string(), shade::File::Out, "@s_animgraph", shade::File::VERSION(0, 0, 1));
-					if (file.IsOpen())
-					{
-						file.Write(m_pRootGraph->As<AnimationGraph>());
-					}
-					else
-					{
-						SHADE_CORE_WARNING("Couldn't open graph file, path ={0}", path);
-					}
-				}
-			}
+			//menuCallBack();
 
 			if (ImGui::BeginChild("##ImGuiGraphPrototype::ContentSideBar",
 				ImVec2(300, ImGui::GetContentRegionAvail().y),
@@ -813,7 +806,7 @@ bool graph_editor::GraphEditor::Edit(const char* title, const ImVec2& size)
 				ImGuiWindowFlags_NoScrollWithMouse))
 			{
 
-				GetPrototypedNode(m_pRootGraph)->ProcessSideBar(&m_Context, m_Nodes, m_ReferNodes);
+				GetPrototypedNode(m_pRootGraph.Raw())->ProcessSideBar(&m_Context, m_Nodes, m_ReferNodes);
 				//if (ImGui::BeginChildEx("##ProcessSideBarChild", std::size_t(m_pSelectedNode), { 0,0 }, true, 0))
 				{
 					if (m_pSelectedNode)
@@ -822,7 +815,7 @@ bool graph_editor::GraphEditor::Edit(const char* title, const ImVec2& size)
 					}
 					else
 					{
-						if (m_pRootGraph != m_Context.CurrentNode)
+						if (m_pRootGraph.Raw() != m_Context.CurrentNode)
 						{
 							if (auto pN = GetPrototypedNode(m_Context.CurrentNode))
 							{
@@ -834,8 +827,8 @@ bool graph_editor::GraphEditor::Edit(const char* title, const ImVec2& size)
 					//ImGui::EndChild();
 				}
 
-				ImGui::EndChild();
-			}
+				
+			} ImGui::EndChild();
 
 			ImGui::SameLine();
 
@@ -901,9 +894,9 @@ bool graph_editor::GraphEditor::Edit(const char* title, const ImVec2& size)
 
 				// Reset style back
 				ImGui::GetStyle() = unscaledStyle;
-				ImGui::EndChild();
+				
 
-			}
+			} ImGui::EndChild();
 
 			if (m_Context.CanvasRect.Contains(ImGui::GetIO().MousePos))
 			{
@@ -936,8 +929,8 @@ bool graph_editor::GraphEditor::Edit(const char* title, const ImVec2& size)
 	ImGui::PopStyleColor();
 
 	ImGuiLayer::BeginWindowOverlay("Path",
-		ImGui::GetWindowViewport(), 123124,
-		ImVec2{ m_Context.CanvasSize.x, ImGui::GetContentRegionAvail().y + 5.f },
+		ImGui::GetCurrentWindow()->Viewport, 123124,
+		ImVec2{ m_Context.CanvasSize.x, ImGui::GetFrameHeight() + 5.f},
 		m_Context.CanvasRect.Min, 0.0f, [&]() {DrawPathRecursevly(m_Context.CurrentNode); });
 
 	if (m_Context.ConnectionEstablish.IsInputSelect && m_Context.ConnectionEstablish.IsOutPutSelect)
@@ -1867,10 +1860,13 @@ void graph_editor::OutputTransitionNodeDelegate::ProcessBodyContent(const Intern
 		{
 
 			static std::vector<std::string> elements = { "None", "Src frozen", "Src to dest", "Dest to src", "Dest and src", "Key frame" };
-			static std::uint32_t selected = (std::uint32_t)style;
+			static std::uint32_t selected = (std::uint8_t)style;
 
 			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
-			ImGuiLayer::DrawComboWithIndex("##Sync", (std::uint32_t&)style, elements, 0, 0);
+			if (ImGuiLayer::DrawComboWithIndex("##Sync", selected, elements, 0, 0))
+			{
+				style = static_cast<shade::animation::state_machine::SyncStyle>(selected);
+			}
 			ImGui::PopItemWidth();
 		}
 		ImGui::EndTable();
@@ -2106,8 +2102,8 @@ void graph_editor::PoseNodeDelegate::ProcessSideBar(const InternalContext* conte
 
 			ImGui::EndTable();
 		}
-		ImGui::EndChild();
-	}
+		
+	} ImGui::EndChild();
 }
 
 void graph_editor::PoseNodeDelegate::ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint)
@@ -2252,8 +2248,8 @@ void graph_editor::AnimationGraphDeligate::ProcessSideBar(const InternalContext*
 
 		}
 
-		ImGui::EndChild();
-	}
+		
+	} ImGui::EndChild();
 
 
 	if (ImGui::GetCurrentWindow()->Rect().Contains(ImGui::GetIO().MousePos))
@@ -2466,8 +2462,8 @@ void  graph_editor::BoneMaskNodeDelegate::ProcessSideBar(const InternalContext* 
 
 			ImGui::EndTable();
 		}
-		ImGui::EndChild();
-	}
+		
+	} ImGui::EndChild();
 
 }
 

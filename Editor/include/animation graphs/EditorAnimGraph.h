@@ -172,8 +172,8 @@ namespace graph_editor
 	{
 	public:
 		GraphEditor() = default;
-		~GraphEditor() = default;
-		void Initialize(AnimationGraph* pGraph);
+		~GraphEditor();
+		void Initialize(SharedPointer<AnimationGraph>& graph);
 		void InitializeRecursively(graphs::BaseNode* pNode, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes); // Strange and not clear
 		GraphNodePrototype* GetPrototypedNode(graphs::BaseNode* pNode); // Strange and not clear
 		GraphNodePrototype* GetPrototypedReferNode(graphs::BaseNode* pNode); // Strange and not clear
@@ -181,11 +181,11 @@ namespace graph_editor
 		std::unordered_map<std::size_t, GraphNodePrototype*>& GetNodes() { return m_Nodes; }
 		std::unordered_map<std::size_t, GraphNodePrototype*>& GetReferNodes() { return m_ReferNodes; }
 
-		graphs::BaseNode* GetRootGraph() { return m_pRootGraph; }
+		graphs::BaseNode* GetRootGraph() { return m_pRootGraph.Raw(); }
 
 		void SetToRemove(graphs::BaseNode* pNode);
 	public:
-		bool Edit(const char* title, const ImVec2& size);
+		bool Edit(const char* title, const ImVec2& size, const std::function<void()>& menuCallBack = std::function<void()>());
 	private:
 
 		template<typename T>
@@ -194,7 +194,7 @@ namespace graph_editor
 			nodes.insert({ std::size_t(pNode) ^ pNode->GetNodeIdentifier(), new T(pNode, this) });
 		}
 
-		graphs::BaseNode*	m_pRootGraph	= nullptr;
+		SharedPointer<AnimationGraph> m_pRootGraph;
 		GraphNodePrototype*	m_pSelectedNode = nullptr;
 
 		std::unordered_map<std::size_t, GraphNodePrototype*>  m_Nodes;
