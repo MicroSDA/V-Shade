@@ -26,7 +26,7 @@ void GameLayer::OnUpdate(shade::SharedPointer<shade::Scene>& scene, const shade:
 {
 	shade::physic::PhysicsManager::Step(scene, deltaTime);
 
-	m_SceneRenderer->OnUpdate(scene, deltaTime);
+	//m_SceneRenderer->OnUpdate(scene, deltaTime);
 }
 
 void GameLayer::OnRenderBegin()

@@ -334,7 +334,7 @@ void shade::animation::state_machine::StateMachineNode::Evaluate(const FrameTime
 			}
 
 			// Set current pose to state machine output
-			GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, pState->GetOutPutPose());
+			GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, pState->GetOutputPose());
 		}
 	}
 }
@@ -358,10 +358,10 @@ shade::animation::Pose* shade::animation::state_machine::StateMachineNode::Trans
 		auto& controller = GetGraphContext()->As<AnimationGraphContext>().Controller;
 		auto& skeleton = GetGraphContext()->As<AnimationGraphContext>().Skeleton;
 
-		const animation::Pose* sPose = transitionData.SourceState->GetOutPutPose();
-		const animation::Pose* dPose = transitionData.DestinationState->GetOutPutPose();
+		const animation::Pose* sPose = transitionData.SourceState->GetOutputPose();
+		const animation::Pose* dPose = transitionData.DestinationState->GetOutputPose();
 
-		if (sPose && dPose) // Почему то dPose nullptr в transitionData.DestinationState->GetOutPutPose(); нужно проплеить все стейты при десериализации ? после востановления конекшенов ?
+		if (sPose && dPose) // Почему то dPose nullptr в transitionData.DestinationState->GetOutputPose(); нужно проплеить все стейты при десериализации ? после востановления конекшенов ?
 		{ 
 			TransitionStatus status = transition.GetTransitionAccumulator() ? TransitionStatus::InProcess : TransitionStatus::Start;
 			SyncStyle style =  transition.GetSynStyle();

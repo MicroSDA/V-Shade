@@ -114,17 +114,29 @@ void graph_editor::GraphNodePrototype::DrawHeader(const InternalContext* context
 			std::string name = node->GetName();
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4{ 0,0,0, Style.HeaderColor.w * 0.2f });
 			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+
+				
 			if (!node->IsRenamable())
 			{
-				ImGui::Text(name.c_str());
+				ImGui::Text(name.c_str()); 
+
+				ImGui::SameLine();
 			}
 			else
 			{
 				if (ImGuiLayer::InputTextD(std::string(id + "##Name").c_str(), name))
 					node->SetName(name);
 			}
+
 			ImGui::PopItemWidth();
 			ImGui::PopStyleColor(1);
+
+			if (ImGui::IsItemFocused())
+			{
+				ImGui::BeginTooltip();
+				ImGui::Text(std::format("{:^5}", node->GetNodeIdentifier()).c_str());
+				ImGui::EndTooltip();
+			}
 		}
 		ImGui::TableNextColumn();
 		{
@@ -734,7 +746,7 @@ graph_editor::GraphEditor::~GraphEditor()
 	m_ReferNodes.clear();
 }
 
-void graph_editor::GraphEditor::Initialize(SharedPointer<AnimationGraph>& graph)
+void graph_editor::GraphEditor::Initialize(Asset<AnimationGraph>& graph)
 {
 	for (auto [hash, node] : m_Nodes)
 	{
@@ -2448,7 +2460,8 @@ void  graph_editor::BoneMaskNodeDelegate::ProcessSideBar(const InternalContext* 
 
 						shade::ImGuiLayer::DrawFontIcon(u8"\xf2d8", 1, 0.6f); ImGui::SameLine(); //ImGui::Text(value.first.c_str());
 
-						ImGui::Text(value.first.c_str());
+						ImGui::Text(std::to_string(key).c_str()); ImGui::SameLine(); ImGui::Text(value.first.c_str());
+						
 
 						ImGui::TableNextColumn();
 						ImGui::PushID(key);

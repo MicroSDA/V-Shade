@@ -32,12 +32,13 @@ void shade::VulkanSwapChain::CreateFrame(std::uint32_t* width, std::uint32_t* he
 	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, m_Surface, &presentModeCount, presentModes.data()), "Failed to get physical device surface present modes!");
 
 	VkExtent2D swapchainExtent;
+
 	// If width (and height) equals the special value 0xFFFFFFFF, the size of the surface will be set by the swapchain
 	if (surfaceCapabilities.currentExtent.width == (uint32_t)-1)
 	{
 		// If the surface size is undefined, the size is set to
 		// the size of the images requested.
-		swapchainExtent.width = *width;
+		swapchainExtent.width  = *width;
 		swapchainExtent.height = *height;
 	}
 	else
@@ -222,9 +223,9 @@ void shade::VulkanSwapChain::CreateFrame(std::uint32_t* width, std::uint32_t* he
 void shade::VulkanSwapChain::OnResize(std::uint32_t width, std::uint32_t height)
 {
 	auto device = m_LogicalDevice->GetLogicalDevice();
-	vkDeviceWaitIdle(device);
+	//vkDeviceWaitIdle(device);
 	CreateFrame(&width, &height, m_FramesCount, m_VSync);
-	vkDeviceWaitIdle(device);
+	//vkDeviceWaitIdle(device);
 }
 
 void shade::VulkanSwapChain::BeginFrame()

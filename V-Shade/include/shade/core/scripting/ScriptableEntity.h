@@ -5,7 +5,8 @@
 namespace shade
 {
 	class Scene;
-	class ScriptManager;
+
+	namespace scripts { class ScriptManager; }
 
 	namespace ecs
 	{
@@ -38,7 +39,7 @@ namespace shade
 			std::string m_Name;
 		private:
 			friend class shade::Scene;
-			friend class shade::ScriptManager;
+			friend class scripts::ScriptManager;
 		};
 
 		inline bool ScriptableEntity::IsUpdate() { return m_IsUpdate; }

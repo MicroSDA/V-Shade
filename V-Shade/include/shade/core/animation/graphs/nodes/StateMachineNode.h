@@ -486,14 +486,14 @@ namespace shade
 
 				/// @brief Gets the output pose of the state.
 				/// @return Pointer to the Pose object.
-				SHADE_INLINE Pose* GetOutPutPose()
+				SHADE_INLINE Pose* GetOutputPose()
 				{
 					return GetRootNode()->GET_ENDPOINT<graphs::Connection::Input, NodeValueType::Pose>(0);
 				}
 
 				/// @brief Gets the output pose of the state (const version).
 				/// @return Const pointer to the Pose object.
-				SHADE_INLINE const Pose* GetOutPutPose() const
+				SHADE_INLINE const Pose* GetOutputPose() const
 				{
 					return GetRootNode()->As<OutputPoseNode>().GetFinalPose();
 				}

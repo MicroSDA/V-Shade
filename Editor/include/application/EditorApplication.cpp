@@ -19,10 +19,11 @@ void EditorApplication::OnCreate()
 	// Crete window.
 	shade::Window::Create({"Editor", 1900, 900, false, true});
 
-	shade::ScriptManager::Initialize("./resources/scripts");
+	shade::scripts::ScriptManager::Initialize("./resources/scripts");
 
-	auto cameraEntity  = shade::Scene::GetActiveScene()->CreateEntity(); 
-	auto script = shade::ScriptManager::InstantiateScript<shade::ecs::ScriptableEntity*>("Scripts", "Camera");
+	/*auto cameraEntity  = shade::Scene::GetActiveScene()->CreateEntity(); 
+
+	auto script = shade::scripts::ScriptManager::InstantiateScript<shade::ecs::ScriptableEntity*>("Scripts", "Camera");
 	
 	if (script)
 	{
@@ -32,7 +33,7 @@ void EditorApplication::OnCreate()
 
 		cameraEntity.GetComponent<shade::CameraComponent>()->SetDirection(glm::vec3(-0.011512465, -0.33462766, 0.94228005));
 		cameraEntity.GetComponent<shade::CameraComponent>()->SetPosition(glm::vec3(0, 10, -20));
-	}
+	}*/
 	
 	/*auto entity2 = shade::Scene::GetActiveScene()->CreateEntity();
 	auto entity1 = shade::Scene::GetActiveScene()->CreateEntity();

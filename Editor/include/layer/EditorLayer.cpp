@@ -1,8 +1,56 @@
 ﻿#include "shade_pch.h"
 #include "EditorLayer.h"
 #include <shade/core/event/Input.h>
+#include <shade/core/application/Application.h>
 
 // TODO: Temporary
+
+EditorLayer::EditorCamera::EditorCamera()
+{
+	SetDirection(glm::vec3(-0.011512465, -0.33462766, 0.94228005));
+	SetPosition(glm::vec3(0, 10, -20));
+}
+
+void EditorLayer::EditorCamera::OnUpdate(const shade::FrameTimer& deltaTime)
+{
+	if (m_IsUpdate)
+	{
+		{
+			// Movment
+			if (shade::Input::IsKeyPressed(shade::Key::W))
+				MoveForward(m_MovementSpeed * deltaTime);
+			if (shade::Input::IsKeyPressed(shade::Key::S))
+				MoveBackward(m_MovementSpeed * deltaTime);
+
+			if (shade::Input::IsKeyPressed(shade::Key::A))
+				MoveLeft(m_MovementSpeed * deltaTime);
+			if (shade::Input::IsKeyPressed(shade::Key::D))
+				MoveRight(m_MovementSpeed * deltaTime);
+
+			if (shade::Input::IsKeyPressed(shade::Key::Q))
+				RotateZ(m_RotationSpeed / 100.f * deltaTime);
+			if (shade::Input::IsKeyPressed(shade::Key::E))
+				RotateZ(-m_RotationSpeed / 100.f * deltaTime);
+
+		}
+		{
+			if (shade::Input::IsMouseButtonPressed(shade::Mouse::ButtonRight))
+			{
+				shade::Input::ShowMouseCursor(false);
+				glm::vec2 screenCenter(shade::Application::GetWindow()->GetWidth() / 2, shade::Application::GetWindow()->GetHeight() / 2);
+				glm::vec2 mousePosition(shade::Input::GetMousePosition() - screenCenter);
+
+				Rotate(glm::vec3(mousePosition, 0.0f) * m_RotationSpeed / 1000.f);
+
+				shade::Input::SetMousePosition(screenCenter.x, screenCenter.y);
+			}
+			else
+			{
+				shade::Input::ShowMouseCursor(true);
+			}
+		}
+	}
+}
 
 EditorLayer::EditorLayer() : ImGuiLayer()
 {
@@ -14,34 +62,17 @@ EditorLayer::EditorLayer() : ImGuiLayer()
 void EditorLayer::OnCreate()
 {
 	m_SceneRenderer = shade::SceneRenderer::Create();
+	m_EditorCamera	= shade::SharedPointer<EditorCamera>::Create();
 }
 
 void EditorLayer::OnUpdate(shade::SharedPointer<shade::Scene>& scene, const shade::FrameTimer& deltaTime)
 {
-	// Place for it has to be changed, scene rnderer is better place for it !
-	/*scene->View<shade::AnimationGraphComponent>().Each([&](shade::ecs::Entity& entity, shade::AnimationGraphComponent& graph)
-		{
-			if (graph.AnimationGraph)
-			{
-				int state = 0;
 
-				if (shade::Input::IsKeyPressed(shade::Key::W))
-					state = 1;
-				if (shade::Input::IsKeyPressed(shade::Key::W) && shade::Input::IsKeyPressed(shade::Key::LeftShift))
-					state = 2;
-				if (shade::Input::IsKeyPressed(shade::Key::S) && shade::Input::IsKeyPressed(shade::Key::LeftShift))
-					state = 3;
-				if (shade::Input::IsKeyPressed(shade::Key::Space))
-					state = 4;
+	(m_IsScenePlaying) ? scene->SetPlaying(true): scene->SetPlaying(false);
+	if(!m_IsScenePlaying) m_EditorCamera->OnUpdate(deltaTime);
 
-				graph.AnimationGraph->SetInputValue("DirectState", state);
-
-				graph.AnimationGraph->ProcessBranch(deltaTime);
-			}
-
-		});*/
 	shade::physic::PhysicsManager::Step(scene, deltaTime);
-	m_SceneRenderer->OnUpdate(scene, deltaTime);
+	m_SceneRenderer->OnUpdate(scene, (m_IsScenePlaying) ? nullptr : m_EditorCamera, deltaTime);
 }
 
 void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shade::FrameTimer& deltaTime)
@@ -59,22 +90,18 @@ void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shad
 			ImGui::DockSpace(dockspaceId, ImVec2(0.f, 0.f), m_DockSpaceFlags);
 		}
 
-		if (!m_IsScenePlaying)
-		{
-			MainMenu(scene);
-			ShowWindowBar("Entities", &EditorLayer::Entities, this, scene);
-			ShowWindowBar("Creator", &EditorLayer::Creator, this);
-			ShowWindowBar("Assets", &EditorLayer::AssetsExplorer, this);
-			ShowWindowBar("Inspector", &EditorLayer::EntityInspector, this, m_SelectedEntity);
-			ShowWindowBar("Material", &EditorLayer::MaterialEdit, this, (m_SelectedMaterial != nullptr) ? *m_SelectedMaterial : *shade::Renderer::GetDefaultMaterial());
-			ShowWindowBar("Render settings", &EditorLayer::RenderSettings, this, m_SceneRenderer);
-		}
+
+		MainMenu(scene);
+		ShowWindowBar("Entities", NULL, &EditorLayer::Entities, this, scene);
+		ShowWindowBar("Creator", NULL, &EditorLayer::Creator, this);
+		ShowWindowBar("Assets", NULL, &EditorLayer::AssetsExplorer, this);
+		ShowWindowBar("Inspector", NULL, &EditorLayer::EntityInspector, this, m_SelectedEntity);
+		ShowWindowBar("Material", NULL, &EditorLayer::MaterialEdit, this, (m_SelectedMaterial != nullptr) ? *m_SelectedMaterial : *shade::Renderer::GetDefaultMaterial());
+		ShowWindowBar("Render settings", NULL, &EditorLayer::RenderSettings, this, m_SceneRenderer);
 
 		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 1));
-		ShowWindowBar("Scene", &EditorLayer::Scene, this, scene);
+		ShowWindowBar("Scene", NULL, &EditorLayer::Scene, this, scene);
 		ImGui::PopStyleColor();
-
-
 		//ImGui::ShowDemoWindow();
 		ImGui::End();
 
@@ -570,23 +597,11 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 
 void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 {
-
+	// Bool shit
 	const std::uint32_t frameIndex = shade::Renderer::GetCurrentFrameIndex();
 
 	static ImVec4 focusColor = { 0, 0, 0, 1 };
 
-	shade::ecs::ScriptableEntity* cameraInstance = nullptr;
-
-	auto cameraEntity = scene->GetPrimaryCamera();
-
-	if (cameraEntity.IsValid() && cameraEntity.HasComponent<shade::NativeScriptComponent>())
-	{
-		cameraInstance = scene->GetPrimaryCamera().GetComponent<shade::NativeScriptComponent>().GetIsntace();
-	}
-	else
-	{
-		cameraInstance = nullptr;
-	}
 	/*if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) || ImGui::IsMouseClicked(ImGuiMouseButton_Middle))
 		ImGui::SetWindowFocus(NULL);*/
 
@@ -594,14 +609,12 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 	if (ImGui::IsWindowFocused())
 	{
 		focusColor = { 0.995f, 0.857f, 0.420f, 1.000f };
-		if (cameraInstance)
-			cameraInstance->SetUpdate(true);
+		m_EditorCamera->SetUpdate(true);
 	}
 	else
 	{
-		if (cameraInstance)
-			cameraInstance->SetUpdate(false);
 		focusColor = { 0, 0, 0, 1 };
+		m_EditorCamera->SetUpdate(false);
 	}
 
 	if (m_SceneViewPort.ViewPort.z != ImGui::GetContentRegionAvail().x || m_SceneViewPort.ViewPort.w != ImGui::GetContentRegionAvail().y)
@@ -636,9 +649,21 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 					}
 					ImGui::TableNextColumn();
 					{
-						if (ImGui::Button("Play"))
+						if (ImGuiLayer::IconButton("##PlayButton", u8"\xe88b", 1, 1.f))
 						{
-							m_IsScenePlaying = (m_IsScenePlaying) ? false : true;
+							m_IsScenePlaying = true;
+						}
+						ImGui::SameLine(); ImGui::Dummy({ 10.f, 0 }); ImGui::SameLine();
+						if (ImGuiLayer::IconButton("##PaueButton", u8"\xe88e", 1, 1.f) || shade::Input::IsKeyPressed(shade::Key::Escape))
+						{
+							m_IsScenePlaying = false;
+							shade::Input::ShowMouseCursor(true);
+						}
+						ImGui::SameLine(); ImGui::Dummy({ 10.f, 0 }); ImGui::SameLine();
+						if (ImGuiLayer::IconButton("##StopButton", u8"\xe88d", 1, 1.f) || shade::Input::IsKeyPressed(shade::Key::Escape))
+						{
+							m_IsScenePlaying = false;
+							shade::Input::ShowMouseCursor(true);
 						}
 					}
 				}
@@ -827,15 +852,19 @@ void EditorLayer::Entities(shade::SharedPointer<shade::Scene>& scene)
 				AddComponent<shade::AnimationGraphComponent>("Animation graph", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
 					{
 						// WRONG ASSET Creation !!
-						entity.AddComponent<shade::AnimationGraphComponent>();
+						auto& graph = entity.AddComponent<shade::AnimationGraphComponent>();
+						graph.AnimationGraph = shade::SharedPointer<shade::animation::AnimationGraph>::Create(&graph.GraphContext);
+						graph.GraphContext.Controller = shade::animation::AnimationController::Create();
 					}, m_SelectedEntity);
 
 				AddComponent<shade::NativeScriptComponent>("Native script", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
 					{
-						if (auto script = shade::ScriptManager::InstantiateScript<shade::ecs::ScriptableEntity*>("Scripts", "Player"))
+						entity.AddComponent<shade::NativeScriptComponent>();
+
+						/*if (auto script = shade::scripts::ScriptManager::InstantiateScript<shade::ecs::ScriptableEntity*>("Scripts", "Player"))
 						{
 							entity.AddComponent<shade::NativeScriptComponent>().Bind(script);
-						}
+						}*/
 
 					}, m_SelectedEntity);
 				AddComponent<shade::CameraComponent>("Camera", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
@@ -1827,18 +1856,11 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 {
 	auto& graph = entity.GetComponent<shade::AnimationGraphComponent>();
 
-	if (graph.AnimationGraph == nullptr)
-	{
-		auto pG = shade::SharedPointer<shade::animation::AnimationGraph>::Create(&graph.GraphContext);
-		graph.AnimationGraph = pG; m_graphEditor.Initialize(pG);
+	if(!m_graphEditor.GetRootGraph())
+		m_graphEditor.Initialize(graph.AnimationGraph);
 
-		graph.GraphContext.Controller = shade::SharedPointer<shade::animation::AnimationController>::Create();
-		graph.GraphContext.Skeleton = nullptr;
-	}
-
-	
 	static std::string search; static bool animGraphAssetPopop = false, skeletonAssetPopop = false;
-	
+
 	if (ImGui::BeginTable("##SelectAnimationGraphTable", 4, ImGuiTableFlags_SizingStretchProp))
 	{
 		ImGui::TableNextRow();
@@ -1857,8 +1879,7 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 					shade::File file(path.string(), shade::File::In, "@s_animgraph", shade::File::VERSION(0, 0, 1));
 					if (file.IsOpen())
 					{
-						auto pG = shade::SharedPointer<shade::animation::AnimationGraph>::Create(&graph.GraphContext);
-						graph.AnimationGraph = pG; file.Read(graph.AnimationGraph); m_graphEditor.Initialize(pG);
+						graph.AnimationGraph = shade::SharedPointer<shade::animation::AnimationGraph>::Create(&graph.GraphContext); file.Read(graph.AnimationGraph); m_graphEditor.Initialize(graph.AnimationGraph);
 					}
 					else
 					{
@@ -2330,11 +2351,48 @@ void EditorLayer::NativeScriptComponent(shade::ecs::Entity& entity)
 {
 	auto& script = entity.GetComponent<shade::NativeScriptComponent>();
 
+	static std::string moduleName = (script.GetIsntace()) ? script.GetIsntace()->GetModuleName() : "", functionName = (script.GetIsntace()) ? script.GetIsntace()->GetName() : "",
+		moduleSearch, functionSearch;
 
+	ImGui::BeginChild("##ScriptModuels", ImGui::GetContentRegionAvail() / 2.f, true);
+	ImGuiLayer::InputTextCol("Modules:", moduleSearch);
+	ImGui::Separator();
 
+	for (auto& [name, lib] : shade::scripts::ScriptManager::GetLibraries())
+	{
+		if (name.find(moduleSearch) != std::string::npos)
+		{
+			if (ImGui::Selectable(name.c_str(), moduleName == name))
+				moduleName = name;
+		}
+	}
+	ImGui::EndChild();
+	ImGui::SameLine();
 
-	ImGui::Text(script.GetIsntace()->GetName().c_str());
-	ImGui::Text(script.GetIsntace()->GetModuleName().c_str());
+	ImGui::BeginGroup();
+	ImGui::BeginChild("##ScriptFunctions", { 0.f, ImGui::GetContentRegionAvail().y / 2.f }, true);
+	ImGuiLayer::InputTextCol("Functions:", functionSearch);
+	ImGui::Separator();
+	if (shade::scripts::ScriptManager::GetLibraries().find(moduleName) != shade::scripts::ScriptManager::GetLibraries().end())
+	{
+		for (auto& [name, function] : shade::scripts::ScriptManager::GetLibraries().at(moduleName)->GetExportedFunctions())
+		{
+			if (name.find(functionSearch) != std::string::npos)
+			{
+				if (ImGui::Selectable(name.c_str(), functionName == name))
+				{
+					functionName = name;
+
+					if (auto instance = shade::scripts::ScriptManager::InstantiateScript<shade::ecs::ScriptableEntity*>(moduleName, functionName))
+					{
+						script.Bind(instance);
+					}
+				}
+			}
+		}
+	}
+	ImGui::EndChild();
+	ImGui::EndGroup();
 }
 
 void EditorLayer::MaterialEdit(shade::Material& material)

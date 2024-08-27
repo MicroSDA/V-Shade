@@ -32,9 +32,9 @@ namespace shade
 		} m_SceneViewPort;
 
 		template<typename Callback, typename ...Args>
-		void ShowWindowBar(const char* title, Callback callback, Args && ...args)
+		void ShowWindowBar(const char* title, bool *p_open, Callback callback, Args && ...args)
 		{
-			if (ImGui::Begin(title, nullptr, ImGuiWindowFlags_MenuBar))
+			if (ImGui::Begin(title, p_open, ImGuiWindowFlags_MenuBar))
 				std::invoke(callback, std::forward<Args>(args)...);
 			ImGui::End();
 		}

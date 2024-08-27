@@ -181,7 +181,7 @@ shade::animation::Pose* shade::animation::AnimationController::CalculatePose(ani
 
 	targetPose->SetDuration(animationData.Duration); targetPose->SetCurrentPlayTime(animationData.CurrentPlayTime);
 	CalculateBoneTransforms(targetPose, animationData, targetPose->GetSkeleton()->GetRootNode(), glm::identity<glm::mat4>(), targetPose->GetSkeleton()->GetArmature());
-
+	targetPose->UpdatePreviousRootTransform();
 	return targetPose;
 }
 

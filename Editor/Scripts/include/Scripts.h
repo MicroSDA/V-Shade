@@ -2,6 +2,7 @@
 
 #define SHADE_SCRIPT
 #include <shade/core/scripting/Scripting.h>
+#include <glm/glm/glm.hpp>
 
 class FreeCamera : public shade::ecs::ScriptableEntity
 {
@@ -32,6 +33,7 @@ private:
 
 	} m_State = State::Idle;
 	float m_MovementSpeed = 1.0f;
+	glm::mat4 m_RootMotion;
 };
 
 extern "C"

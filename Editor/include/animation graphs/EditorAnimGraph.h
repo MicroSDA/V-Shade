@@ -173,7 +173,7 @@ namespace graph_editor
 	public:
 		GraphEditor() = default;
 		~GraphEditor();
-		void Initialize(SharedPointer<AnimationGraph>& graph);
+		void Initialize(Asset<AnimationGraph>& graph);
 		void InitializeRecursively(graphs::BaseNode* pNode, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes); // Strange and not clear
 		GraphNodePrototype* GetPrototypedNode(graphs::BaseNode* pNode); // Strange and not clear
 		GraphNodePrototype* GetPrototypedReferNode(graphs::BaseNode* pNode); // Strange and not clear
@@ -194,7 +194,7 @@ namespace graph_editor
 			nodes.insert({ std::size_t(pNode) ^ pNode->GetNodeIdentifier(), new T(pNode, this) });
 		}
 
-		SharedPointer<AnimationGraph> m_pRootGraph;
+		Asset<AnimationGraph> m_pRootGraph;
 		GraphNodePrototype*	m_pSelectedNode = nullptr;
 
 		std::unordered_map<std::size_t, GraphNodePrototype*>  m_Nodes;

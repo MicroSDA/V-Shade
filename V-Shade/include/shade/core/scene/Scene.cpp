@@ -77,14 +77,17 @@ void shade::Scene::NativeScriptsUpdate(const shade::FrameTimer& deltaTime)
 {
     View<NativeScriptComponent>().Each([=](ecs::Entity& entity, NativeScriptComponent& script)
         {
-            if (!script.m_pInstance)
+            if (script.InstantiateScript)
             {
-                script.m_pInstance = script.InstantiateScript();
-                script.m_pInstance->m_Entity = entity;
-                script.m_pInstance->OnCreate();
+                if (!script.m_pInstance)
+                {
+                    script.m_pInstance = script.InstantiateScript();
+                    script.m_pInstance->m_Entity = entity;
+                    script.m_pInstance->OnCreate();
+                }
+                else if (script.m_pInstance->IsUpdate())
+                    script.m_pInstance->OnUpdate(deltaTime);
             }
-            else if (script.m_pInstance->IsUpdate())
-                script.m_pInstance->OnUpdate(deltaTime);
         });
 }
 
@@ -254,16 +257,16 @@ void shade::Scene::DeserrializeEntity(std::istream& stream, ecs::Entity entity, 
         DESERIALIZE_COMPONENT(compHeaderHash, stream, GlobalLightComponent, entity, [&](ecs::Entity& enityt)->GlobalLightComponent& { return entity.AddComponent<GlobalLightComponent>(GlobalLightComponent::Create()); });
         DESERIALIZE_COMPONENT(compHeaderHash, stream, SpotLightComponent, entity, [&](ecs::Entity& enityt)->SpotLightComponent& { return entity.AddComponent<SpotLightComponent>(SpotLightComponent::Create()); });
         DESERIALIZE_COMPONENT(compHeaderHash, stream, PointLightComponent, entity, [&](ecs::Entity& enityt)->PointLightComponent& { return entity.AddComponent<PointLightComponent>(PointLightComponent::Create()); });
-        DESERIALIZE_COMPONENT(compHeaderHash, stream, NativeScriptComponent, entity, [&](ecs::Entity& enityt)->NativeScriptComponent&
-            {
-                std::string module; std::string name;
-                Serializer::Deserialize(stream, module);  Serializer::Deserialize(stream, name);
-                ecs::ScriptableEntity* script = shade::ScriptManager::InstantiateScript<shade::ecs::ScriptableEntity*>(module, name);
-                if (script)
-                    entity.AddComponent<shade::NativeScriptComponent>().Bind(script);
-                // We don't need to call DesirialzieAsComponent function for this component
-                return *static_cast<NativeScriptComponent*>(nullptr);
-            });
+        //DESERIALIZE_COMPONENT(compHeaderHash, stream, NativeScriptComponent, entity, [&](ecs::Entity& enityt)->NativeScriptComponent&
+        //    {
+        //        std::string module; std::string name;
+        //        Serializer::Deserialize(stream, module);  Serializer::Deserialize(stream, name);
+        //        ecs::ScriptableEntity* script = shade::ScriptManager::InstantiateScript<shade::ecs::ScriptableEntity*>(module, name);
+        //        if (script)
+        //            entity.AddComponent<shade::NativeScriptComponent>().Bind(script);
+        //        // We don't need to call DesirialzieAsComponent function for this component
+        //        return *static_cast<NativeScriptComponent*>(nullptr);
+        //    });
     }
     // Deserrialize childrens
     for (std::uint32_t childIndex = 0u; childIndex < childrenCount; childIndex++, index++)

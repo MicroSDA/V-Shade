@@ -162,7 +162,7 @@ namespace shade
 		SceneRenderer(bool swapChainAsMainTarget);
 		virtual ~SceneRenderer() = default;
                             
-		void OnUpdate(SharedPointer<Scene>& scene, const FrameTimer& deltaTime);
+		void OnUpdate(SharedPointer<Scene>& scene, const shade::CameraComponent& camera, const FrameTimer& deltaTime);
 		void OnRender(SharedPointer<Scene>& scene, const FrameTimer& deltaTime);
 		void OnEvent(SharedPointer<Scene>& scene, const Event& event, const FrameTimer& deltaTime);
 

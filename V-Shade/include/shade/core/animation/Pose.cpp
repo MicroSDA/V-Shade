@@ -44,3 +44,14 @@ void shade::animation::Pose::Reset()
 
 	m_State = State::ZeroPose;
 }
+
+void shade::animation::Pose::UpdatePreviousRootTransform()
+{
+	m_PreviousRootTransform = m_CurrentRootTransform;
+	m_CurrentRootTransform = m_GlobalTransforms->at(46) - m_GlobalTransforms->at(50);
+}
+
+glm::mat4 shade::animation::Pose::ComputeRootMotion() const
+{
+	return m_CurrentRootTransform * glm::inverse(m_PreviousRootTransform);
+}

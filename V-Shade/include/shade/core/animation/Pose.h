@@ -49,6 +49,10 @@ namespace shade
 
 			SHADE_INLINE 		float GetDuration()														const   { return m_Duration; }
 			SHADE_INLINE 		float GetCurrentPlayTime()												const   { return m_CurrentPlayTime; }
+
+			// Methods for root motion
+			void UpdatePreviousRootTransform();
+			glm::mat4 ComputeRootMotion() const;
 		private:
 			Asset<Skeleton>							m_Skeleton;
 			std::size_t								m_AnimationCombinationHash;
@@ -56,6 +60,9 @@ namespace shade
 			State									m_State;
 			float									m_Duration;
 			float									m_CurrentPlayTime;
+			//////////////////////////////////////////////////////////
+			glm::mat4 m_CurrentRootTransform  = glm::identity<glm::mat4>();
+			glm::mat4 m_PreviousRootTransform = glm::identity<glm::mat4>();
 		};
 	}
 }

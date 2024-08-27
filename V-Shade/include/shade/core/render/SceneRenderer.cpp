@@ -237,17 +237,25 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 	m_Cone   = Cone::Create(1.f, 1.f, 20, 8.f, glm::vec3(0.0, 0.0, 1.0));
 }
 
-void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const FrameTimer& deltaTime)
+void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::CameraComponent& camera, const FrameTimer& deltaTime)
 {
-	m_Statistic.Reset();
-	ecs::Entity camera = scene->GetPrimaryCamera();
+	m_Statistic.Reset(); const std::uint32_t currentFrame = Renderer::GetCurrentFrameIndex();
 
-	const std::uint32_t currentFrame = Renderer::GetCurrentFrameIndex();
-
-	if (camera.IsValid())
+	if (camera)
 	{
-		m_Camera = camera.GetComponent<CameraComponent>();
+		m_Camera = camera;
+	}
+	else
+	{
+		ecs::Entity entity = scene->GetPrimaryCamera();
+		if (entity.IsValid())
+		{
+			m_Camera = entity.GetComponent<CameraComponent>();
+		}
+	}
 
+	if (m_Camera)
+	{
 		// Set camera aspect base on render target resolution
 		m_Camera->SetAspect((float)m_MainTargetFrameBuffer[currentFrame]->GetWidth() / (float)m_MainTargetFrameBuffer[currentFrame]->GetHeight());
 

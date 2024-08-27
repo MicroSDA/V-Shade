@@ -70,7 +70,8 @@ void shade::Application::WhileRunning()
 		m_Window->ProcessEvents();
 		EventManager::PollEvents();
 
-		Scene::GetActiveScene()->OnPlaying(m_FrameTimer);
+		if(Scene::GetActiveScene()->IsPlaying())
+			Scene::GetActiveScene()->OnPlaying(m_FrameTimer);
 		
 		// Update layer
 		Layer::OnLayersUpdate(Scene::GetActiveScene(), m_FrameTimer);

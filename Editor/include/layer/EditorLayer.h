@@ -9,6 +9,18 @@
 class EditorLayer : public shade::ImGuiLayer
 {
 public:
+	class EditorCamera : public shade::Camera
+	{
+	public:
+		EditorCamera();
+		void OnUpdate(const shade::FrameTimer& deltaTime);
+		void SetUpdate(bool set) { m_IsUpdate = set; }
+	private:
+		float m_RotationSpeed = 0.3f;
+		float m_MovementSpeed = 0.05f;
+		bool m_IsUpdate = false;
+	}; 
+public:
 	EditorLayer();
 	virtual ~EditorLayer() = default;
 
@@ -31,6 +43,9 @@ private:
 	shade::animation::AnimationGraphContext	graphContext;
 	shade::SharedPointer<shade::animation::AnimationGraph> m_Graph;
 	graph_editor::GraphEditor m_graphEditor;
+
+	shade::SharedPointer<EditorCamera> m_EditorCamera;
+
 	/*shade::SharedPointer<editor_animation_graph::GraphDeligate>			m_AnimationGraphEditor;
 	shade::SharedPointer<editor_state_machine::StateMachineDeligate>	m_StateMachineEditor;*/
 

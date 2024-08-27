@@ -17,8 +17,14 @@ namespace shade
 			void Bind();
 			void Bind(ScriptableEntity* instance)
 			{
-				InstantiateScript = [=]() { return instance; };
 				DestroyScript = [](NativeScript* nsc) { delete nsc->m_pInstance; nsc->m_pInstance = nullptr; };
+
+				if (m_pInstance)
+				{
+					DestroyScript(this);
+				}
+
+				InstantiateScript = [=]() { return instance; };
 			}
 			ScriptableEntity* GetIsntace() { return m_pInstance; }
 		private:
@@ -35,8 +41,14 @@ namespace shade
 		template<typename T>
 		inline void NativeScript::Bind()
 		{
-			InstantiateScript = []() { return static_cast<ScriptableEntity*>(new T()); };
 			DestroyScript = [](NativeScript* nsc) { delete nsc->m_pInstance; nsc->m_pInstance = nullptr; };
+
+			if (m_pInstance)
+			{
+				DestroyScript(this);
+			}
+
+			InstantiateScript = []() { return static_cast<ScriptableEntity*>(new T()); };
 		}
 	}
 }
