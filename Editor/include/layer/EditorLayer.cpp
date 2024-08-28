@@ -72,11 +72,15 @@ void EditorLayer::OnUpdate(shade::SharedPointer<shade::Scene>& scene, const shad
 	if(!m_IsScenePlaying) m_EditorCamera->OnUpdate(deltaTime);
 
 	shade::physic::PhysicsManager::Step(scene, deltaTime);
+	// TODO: m_SceneRenderer->OnUpdate using render functions so for logic we need to use on update scene render only when we need to draw
+	// When window is minizied we don't need to update m_SceneRenderer->OnUpdate but layer should be updated instead !
+	// Для того что бы смочь менимизировать окно нам нужно m_SceneRenderer->OnUpdate до EditorLayer::OnRender но не в EditorLayer::OnUpdate!!!!
 	m_SceneRenderer->OnUpdate(scene, (m_IsScenePlaying) ? nullptr : m_EditorCamera, deltaTime);
 }
 
 void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shade::FrameTimer& deltaTime)
 {
+	
 	m_SceneRenderer->OnRender(scene, deltaTime);
 
 	ImGui::SetCurrentContext(GetImGuiContext());
@@ -1879,6 +1883,7 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 					shade::File file(path.string(), shade::File::In, "@s_animgraph", shade::File::VERSION(0, 0, 1));
 					if (file.IsOpen())
 					{
+						graph.GraphContext.Drop();
 						graph.AnimationGraph = shade::SharedPointer<shade::animation::AnimationGraph>::Create(&graph.GraphContext); file.Read(graph.AnimationGraph); m_graphEditor.Initialize(graph.AnimationGraph);
 					}
 					else
@@ -2025,7 +2030,7 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 			});
 	}
 
-	m_graphEditor.Edit("Animation graph editor", { 500,500 });
+	m_graphEditor.Edit("Animation graph editor", { 500, 500 });
 	//if (graph.AnimationGraph)
 	//{
 	//	ImGui::Text("Asset:");

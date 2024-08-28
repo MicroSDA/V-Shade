@@ -200,25 +200,25 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 			.Shader = ShaderLibrary::Create("Bloom", "./resources/assets/shaders/postprocess/Bloom/Bloom-Compute.glsl"),
 		});
 
-	// TODO: Rework BIND_PIPELINE_PROCESS_FUNCTION
-	m_MainGeometryPipelineStatic->Process   = BIND_PIPELINE_PROCESS_FUNCTION(SceneRenderer, InstancedGeometryPass, this);
-	m_MainGeometryPipelineAnimated->Process = BIND_PIPELINE_PROCESS_FUNCTION(SceneRenderer, InstancedGeometryPass, this);
-	m_LightCullingPreDepthPipeline->Process = BIND_PIPELINE_PROCESS_FUNCTION(SceneRenderer, LightCullingPreDepthPass, this);
-	m_LightCullingPipeline->Process = BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION(SceneRenderer, LightCullingComputePass, this);
-
-	m_GlobalLightShadowDepthPipeline->Process = BIND_PIPELINE_PROCESS_FUNCTION(SceneRenderer, GlobalLightShadowPreDepthPass, this);
-	m_SpotLightShadowDepthPipeline->Process = BIND_PIPELINE_PROCESS_FUNCTION(SceneRenderer, SpotLightShadowPreDepthPass, this);
-	m_PointLightShadowDepthPipeline->Process = BIND_PIPELINE_PROCESS_FUNCTION(SceneRenderer, PointLightShadowPreDepthPass, this);
-
-	m_GridPipeline->Process = BIND_PIPELINE_PROCESS_FUNCTION(SceneRenderer, GridPass, this);
-	m_AABB_OBB_Pipeline->Process = BIND_PIPELINE_PROCESS_FUNCTION(SceneRenderer, FlatPipeline, this);
 	
-	m_ScreenSpaceAmbientOcclusionPipeline->Process = BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION(SceneRenderer, SSAOComputePass, this);
-	m_ColorCorrectionPipeline->Process = BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION(SceneRenderer, ColorCorrectionComputePass, this);
-	m_BloomPipeline->Process = BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION(SceneRenderer, BloomComputePass, this);
+	BIND_PIPELINE_PROCESS_FUNCTION(m_MainGeometryPipelineStatic, SceneRenderer, InstancedGeometryPass, this);
+	BIND_PIPELINE_PROCESS_FUNCTION(m_MainGeometryPipelineAnimated, SceneRenderer, InstancedGeometryPass, this);
+	BIND_PIPELINE_PROCESS_FUNCTION(m_LightCullingPreDepthPipeline, SceneRenderer, LightCullingPreDepthPass, this);
+	BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION(m_LightCullingPipeline, SceneRenderer, LightCullingComputePass, this);
+
+	BIND_PIPELINE_PROCESS_FUNCTION(m_GlobalLightShadowDepthPipeline, SceneRenderer, GlobalLightShadowPreDepthPass, this);
+	BIND_PIPELINE_PROCESS_FUNCTION(m_SpotLightShadowDepthPipeline, SceneRenderer, SpotLightShadowPreDepthPass, this);
+	BIND_PIPELINE_PROCESS_FUNCTION(m_PointLightShadowDepthPipeline, SceneRenderer, PointLightShadowPreDepthPass, this);
+
+	BIND_PIPELINE_PROCESS_FUNCTION(m_GridPipeline, SceneRenderer, GridPass, this);
+	BIND_PIPELINE_PROCESS_FUNCTION(m_AABB_OBB_Pipeline, SceneRenderer, FlatPipeline, this);
 	
-	m_PointLightVisualizationPipeline->Process = BIND_PIPELINE_PROCESS_FUNCTION(SceneRenderer, LightVisualizationPass, this);
-	m_SpotLightVisualizationPipeline->Process  = BIND_PIPELINE_PROCESS_FUNCTION(SceneRenderer, LightVisualizationPass, this);
+	BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION(m_ScreenSpaceAmbientOcclusionPipeline, SceneRenderer, SSAOComputePass, this);
+	BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION(m_ColorCorrectionPipeline, SceneRenderer, ColorCorrectionComputePass, this);
+	BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION(m_BloomPipeline, SceneRenderer, BloomComputePass, this);
+	
+	BIND_PIPELINE_PROCESS_FUNCTION(m_PointLightVisualizationPipeline, SceneRenderer, LightVisualizationPass, this);
+	BIND_PIPELINE_PROCESS_FUNCTION(m_SpotLightVisualizationPipeline, SceneRenderer, LightVisualizationPass, this);
 
 	m_CollisionPointsMaterial	= SharedPointer<Material>::Create();
 

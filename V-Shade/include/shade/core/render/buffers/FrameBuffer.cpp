@@ -9,7 +9,7 @@ shade::SharedPointer<shade::FrameBuffer> shade::FrameBuffer::Create(const FrameB
 	switch (RenderAPI::GetCurrentAPI())
 	{
 		case RenderAPI::API::None:  SHADE_CORE_ERROR("Undefined render API!"); return nullptr;
-		case RenderAPI::API::Vulkan: return SharedPointer<VulkanFrameBuffer>::Create(VulkanContext::GetDevice()->GetLogicalDevice(), VulkanContext::GetInstance(), specification);
+		case RenderAPI::API::Vulkan: return SharedPointer<VulkanFrameBuffer>::Create(VulkanContext::GetLogicalDevice()->GetDevice(), VulkanContext::GetInstance(), specification);
 		default: SHADE_CORE_ERROR("Undefined render API!"); return nullptr;
 	}
 }
@@ -19,7 +19,7 @@ shade::SharedPointer<shade::FrameBuffer> shade::FrameBuffer::Create(const FrameB
 	switch (RenderAPI::GetCurrentAPI())
 	{
 		case RenderAPI::API::None:  SHADE_CORE_ERROR("Undefined render API!"); return nullptr;
-		case RenderAPI::API::Vulkan: return SharedPointer<VulkanFrameBuffer>::Create(VulkanContext::GetDevice()->GetLogicalDevice(), VulkanContext::GetInstance(), specification, images);
+		case RenderAPI::API::Vulkan: return SharedPointer<VulkanFrameBuffer>::Create(VulkanContext::GetLogicalDevice()->GetDevice(), VulkanContext::GetInstance(), specification, images);
 		default: SHADE_CORE_ERROR("Undefined render API!"); return nullptr;
 	}
 }

@@ -65,7 +65,7 @@ namespace shade
 		virtual ~VulkanDevice();
 
 		const SharedPointer<VulkanPhysicalDevice>& GetPhysicalDevice() const;
-		const VkDevice& GetLogicalDevice() const;
+		const VkDevice& GetDevice() const;
 		void Destroy();
 
 

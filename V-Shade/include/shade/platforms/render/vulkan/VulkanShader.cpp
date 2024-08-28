@@ -239,7 +239,7 @@ void shade::VulkanShader::Reflect(shade::Shader::Type type, const std::vector<ui
 shade::VulkanShader::~VulkanShader()
 {
     for (auto& shader : m_PipelineShaderStageCreateInfo)
-        vkDestroyShaderModule(VulkanContext::GetDevice()->GetLogicalDevice(), shader.module, VulkanContext::GetInstance().AllocationCallbaks); 
+        vkDestroyShaderModule(VulkanContext::GetLogicalDevice()->GetDevice(), shader.module, VulkanContext::GetInstance().AllocationCallbaks);
 }
 
 std::vector<VkPipelineShaderStageCreateInfo>& shade::VulkanShader::GetPipelineShaderStageCreateInfo()
@@ -249,7 +249,7 @@ std::vector<VkPipelineShaderStageCreateInfo>& shade::VulkanShader::GetPipelineSh
 
 void shade::VulkanShader::CreateShader()
 {
-    auto& device = VulkanContext::GetDevice()->GetLogicalDevice();
+    auto& device = VulkanContext::GetLogicalDevice()->GetDevice();
     auto& instance = VulkanContext::GetInstance();
     for (auto& [type, shader] : m_VulkanSPIRV)
     {

@@ -11,12 +11,12 @@
 namespace shade
 {
 #ifndef BIND_PIPELINE_PROCESS_FUNCTION
-#define BIND_PIPELINE_PROCESS_FUNCTION(class_name, function_name, instance) \
-    std::bind(std::mem_fn(&class_name::function_name), instance, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5)
+#define BIND_PIPELINE_PROCESS_FUNCTION(pipeline, class_name, function_name, instance) \
+    pipeline->Process = std::bind(std::mem_fn(&class_name::function_name), instance, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5)
 #endif
 #ifndef BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION
-	#define BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION(class_name, function_name, instance) \
-    std::bind(std::mem_fn(&class_name::function_name), instance, std::placeholders::_1, std::placeholders::_2)
+	#define BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION(pipeline, class_name, function_name, instance) \
+    pipeline->Process = std::bind(std::mem_fn(&class_name::function_name), instance, std::placeholders::_1, std::placeholders::_2)
 #endif
 
 	class SHADE_API Pipeline
@@ -113,11 +113,12 @@ namespace shade
 			SharedPointer<Shader>		Shader;
 			SharedPointer<FrameBuffer>	FrameBuffer;
 			VertexBuffer::Layout		VertexLayout;
-			PrimitiveTopology			Topology		= PrimitiveTopology::Triangle;
-			PrimitivePolygonMode		PolygonMode		= PrimitivePolygonMode::Fill;
-			DepthTestFunction			DepthTest		= DepthTestFunction::LessOrEqual;
-			bool						BackFalceCull	= true;
-			bool						DepthClamp		= false;
+			PrimitiveTopology			Topology		 = PrimitiveTopology::Triangle;
+			PrimitivePolygonMode		PolygonMode		 = PrimitivePolygonMode::Fill;
+			DepthTestFunction			DepthTest		 = DepthTestFunction::LessOrEqual;
+			bool						BackFalceCull	 = true;
+			bool						DepthClamp		 = false;
+			bool						DepthTestEnabled = true;
 			float						DepsBiasConstantFactor = 0.f;
 			float						DepthBiasClamp = 0.f;
 			float						DepthBiasSlopeFactor = 0.f;

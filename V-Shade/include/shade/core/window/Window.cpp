@@ -10,11 +10,6 @@ shade::WindowProperties::WindowProperties(const std::string& title, std::uint32_
 {
 }
 
-shade::Window::~Window()
-{
-	
-}
-
 bool shade::Window::OnResizeEvent(WindowResizeEvent& event)
 {
 	m_Properties.Height = event.Height;
@@ -25,11 +20,6 @@ bool shade::Window::OnResizeEvent(WindowResizeEvent& event)
 bool shade::Window::OnCloseEvent(WindowCloseEvent& event)
 {
 	return false;
-}
-
-shade::UniquePointer<shade::SwapChain>& shade::Window::GetSwapChain()
-{
-	return m_SwapChain;
 }
 
 shade::Window& shade::Window::Create(const WindowProperties& properties)

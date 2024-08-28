@@ -74,12 +74,19 @@ void shade::Application::WhileRunning()
 			Scene::GetActiveScene()->OnPlaying(m_FrameTimer);
 		
 		// Update layer
-		Layer::OnLayersUpdate(Scene::GetActiveScene(), m_FrameTimer);
+		
+
 		/* Render part */
-		m_Window->GetSwapChain()->BeginFrame();
-			Layer::OnLayersRender(Scene::GetActiveScene(), m_FrameTimer);
-			m_Window->SwapBuffers();
-		m_Window->GetSwapChain()->EndFrame();
+
+		if (!m_Window->IsMinimized())
+		{
+			Layer::OnLayersUpdate(Scene::GetActiveScene(), m_FrameTimer);
+
+			m_Window->GetSwapChain()->BeginFrame();
+				Layer::OnLayersRender(Scene::GetActiveScene(), m_FrameTimer);
+				m_Window->SwapBuffers();
+			m_Window->GetSwapChain()->EndFrame();
+		}
 		//SHADE_CORE_DEBUG("FPS : {0}", 1000 / m_FrameTimer.GetInMilliseconds());
 
 		AssetManager::DeliveryAssets();

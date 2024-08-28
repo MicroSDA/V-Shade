@@ -356,7 +356,7 @@ const shade::SharedPointer<shade::VulkanPhysicalDevice>& shade::VulkanDevice::Ge
 	return m_PhysicalDevice;
 }
 
-const VkDevice& shade::VulkanDevice::GetLogicalDevice() const
+const VkDevice& shade::VulkanDevice::GetDevice() const
 {
 	return m_LogicalDevice;
 }

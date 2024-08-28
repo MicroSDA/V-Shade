@@ -32,14 +32,14 @@ shade::VulkanImGuiRender::VulkanImGuiRender()
 		.pPoolSizes = poolSizes
 	};
 
-	VK_CHECK_RESULT(vkCreateDescriptorPool(VulkanContext::GetDevice()->GetLogicalDevice(), &descriptorPoolCreateInfo, nullptr, &m_DescriptorPool), "Failed to create descriptor pool");
+	VK_CHECK_RESULT(vkCreateDescriptorPool(VulkanContext::GetLogicalDevice()->GetDevice(), &descriptorPoolCreateInfo, nullptr, &m_DescriptorPool), "Failed to create descriptor pool");
 
 	ImGui_ImplVulkan_InitInfo imguiImplVulkanInfo
 	{
 		.Instance = VulkanContext::GetInstance().Instance,
 		.PhysicalDevice = VulkanContext::GetPhysicalDevice()->GetDevice(),
-		.Device = VulkanContext::GetDevice()->GetLogicalDevice(),
-		.Queue = VulkanContext::GetDevice()->GetGraphicsQueue(),
+		.Device = VulkanContext::GetLogicalDevice()->GetDevice(),
+		.Queue = VulkanContext::GetLogicalDevice()->GetGraphicsQueue(),
 		.DescriptorPool = m_DescriptorPool,
 		.MinImageCount = 2,
 		.ImageCount = 3,
@@ -86,7 +86,7 @@ shade::VulkanImGuiRender::VulkanImGuiRender()
 
 shade::VulkanImGuiRender::~VulkanImGuiRender()
 {
-	vkDestroyDescriptorPool(VulkanContext::GetDevice()->GetLogicalDevice(), m_DescriptorPool, nullptr);
+	vkDestroyDescriptorPool(VulkanContext::GetLogicalDevice()->GetDevice(), m_DescriptorPool, nullptr);
 	ImGui_ImplVulkan_Shutdown();
 	ImGui::DestroyContext(m_ImGuiContext); 
 }
@@ -138,6 +138,7 @@ void shade::VulkanImGuiRender::EndRender()
 void shade::VulkanImGuiRender::DrawImage(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor)
 {
 	// Сделать леют транизшин пер мип, сайчас можно тодлько для диапазона а не для конкретной мипы
+	//auto commandBuffer = RenderCommandBuffer::Create(RenderCommandBuffer::Type::Primary, RenderCommandBuffer::Family::Graphic, RenderAPI::GetFramesCount());
 	auto commandBuffer = RenderCommandBuffer::Create();
 	auto& image = texture->GetImage()->As<VulkanImage2D>();
 	// VK_IMAGE_LAYOUT_GENERAL because we are using it as storage in compute shader color correction!

@@ -25,7 +25,7 @@ namespace shade
 
 		static VulkanInstance& GetInstance();
 		static SharedPointer<VulkanPhysicalDevice>& GetPhysicalDevice();
-		static SharedPointer<VulkanDevice>& GetDevice();
+		static SharedPointer<VulkanDevice>& GetLogicalDevice();
 	private:
 		static VulkanInstance m_sVulkanInstance;
 		static SharedPointer<VulkanPhysicalDevice> m_sPhysicalDevice;

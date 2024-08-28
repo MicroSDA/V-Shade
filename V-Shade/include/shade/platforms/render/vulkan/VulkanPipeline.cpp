@@ -15,12 +15,11 @@ shade::VulkanPipeline::VulkanPipeline(const RenderPipeline::Specification& speci
 void shade::VulkanPipeline::Invalidate()
 {
 	// TODO: Refactor this part
-	auto& device = VulkanContext::GetDevice()->GetLogicalDevice();
-	auto& instance = VulkanContext::GetInstance();
-	auto& shader = m_Specification.Shader->As<VulkanShader>();
+	auto& device		= VulkanContext::GetLogicalDevice()->GetDevice();
+	auto& instance		= VulkanContext::GetInstance();
+	auto& shader =		 m_Specification.Shader->As<VulkanShader>();
 
-	//_Descriptor.AllocateDescriptorSet()
-	if (&shader)
+	if (&shader) // Check if the shader is valid
 	{
 		std::vector<VkPushConstantRange> pushConstants;
 
@@ -30,7 +29,9 @@ void shade::VulkanPipeline::Invalidate()
 			
 			if (set != std::uint32_t(Pipeline::Set::Global))
 			{
-				// Storage Buffer
+				//------------------------------------------------------------------------
+			    // Descriptor Set Layout Bindings: Storage Buffers
+			    //------------------------------------------------------------------------
 				for (auto& [name, buffer] : data.StorageBuffers)
 				{
 					VkDescriptorSetLayoutBinding layoutSetBinding =
@@ -44,7 +45,9 @@ void shade::VulkanPipeline::Invalidate()
 
 					descriptorSetLayoutBinding.emplace_back(layoutSetBinding);
 				}
-				// Uniform Buffer
+				//------------------------------------------------------------------------
+				// Descriptor Set Layout Bindings: Uniform Buffers
+				//------------------------------------------------------------------------
 				for (auto& [name, buffer] : data.UniformBuffers)
 				{
 					VkDescriptorSetLayoutBinding layoutSetBinding =
@@ -58,7 +61,9 @@ void shade::VulkanPipeline::Invalidate()
 
 					descriptorSetLayoutBinding.emplace_back(layoutSetBinding);
 				}
-				// Image
+				//------------------------------------------------------------------------
+				// Descriptor Set Layout Bindings: Image Samplers
+				//------------------------------------------------------------------------
 				for (auto& [name, image] : data.ImageSamplers)
 				{
 					VkDescriptorSetLayoutBinding layoutSetBinding =
@@ -75,8 +80,9 @@ void shade::VulkanPipeline::Invalidate()
 				
 				m_DescriptorsLayouts.emplace(static_cast<Pipeline::Set>(set), VulkanDescriptorSetLayout(device, instance, descriptorSetLayoutBinding));
 			}
-
-			// Push constant 
+			//------------------------------------------------------------------------
+			// Push Constants
+			//------------------------------------------------------------------------
 			for (auto& [name, constant] : data.PushConstants)
 			{
 				VkPushConstantRange range
@@ -90,32 +96,40 @@ void shade::VulkanPipeline::Invalidate()
 			}
 		}
 
+		//------------------------------------------------------------------------
+		// Pipeline Layout Creation
+		//------------------------------------------------------------------------
+
 		/* Alongside of all the State structs, we will need a VkPipelineLayout object for our pipeline.
 		Unlike the other state structs, this one is an actual full Vulkan object, and needs to be created separately from the pipeline.
 		Pipeline layouts contain the information about shader inputs of a given pipeline.
 		It’s here where you would configure your push-constants and descriptor sets. */
 
-		std::vector<VkDescriptorSetLayout> descriptorSetLayouts(1, VulkanRenderAPI::GetGlobalDescriptorSetLayout()->GetDescriptorSetLayout());
-		std::vector<VkPushConstantRange> pushConstanRanges = VulkanRenderAPI::GlobalPushConstantRanges();
+		std::vector<VkDescriptorSetLayout>	descriptorSetLayouts(1, VulkanRenderAPI::GetGlobalDescriptorSetLayout()->GetDescriptorSetLayout());
+		std::vector<VkPushConstantRange>	pushConstanRanges = VulkanRenderAPI::GlobalPushConstantRanges();
 
-		std::map<VkShaderStageFlagBits, uint32_t> stagesOffsets;
-
+		std::map<VkShaderStageFlagBits, uint32_t> stagesOffsets;  // Map to hold stage offsets for push constants
+		 
 		for (auto& pushConstant : pushConstants) {
 			VkShaderStageFlags stageFlags = pushConstant.stageFlags;
 
 			// Iterate through all possible shader stages
 			for (VkShaderStageFlagBits stageBit = VK_SHADER_STAGE_VERTEX_BIT;
 				stageBit <= VK_SHADER_STAGE_COMPUTE_BIT;
-				stageBit = static_cast<VkShaderStageFlagBits>(stageBit << 1)) {
-				if (stageFlags & stageBit) {
+				stageBit = static_cast<VkShaderStageFlagBits>(stageBit << 1)) 
+			{
+				if (stageFlags & stageBit) 
+				{
 					// Find the offset for the current stage in the map
 					auto stage = stagesOffsets.find(stageBit);
 
 					// If the stage is not found, add it to the map with an initial offset of 0
-					if (stage == stagesOffsets.end()) {
+					if (stage == stagesOffsets.end()) 
+					{
 						stagesOffsets[stageBit] = 0;
 					}
-					else {
+					else 
+					{
 						// Increment the offset for the current stage
 						stage->second += pushConstant.size;
 					}
@@ -131,6 +145,9 @@ void shade::VulkanPipeline::Invalidate()
 		for (auto& [set, layout] : m_DescriptorsLayouts)
 			descriptorSetLayouts.emplace_back(layout.GetDescriptorSetLayout());
 
+		//------------------------------------------------------------------------
+	    // Pipeline Layout Create Info
+	    //------------------------------------------------------------------------
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo
 		{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -143,6 +160,11 @@ void shade::VulkanPipeline::Invalidate()
 		};
 
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCreateInfo, VulkanContext::GetInstance().AllocationCallbaks, &m_PipelineLayout), "Failed to create pipeline layout!");
+
+		//------------------------------------------------------------------------
+	    // Input Assembly State
+	    //------------------------------------------------------------------------
+
 		/*  Contains the configuration for what kind of topology will be drawn.
 			This is where you set it to draw triangles, lines, points, or others like triangle-list. */
 		VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo
@@ -153,6 +175,11 @@ void shade::VulkanPipeline::Invalidate()
 			.topology = static_cast<VkPrimitiveTopology>(m_Specification.Topology),
 			.primitiveRestartEnable = VK_FALSE
 		};
+
+		//------------------------------------------------------------------------
+		// Rasterization State
+		//------------------------------------------------------------------------
+
 		/*  Configuration for the fixed-function rasterization.
 			In here is where we enable or disable backface culling, and set line width or wireframe drawing. */
 		VkPipelineRasterizationStateCreateInfo pipelineRasterizationStateCreateInfo
@@ -172,8 +199,12 @@ void shade::VulkanPipeline::Invalidate()
 			.lineWidth = m_Specification.LineWidth,
 		};
 		
-		/* Dynamic states. */ // TODO: need comments
-		std::vector<VkDynamicState> dynamicStates{
+		//------------------------------------------------------------------------
+		// Dynamic State Configuration
+		//------------------------------------------------------------------------
+
+		std::vector<VkDynamicState> dynamicStates
+		{
 		   VK_DYNAMIC_STATE_VIEWPORT,
 		   //VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT,
 
@@ -191,6 +222,7 @@ void shade::VulkanPipeline::Invalidate()
 			.scissorCount = 0,
 			.pScissors = VK_NULL_HANDLE
 		};
+
 		for (auto& state : dynamicStates)
 		{
 			if (state == VK_DYNAMIC_STATE_VIEWPORT)
@@ -201,7 +233,10 @@ void shade::VulkanPipeline::Invalidate()
 			/*if (instance->m_Specification.Topology == PrimitiveTopology::Lines || instance->m_Specification.Topology == PrimitiveTopology::LineStrip || instance->m_Specification.Wireframe)
 				dynamicStateEnables.push_back(VK_DYNAMIC_STATE_LINE_WIDTH);*/
 		}
-		// TODO: need comments
+
+		//------------------------------------------------------------------------
+	    // Dynamic State Create Info
+	    //------------------------------------------------------------------------
 		VkPipelineDynamicStateCreateInfo pipelineDynamicStateCreateInfo
 		{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
@@ -210,15 +245,18 @@ void shade::VulkanPipeline::Invalidate()
 			.dynamicStateCount = static_cast<std::uint32_t>(dynamicStates.size()),
 			.pDynamicStates = dynamicStates.data()
 		};
-		// Depth stencil
+
+		//------------------------------------------------------------------------
+	    // Depth Stencil State
+	    //------------------------------------------------------------------------
 		// Actually we need check evereting from shader that we need to create bcs we can no create stensil or sometning.!
 		VkPipelineDepthStencilStateCreateInfo pipelineDepthStencilStateCreateInfo
 		{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
 			.pNext = VK_NULL_HANDLE,
 			.flags = 0,
-			.depthTestEnable		= VK_TRUE,
-			.depthWriteEnable		= VK_TRUE,
+			.depthTestEnable		= m_Specification.DepthTestEnabled,
+			.depthWriteEnable		= m_Specification.DepthTestEnabled,
 			.depthCompareOp			= static_cast<VkCompareOp>(m_Specification.DepthTest),
 			.depthBoundsTestEnable	= VK_FALSE,
 			.stencilTestEnable		= VK_FALSE,
@@ -237,6 +275,10 @@ void shade::VulkanPipeline::Invalidate()
 			.minDepthBounds =  0.f,
 			.maxDepthBounds =  1.f
 		};
+
+		//------------------------------------------------------------------------
+		// Multisample State
+		//------------------------------------------------------------------------
 		/*  This allows us to configure MSAA for this pipeline. We are not going to use MSAA at this time,
 			so we are going to default it to 1 sample and MSAA disabled.
 			If you wanted to enable MSAA, you would need to set rasterizationSamples to more than 1,
@@ -309,16 +351,15 @@ void shade::VulkanPipeline::Invalidate()
 			frameBuffer = Application::GetWindow()->GetSwapChain()->GetFrameBuffers()[0];
 		}
 
-
 		std::vector<VkFormat> colorsFormats;
 		VkFormat depthFormat = VK_FORMAT_UNDEFINED;
 
-		for (auto foramt : frameBuffer->GetSpecification().Attachments.TextureAttachments)
+		for (auto& format : frameBuffer->GetSpecification().Attachments.TextureAttachments)
 		{
-			if (VKUtils::IsDepthFormat(foramt.Format) || VKUtils::IsDepthStencilFormat(foramt.Format))
-				depthFormat = VKUtils::ToVulkanImageFormat(foramt.Format);
+			if (VKUtils::IsDepthFormat(format.Format) || VKUtils::IsDepthStencilFormat(format.Format))
+				depthFormat = VKUtils::ToVulkanImageFormat(format.Format);
 			else
-				colorsFormats.emplace_back(VKUtils::ToVulkanImageFormat(foramt.Format));
+				colorsFormats.emplace_back(VKUtils::ToVulkanImageFormat(format.Format));
 		}
 
 		m_PipelineRenderingCreateInfo =
@@ -332,8 +373,11 @@ void shade::VulkanPipeline::Invalidate()
 			.stencilAttachmentFormat = VK_FORMAT_UNDEFINED
 		};
 
+		//------------------------------------------------------------------------
+	    // Color Blend State
+	    //------------------------------------------------------------------------
 		std::vector<VkPipelineColorBlendAttachmentState> pipelineColorBlendAttachmentStates(colorsFormats.size());
-
+		
 		for (auto& pipelineColorBlendAttachmentState : pipelineColorBlendAttachmentStates)
 		{
 			pipelineColorBlendAttachmentState =
@@ -359,7 +403,9 @@ void shade::VulkanPipeline::Invalidate()
 			.pAttachments = pipelineColorBlendAttachmentStates.data(),
 			.blendConstants = { 0.f, 0.f, 0.f, 0.f }
 		};
-		// Structure specifying parameters of a newly created graphics pipeline
+		//------------------------------------------------------------------------
+		// Pipeline Create Info
+		//------------------------------------------------------------------------
 		VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo
 		{
 			.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -393,7 +439,7 @@ void shade::VulkanPipeline::Invalidate()
 
 shade::VulkanPipeline::~VulkanPipeline()
 {
-	auto& device = VulkanContext::GetDevice()->GetLogicalDevice();
+	auto& device = VulkanContext::GetLogicalDevice()->GetDevice();
 	auto& instance = VulkanContext::GetInstance();
 
 	if (m_PipelineLayout != VK_NULL_HANDLE)
@@ -530,9 +576,9 @@ void shade::VulkanPipeline::SetMaterial(SharedPointer<StorageBuffer> buffer, std
 void shade::VulkanPipeline::SetMaterial(SharedPointer<StorageBuffer> buffer, std::uint32_t bufferoffset, const Asset<Material>& material, std::uint32_t frameIndex)
 {
 	SetResource(buffer, Pipeline::Set::PerInstance, frameIndex, bufferoffset);
-	SetTexture((material) ? material->TextureDiffuse  : nullptr,  Pipeline::Set::PerInstance, RenderAPI::DIFFUSE_TEXTURE_BINDING, frameIndex);
-	SetTexture((material) ? material->TextureSpecular : nullptr,  Pipeline::Set::PerInstance, RenderAPI::SPECULAR_TEXTURE_BINDING, frameIndex);
-	SetTexture((material) ? material->TextureNormals  : nullptr,  Pipeline::Set::PerInstance, RenderAPI::NORMAL_TEXTURE_BINDING, frameIndex);
+	SetTexture((material) ? material->TextureDiffuse : nullptr, Pipeline::Set::PerInstance, RenderAPI::DIFFUSE_TEXTURE_BINDING, frameIndex);
+	SetTexture((material) ? material->TextureSpecular : nullptr, Pipeline::Set::PerInstance, RenderAPI::SPECULAR_TEXTURE_BINDING, frameIndex);
+	SetTexture((material) ? material->TextureNormals : nullptr, Pipeline::Set::PerInstance, RenderAPI::NORMAL_TEXTURE_BINDING, frameIndex);
 }
 
 void shade::VulkanPipeline::SetUniform(SharedPointer<RenderCommandBuffer>& commandBuffer, std::size_t size, const void* data, std::uint32_t frameIndex, Shader::TypeFlags shaderStage, std::uint32_t offset)

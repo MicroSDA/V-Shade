@@ -9,7 +9,7 @@ shade::Texture2D* shade::Texture2D::Create(SharedPointer<AssetData> assetData, L
 	switch (RenderAPI::GetCurrentAPI())
 	{
 		case RenderAPI::API::None:  SHADE_CORE_ERROR("Undefined render API!"); return nullptr;
-		case RenderAPI::API::Vulkan: return new VulkanTexture2D(VulkanContext::GetDevice()->GetLogicalDevice(),VulkanContext::GetInstance(), assetData, lifeTime, behaviour);
+		case RenderAPI::API::Vulkan: return new VulkanTexture2D(VulkanContext::GetLogicalDevice()->GetDevice(),VulkanContext::GetInstance(), assetData, lifeTime, behaviour);
 		default: SHADE_CORE_ERROR("Undefined render API!"); return nullptr;
 	}
 }
@@ -24,7 +24,7 @@ shade::SharedPointer<shade::Texture2D> shade::Texture2D::CreateEXP(const SharedP
 	switch (RenderAPI::GetCurrentAPI())
 	{
 		case RenderAPI::API::None:  SHADE_CORE_ERROR("Undefined render API!"); return nullptr;
-		case RenderAPI::API::Vulkan: return SharedPointer<VulkanTexture2D>::Create(VulkanContext::GetDevice()->GetLogicalDevice(), VulkanContext::GetInstance(), image);
+		case RenderAPI::API::Vulkan: return SharedPointer<VulkanTexture2D>::Create(VulkanContext::GetLogicalDevice()->GetDevice(), VulkanContext::GetInstance(), image);
 		default: SHADE_CORE_ERROR("Undefined render API!"); return nullptr;
 	}
 }
@@ -34,7 +34,7 @@ shade::SharedPointer<shade::Texture2D> shade::Texture2D::CreateEXP(const render:
 	switch (RenderAPI::GetCurrentAPI())
 	{
 		case RenderAPI::API::None:  SHADE_CORE_ERROR("Undefined render API!"); return nullptr;
-		case RenderAPI::API::Vulkan: return SharedPointer<VulkanTexture2D>::Create(VulkanContext::GetDevice()->GetLogicalDevice(), VulkanContext::GetInstance(), specification);
+		case RenderAPI::API::Vulkan: return SharedPointer<VulkanTexture2D>::Create(VulkanContext::GetLogicalDevice()->GetDevice(), VulkanContext::GetInstance(), specification);
 		default: SHADE_CORE_ERROR("Undefined render API!"); return nullptr;
 	}
 }

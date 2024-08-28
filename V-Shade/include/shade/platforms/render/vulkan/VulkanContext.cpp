@@ -174,7 +174,7 @@ shade::SharedPointer<shade::VulkanPhysicalDevice>& shade::VulkanContext::GetPhys
 	return m_sPhysicalDevice;
 }
 
-shade::SharedPointer<shade::VulkanDevice> & shade::VulkanContext::GetDevice()
+shade::SharedPointer<shade::VulkanDevice> & shade::VulkanContext::GetLogicalDevice()
 {
 	return m_sDevice;
 }

@@ -4,7 +4,7 @@
 #include <shade/core/application/Application.h>
 
 shade::VulkanCommandBuffer::VulkanCommandBuffer(const Type& type, const Family& family, const std::uint32_t& count, const std::string& name) :
-	m_VkDevice(VulkanContext::GetDevice()), m_VkPhysicalDevice(VulkanContext::GetPhysicalDevice()), m_VkInstance(VulkanContext::GetInstance())
+	m_VkDevice(VulkanContext::GetLogicalDevice()), m_VkPhysicalDevice(VulkanContext::GetPhysicalDevice()), m_VkInstance(VulkanContext::GetInstance())
 {
 	// Set the receiver-type, family and name variables
 	m_Type = type; m_Family = family; m_Name = name;
@@ -38,8 +38,8 @@ shade::VulkanCommandBuffer::VulkanCommandBuffer(const Type& type, const Family& 
 			break;
 		}
 
-		VK_CHECK_RESULT(vkCreateCommandPool(m_VkDevice->GetLogicalDevice(), &commandPoolCreateInfo, m_VkInstance.AllocationCallbaks, &commandBuffer.Pool), "Failed to create command pool!");
-		VKUtils::SetDebugObjectName(m_VkInstance.Instance, "Command pool", m_VkDevice->GetLogicalDevice(), VK_OBJECT_TYPE_COMMAND_POOL, commandBuffer.Pool);
+		VK_CHECK_RESULT(vkCreateCommandPool(m_VkDevice->GetDevice(), &commandPoolCreateInfo, m_VkInstance.AllocationCallbaks, &commandBuffer.Pool), "Failed to create command pool!");
+		VKUtils::SetDebugObjectName(m_VkInstance.Instance, "Command pool", m_VkDevice->GetDevice(), VK_OBJECT_TYPE_COMMAND_POOL, commandBuffer.Pool);
 
 		//Allocate command buffers using the created info and allocation count variable. Also, set debug object name.
 		VkCommandBufferAllocateInfo commandBufferAllocateInfo
@@ -51,8 +51,8 @@ shade::VulkanCommandBuffer::VulkanCommandBuffer(const Type& type, const Family& 
 			.commandBufferCount = 1
 		};
 
-		VK_CHECK_RESULT(vkAllocateCommandBuffers(m_VkDevice->GetLogicalDevice(), &commandBufferAllocateInfo, &commandBuffer.Buffer), "Failed to allocate command buffers!");
-		VKUtils::SetDebugObjectName(m_VkInstance.Instance, m_Name, m_VkDevice->GetLogicalDevice(), VK_OBJECT_TYPE_COMMAND_BUFFER, commandBuffer.Buffer);
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(m_VkDevice->GetDevice(), &commandBufferAllocateInfo, &commandBuffer.Buffer), "Failed to allocate command buffers!");
+		VKUtils::SetDebugObjectName(m_VkInstance.Instance, m_Name, m_VkDevice->GetDevice(), VK_OBJECT_TYPE_COMMAND_BUFFER, commandBuffer.Buffer);
 	}
 	//Resize the wait fences using the count variable.
 	m_WaitFences.resize(count);
@@ -67,8 +67,8 @@ shade::VulkanCommandBuffer::VulkanCommandBuffer(const Type& type, const Family& 
 			.flags = VK_FENCE_CREATE_SIGNALED_BIT
 		};
 
-		VK_CHECK_RESULT(vkCreateFence(m_VkDevice->GetLogicalDevice(), &fenceCreateInfo, m_VkInstance.AllocationCallbaks, &fence), "Failed to create fence!");
-		VKUtils::SetDebugObjectName(m_VkInstance.Instance, "Fence ", m_VkDevice->GetLogicalDevice(), VK_OBJECT_TYPE_FENCE, fence);
+		VK_CHECK_RESULT(vkCreateFence(m_VkDevice->GetDevice(), &fenceCreateInfo, m_VkInstance.AllocationCallbaks, &fence), "Failed to create fence!");
+		VKUtils::SetDebugObjectName(m_VkInstance.Instance, "Fence ", m_VkDevice->GetDevice(), VK_OBJECT_TYPE_FENCE, fence);
 	}
 }
 
@@ -76,11 +76,11 @@ shade::VulkanCommandBuffer::~VulkanCommandBuffer()
 {
 	for (auto i = 0u; i < m_CommandBuffers.size(); i++)
 	{
-		vkWaitForFences(m_VkDevice->GetLogicalDevice(), 1, &m_WaitFences[i], VK_TRUE, UINT64_MAX);
-		vkFreeCommandBuffers(m_VkDevice->GetLogicalDevice(), m_CommandBuffers[i].Pool, 1, &m_CommandBuffers[i].Buffer);
-		vkResetCommandPool(m_VkDevice->GetLogicalDevice(), m_CommandBuffers[i].Pool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
-		vkDestroyCommandPool(m_VkDevice->GetLogicalDevice(), m_CommandBuffers[i].Pool, VulkanContext::GetInstance().AllocationCallbaks);
-		vkDestroyFence(m_VkDevice->GetLogicalDevice(), m_WaitFences[i], m_VkInstance.AllocationCallbaks);
+		vkWaitForFences(m_VkDevice->GetDevice(), 1, &m_WaitFences[i], VK_TRUE, UINT64_MAX);
+		vkFreeCommandBuffers(m_VkDevice->GetDevice(), m_CommandBuffers[i].Pool, 1, &m_CommandBuffers[i].Buffer);
+		vkResetCommandPool(m_VkDevice->GetDevice(), m_CommandBuffers[i].Pool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
+		vkDestroyCommandPool(m_VkDevice->GetDevice(), m_CommandBuffers[i].Pool, VulkanContext::GetInstance().AllocationCallbaks);
+		vkDestroyFence(m_VkDevice->GetDevice(), m_WaitFences[i], m_VkInstance.AllocationCallbaks);
 	}
 }
 
@@ -96,7 +96,7 @@ void shade::VulkanCommandBuffer::Begin(std::uint32_t index)
 	};
 
 	// Reset the command pool associated with the buffer
-	VK_CHECK_RESULT(vkResetCommandPool(m_VkDevice->GetLogicalDevice(), m_CommandBuffers[index].Pool, 0), "Failed to reset command pool!");
+	VK_CHECK_RESULT(vkResetCommandPool(m_VkDevice->GetDevice(), m_CommandBuffers[index].Pool, 0), "Failed to reset command pool!");
 	// Begin recording command buffer
 	VK_CHECK_RESULT(vkBeginCommandBuffer(m_CommandBuffers[index].Buffer, &commandBufferBeginInfo), "Failed to begin recording command buffer!");
 }
@@ -142,14 +142,14 @@ void shade::VulkanCommandBuffer::Submit(std::uint32_t index, std::uint32_t timeo
 
 	// TIP: Blinkin screen probably here !
 	// TIP: Family::Present or Family::Graphic is using directly by swap chain, and it's not covered by mutex!
-	VK_CHECK_RESULT(vkResetFences(m_VkDevice->GetLogicalDevice(), 1, &m_WaitFences[index]), "Failed to reset fences!");
+	VK_CHECK_RESULT(vkResetFences(m_VkDevice->GetDevice(), 1, &m_WaitFences[index]), "Failed to reset fences!");
 	// Reset a fence before submitting a command buffer which uses it
 	m_sMutexs[m_Family].lock();
 	//Submit a command buffer to a queue for execution
 	VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, m_WaitFences[index]), "Failed to queue submit!");
 	m_sMutexs[m_Family].unlock();
 	//Wait for the fence to signal a completion state for a given timeout value
-	VK_CHECK_RESULT(vkWaitForFences(m_VkDevice->GetLogicalDevice(), 1, &m_WaitFences[index], VK_TRUE, timeout), "Failed to wait fance !");
+	VK_CHECK_RESULT(vkWaitForFences(m_VkDevice->GetDevice(), 1, &m_WaitFences[index], VK_TRUE, timeout), "Failed to wait fance !");
 }
 
 VkCommandBuffer shade::VulkanCommandBuffer::GetCommandBuffer(std::uint32_t index)

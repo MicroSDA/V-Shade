@@ -16,7 +16,7 @@ shade::UniquePointer<shade::RenderContext> shade::VulkanRenderAPI::Initialize(co
 	renderContext->Initialize(requirements);
 
 	m_sSystemsRequirements = requirements;
-	m_sVkDevice = renderContext->As<VulkanContext>().GetDevice()->GetLogicalDevice();
+	m_sVkDevice = renderContext->As<VulkanContext>().GetLogicalDevice()->GetDevice();
 	m_sVkInstance = renderContext->As<VulkanContext>().GetInstance();
 	/* Init Descriptor Manager */
 	VulkanDescriptorsManager::Initialize(m_sVkDevice, m_sVkInstance, GetFramesCount());

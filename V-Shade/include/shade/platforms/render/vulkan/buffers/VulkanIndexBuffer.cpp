@@ -182,7 +182,7 @@ std::tuple<VkBuffer, VkDeviceMemory> shade::VulkanIndexBuffer::CreateBuffer(VkDe
 		VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 		VK_NULL_HANDLE,
 		memRequirements.size,
-		VKUtils::FindMemoryType(VulkanContext::GetDevice()->GetPhysicalDevice()->GetDevice(), memRequirements.memoryTypeBits, properties)
+		VKUtils::FindMemoryType(VulkanContext::GetPhysicalDevice()->GetDevice(), memRequirements.memoryTypeBits, properties)
 	};
 	VkDeviceMemory bufferMemory;
 	VK_CHECK_RESULT(vkAllocateMemory(device, &memoryAllocateInfo, pAllocator, &bufferMemory), "Failed to allocate memory!");

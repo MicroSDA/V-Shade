@@ -78,7 +78,7 @@ VkFormat shade::VKUtils::ToVulkanImageFormat(const render::Image::Format& format
 		case render::Image::Format::B10R11G11UF:			return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
 		case render::Image::Format::DEPTH32FSTENCIL8UINT:	return VK_FORMAT_D32_SFLOAT_S8_UINT;
 		case render::Image::Format::DEPTH32F:				return VK_FORMAT_D32_SFLOAT; 
-		case render::Image::Format::DEPTH24STENCIL8:		return VulkanContext::GetDevice()->GetPhysicalDevice()->GetDepthForamt();
+		case render::Image::Format::DEPTH24STENCIL8:		return VulkanContext::GetPhysicalDevice()->GetDepthForamt();
 
 	default: return VK_FORMAT_UNDEFINED;
 	}

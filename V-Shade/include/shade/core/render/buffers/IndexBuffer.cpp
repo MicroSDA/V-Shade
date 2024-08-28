@@ -8,7 +8,7 @@ shade::SharedPointer<shade::IndexBuffer> shade::IndexBuffer::Create(Usage usage,
 	switch (RenderAPI::GetCurrentAPI())
 	{
 		case RenderAPI::API::None:  SHADE_CORE_ERROR("Undefined render API!"); return nullptr;
-		case RenderAPI::API::Vulkan: return SharedPointer<VulkanIndexBuffer>::Create(VulkanContext::GetDevice()->GetLogicalDevice(), VulkanContext::GetInstance(), usage, size, resizeThreshold, data);
+		case RenderAPI::API::Vulkan: return SharedPointer<VulkanIndexBuffer>::Create(VulkanContext::GetLogicalDevice()->GetDevice(), VulkanContext::GetInstance(), usage, size, resizeThreshold, data);
 		default: SHADE_CORE_ERROR("Undefined render API!"); return nullptr;
 	}
 }

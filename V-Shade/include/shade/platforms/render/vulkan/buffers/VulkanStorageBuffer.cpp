@@ -34,7 +34,7 @@ void shade::VulkanStorageBuffer::Invalidate(std::uint32_t binding, std::uint32_t
 	if (m_Buffer != VK_NULL_HANDLE)
 	{
 		vkFreeMemory(m_VkDevice, m_DeviceMemory, m_VkInstance.AllocationCallbaks);
-		vkDestroyBuffer(VulkanContext::GetDevice()->GetLogicalDevice(), m_Buffer, m_VkInstance.AllocationCallbaks);
+		vkDestroyBuffer(VulkanContext::GetLogicalDevice()->GetDevice(), m_Buffer, m_VkInstance.AllocationCallbaks);
 		m_Buffer = VK_NULL_HANDLE;
 		m_DeviceMemory = VK_NULL_HANDLE;
 	}
@@ -175,7 +175,7 @@ std::tuple<VkBuffer, VkDeviceMemory> shade::VulkanStorageBuffer::CreateBuffer(Vk
 		VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 		VK_NULL_HANDLE,
 		memRequirements.size,
-		VKUtils::FindMemoryType(VulkanContext::GetDevice()->GetPhysicalDevice()->GetDevice(), memRequirements.memoryTypeBits,
+		VKUtils::FindMemoryType(VulkanContext::GetPhysicalDevice()->GetDevice(), memRequirements.memoryTypeBits,
 			properties)
 	};
 

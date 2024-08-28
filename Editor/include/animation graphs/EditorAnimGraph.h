@@ -168,6 +168,7 @@ namespace graph_editor
 		////////////
 	};
 
+	// Make a Statik probably !
 	class GraphEditor
 	{
 	public:

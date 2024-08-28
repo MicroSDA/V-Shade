@@ -29,7 +29,7 @@ shade::SharedPointer<shade::ComputePipeline> shade::ComputePipeline::Create(cons
 	switch (RenderAPI::GetCurrentAPI())
 	{
 		case RenderAPI::API::None:  SHADE_CORE_ERROR("Undefined render API!"); return nullptr;
-		case RenderAPI::API::Vulkan: return SharedPointer<VulkanComputePipeline>::Create(VulkanContext::GetDevice()->GetLogicalDevice(), VulkanContext::GetInstance(), specification);
+		case RenderAPI::API::Vulkan: return SharedPointer<VulkanComputePipeline>::Create(VulkanContext::GetLogicalDevice()->GetDevice(), VulkanContext::GetInstance(), specification);
 		default: SHADE_CORE_ERROR("Undefined render API!"); return nullptr;
 	}
 }
