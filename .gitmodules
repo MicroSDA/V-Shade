@@ -16,3 +16,6 @@
 [submodule "Editor/vendors/assimp"]
 	path = Editor/vendors/assimp
 	url = https://github.com/MicroSDA/assimp
+[submodule "V-Shade/vendors/ctti"]
+	path = V-Shade/vendors/ctti
+	url = https://github.com/MicroSDA/ctti
