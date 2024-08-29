@@ -39,7 +39,10 @@ namespace shade
 
 			/// @brief Gets the current output pose of the graph.
 			/// @return A pointer to the current Pose object, or nullptr if there is no output pose.
-			const Pose* GetOutPutPose() const;
+			SHADE_INLINE const Pose* GetOutputPose() const
+			{
+				return GetRootNode()->As<OutputPoseNode>().GetFinalPose();
+			}
 
 			/// @brief Initializes the AnimationGraph.
 			virtual void Initialize() override;

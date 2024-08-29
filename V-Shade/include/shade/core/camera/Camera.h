@@ -118,9 +118,9 @@ namespace shade
 		// TODO: make it like component
 		bool	m_IsPrimary = false;
 	private:
-		friend class SceneComponentSerializer;
-		std::size_t SerializeAsComponent(std::ostream& stream) const;
-		std::size_t DeserializeAsComponent(std::istream& stream);
+		friend class Serializer;
+		std::size_t Serialize(std::ostream& stream) const;
+		std::size_t Deserialize(std::istream& stream);
 	};
 
 	inline Camera::RenderData shade::Camera::GetRenderData() const { return { GetViewProjection(), GetView(), GetProjection(), GetPosition(), GetForwardDirection(), /*-m_Perpective[3][2], m_Perpective[2][2]*/  GetNear(), GetFar() }; }
@@ -171,27 +171,28 @@ namespace shade
 
 namespace shade
 {
+	
 	template<>
-	inline std::size_t shade::SceneComponentSerializer::Serialize(std::ostream& stream, const Camera& camera)
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Camera& camera, std::size_t)
 	{
-		return camera.SerializeAsComponent(stream);
+		return camera.Serialize(stream);
 	}
 
 	template<>
-	inline std::size_t shade::SceneComponentSerializer::Serialize(std::ostream& stream, const SharedPointer<Camera>& camera)
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const SharedPointer<Camera>& camera, std::size_t)
 	{
-		return camera->SerializeAsComponent(stream);
+		return camera->Serialize(stream);
 	}
 
 	template<>
-	inline std::size_t shade::SceneComponentSerializer::Deserialize(std::istream& stream, Camera& camera, std::size_t count)
+	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, Camera& camera, std::size_t)
 	{
-		return camera.DeserializeAsComponent(stream);
+		return camera.Deserialize(stream);
 	}
 
 	template<>
-	inline std::size_t shade::SceneComponentSerializer::Deserialize(std::istream& stream, SharedPointer<Camera>& camera, std::size_t count)
+	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, SharedPointer<Camera>& camera, std::size_t)
 	{
-		return camera->DeserializeAsComponent(stream);
+		return camera->Deserialize(stream);
 	}
 }

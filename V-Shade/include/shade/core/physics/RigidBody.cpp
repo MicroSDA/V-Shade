@@ -196,7 +196,7 @@ void shade::physic::RigidBody::UpdateIntertiaTensor(const glm::vec<3, scalar_t>&
 	UpdateIntertiaTensor(glm::qua<scalar_t>(rotate));
 }
 
-std::size_t shade::physic::RigidBody::SerializeAsComponent(std::ostream& stream) const
+std::size_t shade::physic::RigidBody::Serialize(std::ostream& stream) const
 {
 	std::uint32_t size = 0u;
 	size += Serializer::Serialize(stream, static_cast<std::uint32_t>(GetBodyType()));
@@ -214,7 +214,7 @@ std::size_t shade::physic::RigidBody::SerializeAsComponent(std::ostream& stream)
 	return size;
 }
 
-std::size_t shade::physic::RigidBody::DeserializeAsComponent(std::istream& stream)
+std::size_t shade::physic::RigidBody::Deserialize(std::istream& stream)
 {
 	float mass, staticFriction, restitution, linearDamping, angularDamping;
 	std::uint32_t size = 0u, bodyType;

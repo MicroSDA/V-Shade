@@ -6,6 +6,10 @@ workspace "V-Shade"
 		"Release"
 	}
 
+	filter "toolset:msc*"
+        disablewarnings { "4251", "4996"}  -- Disable warnings "DLL interface", "Iterator"
+    filter {}
+	
 output_dir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}" 
 includeDir = {}
 includeDir["GLFW"]   	= "%{wks.name}/vendors/glfw/include"
@@ -14,6 +18,7 @@ includeDir["GLM"]  		= "%{wks.name}/vendors/glm/glm"
 includeDir["IMGUI"]  	= "%{wks.name}/vendors/ImGui"
 includeDir["IMGUIZMO"]  = "%{wks.name}/vendors/ImGuizmo"
 includeDir["VULKAN"]  	= "$(VK_SDK_PATH)/include/"
+includeDir["CTTI"]  	= "%{wks.name}/vendors/ctti/include"
 
 --Include path for premake project
 include "V-Shade/vendors/glfw"
@@ -49,6 +54,7 @@ project "V-Shade"
 		"%{includeDir.IMGUIZMO}",
 		"%{includeDir.VULKAN}",
 		"%{includeDir.SPDLOG}",
+		"%{includeDir.CTTI}",
 	}
 	
 	libdirs {
@@ -119,6 +125,7 @@ project "Editor"
 		"%{prj.name}/vendors/assimp/include",
 		"%{wks.name}/include",
 		"%{wks.name}/vendors",
+		"%{includeDir.CTTI}",
 	}
 
 	links {
@@ -169,6 +176,7 @@ project "Scripts"
 	includedirs {
 		"%{includeDir.SPDLOG}",
 		"%{includeDir.GLM}",
+		"%{includeDir.CTTI}",
 		"%{wks.name}/include",
 		"%{wks.name}/vendors",
 	}

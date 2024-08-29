@@ -7,7 +7,6 @@
 namespace shade
 {
 	bool IsAllowedCharacter(const char c);
-	//void RemoveNotAllowedCharacters(std::string& input) { input.erase(std::remove_if(input.begin(), input.end(), IsAllowedCharacter), input.end());}
 	std::string RemoveNotAllowedCharacters(const std::string& input);
 	
 	class SHADE_API Serializer
@@ -20,18 +19,6 @@ namespace shade
 		template<typename T>
 		static std::size_t Deserialize(std::istream& stream, T&, std::size_t count = 1);
 	};
-	// Using specific for scene components serrializing
-	class SHADE_API SceneComponentSerializer
-	{
-	public:
-		// Serrialize object into stream.
-		template<typename T>
-		static std::size_t Serialize(std::ostream& stream, const T&);
-		// Deserialize object from stream.
-		template<typename T>
-		static std::size_t Deserialize(std::istream& stream, T&, std::size_t count = 1);
-	};
-
 	// Templated function to generate a checksum of content.
 	// This function is used to create a checksum of a given stringstream.
 	// @tparam T The type of the checksum value (either std::uint32_t or std::uint64_t).
@@ -613,17 +600,5 @@ namespace shade
 	inline std::size_t Serializer::Deserialize(std::istream& stream, glm::vec3& value, std::size_t count)
 	{
 		return stream.read(reinterpret_cast<char*>(glm::value_ptr(value)), sizeof(glm::vec3)).tellg();
-	}
-	/////////////////////////////////////////////////////////////////////////////////////
-	template<>
-	inline std::size_t SceneComponentSerializer::Serialize(std::ostream& stream, const std::string &value)
-	{
-		return Serializer::Serialize(stream, value);
-	}
-
-	template<>
-	inline std::size_t SceneComponentSerializer::Deserialize(std::istream& stream, std::string& value, std::size_t count)
-	{
-		return Serializer::Deserialize(stream, value);
 	}
 }

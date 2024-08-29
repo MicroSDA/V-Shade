@@ -166,6 +166,16 @@ namespace shade
 			}
 			/* Get component from entity */
 			template<typename Component>
+			const Component& GetComponent(const EntityID& entity) const
+			{
+				assert(HasComponentPool<Component>() && "Entity doesn't have the component !");
+				const auto handle = EntityTraits<EntityID>::ToID(entity);
+				static const TypeHash hash = Hash<Component>();
+
+				return static_cast<ComponentStorage<Component, EntityID>*>(m_Pools.at(hash).get())->Get(handle);
+			}
+			/* Get component from entity */
+			template<typename Component>
 			Component* GetComponentRaw(const EntityID& entity)
 			{
 				assert(HasComponentPool<Component>() && "Entity doesn't have the component !");

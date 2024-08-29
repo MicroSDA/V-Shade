@@ -40,9 +40,9 @@ namespace shade
 	private:
 		static std::uint32_t m_sTotalCount;
 	private:
-		friend class SceneComponentSerializer;
-		std::size_t SerializeAsComponent(std::ostream& stream) const;
-		std::size_t DeserializeAsComponent(std::istream& stream);
+		friend class Serializer;
+		std::size_t Serialize(std::ostream& stream) const;
+		std::size_t Deserialize(std::istream& stream);
 	};
 
 #ifndef SPOT_LIGHT_DATA_SIZE
@@ -56,26 +56,26 @@ namespace shade
 namespace shade
 {
 	template<>
-	inline std::size_t shade::SceneComponentSerializer::Serialize(std::ostream& stream, const SpotLight& light)
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const SpotLight& light, std::size_t)
 	{
-		return light.SerializeAsComponent(stream);
+		return light.Serialize(stream);
 	}
 
 	template<>
-	inline std::size_t shade::SceneComponentSerializer::Serialize(std::ostream& stream, const SharedPointer<SpotLight>& light)
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const SharedPointer<SpotLight>& light, std::size_t)
 	{
-		return light->SerializeAsComponent(stream);
+		return light->Serialize(stream);
 	}
 
 	template<>
-	inline std::size_t shade::SceneComponentSerializer::Deserialize(std::istream& stream, SpotLight& light, std::size_t count)
+	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, SpotLight& light, std::size_t)
 	{
-		return light.DeserializeAsComponent(stream);
+		return light.Deserialize(stream);
 	}
 
 	template<>
-	inline std::size_t shade::SceneComponentSerializer::Deserialize(std::istream& stream, SharedPointer<SpotLight>& light, std::size_t count)
+	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, SharedPointer<SpotLight>& light, std::size_t)
 	{
-		return light->DeserializeAsComponent(stream);
+		return light->Deserialize(stream);
 	}
 }

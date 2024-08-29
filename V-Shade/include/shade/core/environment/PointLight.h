@@ -37,9 +37,9 @@ namespace shade
 		static std::uint32_t m_sTotalCount;
 		ShadowCascade    GetPointLightCascade(float fov, const glm::vec3& position, const glm::vec3& direction, const glm::vec3& up, float zNear, float zFar) const;
 	private:
-		friend class SceneComponentSerializer;
-		std::size_t SerializeAsComponent(std::ostream& stream) const;
-		std::size_t DeserializeAsComponent(std::istream& stream);
+		friend class Serializer;
+		std::size_t Serialize(std::ostream& stream) const;
+		std::size_t Deserialize(std::istream& stream);
 	};
 #ifndef POINT_LIGHT_DATA_SIZE
 	#define POINT_LIGHT_DATA_SIZE (sizeof(PointLight::RenderData))
@@ -53,26 +53,26 @@ namespace shade
 namespace shade
 {
 	template<>
-	inline std::size_t shade::SceneComponentSerializer::Serialize(std::ostream& stream, const PointLight& light)
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const PointLight& light, std::size_t)
 	{
-		return light.SerializeAsComponent(stream);
+		return light.Serialize(stream);
 	}
 
 	template<>
-	inline std::size_t shade::SceneComponentSerializer::Serialize(std::ostream& stream, const SharedPointer<PointLight>& light)
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const SharedPointer<PointLight>& light, std::size_t)
 	{
-		return light->SerializeAsComponent(stream);
+		return light->Serialize(stream);
 	}
 
 	template<>
-	inline std::size_t shade::SceneComponentSerializer::Deserialize(std::istream& stream, PointLight& light, std::size_t count)
+	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, PointLight& light, std::size_t)
 	{
-		return light.DeserializeAsComponent(stream);
+		return light.Deserialize(stream);
 	}
 
 	template<>
-	inline std::size_t shade::SceneComponentSerializer::Deserialize(std::istream& stream, SharedPointer<PointLight>& light, std::size_t count)
+	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, SharedPointer<PointLight>& light, std::size_t)
 	{
-		return light->DeserializeAsComponent(stream);
+		return light->Deserialize(stream);
 	}
 }

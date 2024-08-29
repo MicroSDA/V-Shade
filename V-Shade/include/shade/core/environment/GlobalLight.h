@@ -36,9 +36,9 @@ namespace shade
 		static std::uint32_t m_sTotalCount;
 		static float m_CascadeSplitLambda;
 	private:
-		friend class SceneComponentSerializer;
-		std::size_t SerializeAsComponent(std::ostream& stream) const;
-		std::size_t DeserializeAsComponent(std::istream& stream);
+		friend class Serializer;
+		std::size_t Serialize(std::ostream& stream) const;
+		std::size_t Deserialize(std::istream& stream);
 	};
 
 #ifndef GLOBAL_LIGHT_DATA_SIZE
@@ -53,26 +53,26 @@ namespace shade
 namespace shade
 {
 	template<>
-	inline std::size_t shade::SceneComponentSerializer::Serialize(std::ostream& stream, const GlobalLight& light)
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const GlobalLight& light, std::size_t)
 	{
-		return light.SerializeAsComponent(stream);
+		return light.Serialize(stream);
 	}
 
 	template<>
-	inline std::size_t shade::SceneComponentSerializer::Serialize(std::ostream& stream, const SharedPointer<GlobalLight>& light)
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const SharedPointer<GlobalLight>& light, std::size_t)
 	{
-		return light->SerializeAsComponent(stream);
+		return light->Serialize(stream);
 	}
 
 	template<>
-	inline std::size_t shade::SceneComponentSerializer::Deserialize(std::istream& stream, GlobalLight& light, std::size_t count)
+	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, GlobalLight& light, std::size_t)
 	{
-		return light.DeserializeAsComponent(stream);
+		return light.Deserialize(stream);
 	}
 
 	template<>
-	inline std::size_t shade::SceneComponentSerializer::Deserialize(std::istream& stream, SharedPointer<GlobalLight>& light, std::size_t count)
+	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, SharedPointer<GlobalLight>& light, std::size_t)
 	{
-		return light->DeserializeAsComponent(stream);
+		return light->Deserialize(stream);
 	}
 }

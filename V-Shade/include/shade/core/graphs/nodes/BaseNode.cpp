@@ -97,26 +97,29 @@ std::size_t shade::graphs::BaseNode::DeserializeBody(std::istream& stream)
 
 shade::graphs::BaseNode* shade::graphs::BaseNode::CreateNodeByType(NodeType type)
 {
-	if (shade::graphs::GetNodeTypeId<shade::animation::AnimationGraph>() == type) return this;
+	switch (type)
+	{
+		case shade::graphs::GetNodeTypeId<shade::animation::AnimationGraph>() : return this;
 
-	if (shade::graphs::GetNodeTypeId<shade::graphs::BoolNode>() == type) return CreateNode<shade::graphs::BoolNode>();
-	if (shade::graphs::GetNodeTypeId<shade::graphs::FloatEqualsNode>() == type) return CreateNode<shade::graphs::FloatEqualsNode>();
-	if (shade::graphs::GetNodeTypeId<shade::graphs::FloatNode>() == type) return CreateNode<shade::graphs::FloatNode>();
-	if (shade::graphs::GetNodeTypeId<shade::graphs::IntEqualsNode>() == type) return CreateNode<shade::graphs::IntEqualsNode>();
-	if (shade::graphs::GetNodeTypeId<shade::graphs::IntNode>() == type) return CreateNode<shade::graphs::IntNode>();
-	if (shade::graphs::GetNodeTypeId<shade::graphs::StringNode>() == type) return CreateNode<shade::graphs::StringNode>();
+		case shade::graphs::GetNodeTypeId<shade::graphs::BoolNode>() : return CreateNode<shade::graphs::BoolNode>();
+		case shade::graphs::GetNodeTypeId<shade::graphs::FloatEqualsNode>() : return CreateNode<shade::graphs::FloatEqualsNode>();
+		case shade::graphs::GetNodeTypeId<shade::graphs::FloatNode>() : return CreateNode<shade::graphs::FloatNode>();
+		case shade::graphs::GetNodeTypeId<shade::graphs::IntEqualsNode>() : return CreateNode<shade::graphs::IntEqualsNode>();
+		case shade::graphs::GetNodeTypeId<shade::graphs::IntNode>() : return CreateNode<shade::graphs::IntNode>();
+		case shade::graphs::GetNodeTypeId<shade::graphs::StringNode>() : return CreateNode<shade::graphs::StringNode>();
 
-	if (shade::graphs::GetNodeTypeId<shade::animation::BlendNode2D>() == type) return CreateNode<shade::animation::BlendNode2D>();
-	if (shade::graphs::GetNodeTypeId<shade::animation::BoneMaskNode>() == type) return CreateNode<shade::animation::BoneMaskNode>();
-	if (shade::graphs::GetNodeTypeId<shade::animation::OutputPoseNode>() == type) return &GetRootNode()->As<shade::animation::OutputPoseNode>();
-	if (shade::graphs::GetNodeTypeId<shade::animation::PoseNode>() == type) return CreateNode<shade::animation::PoseNode>();
-	
-	if (shade::graphs::GetNodeTypeId<shade::animation::state_machine::OutputTransitionNode>() == type) return &GetRootNode()->As<shade::animation::state_machine::OutputTransitionNode>();
-	if (shade::graphs::GetNodeTypeId<shade::animation::state_machine::TransitionNode>() == type) return CreateNode<shade::animation::state_machine::TransitionNode>();
-	if (shade::graphs::GetNodeTypeId<shade::animation::state_machine::StateNode>() == type) return CreateNode<shade::animation::state_machine::StateNode>();
-	if (shade::graphs::GetNodeTypeId<shade::animation::state_machine::StateMachineNode>() == type) return CreateNode<shade::animation::state_machine::StateMachineNode>();
+		case shade::graphs::GetNodeTypeId<shade::animation::BlendNode2D>() : return CreateNode<shade::animation::BlendNode2D>();
+		case shade::graphs::GetNodeTypeId<shade::animation::BoneMaskNode>() : return CreateNode<shade::animation::BoneMaskNode>();
+		case shade::graphs::GetNodeTypeId<shade::animation::OutputPoseNode>() : return &GetRootNode()->As<shade::animation::OutputPoseNode>();
+		case shade::graphs::GetNodeTypeId<shade::animation::PoseNode>() : return CreateNode<shade::animation::PoseNode>();
 
-	return nullptr;
+		case shade::graphs::GetNodeTypeId<shade::animation::state_machine::OutputTransitionNode>() : return &GetRootNode()->As<shade::animation::state_machine::OutputTransitionNode>();
+		case shade::graphs::GetNodeTypeId<shade::animation::state_machine::TransitionNode>() : return CreateNode<shade::animation::state_machine::TransitionNode>();
+		case shade::graphs::GetNodeTypeId<shade::animation::state_machine::StateNode>() : return CreateNode<shade::animation::state_machine::StateNode>();
+		case shade::graphs::GetNodeTypeId<shade::animation::state_machine::StateMachineNode>() : return CreateNode<shade::animation::state_machine::StateMachineNode>();
+
+		default: return nullptr;
+	}
 }
 
 std::size_t shade::graphs::BaseNode::Serialize(std::ostream& stream) const

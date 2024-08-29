@@ -97,24 +97,26 @@ namespace shade
 			bool m_IsSleep = false;
 			friend class PhysicsManager;
 		private:
-			friend class SceneComponentSerializer;
-			std::size_t SerializeAsComponent(std::ostream& stream) const;
-			std::size_t DeserializeAsComponent(std::istream& stream);
+			friend class Serializer;
+			
+			std::size_t Serialize(std::ostream& stream) const;
+
+			
+			std::size_t Deserialize(std::istream& stream);
 		};
 	}
-}
 
-namespace shade
-{
+	
 	template<>
-	inline std::size_t shade::SceneComponentSerializer::Serialize(std::ostream& stream, const physic::RigidBody& body)
+	SHADE_INLINE std::size_t shade::Serializer::Serialize(std::ostream& stream, const physic::RigidBody& body, std::size_t)
 	{
-		return body.SerializeAsComponent(stream);
+		return body.Serialize(stream);
 	}
 
+	
 	template<>
-	inline std::size_t shade::SceneComponentSerializer::Deserialize(std::istream& stream, physic::RigidBody& body, std::size_t count)
+	SHADE_INLINE std::size_t shade::Serializer::Deserialize(std::istream& stream, physic::RigidBody& body, std::size_t)
 	{
-		return body.DeserializeAsComponent(stream);
+		return body.Deserialize(stream);
 	}
 }

@@ -84,10 +84,9 @@ void shade::Camera::Resize(float aspect)
 	}	
 }
 
-std::size_t shade::Camera::SerializeAsComponent(std::ostream& stream) const
+std::size_t shade::Camera::Serialize(std::ostream& stream) const
 {
-	std::uint32_t size = 0u;
-	size += Serializer::Serialize(stream, m_Fov);
+	std::size_t size = Serializer::Serialize(stream, m_Fov);
 	size += Serializer::Serialize(stream, m_Aspect);
 	size += Serializer::Serialize(stream, m_zNear);
 	size += Serializer::Serialize(stream, m_zFar);
@@ -99,10 +98,9 @@ std::size_t shade::Camera::SerializeAsComponent(std::ostream& stream) const
 	return size;
 }
 
-std::size_t shade::Camera::DeserializeAsComponent(std::istream& stream)
+std::size_t shade::Camera::Deserialize(std::istream& stream)
 {
-	std::uint32_t size = 0u;
-	size += Serializer::Deserialize(stream, m_Fov);
+	std::size_t size = Serializer::Deserialize(stream, m_Fov);
 	size += Serializer::Deserialize(stream, m_Aspect);
 	size += Serializer::Deserialize(stream, m_zNear);
 	size += Serializer::Deserialize(stream, m_zFar);

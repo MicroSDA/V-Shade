@@ -48,22 +48,4 @@ namespace shade
 	{
 		return mesh->Deserialize(stream);
 	}
-
-	template<>
-	inline std::size_t shade::SceneComponentSerializer::Serialize(std::ostream& stream, const Mesh& mesh)
-	{
-		return shade::Serializer::Serialize(stream, mesh.GetAssetData()->GetId());
-	}
-
-	template<>
-	inline std::size_t shade::SceneComponentSerializer::Serialize(std::ostream& stream, const Asset<Mesh>& mesh)
-	{
-		return shade::Serializer::Serialize(stream, mesh->GetAssetData()->GetId());
-	}
-
-	template<>
-	inline std::size_t shade::SceneComponentSerializer::Serialize(std::ostream& stream, const SharedPointer<Mesh>& mesh)
-	{
-		return shade::Serializer::Serialize(stream, mesh->GetAssetData()->GetId());
-	}
 }

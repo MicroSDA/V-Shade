@@ -323,13 +323,12 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 				}
 			});
 
-
 		scene->View<Asset<Model>, TransformComponent>().Each([&](ecs::Entity& entity, Asset<Model>& model, TransformComponent& transform)
 			{
 				auto pcTransform = scene->ComputePCTransform(entity);
 
 				Asset<animation::AnimationGraph> animationGraph = (entity.HasComponent<AnimationGraphComponent>()) ? entity.GetComponent<AnimationGraphComponent>().AnimationGraph : nullptr;
-				const animation::Pose* finalPose = (animationGraph) ? animationGraph->GetOutPutPose() : nullptr;
+				const animation::Pose* finalPose = (animationGraph) ? animationGraph->GetOutputPose() : nullptr;
 
 
 				bool isModelInFrustrum = false;
@@ -411,7 +410,7 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 				}
 
 				
-				if (isModelInFrustrum && animationGraph && finalPose && model->GetSkeleton())
+				if (isModelInFrustrum && animationGraph && finalPose)
 				{
 					 Renderer::SubmitBoneTransforms(m_MainGeometryPipelineAnimated, model, finalPose->GetBoneGlobalTransforms()); 		
 				}

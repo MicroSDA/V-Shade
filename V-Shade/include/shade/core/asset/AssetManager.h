@@ -154,14 +154,14 @@ namespace shade
 	}
 	// Template function for loading an asset of type T from a category of assets through its id
 	template<typename T, BaseAsset::InstantiationBehaviour behaviour, typename ...Args>
-	inline auto AssetManager::LoadNew(const SharedPointer<AssetData>& assetData, AssetMeta::Category category, BaseAsset::LifeTime lifeTime, DeliveryCallback callback, Args&& ...args)
+	inline auto AssetManager::LoadNew(const SharedPointer<AssetData>& assetData, AssetMeta::Category category, BaseAsset::LifeTime lifeTime, DeliveryCallback callback, Args&&...args)
 	{
 		if constexpr (behaviour == BaseAsset::InstantiationBehaviour::Synchronous)
 		{
 			// If is a new asset, create a result
 			try
 			{
-				auto asset = Asset<BaseAsset>(Asset<T>::Create(assetData, lifeTime, behaviour, std::forward<Args>(args)...));
+				auto asset = Asset<BaseAsset>(Asset<T>::Create(assetData, lifeTime, behaviour, std::forward<Args>(std::decay_t<Args>(args))...));
 				m_sAssets[category].emplace(assetData->GetId(), asset);
 				callback(asset);
 
@@ -180,7 +180,7 @@ namespace shade
 						// Try to create a new asset of type T with the given asset data and life time
 						try
 						{
-							auto asset = Asset<T>::Create(assetData, lifeTime, behaviour, std::forward<Args>(args)...);
+							auto asset = Asset<BaseAsset>(Asset<T>::Create(assetData, lifeTime, behaviour, std::forward<Args>(std::decay_t<Args>(args))...));
 							return std::make_pair(Asset<BaseAsset>(asset), std::current_exception());
 						}
 						// If there is any exception during the asset creation, return an empty Asset<BaseAsset> and the current exception

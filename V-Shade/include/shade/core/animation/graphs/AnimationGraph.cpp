@@ -27,10 +27,6 @@ void shade::animation::AnimationGraph::ProcessGraph(const shade::FrameTimer& del
 	ProcessBranch(deltaTime);
 }
 
-const shade::animation::Pose* shade::animation::AnimationGraph::GetOutPutPose() const
-{
-	return GetRootNode()->As<OutputPoseNode>().GetFinalPose();
-}
 
 void shade::animation::AnimationGraph::Evaluate(const FrameTimer& deltaTime)
 {
@@ -179,7 +175,7 @@ std::size_t shade::animation::AnimationGraph::Deserialize(std::istream& stream)
 	std::string name; 					size += shade::Serializer::Deserialize(stream, name);
 
 	// Deserialize Screen position
-	glm::vec2 screenPosition;			size += shade::Serializer::Deserialize(stream, GetScreenPosition());
+										size += shade::Serializer::Deserialize(stream, GetScreenPosition());
 	// Deserialize count of internal nodes
 	std::uint32_t internalNodesCount;	size += shade::Serializer::Deserialize(stream, internalNodesCount);
 

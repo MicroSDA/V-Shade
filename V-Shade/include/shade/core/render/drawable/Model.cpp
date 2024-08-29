@@ -58,13 +58,3 @@ shade::Model::Model(SharedPointer<AssetData> assetData, LifeTime lifeTime, Insta
 	}
 
 }
-
-std::size_t shade::Model::SerializeAsComponent(std::ostream& stream) const
-{
-	return shade::Serializer::Serialize(stream, GetAssetData()->GetId());
-}
-
-std::size_t shade::Model::DeserializeAsComponent(std::istream& stream)
-{
-	return std::size_t();
-}

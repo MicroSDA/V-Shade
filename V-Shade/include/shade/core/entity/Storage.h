@@ -70,6 +70,12 @@ namespace shade
 				return *m_Components[SetTraits::GetPosition(entity)].get();
 			}
 			/* Get component which linked with given id */
+			const ComponentType& Get(const Entity& entity) const
+			{
+				assert(Contains(entity) && "Entity doesn't have the component !");
+				return *m_Components[SetTraits::GetPosition(entity)].get();
+			}
+			/* Get component which linked with given id */
 			ComponentType* GetRaw(const Entity& entity)
 			{
 				assert(Contains(entity) && "Entity doesn't have the component !");

@@ -60,9 +60,9 @@ namespace shade
 		glm::vec3 m_Rotation;
 		glm::vec3 m_Scale;
 	private:
-		friend class SceneComponentSerializer;
-		std::size_t SerializeAsComponent(std::ostream& stream) const;
-		std::size_t DeserializeAsComponent(std::istream& stream);
+		friend class Serializer;
+		std::size_t Serialize(std::ostream& stream) const;
+		std::size_t Deserialize(std::istream& stream);
 	};
 
 	inline void Transform::SetPosition(float x, float y, float z) { m_Possition.x = x; m_Possition.y = y; m_Possition.z = z; };
@@ -97,13 +97,13 @@ namespace shade
 namespace shade
 {
 	template<>
-	inline std::size_t shade::SceneComponentSerializer::Serialize(std::ostream& stream, const Transform& transform)
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Transform& transform, std::size_t)
 	{
-		return transform.SerializeAsComponent(stream);
+		return transform.Serialize(stream);
 	}
 	template<>
-	inline std::size_t shade::SceneComponentSerializer::Deserialize(std::istream& stream, Transform& transform, std::size_t)
+	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, Transform& transform, std::size_t)
 	{
-		return transform.DeserializeAsComponent(stream);
+		return transform.Deserialize(stream);
 	}
 }

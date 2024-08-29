@@ -1,4 +1,4 @@
-#pragma oncez
+#pragma once
 #include <shade/core/graphs/nodes/BaseNode.h>
 #include <shade/core/animation/graphs/AnimationGraphContext.h>
 

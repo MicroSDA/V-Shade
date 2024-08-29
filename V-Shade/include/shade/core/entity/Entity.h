@@ -1,6 +1,8 @@
 #pragma once
 #include <shade/config/ShadeAPI.h>
 #include <shade/core/entity/EntityManager.h>
+#include <ctti/type_id.hpp>
+#include <shade/core/serializing/Serializer.h>
 
 namespace shade
 {
@@ -92,6 +94,14 @@ namespace shade
 			}
 			/* Get component from entity */
 			template<typename Component>
+			const Component& GetComponent() const
+			{
+				assert(IsValid() && " Entity isn't valid !");
+				//static const TypeHash hash = Hash<Component>();
+				return m_Manager->GetComponent<Component>(m_Handle);
+			}
+			/* Get component from entity */
+			template<typename Component>
 			Component* GetComponentRaw()
 			{
 				assert(IsValid() && " Entity isn't valid !");
@@ -146,6 +156,29 @@ namespace shade
 			/* Return childrens count */
 			std::size_t GetChildrensCount() const;
 
+			template<typename ComponentType, typename Callback, typename ...Args>
+			std::size_t SerializeComponent(std::ostream& stream, Callback callback, Args&& ...args) const
+			{
+				if (HasComponent<ComponentType>() && &GetComponent<ComponentType>())
+				{
+					std::size_t size = Serializer::Serialize(stream, static_cast<std::uint32_t>(ctti::type_id<ComponentType>().hash()));
+					size += callback(stream, GetComponent<ComponentType>(), std::forward<Args>(args)...);
+					return size;
+				}
+				return 0u;
+			}
+			template<typename ComponentType, typename Callback, typename ...Args>
+			std::size_t DeserializeComponent(std::istream& stream, std::uint32_t hash, Callback callback, Args&& ...args)
+			{
+				if (!HasComponent<ComponentType>())
+				{
+					if (hash == static_cast<std::uint32_t>(ctti::type_id<ComponentType>().hash()))
+					{
+						return callback(stream, AddComponent<ComponentType>(), std::forward<Args>(args)...);
+					}
+				}
+				return 0u;
+			}
 			/* Overloaded operator bool */
 			operator bool() const { return IsValid(); }
 			/* Convert entity to EntityID */

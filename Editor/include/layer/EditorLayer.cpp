@@ -864,12 +864,6 @@ void EditorLayer::Entities(shade::SharedPointer<shade::Scene>& scene)
 				AddComponent<shade::NativeScriptComponent>("Native script", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
 					{
 						entity.AddComponent<shade::NativeScriptComponent>();
-
-						/*if (auto script = shade::scripts::ScriptManager::InstantiateScript<shade::ecs::ScriptableEntity*>("Scripts", "Player"))
-						{
-							entity.AddComponent<shade::NativeScriptComponent>().Bind(script);
-						}*/
-
 					}, m_SelectedEntity);
 				AddComponent<shade::CameraComponent>("Camera", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
 					{
@@ -1860,10 +1854,12 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 {
 	auto& graph = entity.GetComponent<shade::AnimationGraphComponent>();
 
-	if(!m_graphEditor.GetRootGraph())
+	if(!m_graphEditor.GetRootGraph() && graph.AnimationGraph)
 		m_graphEditor.Initialize(graph.AnimationGraph);
 
 	static std::string search; static bool animGraphAssetPopop = false, skeletonAssetPopop = false;
+
+	ImVec2 graphArrowButtonSP, skeletonArrowButtonSP;
 
 	if (ImGui::BeginTable("##SelectAnimationGraphTable", 4, ImGuiTableFlags_SizingStretchProp))
 	{
@@ -1923,7 +1919,10 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 			if (ImGui::ArrowButton("##AnimGraphOpenPopup", ImGuiDir_Down))
 			{
 				animGraphAssetPopop = !animGraphAssetPopop;
+				if (animGraphAssetPopop) skeletonAssetPopop = false;
 			}
+
+			graphArrowButtonSP = ImGui::GetCursorScreenPos();
 		}
 		ImGui::EndTable();
 	}
@@ -1947,7 +1946,10 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 			if (ImGui::ArrowButton("##SeletonOpenPopup", ImGuiDir_Down))
 			{
 				skeletonAssetPopop = !skeletonAssetPopop;
+				if (skeletonAssetPopop) animGraphAssetPopop = false;
 			}
+
+			skeletonArrowButtonSP = ImGui::GetCursorScreenPos();
 		}
 		ImGui::EndTable();
 	}
@@ -1958,12 +1960,12 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 			ImGui::GetWindowViewport(),
 			entity.GetID(),
 			ImGui::GetContentRegionAvail(),
-			ImVec2{ ImGui::GetWindowPos().x + ImGui::GetStyle().IndentSpacing, ImGui::GetCursorScreenPos().y + 5.f }, 0.3f,
+			ImVec2{ ImGui::GetWindowPos().x + ImGui::GetStyle().IndentSpacing + 7.f, graphArrowButtonSP.y + 2.f }, 1.0f,
 			[&]() mutable
 			{
 				ImGuiLayer::InputTextCol("Search", search);
 
-				if (ImGui::BeginListBox("##SelectAnimationGraph", ImVec2{ ImGui::GetContentRegionAvail().x, 0.f }))
+				if (ImGui::BeginListBox("##SelectAnimationGraph", ImVec2{ ImGui::GetContentRegionAvail()}))
 				{
 					for (const auto& assetData : shade::AssetManager::GetAssetDataList(shade::AssetMeta::Category::Secondary))
 					{
@@ -1997,12 +1999,12 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 			ImGui::GetWindowViewport(),
 			entity.GetID(),
 			ImGui::GetContentRegionAvail(),
-			ImVec2{ ImGui::GetWindowPos().x + ImGui::GetStyle().IndentSpacing, ImGui::GetCursorScreenPos().y + 5.f }, 0.3f,
+			ImVec2{ ImGui::GetWindowPos().x + ImGui::GetStyle().IndentSpacing + 7.f, skeletonArrowButtonSP.y + 2.f }, 1.0f,
 			[&]() mutable
 			{
 				ImGuiLayer::InputTextCol("Search", search);
 
-				if (ImGui::BeginListBox("##SelectSkeleton", ImVec2{ ImGui::GetContentRegionAvail().x, 0.f }))
+				if (ImGui::BeginListBox("##SelectSkeleton", ImVec2{ ImGui::GetContentRegionAvail() }))
 				{
 					for (const auto& assetData : shade::AssetManager::GetAssetDataList(shade::AssetMeta::Category::Secondary))
 					{
@@ -2030,7 +2032,7 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 			});
 	}
 
-	m_graphEditor.Edit("Animation graph editor", { 500, 500 });
+	//m_graphEditor.Edit("Animation graph editor", { 500, 500 });
 	//if (graph.AnimationGraph)
 	//{
 	//	ImGui::Text("Asset:");
@@ -2719,7 +2721,7 @@ void EditorLayer::CreateCollisionShapes()
 					shade::File file(path.c_str(), shade::File::Out, "@s_c_shape", shade::File::VERSION(0, 0, 1));
 					if (file.IsOpen())
 					{
-						file.Write(shapes);
+						file.Write(shapes.Get());
 						file.CloseFile();
 					}
 					else

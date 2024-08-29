@@ -23,48 +23,5 @@ namespace shade
 	private:
 		Model(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
 		friend class Serializer;
-	private:
-		friend class SceneComponentSerializer;
-		std::size_t SerializeAsComponent(std::ostream& stream) const;
-		std::size_t DeserializeAsComponent(std::istream& stream);
 	};
-}
-
-namespace shade
-{
-	template<>
-	inline std::size_t shade::SceneComponentSerializer::Serialize(std::ostream& stream, const Model& model)
-	{
-		return shade::Serializer::Serialize(stream, model.GetAssetData()->GetId());
-	}
-
-	template<>
-	inline std::size_t shade::SceneComponentSerializer::Serialize(std::ostream& stream, const Asset<Model>& model)
-	{
-		return shade::Serializer::Serialize(stream, model->GetAssetData()->GetId());
-	}
-
-	template<>
-	inline std::size_t shade::SceneComponentSerializer::Serialize(std::ostream& stream, const SharedPointer<Model>& model)
-	{
-		return shade::Serializer::Serialize(stream, model->GetAssetData()->GetId());
-	}
-
-	template<>
-	inline std::size_t shade::SceneComponentSerializer::Deserialize(std::istream& stream, Model& model, std::size_t)
-	{
-		return model.DeserializeAsComponent(stream);
-	}
-
-	template<>
-	inline std::size_t shade::SceneComponentSerializer::Deserialize(std::istream& stream, Asset<Model>& model, std::size_t)
-	{
-		return model->DeserializeAsComponent(stream);
-	}
-
-	template<>
-	inline std::size_t shade::SceneComponentSerializer::Deserialize(std::istream& stream, SharedPointer<Model>& model, std::size_t)
-	{
-		return model->DeserializeAsComponent(stream);
-	}
 }

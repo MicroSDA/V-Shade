@@ -18,19 +18,17 @@ void shade::Transform::SetDirection(const glm::vec3& direction)
 	//m_Rotation = direction * glm::vec3(0, 0, 1);
 }
 
-std::size_t shade::Transform::SerializeAsComponent(std::ostream& stream) const
+std::size_t shade::Transform::Serialize(std::ostream& stream) const
 {
-	std::uint32_t size = 0u;
-	size += Serializer::Serialize(stream, m_Possition);
+	std::uint32_t size = Serializer::Serialize(stream, m_Possition);
 	size += Serializer::Serialize(stream, m_Rotation);
 	size += Serializer::Serialize(stream, m_Scale);
 	return size;
 }
 
-std::size_t shade::Transform::DeserializeAsComponent(std::istream& stream)
+std::size_t shade::Transform::Deserialize(std::istream& stream)
 {
-	std::uint32_t size = 0u;
-	size += Serializer::Deserialize(stream, m_Possition);
+	std::uint32_t size = Serializer::Deserialize(stream, m_Possition);
 	size += Serializer::Deserialize(stream, m_Rotation);
 	size += Serializer::Deserialize(stream, m_Scale);
 	return size;

@@ -71,7 +71,7 @@ void PlayerScript::OnDestroy()
 
 void PlayerScript::OnUpdate(const shade::FrameTimer& deltaTime)
 {
-	if (HasComponent<shade::AnimationGraphComponent>()) {
+	if (HasComponent<shade::AnimationGraphComponent>() && GetComponent<shade::AnimationGraphComponent>().AnimationGraph) {
 		auto& graph = GetComponent<shade::AnimationGraphComponent>();
 
 		State rState = State::Idle;

@@ -13,7 +13,7 @@ namespace shade
 	{
 	public:
 		Scene(const std::string& name);
-		virtual ~Scene();
+		virtual ~Scene() = default;
 
 		static SharedPointer<Scene> Create(const std::string& name);
 		static SharedPointer<Scene>& GetScene(const std::string& name);

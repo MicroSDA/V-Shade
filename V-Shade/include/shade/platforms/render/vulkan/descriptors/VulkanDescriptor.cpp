@@ -43,7 +43,7 @@ void shade::VulkanDescriptorsManager::ResetDepricated(std::uint32_t frameIndex)
 	{
 		if (descriptor->second->IsDepricated())
 		{
-			SHADE_CORE_DEBUG("Removing descriptor set = {0}", descriptor->first);
+			//SHADE_CORE_DEBUG("Removing descriptor set = {0}", descriptor->first);
 			m_sDescriptorSets[frameIndex].erase(descriptor++);	
 		}
 		else
@@ -57,7 +57,7 @@ void shade::VulkanDescriptorsManager::ResetDepricated(std::uint32_t frameIndex)
 	{
 		if (pool->second.expired())
 		{
-			SHADE_CORE_DEBUG("Removing descriptor pool = {0}", pool->first);
+			//SHADE_CORE_DEBUG("Removing descriptor pool = {0}", pool->first);
 			m_sDescriptorPools[frameIndex].erase(pool++);
 		}
 		else
