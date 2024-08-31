@@ -732,6 +732,7 @@ bool graph_editor::GraphEditor::RemoveNode(graphs::BaseNode*& pNode)
 	return false;
 }
 
+
 graph_editor::GraphEditor::~GraphEditor()
 {
 	for (auto [hash, node] : m_Nodes)

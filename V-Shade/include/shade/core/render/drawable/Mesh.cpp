@@ -120,13 +120,19 @@ std::size_t shade::Mesh::Deserialize(std::istream& stream)
 				throw std::exception("Invalide indices count!");
 
 			std::uint32_t bonesCount = 0;
-			Serializer::Deserialize(stream, bonesCount);
+			Serializer::Deserialize(stream, bonesCount); 
 			if (bonesCount == UINT32_MAX)
 				throw std::exception("Invalide indices count!");
 
 			Vertices vertices(verticesCount);
 			Indices indices(indicesCount);
 			Bones bones(bonesCount);
+			/*if (bonesCount > 100)
+			{
+				stream.seekg(std::size_t(stream.tellg()) - sizeof(std::uint32_t));
+			}
+			else
+				bones.resize(bonesCount);*/
 
 			for (auto& vertex : vertices)
 			{

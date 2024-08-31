@@ -42,7 +42,7 @@ private:
 
 	shade::animation::AnimationGraphContext	graphContext;
 	shade::SharedPointer<shade::animation::AnimationGraph> m_Graph;
-	graph_editor::GraphEditor m_graphEditor;
+	graph_editor::GraphEditor m_GraphEditor;
 
 	shade::SharedPointer<EditorCamera> m_EditorCamera;
 

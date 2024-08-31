@@ -150,15 +150,15 @@ void shade::VulkanImGuiRender::DrawImage(SharedPointer<Texture2D>& texture, cons
 		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
 		VK_IMAGE_ASPECT_COLOR_BIT);
 	
-	if (m_Images.find(texture) == m_Images.end())
+	if (m_Images.find(texture.Raw()) == m_Images.end())
 	{
-		m_Images[texture] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(), image.GetImageView(), image.GetImageLayout()), image.GetImageView() };
+		m_Images[texture.Raw()] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(), image.GetImageView(), image.GetImageLayout()), image.GetImageView() };
 	}
-	else if (m_Images.at(texture).second != image.GetImageView())
+	else if (m_Images.at(texture.Raw()).second != image.GetImageView())
 	{
-		m_Images[texture] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(), image.GetImageView(), image.GetImageLayout()),image.GetImageView() };
+		m_Images[texture.Raw()] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(), image.GetImageView(), image.GetImageLayout()),image.GetImageView() };
 	}
-	ImGui::Image(m_Images[texture].first, size, ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), borderColor);
+	ImGui::Image(m_Images[texture.Raw()].first, size, ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), borderColor);
 }
 
 
@@ -176,13 +176,39 @@ void shade::VulkanImGuiRender::DrawImage(SharedPointer<Texture2D>& texture, cons
 		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
 		VK_IMAGE_ASPECT_COLOR_BIT, mip, 1);
 
-	if (m_Images.find(texture) == m_Images.end())
+	if (m_Images.find(texture.Raw()) == m_Images.end())
 	{
-		m_Images[texture] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(), image.GetImageViewPerMipLevel(mip), image.GetImageLayout()), image.GetImageViewPerMipLevel(mip) };
+		m_Images[texture.Raw()] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(), image.GetImageViewPerMipLevel(mip), image.GetImageLayout()), image.GetImageViewPerMipLevel(mip) };
 	}
-	else if (m_Images.at(texture).second != image.GetImageViewPerMipLevel(mip))
+	else if (m_Images.at(texture.Raw()).second != image.GetImageViewPerMipLevel(mip))
 	{
-		m_Images[texture] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(), image.GetImageViewPerMipLevel(mip), image.GetImageLayout()), image.GetImageViewPerMipLevel(mip) };
+		m_Images[texture.Raw()] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(), image.GetImageViewPerMipLevel(mip), image.GetImageLayout()), image.GetImageViewPerMipLevel(mip) };
 	}
-	ImGui::Image(m_Images[texture].first, size, ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), borderColor);
+	ImGui::Image(m_Images[texture.Raw()].first, size, ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), borderColor);
+}
+
+void shade::VulkanImGuiRender::DrawImage(Asset<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor)
+{
+	// Сделать леют транизшин пер мип, сайчас можно тодлько для диапазона а не для конкретной мипы
+	//auto commandBuffer = RenderCommandBuffer::Create(RenderCommandBuffer::Type::Primary, RenderCommandBuffer::Family::Graphic, RenderAPI::GetFramesCount());
+	auto commandBuffer = RenderCommandBuffer::Create();
+	auto& image = texture->GetImage()->As<VulkanImage2D>();
+	// VK_IMAGE_LAYOUT_GENERAL because we are using it as storage in compute shader color correction!
+	/*image.LayoutTransition(commandBuffer,
+		VK_IMAGE_LAYOUT_GENERAL,
+		VK_ACCESS_TRANSFER_WRITE_BIT,
+		VK_ACCESS_SHADER_READ_BIT,
+		VK_PIPELINE_STAGE_TRANSFER_BIT,
+		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+		VK_IMAGE_ASPECT_COLOR_BIT);*/
+	
+	if (m_Images.find(texture.Raw()) == m_Images.end())
+	{
+		m_Images[texture.Raw()] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(), image.GetImageView(), image.GetImageLayout()), image.GetImageView() };
+	}
+	else if (m_Images.at(texture.Raw()).second != image.GetImageView())
+	{
+		m_Images[texture.Raw()] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(), image.GetImageView(), image.GetImageLayout()),image.GetImageView() };
+	}
+	ImGui::Image(m_Images[texture.Raw()].first, size, ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), borderColor);
 }

@@ -188,12 +188,12 @@ void main()
 		    break;
 
 		SpotLight Light = s_SpotLight[LightIndex];
-		float Radius = Light.Distance;
+		float Radius = Light.Distance * acos(Light.MaxAngle * 0.9);
 		// Check if light radius is in frustum
 		float distance = 0.0;
 		for (uint j = 0; j < 6; j++)
 		{
-			distance = dot(vec4(Light.Position - (-Light.Direction * Light.Distance * 0.7), 1.0), FrustumPlanes[j]) + Radius;
+			distance = dot(vec4(Light.Position - (-Light.Direction * Light.Distance * 0.5), 1.0), FrustumPlanes[j]) + Radius;
 			if (distance < 0.0) // No intersection
 				break;
 		}

@@ -20,6 +20,7 @@ namespace shade
 		ImGuiContext* GetImGuiContext();
 		void DrawImage(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor);
 		void DrawImage(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor, std::uint32_t mip);
+		void DrawImage(Asset<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor);
 	public:
 		ImGuiViewport* m_Viewport;
 		int m_WindowFlags;
@@ -59,7 +60,10 @@ namespace shade
 		{
 			ImGui::SetNextWindowViewport(veiwport->ID);
 			ImGui::SetNextWindowBgAlpha(alpha); // Transparent background
-			ImGui::SetNextWindowPos(position, ImGuiCond_Always);
+
+			float y = (veiwport->Size.y < (position.y + size.y)) ? position.y - (size.y + ImGui::GetStyle().IndentSpacing + ImGui::GetFrameHeight() + 7.f) : position.y;
+			
+			ImGui::SetNextWindowPos(ImVec2{ position.x, y }, ImGuiCond_Always);
 			ImGui::SetNextWindowSize(size, ImGuiCond_Always);
 
 			ImGui::PushID(id);
@@ -206,7 +210,7 @@ namespace shade
 
 
 		static void TextUTF8(const std::u8string& string);
-		static void DrawFontIcon(const char8_t* c, std::size_t fontIndex, float size);
+		static void DrawFontIcon(const char8_t* c, std::size_t fontIndex, float size, const char* hint = nullptr);
 		static bool IconButton(const char* id, const char8_t* c, std::size_t fontIndex, float scale = 1.f);
         // Dummy data structure provided for the example.
         // Note that we storing links as indices (not ID) to make example code shorter.

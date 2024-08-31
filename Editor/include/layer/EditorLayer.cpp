@@ -56,20 +56,21 @@ EditorLayer::EditorLayer() : ImGuiLayer()
 {
 	ImGui::SetCurrentContext(GetImGuiContext());
 	shade::ImGuiThemeEditor::SetColors(0x202020FF, 0xFAFFFDFF, 0x505050FF, 0x9C1938CC, 0xFFC307B1);
+	shade::ImGuiThemeEditor::SetColors(0x202020FF, 0xFAFFFDFF, 0x505050FF, 0x9C1938CC, 0xFFC307B1);
 	shade::ImGuiThemeEditor::ApplyTheme();
 }
 
 void EditorLayer::OnCreate()
 {
 	m_SceneRenderer = shade::SceneRenderer::Create();
-	m_EditorCamera	= shade::SharedPointer<EditorCamera>::Create();
+	m_EditorCamera = shade::SharedPointer<EditorCamera>::Create();
 }
 
 void EditorLayer::OnUpdate(shade::SharedPointer<shade::Scene>& scene, const shade::FrameTimer& deltaTime)
 {
 
-	(m_IsScenePlaying) ? scene->SetPlaying(true): scene->SetPlaying(false);
-	if(!m_IsScenePlaying) m_EditorCamera->OnUpdate(deltaTime);
+	(m_IsScenePlaying) ? scene->SetPlaying(true) : scene->SetPlaying(false);
+	if (!m_IsScenePlaying) m_EditorCamera->OnUpdate(deltaTime);
 
 	shade::physic::PhysicsManager::Step(scene, deltaTime);
 	// TODO: m_SceneRenderer->OnUpdate using render functions so for logic we need to use on update scene render only when we need to draw
@@ -80,7 +81,7 @@ void EditorLayer::OnUpdate(shade::SharedPointer<shade::Scene>& scene, const shad
 
 void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shade::FrameTimer& deltaTime)
 {
-	
+
 	m_SceneRenderer->OnRender(scene, deltaTime);
 
 	ImGui::SetCurrentContext(GetImGuiContext());
@@ -108,8 +109,6 @@ void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shad
 		ImGui::PopStyleColor();
 		//ImGui::ShowDemoWindow();
 		ImGui::End();
-
-
 		/*	enum States : std::uint8_t
 			{
 				Idle,
@@ -821,38 +820,34 @@ void EditorLayer::Entities(shade::SharedPointer<shade::Scene>& scene)
 					{
 						entity.AddComponent<shade::TransformComponent>();
 					}, m_SelectedEntity);
-				AddComponent<shade::GlobalLightComponent>("Global light", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
+				AddComponent<shade::ModelComponent>("Model", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
 					{
-						entity.AddComponent<shade::GlobalLightComponent>(shade::GlobalLightComponent::Create());
+						entity.AddComponent<shade::ModelComponent>(shade::Model::CreateEXP());
+
 					}, m_SelectedEntity);
-				AddComponent<shade::SpotLightComponent>("Spot light", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
-					{
-						entity.AddComponent<shade::SpotLightComponent>(shade::SpotLightComponent::Create());
-					}, m_SelectedEntity);
-				AddComponent<shade::PointLightComponent>("Point light", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
-					{
-						entity.AddComponent<shade::PointLightComponent>(shade::PointLightComponent::Create());
-					}, m_SelectedEntity);
+
+				if (ImGui::BeginMenu("Lightning"))
+				{
+					AddComponent<shade::GlobalLightComponent>("Global light", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
+						{
+							entity.AddComponent<shade::GlobalLightComponent>(shade::GlobalLightComponent::Create());
+						}, m_SelectedEntity);
+					AddComponent<shade::SpotLightComponent>("Spot light", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
+						{
+							entity.AddComponent<shade::SpotLightComponent>(shade::SpotLightComponent::Create());
+						}, m_SelectedEntity);
+					AddComponent<shade::PointLightComponent>("Point light", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
+						{
+							entity.AddComponent<shade::PointLightComponent>(shade::PointLightComponent::Create());
+						}, m_SelectedEntity);
+
+					ImGui::EndMenu();
+				}
 				AddComponent<shade::RigidBodyComponent>("Rigid body", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
 					{
 						entity.AddComponent<shade::RigidBodyComponent>();
 					}, m_SelectedEntity);
-				AddComponent<shade::ModelComponent>("Model", true, m_SelectedEntity, [&](shade::ecs::Entity& entity)
-					{
-						for (auto& [id, assetData] : shade::AssetManager::GetAssetDataList(shade::AssetMeta::Category::Primary))
-						{
-							if (assetData->GetType() == shade::AssetMeta::Type::Model)
-							{
-								if (ImGui::MenuItem(id.c_str()))
-								{
-									shade::AssetManager::GetAsset<shade::Model, shade::BaseAsset::InstantiationBehaviour::Aynchronous>(id, shade::AssetMeta::Category::Primary, shade::BaseAsset::LifeTime::KeepAlive, [&](auto& model) mutable
-										{
-											m_SelectedEntity.AddComponent<shade::ModelComponent>(model);
-										});
-								}
-							}
-						}
-					}, m_SelectedEntity);
+				
 				AddComponent<shade::AnimationGraphComponent>("Animation graph", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
 					{
 						// WRONG ASSET Creation !!
@@ -1677,87 +1672,386 @@ void EditorLayer::CameraComponent(shade::ecs::Entity& entity)
 	DragFloat("ZFar", &camera->GetFar(), 0.1);
 }
 
+
+void CreateArrowButton(const std::string& id, bool& isPopupOpen, float& screenPosY, std::function<bool()>& AssetLoadCallback, const std::function<bool()>& callback) {
+	if (ImGui::ArrowButton(id.c_str(), ImGuiDir_Down)) 
+	{
+		AssetLoadCallback = callback;
+		isPopupOpen = !isPopupOpen;
+		screenPosY = ImGui::GetCursorScreenPos().y;
+	}
+}
+
+template <typename T>
+bool LoadAsset(const std::string& search, shade::Asset<T>& asset, shade::AssetMeta::Type type, shade::AssetMeta::Category category) {
+	for (const auto& assetData : shade::AssetManager::GetAssetDataList(category)) {
+		if (assetData.second->GetType() == type && assetData.first.find(search) != std::string::npos) {
+			if (ImGui::Selectable(assetData.first.c_str(), false)) {
+				shade::AssetManager::GetAsset<T, shade::BaseAsset::InstantiationBehaviour::Synchronous>(
+					assetData.first, category, shade::BaseAsset::LifeTime::KeepAlive,
+					[&](auto& loadedAsset) mutable {
+						asset = loadedAsset;
+					}
+				);
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+void OpenImageCallback(shade::Asset<shade::Texture2D>& texture)
+{
+	auto path = shade::FileDialog::OpenFile("Texture (*.dds) \0*.dds\0");
+	if (!path.empty())
+	{
+		if (std::ifstream file = std::ifstream(path, std::ios::binary))
+		{
+			shade::render::Image image; shade::Serializer::Deserialize(file, image);
+			texture = shade::Texture2D::CreateEXP(shade::render::Image2D::Create(image));
+		}
+	}
+	else
+	{
+		SHADE_CORE_WARNING("Couldn't open texture file, path ={0}", path);
+	}
+}
+
+void HandleTexture(EditorLayer& layer, const std::string& buttonId, const char8_t* c, const char* textureTypeName, bool& IsAssetLoadPopupOpen, float& screenPostionY, std::string& search, shade::Asset<shade::Texture2D>& texture, std::function<bool()>& AssetLoadCallback)
+{
+	ImGui::TableNextRow();
+	ImGui::TableNextColumn();
+	shade::ImGuiLayer::DrawFontIcon(u8"\xe9a1", 1, 0.6f);
+	if (ImGui::IsItemHovered() && texture)
+	{
+		ImGui::BeginTooltip();
+		layer.DrawImage(texture, ImVec2{ 300, 300 }, ImVec4{ 0.995f, 0.857f, 0.420f, 1.000f });
+		ImGui::EndTooltip();
+
+	}
+
+	ImGui::TableNextColumn();
+	shade::ImGuiLayer::DrawFontIcon(c, 1, 0.6f, textureTypeName);
+	ImGui::TableNextColumn();
+	if (shade::ImGuiLayer::IconButton("Open", u8"\xe85f", 1, 1.f))
+	{
+		OpenImageCallback(texture);
+	}
+	ImGui::TableNextColumn();
+	std::string buttonTitle = (!texture || !texture->GetAssetData()) ? "NONE" : texture->GetAssetData()->GetId();
+	ImGui::BeginDisabled();
+	ImGui::Button(buttonTitle.c_str(), ImVec2{ ImGui::GetContentRegionAvail().x, 0.f });
+	ImGui::EndDisabled();
+	ImGui::TableNextColumn();
+
+	CreateArrowButton(("##TextureAssetPopup" + buttonId).c_str(), IsAssetLoadPopupOpen, screenPostionY, AssetLoadCallback, [&]() { return LoadAsset<shade::Texture2D>(search, texture, shade::AssetMeta::Type::Texture, shade::AssetMeta::Category::Secondary); });
+	ImGui::TableNextColumn();
+	if (shade::ImGuiLayer::IconButton(("##Remove" + buttonId).c_str(), u8"\xe85d", 1, 1.0f)) { texture = nullptr; }
+}
+
 void EditorLayer::ModelComponent(shade::ecs::Entity& entity)
 {
+	ImGui::ShowDemoWindow();
+	std::function<void(shade::Asset<shade::Texture2D>&)> OpenImageCallBack = [](shade::Asset<shade::Texture2D>& texture)
+		{
+			auto path = shade::FileDialog::OpenFile("Texture (*.dds) \0*.dds\0");
+			if (!path.empty())
+			{
+				if (std::ifstream file = std::ifstream(path, std::ios::binary))
+				{
+					shade::render::Image image; shade::Serializer::Deserialize(file, image);
+					texture = shade::Texture2D::CreateEXP(shade::render::Image2D::Create(image));
+				}
+			}
+			else
+			{
+				SHADE_CORE_WARNING("Couldn't open texture file, path ={0}", path);
+			}
+		};
+
+	static std::function<bool()> AssetLoadCallback;
+
+	static bool IsAssetLoadPopupOpen = false; static float screenPostionY = 0.f;
+
 	auto& model = entity.GetComponent<shade::ModelComponent>();
 
-	if (ImGui::TreeNodeEx("Meshes", ImGuiTreeNodeFlags_Framed))
-	{
-		for (auto& mesh : model->GetMeshes())
-		{
-			const int maxFaces = mesh->GetLod(0).Indices.size() / 3;
-			static int faces = maxFaces;
-			static float lambda = 0.1;
+	std::string search;
 
-			if (ImGui::TreeNodeEx("Level of detail", ImGuiTreeNodeFlags_Framed))
+	if (ImGui::BeginTable("##SelectModelAsset", 5, ImGuiTableFlags_SizingStretchProp))
+	{
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+		{
+			ImGuiLayer::DrawFontIcon(u8"\xf1b3", 1, 0.6f);
+		}
+		ImGui::TableNextColumn();
+		{
+			if (ImGuiLayer::IconButton("##AddMesh", u8"\xf1b2", 1, 1.0f))
 			{
-				ImGui::Text("Set globally :"); ImGui::Separator();
-				if (ImGui::BeginTable("_title.c_str()", 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp, { 0, 0 }))
+				model->AddMesh(shade::Mesh::CreateEXP());
+			}
+		}
+		ImGui::TableNextColumn();
+		{
+			std::string buttonTitle = (!model || !model->GetAssetData()) ? "NONE" : model->GetAssetData()->GetId();
+			ImGui::BeginDisabled();
+			ImGui::Button(buttonTitle.c_str(), ImVec2{ ImGui::GetContentRegionAvail().x, 0.f });
+			ImGui::EndDisabled();
+		}
+		ImGui::TableNextColumn();
+		{
+			CreateArrowButton("##ModelAssetPopup", IsAssetLoadPopupOpen, screenPostionY, AssetLoadCallback, [&]() { return LoadAsset<shade::Model>(search, model, shade::AssetMeta::Type::Model, shade::AssetMeta::Category::Primary); });
+		}
+		ImGui::TableNextColumn();
+		{
+			if (ImGuiLayer::IconButton("##RemoveModel", u8"\xe85d", 1, 1.0f)) { model = shade::Model::CreateEXP(); }
+		}
+		ImGui::EndTable();
+	}
+
+	if (model)
+	{
+		auto& meshes = model->GetMeshes(); // Сохраните контейнер для удаления
+
+		for (auto it = meshes.begin(); it != meshes.end(); )
+		{
+			auto& mesh = *it;
+			auto& material = mesh->GetMaterial();
+			material = !material ? shade::Material::CreateEXP() : material;
+
+			bool isOpen = false;
+
+			if (ImGui::BeginTable("##SelectMeshAssetTable", 6, ImGuiTableFlags_SizingStretchProp, { ImGui::GetContentRegionAvail().x, 0 }))
+			{
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
 				{
+					ImGuiLayer::DrawFontIcon(u8"\xf1b2", 1, 0.65f);
+				}
+				ImGui::TableNextColumn();
+				{
+					if (ImGuiLayer::IconButton("Open", u8"\xe85f", 1, 1.f))
+					{
+						auto path = shade::FileDialog::OpenFile("Shade mesh(*.s_mesh) \0*.s_mesh\0");
+						if (!path.empty())
+						{
+							if (shade::File file = shade::File(path.string(), shade::File::In, "@s_mesh", shade::File::VERSION(0, 0, 1)))
+								file.Read(mesh);
+							else
+								SHADE_CORE_WARNING("Couldn't open mesh file, path ={0}", path);
+						}
+					}
+				}
+				ImGui::TableNextColumn();
+				{
+					if (ImGuiLayer::IconButton("Save", u8"\xe8b9", 1, 1.f))
+					{
+						auto path = shade::FileDialog::SaveFile("Shade mesh(*.s_mesh) \0*.s_mesh\0");
+						if (!path.empty())
+						{
+							if (shade::File file = shade::File(path.string(), shade::File::Out, "@s_mesh", shade::File::VERSION(0, 0, 1)))
+								file.Write(mesh);
+							else
+								SHADE_CORE_WARNING("Couldn't save mesh file, path ={0}", path);
+						}
+					}
+				}
+				ImGui::TableNextColumn();
+				{
+					ImGui::SetCursorScreenPos({ ImGui::GetCursorScreenPos().x, ImGui::GetCursorScreenPos().y - ImGui::GetStyle().ItemInnerSpacing.y });
+					ImGui::Dummy({ ImGui::GetContentRegionAvail().x - 5.f, 0.f });
+
+					isOpen = ImGui::TreeNodeEx((mesh->GetAssetData()) ? mesh->GetAssetData()->GetId().c_str() : "NONE", ImGuiTreeNodeFlags_Framed);
+					if (isOpen) ImGui::TreePop();
+				}
+				ImGui::TableNextColumn();
+				{
+					CreateArrowButton("##MeshAssetPopup", IsAssetLoadPopupOpen, screenPostionY, AssetLoadCallback, [&]() { return LoadAsset<shade::Mesh>(search, mesh, shade::AssetMeta::Type::Mesh, shade::AssetMeta::Category::Primary); });
+				}
+
+				bool isRemove = false; 
+				ImGui::TableNextColumn();
+				{
+					if (ImGuiLayer::IconButton("##RemoveMesh", u8"\xe85d", 1, 1.0f))
+					{
+						it = meshes.erase(it); 
+						isRemove = true;
+					}
+				}
+				ImGui::EndTable();
+
+				if (isRemove) break;
+			}
+
+			if (isOpen)
+			{
+				if (ImGui::BeginTable("##SelectMaterialTable", 6, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersOuterH, { ImGui::GetContentRegionAvail().x, 0 }))
+				{
+					ImGui::TableNextRow();
 					ImGui::TableNextColumn();
 					{
-						if (DragInt("Faces", &faces, 1, 1, maxFaces))
-							mesh->RecalculateAllLods(shade::Drawable::MAX_LEVEL_OF_DETAIL, maxFaces, faces, lambda);
+						ImGuiLayer::DrawFontIcon(u8"\xeaac", 1, 0.6f);
 					}
 					ImGui::TableNextColumn();
 					{
-						if (DragFloat("Split power", &lambda, 0.01, 0.01, 1.0))
-							mesh->RecalculateAllLods(shade::Drawable::MAX_LEVEL_OF_DETAIL, maxFaces, faces, lambda);
+						if (ImGuiLayer::IconButton("Open", u8"\xe85f", 1, 1.f))
+						{
+							auto path = shade::FileDialog::OpenFile("Shade material(*.s_mat) \0*.s_mat\0");
+							if (!path.empty())
+							{
+								if (shade::File file = shade::File(path.string(), shade::File::In, "@s_mat", shade::File::VERSION(0, 0, 1)))
+									file.Read(material);
+								else
+									SHADE_CORE_WARNING("Couldn't open material file, path ={0}", path);
+							}
+						}
 					}
+					ImGui::TableNextColumn();
+					{
+						if (ImGuiLayer::IconButton("Save", u8"\xe8b9", 1, 1.f))
+						{
+							auto path = shade::FileDialog::SaveFile("Shade material(*.s_mat) \0*.s_mat\0");
+							if (!path.empty())
+							{
+								if (shade::File file = shade::File(path.string(), shade::File::Out, "@s_mat", shade::File::VERSION(0, 0, 1)))
+									file.Write(material);
+								else
+									SHADE_CORE_WARNING("Couldn't save material file, path ={0}", path);
+							}
+						}
+					}
+					ImGui::TableNextColumn();
+					{
+						ImGui::SetCursorScreenPos({ ImGui::GetCursorScreenPos().x, ImGui::GetCursorScreenPos().y - ImGui::GetStyle().ItemInnerSpacing.y });
+						ImGui::Dummy({ ImGui::GetContentRegionAvail().x , 0.f });
+
+						std::string buttonTitle = (!material || !material->GetAssetData()) ? "NONE" : material->GetAssetData()->GetId();
+						ImGui::BeginDisabled();
+						ImGui::Button(buttonTitle.c_str(), ImVec2{ ImGui::GetContentRegionAvail().x, 0.f });
+						ImGui::EndDisabled();
+					}
+					ImGui::TableNextColumn();
+					{
+						CreateArrowButton("##MaterialAssetPopup", IsAssetLoadPopupOpen, screenPostionY, AssetLoadCallback, [&]() { return LoadAsset<shade::Material>(search, material, shade::AssetMeta::Type::Material, shade::AssetMeta::Category::Primary); });
+					}
+					ImGui::TableNextColumn();
+					{
+						if (ImGuiLayer::IconButton("##MaterialRemove", u8"\xe85d", 1, 1.0f)) { material = shade::Material::CreateEXP(); }
+					}
+
+					HandleTexture(*this,"Albedo", u8"\xe9a5", "Albedo", IsAssetLoadPopupOpen, screenPostionY, search, material->TextureAlbedo, AssetLoadCallback);
+					HandleTexture(*this, "Diffuse", u8"\xe9a4", "Diffuse", IsAssetLoadPopupOpen, screenPostionY, search, material->TextureDiffuse, AssetLoadCallback);
+					HandleTexture(*this, "Specular", u8"\xea1a", "Specular", IsAssetLoadPopupOpen, screenPostionY, search, material->TextureSpecular, AssetLoadCallback);
+					HandleTexture(*this, "Normals", u8"\xe96f", "Normal map", IsAssetLoadPopupOpen, screenPostionY, search, material->TextureNormals, AssetLoadCallback);
+					HandleTexture(*this, "Metallic", u8"\xe953", "Metallic", IsAssetLoadPopupOpen, screenPostionY, search, material->TextureMetallic, AssetLoadCallback);
+					HandleTexture(*this, "Roughness", u8"\xe978", "Roughness", IsAssetLoadPopupOpen, screenPostionY, search, material->TextureRoughness, AssetLoadCallback);
+
 					ImGui::EndTable();
 				}
 
-				ImGui::Text("Set manually :"); ImGui::Separator();
-				for (int i = 1; i < mesh->GetLods().size(); i++)
-				{
-					int faces = mesh->GetLod(i).Indices.size() / 3;
-
-					if (DragInt(std::format("Lod level #:{}, faces :", i).c_str(), &faces, 1, 1, maxFaces))
-					{
-						mesh->RecalculateLod(i, faces);
-					}
-				}
-
-				if (ImGui::Button("Save"))
-				{
-					auto path = mesh->GetAssetData()->GetReference()->GetAttribute<std::string>("Path");
-
-					if (!path.empty())
-					{
-						std::ofstream file(path, std::ios::binary);
-						shade::Serializer::Serialize(file, mesh);
-						file.close();
-					}
-					else
-					{
-						SHADE_CORE_WARNING("Couldn't save mesh, asset path is empty!");
-					}
-
-				}
-				ImGui::TreePop();
+				Material(material.Get());
 			}
 
-			auto& meshId = mesh->GetAssetData()->GetId();
-
-
-			if (DrawButton("Asset", meshId.c_str()))
-			{
-				m_SelectedMesh = mesh;
-				m_SelectedMaterial = mesh->GetMaterial();
-			}
-			if (mesh->GetMaterial())
-			{
-
-				if (DrawButton("Material", mesh->GetMaterial()->GetAssetData()->GetId().c_str()))
-				{
-					m_SelectedMaterial = mesh->GetMaterial();
-				}
-
-			}
-
+			it++;
 		}
-		ImGui::TreePop();
 	}
+
+	if (IsAssetLoadPopupOpen)
+	{
+		ImGuiLayer::BeginWindowOverlay("##AssetLoadOverlay",
+			ImGui::GetWindowViewport(),
+			std::size_t(this),
+			{ ImGui::GetContentRegionAvail().x, 300.f },
+			ImVec2{ ImGui::GetWindowPos().x + ImGui::GetStyle().IndentSpacing + 7.f, screenPostionY + 2.f }, 1.0f,
+			[&]() mutable
+			{
+				ImGuiLayer::InputTextCol("Search", search);
+
+				if (ImGui::BeginListBox("##SelectAsset", ImVec2{ ImGui::GetContentRegionAvail() }))
+				{
+					IsAssetLoadPopupOpen = !AssetLoadCallback();
+					ImGui::EndListBox();
+				}
+			});
+	}
+
+	//	for (auto& mesh : model->GetMeshes())
+	//	{
+	//		const int maxFaces = mesh->GetLod(0).Indices.size() / 3;
+	//		static int faces = maxFaces;
+	//		static float lambda = 0.1;
+
+	//		if (ImGui::TreeNodeEx(mesh->GetAssetData()->GetId().c_str(), ImGuiTreeNodeFlags_Framed))
+	//		{
+	//			ImGui::Text("Set globally :"); ImGui::Separator();
+	//			if (ImGui::BeginTable(mesh->GetAssetData()->GetId().c_str(), 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp, { 0, 0 }))
+	//			{
+	//				ImGui::PushID(mesh->GetAssetData()->GetId().c_str());
+	//				ImGui::TableNextColumn();
+	//				{
+	//				
+	//					/*if (DragInt(std::string("Faces" + mesh->GetAssetData()->GetId()).c_str(), &faces, 1, 1, maxFaces))
+	//						mesh->RecalculateAllLods(shade::Drawable::MAX_LEVEL_OF_DETAIL, maxFaces, faces, lambda);*/
+	//				}
+	//				ImGui::TableNextColumn();
+	//				{
+	//					if (DragFloat(std::string("Split power##" + mesh->GetAssetData()->GetId()).c_str(), &lambda, 0.01, 0.01, 1.0))
+	//						mesh->RecalculateAllLods(shade::Drawable::MAX_LEVEL_OF_DETAIL, maxFaces, faces, lambda);
+	//				}
+	//				ImGui::PopID();
+	//				ImGui::EndTable();
+	//			}
+
+	//			ImGui::Text("Set manually :"); ImGui::Separator();
+	//			for (int i = 1; i < mesh->GetLods().size(); i++)
+	//			{
+	//				int faces = mesh->GetLod(i).Indices.size() / 3;
+
+	//				if (DragInt(std::format("Lod level #:{}, faces :", i).c_str(), &faces, 1, 1, maxFaces))
+	//				{
+	//					mesh->RecalculateLod(i, faces);
+	//				}
+	//			}
+
+	//			if (ImGui::Button("Save"))
+	//			{
+	//				auto path = mesh->GetAssetData()->GetReference()->GetAttribute<std::string>("Path");
+
+	//				if (!path.empty())
+	//				{
+	//					shade::File file(path, shade::File::Out, "@s_mesh", shade::File::VERSION(0, 0, 1));
+	//					file.Write(mesh);
+	//				}
+	//				else
+	//				{
+	//					SHADE_CORE_WARNING("Couldn't save mesh, asset path is empty!");
+	//				}
+
+	//			}
+	//			ImGui::TreePop();
+	//		}
+
+	//		auto& meshId = mesh->GetAssetData()->GetId();
+
+
+	//		if (DrawButton("Asset", meshId.c_str()))
+	//		{
+	//			m_SelectedMesh = mesh;
+	//			m_SelectedMaterial = mesh->GetMaterial();
+	//		}
+	//		if (mesh->GetMaterial())
+	//		{
+
+	//			if (DrawButton("Material", mesh->GetMaterial()->GetAssetData()->GetId().c_str()))
+	//			{
+	//				m_SelectedMaterial = mesh->GetMaterial();
+	//			}
+
+	//		}
+
+	//	}
+	//	ImGui::TreePop();
+	//}
 }
 
 void EditorLayer::RgidBodyComponent(shade::ecs::Entity& entity)
@@ -1854,8 +2148,14 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 {
 	auto& graph = entity.GetComponent<shade::AnimationGraphComponent>();
 
-	if(!m_graphEditor.GetRootGraph() && graph.AnimationGraph)
-		m_graphEditor.Initialize(graph.AnimationGraph);
+	if (!m_GraphEditor.GetRootGraph() && graph.AnimationGraph)
+	{
+		m_GraphEditor.Initialize(graph.AnimationGraph);
+	}
+	else if (m_GraphEditor.GetRootGraph() != graph.AnimationGraph.Raw())
+	{
+		m_GraphEditor.Initialize(graph.AnimationGraph);
+	}
 
 	static std::string search; static bool animGraphAssetPopop = false, skeletonAssetPopop = false;
 
@@ -1880,7 +2180,7 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 					if (file.IsOpen())
 					{
 						graph.GraphContext.Drop();
-						graph.AnimationGraph = shade::SharedPointer<shade::animation::AnimationGraph>::Create(&graph.GraphContext); file.Read(graph.AnimationGraph); m_graphEditor.Initialize(graph.AnimationGraph);
+						graph.AnimationGraph = shade::SharedPointer<shade::animation::AnimationGraph>::Create(&graph.GraphContext); file.Read(graph.AnimationGraph); m_GraphEditor.Initialize(graph.AnimationGraph);
 					}
 					else
 					{
@@ -1965,7 +2265,7 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 			{
 				ImGuiLayer::InputTextCol("Search", search);
 
-				if (ImGui::BeginListBox("##SelectAnimationGraph", ImVec2{ ImGui::GetContentRegionAvail()}))
+				if (ImGui::BeginListBox("##SelectAnimationGraph", ImVec2{ ImGui::GetContentRegionAvail() }))
 				{
 					for (const auto& assetData : shade::AssetManager::GetAssetDataList(shade::AssetMeta::Category::Secondary))
 					{
@@ -2032,326 +2332,7 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 			});
 	}
 
-	//m_graphEditor.Edit("Animation graph editor", { 500, 500 });
-	//if (graph.AnimationGraph)
-	//{
-	//	ImGui::Text("Asset:");
-	//}
-	//graph.AnimationGraph->GetAssetData();
-
-	//if (ImGuiLayer::IconButton("Open", u8"\xe85f", 1, 1.f))
-	//{
-	//	auto path = shade::FileDialog::OpenFile("Shade graph(*.graph) \0*.graph\0");
-
-	//	if (!path.empty())
-	//	{
-	//		shade::File file(path.string(), shade::File::In, "@s_animgraph", shade::File::VERSION(0, 0, 1));
-	//		if (file.IsOpen())
-	//		{
-	//			/*auto graph = shade::SharedPointer<shade::animation::AnimationGraph>::Create(&m_SelectedAnimationGraphComponent.GraphContext);
-	//			m_SelectedAnimationGraphComponent.AnimationGraph = graph;
-
-	//			m_SelectedAnimationGraphComponent.GraphContext.Drop();
-
-	//			m_graphEditor.Initialize(graph);*/
-
-	//			//m_graphEditor.Initialize()
-	//			/*auto context = m_pRootGraph->As<AnimationGraph>().GetGraphContext();
-
-	//			context->Drop();
-
-	//			std::cout << m_pRootGraph << std::endl;
-	//			m_pRootGraph->As<AnimationGraph>() = std::move(AnimationGraph(context));
-
-	//			file.Read(m_pRootGraph->As<AnimationGraph>());
-
-	//			Initialize(&m_pRootGraph->As<AnimationGraph>());*/
-	//		}
-	//		else
-	//		{
-	//			SHADE_CORE_WARNING("Couldn't open graph file, path ={0}", path);
-	//		}
-	//	}
-	//}
-	//ImGui::SameLine();
-	//if (ImGuiLayer::IconButton("Save", u8"\xe8b9", 1, 1.f))
-	//{
-	//	auto path = shade::FileDialog::SaveFile("Shade graph(*.graph) \0*.graph\0");
-
-	//	if (!path.empty())
-	//	{
-	//		shade::File file(path.string(), shade::File::Out, "@s_animgraph", shade::File::VERSION(0, 0, 1));
-	//		if (file.IsOpen())
-	//		{
-	//			//file.Write(m_pRootGraph->As<AnimationGraph>());
-	//		}
-	//		else
-	//		{
-	//			SHADE_CORE_WARNING("Couldn't open graph file, path ={0}", path);
-	//		}
-	//	}
-	//}
-
-	/*m_SelectedAnimationGraphComponent = entity.GetComponent<shade::AnimationGraphComponent>();
-
-	if (!m_SelectedAnimationGraphComponent.GraphContext.Controller)
-		m_SelectedAnimationGraphComponent.GraphContext.Controller = shade::SharedPointer<shade::animation::AnimationController>::Create();
-
-	if (!m_SelectedAnimationGraphComponent.GraphContext.Skeleton)
-	{
-		shade::AssetManager::GetAsset<shade::Skeleton, shade::BaseAsset::InstantiationBehaviour::Synchronous>("Boy.Skeleton", shade::AssetMeta::Category::Secondary, shade::BaseAsset::LifeTime::KeepAlive, [&](auto& skeleton) mutable
-			{
-				m_SelectedAnimationGraphComponent.GraphContext.Skeleton = skeleton;
-			});
-	}
-
-	if (!m_SelectedAnimationGraphComponent.AnimationGraph)
-	{
-		shade::SharedPointer<shade::animation::AnimationGraph> graph = shade::SharedPointer<shade::animation::AnimationGraph>::Create(&m_SelectedAnimationGraphComponent.GraphContext);
-		m_SelectedAnimationGraphComponent.AnimationGraph = graph;
-		m_graphEditor.Initialize(graph);
-	}*/
-
-
-	//auto& animationGraph = entity.GetComponent<shade::AnimationGraphComponent>();
-
-	//static float blendFactor = 0.f;
-	//static bool isSync = false;
-
-	//static shade::animation::BoneMask boneMask(entity.GetComponent<shade::ModelComponent>()->GetSkeleton());
-	//static shade::SharedPointer<shade::animation::PoseNode>			pose1;
-	//static shade::SharedPointer<shade::animation::PoseNode>			pose2;
-	//static shade::SharedPointer<shade::animation::ValueNode>		blendWeight;
-
-	//static shade::SharedPointer<shade::animation::BlendNode2D>		blend;
-
-	//if (!animationGraph)
-	//{
-	//	if (ImGui::Button("Add Graph"))
-	//	{
-	//		// 1. Create Animation graph with empty context
-	//		// 2. Add function initialize after context was set ! or someting like that
-	//		// 3. Remove Skeleton from Model, submit animated only when graph component on entity when we create serrialization for graph
-	//		// 4. Take a look at Query pose and reafactor this if it posible !
-	//		// 5. Skeleton shoudl be only in context !
-	//		animationGraph = shade::animation::AnimationGraph::CreateEXP(entity.GetComponent<shade::ModelComponent>()->GetSkeleton(), entity); // Caussing asset error!
-
-	//		pose1		= animationGraph->CreateNode<shade::animation::PoseNode>();
-	//		pose2		= animationGraph->CreateNode<shade::animation::PoseNode>();
-	//		blendWeight = animationGraph->CreateNode<shade::animation::ValueNode>();
-
-	//		blend		= animationGraph->CreateNode<shade::animation::BlendNode2D>();
-
-	//		//animationGraph->AddConnection(blend->GetNodeIndex(), 0, blendWeight->GetNodeIndex(), 0);
-
-	//		/*animationGraph->AddConnection(pose1->GetNodeIndex(), 0, blend->GetNodeIndex(), 1);
-	//		animationGraph->AddConnection(pose2->GetNodeIndex(), 0, blend->GetNodeIndex(), 2);
-
-	//		animationGraph->AddRootConnection(blend->GetNodeIndex(), 0);*/
-	//	}
-	//}
-
-	//if (ImGui::BeginTable("##SelectOrAddNewAnimation", 3, ImGuiTableFlags_None | ImGuiTableFlags_SizingStretchProp))
-	//{
-	//	ImGui::TableNextRow();
-	//	{
-	//		ImGui::TableNextColumn();
-	//		{
-	//			ImGui::Text("Current");
-	//		}
-	//		ImGui::TableNextColumn();
-	//		{
-	//			std::vector<std::string> animationsNames;
-
-	//			/*for (auto& [animation, data] : *controller)
-	//				animationsNames.emplace_back(animation->GetAssetData()->GetId());
-
-	//			int comboFlags = ImGuiSelectableFlags_None;
-
-	//			std::string currentAnimationName = (currentAnimation) ? currentAnimation->GetAssetData()->GetId() : "";
-	//			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-
-	//			(controller->GetAnimations().empty()) ? ImGui::BeginDisabled() : void();
-	//			if (DrawCombo(" ##Animations", currentAnimationName, animationsNames, comboFlags, ImGuiComboFlags_None))
-	//			{
-	//				if (currentAnimationName.size()) controller->SetCurrentAnimation(currentAnimationName, shade::Animation::State::Play);
-	//			}
-	//			(controller->GetAnimations().empty()) ? ImGui::EndDisabled() : void();
-
-	//			if(controller->GetAnimations().size() == 2)
-	//			{
-	//				auto first  =  controller->GetAnimations().begin();
-	//				auto second = (++controller->GetAnimations().begin());
-
-	//				controller->ProcessPose(first->first, 0, 0, second->first, 0,0, blendFactor, isSync, boneMask);
-	//			}
-	//			else if(currentAnimation)
-	//			{
-	//				if (currentAnimation)
-	//					controller->ProcessPose(currentAnimation, 0, 10);
-	//			}*/
-	//		}
-
-	//		ImGui::TableNextColumn();
-	//		{
-	//			if (ImGui::Button("+"))
-	//				m_IsAddSkeletalAnimationModal = true;
-	//			ImGui::SameLine();
-	//			if (ImGui::Button("-"))
-	//			{
-	//				controller->RemoveAnimation(currentAnimation); currentAnimation = nullptr;
-
-	//			}
-	//		}
-	//	}
-	//	ImGui::TableNextRow();
-	//	{
-	//		ImGui::TableNextColumn();
-	//		{
-	//			ImGui::Text("Timeline");
-	//		}
-	//		ImGui::TableNextColumn();
-	//		{
-	//			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-
-	//			if (currentAnimation)
-	//			{
-	//				ImGui::SliderFloat("##Timeline", &controller->GetCurrentAnimationTime(currentAnimation), 0.f,
-	//					controller->GetAnimationDuration(currentAnimation));
-	//			}
-	//			else
-	//			{
-	//				static float cur = 0.0f, max = 100.0f;
-
-	//				ImGui::BeginDisabled();
-	//				ImGui::SliderFloat("##Timeline", &cur, 0.f, max);
-	//				ImGui::EndDisabled();
-	//			}
-	//		}
-	//	}
-	//	ImGui::EndTable();
-	//}
-	//ImGui::Separator();
-	//if (ImGui::BeginTable("##Play/Pause/StopAnimation", 3, ImGuiTableFlags_None | ImGuiTableFlags_SizingStretchProp))
-	//{
-	//	(!currentAnimation) ? ImGui::BeginDisabled() : void();
-
-	//	ImGui::TableNextRow();
-	//	{
-	//		ImGui::TableNextColumn();	
-
-	//		bool isPlay = (currentAnimation && (controller->GetAnimationState(currentAnimation) == shade::Animation::State::Play));
-
-	//		(isPlay) ? ImGui::BeginDisabled() : void();
-	//		if (ImGui::Button("Play", { ImGui::GetContentRegionAvail().x, 0 })) controller->SetAnimationState(currentAnimation, shade::Animation::State::Play);
-	//		(isPlay) ? ImGui::EndDisabled() : void();
-
-	//		ImGui::TableNextColumn();
-
-	//		bool isPauseStop = (currentAnimation && (controller->GetAnimationState(currentAnimation) == shade::Animation::State::Pause || controller->GetAnimationState(currentAnimation) == shade::Animation::State::Stop));
-
-	//		(isPauseStop) ? ImGui::BeginDisabled() : void();
-	//		if (ImGui::Button("Pause", { ImGui::GetContentRegionAvail().x, 0 })) controller->SetAnimationState(currentAnimation, shade::Animation::State::Pause);
-	//		(isPauseStop) ? ImGui::EndDisabled() : void();
-
-
-	//		bool isPlayPause = (currentAnimation && (controller->GetAnimationState(currentAnimation) == shade::Animation::State::Stop));
-
-	//		ImGui::TableNextColumn();	
-
-	//		(isPlayPause) ? ImGui::BeginDisabled() : void();
-	//		if (ImGui::Button("Stop", { ImGui::GetContentRegionAvail().x, 0 })) controller->SetAnimationState(currentAnimation,  shade::Animation::State::Stop);
-	//		(isPlayPause) ? ImGui::EndDisabled() : void();
-	//	}
-	//	(!currentAnimation) ? ImGui::EndDisabled() : void();
-	//	ImGui::EndTable();
-	//}
-	//ImGui::Separator();
-	//(!currentAnimation) ? ImGui::BeginDisabled() : void();
-	//if (ImGui::BeginTable("##Play/Pause/StopAnimationSS", 3 , ImGuiTableFlags_None | ImGuiTableFlags_SizingStretchProp))
-	//{
-	//	float defaultValue = 0.f;
-
-	//	ImGui::TableNextRow();
-	//	{
-	//		ImGui::TableNextColumn(); {ImGui::Text("Duration"); }
-	//	
-	//		ImGui::TableNextColumn(); { ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x); ImGui::DragFloat("##Duration", (currentAnimation) ? &controller->GetAnimationDuration(currentAnimation) : &defaultValue, 0.001f); }
-
-	//		ImGui::TableNextColumn(); { if (ImGui::Button("R##D")) { controller->GetAnimationDuration(currentAnimation) = currentAnimation->GetDuration(); } }
-	//	}
-	//	ImGui::TableNextRow();
-	//	{
-	//		ImGui::TableNextColumn(); {ImGui::Text("Tiks per seccond"); }
-	//		
-	//		ImGui::TableNextColumn(); { ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x); ImGui::DragFloat("##TiksPerSeccond", (currentAnimation) ? &controller->GetAnimationTiks(currentAnimation) : &defaultValue, 0.001f); }
-
-	//		ImGui::TableNextColumn(); { if (ImGui::Button("R##T")) { controller->GetAnimationTiks(currentAnimation) = currentAnimation->GetTiksPerSecond(); } }
-	//	}
-	//	ImGui::TableNextRow();
-	//	{
-	//		ImGui::TableNextColumn(); {ImGui::Text("Blend Factor"); }
-	//		ImGui::TableNextColumn();
-	//		{
-	//			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-	//			ImGui::SliderFloat("##Blend", &blendFactor, 0.0f, 1.0f);
-	//		}
-	//		ImGui::TableNextColumn();
-	//		{
-	//			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-	//			ImGui::Checkbox("##Sync", &isSync);
-	//		}
-	//		
-	//	}
-	//	ImGui::EndTable();
-	//}
-	//(!currentAnimation) ? ImGui::EndDisabled() : void();
-
-	//static std::string searchBone;
-
-	//InputTextCol("Search:", searchBone);
-	//ImGui::Separator();
-
-	//if (entity.HasComponent<shade::ModelComponent>())
-	//{
-	//	auto& model = entity.GetComponent<shade::ModelComponent>();
-
-	//	if (model->GetSkeleton())
-	//	{
-	//		if (ImGui::TreeNodeEx("Bone's weights:", ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_Framed))
-	//		{
-	//			BoneMaskEdnitor(model->GetSkeleton()->GetRootNode(), boneMask);
-	//			ImGui::TreePop();
-	//		}
-	//		
-	//	}
-	//}
-	//
-	//ImGui::SetNextWindowSize(ImGui::GetContentRegionAvail());
-	//DrawModal("Add animation's asset:", m_IsAddSkeletalAnimationModal, [&]()
-	//	{
-	//		static std::string id;
-	//		static std::string search;
-
-	//		InputTextCol("Search:", search);
-	//		ImGui::Separator();
-
-	//		for (const auto& assetData : shade::AssetManager::GetAssetDataList(shade::AssetMeta::Category::Secondary))
-	//		{
-	//			if (assetData.second->GetType() == shade::AssetMeta::Type::Animation && assetData.first.find(search) != std::string::npos)
-	//			{
-	//				if (ImGui::Selectable(assetData.first.c_str(), id == assetData.first))
-	//				{
-	//					shade::AssetManager::GetAsset<shade::Animation>(assetData.first, shade::AssetMeta::Category::Secondary, shade::BaseAsset::LifeTime::KeepAlive, [=](auto& animation) mutable
-	//						{
-	//							controller->AddAnimation(animation);
-	//						});
-
-	//					m_IsAddSkeletalAnimationModal = false;
-	//				}
-	//			}
-	//		}
-	//	});
+	m_GraphEditor.Edit("Graph editor", { 500, 500 });
 }
 
 void EditorLayer::NativeScriptComponent(shade::ecs::Entity& entity)
@@ -2536,14 +2517,16 @@ void EditorLayer::Material(shade::Material& material)
 		}
 		ImGui::TableNextRow();
 		{
-			ImGui::TableNextColumn(); { ImGui::Text("Shininess"); }
+			ImGui::TableNextColumn(); { ImGui::Text("Shininess, Strength"); }
 			ImGui::TableNextColumn();
 			{
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x / 2.f);
+				ImGui::DragFloat("##Shininess", &material.Shininess, 0.01f, 0); ImGui::SameLine();
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				ImGui::DragFloat("##Shininess", &material.Shininess, 0.01f, 0);
+				ImGui::DragFloat("##Shininess Strength", &material.ShininessStrength, 0.01f, 0);
 			}
 		}
-		ImGui::TableNextRow();
+		/*ImGui::TableNextRow();
 		{
 			ImGui::TableNextColumn(); { ImGui::Text("Shininess Strength"); }
 			ImGui::TableNextColumn();
@@ -2551,7 +2534,7 @@ void EditorLayer::Material(shade::Material& material)
 				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 				ImGui::DragFloat("##Shininess Strength", &material.ShininessStrength, 0.01f, 0);
 			}
-		}
+		}*/
 		ImGui::TableNextRow();
 		{
 			ImGui::TableNextColumn(); { ImGui::Text("Refracti"); }

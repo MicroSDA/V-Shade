@@ -265,11 +265,14 @@ void shade::VulkanRenderAPI::DrawInstanced(SharedPointer<RenderCommandBuffer>& c
 {
 	static constexpr std::uint32_t VERTEX_BINDING = 0, TRANSFORMS_BINDING = 1;
 
-	vertices->Bind(commandBuffer, m_sCurrentFrameIndex, VERTEX_BINDING);
-	indices->Bind(commandBuffer, m_sCurrentFrameIndex);
-	transforms->Bind(commandBuffer, m_sCurrentFrameIndex, TRANSFORMS_BINDING, transformOffset);
+	if (vertices && indices && transforms)
+	{
+		vertices->Bind(commandBuffer, m_sCurrentFrameIndex, VERTEX_BINDING);
+		indices->Bind(commandBuffer, m_sCurrentFrameIndex);
+		transforms->Bind(commandBuffer, m_sCurrentFrameIndex, TRANSFORMS_BINDING, transformOffset);
 
-	vkCmdDrawIndexed(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(m_sCurrentFrameIndex), static_cast<std::uint32_t>(indices->GetCount()), count, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(m_sCurrentFrameIndex), static_cast<std::uint32_t>(indices->GetCount()), count, 0, 0, 0);
+	}
 }
 
 void shade::VulkanRenderAPI::DrawInstancedAnimated(SharedPointer<RenderCommandBuffer>& commandBuffer, const SharedPointer<VertexBuffer>& vertices, const SharedPointer<IndexBuffer>& indices, const SharedPointer<VertexBuffer>& bones, const SharedPointer<VertexBuffer>& transforms, std::uint32_t count, std::uint32_t transformOffset)

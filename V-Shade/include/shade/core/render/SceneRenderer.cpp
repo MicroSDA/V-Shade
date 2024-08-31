@@ -310,7 +310,9 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 		scene->View<SpotLightComponent, TransformComponent>().Each([&](ecs::Entity& entity, SpotLightComponent& light, TransformComponent& transform)
 			{
 				glm::mat4 pcTransform = scene->ComputePCTransform(entity);
-				float radius = glm::acos(glm::radians(light->MaxAngle)) * light->Distance + 3.f;
+			
+				float radius = light->Distance * glm::acos(glm::radians(light->MaxAngle));
+	
 				if (frustum.IsInFrustum({ pcTransform[3].x, pcTransform[3].y, pcTransform[3].z }, glm::normalize(glm::mat3(pcTransform) * glm::vec3(0.f, 0.f, 1.f)), light->Distance, radius))
 				{
 					Renderer::SubmitLight(light, pcTransform, m_Camera);
@@ -345,7 +347,7 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 						}
 						else
 						{
-							Renderer::SubmitStaticMesh(m_MainGeometryPipelineStatic, mesh, mesh->GetMaterial(), model, pcTransform); m_Statistic.SubmitedInstances++;
+							Renderer::SubmitStaticMeshDynamicLOD(m_MainGeometryPipelineStatic, mesh, mesh->GetMaterial(), model, pcTransform); m_Statistic.SubmitedInstances++;
 						}
 						
 						if (m_Settings.RenderSettings.LightCulling)
@@ -595,8 +597,10 @@ shade::SharedPointer<shade::Camera>& shade::SceneRenderer::GetActiveCamera()
 void shade::SceneRenderer::RecompileAllPipelines()
 {
 	m_MainGeometryPipelineStatic->Recompile();
-	m_MainGeometryPipelineAnimated->Recompile();
+	//m_MainGeometryPipelineAnimated->Recompile();
 	m_GridPipeline->Recompile();
+	m_LightCullingPipeline->Recompile();
+	m_LightCullingPreDepthPipeline->Recompile();
 	/*m_ScreenSpaceAmbientOcclusionPipeline->Recompile();
 	m_BloomPipeline->Recompile();
 	m_GridPipeline->Recompile();

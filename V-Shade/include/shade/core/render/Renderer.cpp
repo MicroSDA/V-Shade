@@ -238,46 +238,43 @@ void shade::Renderer::BeginFrame(std::uint32_t frameIndex)
 
 void shade::Renderer::EndFrame(std::uint32_t frameIndex)
 {
-	
 	m_sRenderAPI->EndFrame(frameIndex);
 
 	// Loop through submitted pipelines
-//	for (auto& [hash, pipeline] : m_sSubmitedPipelines)
-//	{
-//#if true
-//		// Async
-//		// Loop through instances of the pipeline in parallel
-//		std::for_each(std::execution::par, pipeline.Instances.begin(), pipeline.Instances.end(),
-//			[](std::pair<const std::size_t, render::SubmitedMaterials>& drawable)
-//			{
-//#if true
-//				// Async
-//				// Loop through materials of the instance in parallel
-//				std::for_each(std::execution::par, drawable.second.Materials.begin(), drawable.second.Materials.end(),
-//				[](std::pair<const Asset<Material>, bool>& material)
-//					{
-//						// Mark the material as expired
-//						material.second = true;
-//					});
-//#else
-//				// Sync
-//				// Loop through materials of the instance
-//				for (auto& [material, expired] : drawable.second.Materials)
-//				{
-//					// Mark the material as expired
-//					expired = true;
-//				}
-//#endif 
-//			});
-//#else
-//		// Sync
-//		for (auto& drawable : pipeline.Instances)
-//		{
-//			for (auto& [material, expired] : drawable.second.Materials)
-//				expired = true;
-//		}
-//#endif 
-//	}
+	//for (auto& [hash, pipeline] : m_sRenderAPI->m_sSubmitedPipelines)
+	//{
+	//	// Async
+	//	// Loop through instances of the pipeline in parallel
+	//	std::for_each(std::execution::par, pipeline.Instances.begin(), pipeline.Instances.end(),
+	//		[](std::pair<const std::size_t, render::MaterialModelPair>& drawable)
+	//		{
+	//			// Async
+	//			// Loop through materials of the instance in parallel
+	//			std::for_each(std::execution::par, drawable.second.Materials.begin(), drawable.second.Materials.end(),
+	//			[](std::pair<const Asset<Material>, bool>& material)
+	//				{
+	//					// Mark the material as expired
+	//					material.second = true;
+	//				});
+
+	//			//// Sync
+	//			//// Loop through materials of the instance
+	//			//for (auto& [material, expired] : drawable.second.Materials)
+	//			//{
+	//			//	// Mark the material as expired
+	//			//	expired = true;
+	//			//}
+
+	//		});
+
+	//	//// Sync
+	//	//for (auto& drawable : pipeline.Instances)
+	//	//{
+	//	//	for (auto& [material, expired] : drawable.second.Materials)
+	//	//		expired = true;
+	//	//}
+
+	//}
 
 	// Clear all transform and material data.
 	m_sRenderAPI->m_sSubmitedSceneRenderData.InstanceRawData.clear();

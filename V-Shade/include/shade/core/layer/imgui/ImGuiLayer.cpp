@@ -82,7 +82,10 @@ void shade::ImGuiLayer::DrawImage(SharedPointer<Texture2D>& texture, const ImVec
 {
 	m_ImGuiRender->DrawImage(texture, size, borderColor, mip);
 }
-
+void shade::ImGuiLayer::DrawImage(Asset<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor)
+{
+	m_ImGuiRender->DrawImage(texture, size, borderColor);
+}
 void shade::ImGuiLayer::HelpMarker(const char* marker, const char* desc)
 {
 	//ImGui::SameLine();
@@ -486,13 +489,22 @@ void shade::ImGuiLayer::TextUTF8(const std::u8string& string)
 {
 	ImGui::TextUnformatted((char*)string.c_str(), (char*)string.c_str() + string.size());
 }
-void shade::ImGuiLayer::DrawFontIcon(const char8_t* c, std::size_t fontIndex, float scale)
+void shade::ImGuiLayer::DrawFontIcon(const char8_t* c, std::size_t fontIndex, float scale, const char* hint)
 {
 	ImGui::GetIO().Fonts->Fonts[fontIndex]->Scale = scale;
 	ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[fontIndex]);
 	TextUTF8(c);
 	ImGui::PopFont();
 	ImGui::GetIO().Fonts->Fonts[fontIndex]->Scale = 1.f;
+
+	if (hint && ImGui::IsItemHovered())
+	{
+		ImGui::BeginTooltip();
+		ImGui::PushTextWrapPos(ImGui::GetFontSize() * 45.0f);
+		ImGui::TextUnformatted(hint);
+		ImGui::PopTextWrapPos();
+		ImGui::EndTooltip();
+	}
 }
 
 bool shade::ImGuiLayer::IconButton(const char* id, const char8_t* c, std::size_t fontIndex, float scale)

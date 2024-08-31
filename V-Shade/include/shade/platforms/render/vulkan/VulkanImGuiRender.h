@@ -18,11 +18,12 @@ namespace shade
 
 		virtual void DrawImage(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor) override;
 		virtual void DrawImage(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor, std::uint32_t mip) override;
+		virtual void DrawImage(Asset<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor) override;
 	private:
 		VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
 		SharedPointer<RenderCommandBuffer> m_CommandBuffer;
 		VkDescriptorSet	m_Image = VK_NULL_HANDLE;
 		VkPipeline m_ImGuiPipeline = VK_NULL_HANDLE;
-		std::unordered_map<SharedPointer<Texture2D>, std::pair<VkDescriptorSet, VkImageView>> m_Images;
+		std::unordered_map<Texture2D*, std::pair<VkDescriptorSet, VkImageView>> m_Images;
 	};
 }

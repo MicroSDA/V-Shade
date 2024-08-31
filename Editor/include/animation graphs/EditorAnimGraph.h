@@ -168,56 +168,147 @@ namespace graph_editor
 		////////////
 	};
 
-	// Make a Statik probably !
 	class GraphEditor
 	{
 	public:
 		GraphEditor() = default;
 		~GraphEditor();
-		void Initialize(Asset<AnimationGraph>& graph);
-		void InitializeRecursively(graphs::BaseNode* pNode, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes); // Strange and not clear
-		GraphNodePrototype* GetPrototypedNode(graphs::BaseNode* pNode); // Strange and not clear
-		GraphNodePrototype* GetPrototypedReferNode(graphs::BaseNode* pNode); // Strange and not clear
 
-		std::unordered_map<std::size_t, GraphNodePrototype*>& GetNodes() { return m_Nodes; }
-		std::unordered_map<std::size_t, GraphNodePrototype*>& GetReferNodes() { return m_ReferNodes; }
+		/**
+		 * @brief Initializes the editor with the given animation graph asset.
+		 * @param graph The animation graph asset to initialize with.
+		 */
+		 void Initialize(Asset<AnimationGraph>& graph);
 
-		graphs::BaseNode* GetRootGraph() { return m_pRootGraph.Raw(); }
+		/**
+		 * @brief Recursively initializes nodes and populates the provided map.
+		 * @param pNode The current node to initialize.
+		 * @param nodes The map to populate with nodes and their prototypes.
+		 */
+		 void InitializeRecursively(graphs::BaseNode* pNode, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes);
 
-		void SetToRemove(graphs::BaseNode* pNode);
+		/**
+		 * @brief Retrieves the prototyped node corresponding to the given base node.
+		 * @param pNode The base node to find the prototype for.
+		 * @return Pointer to the prototyped node, or nullptr if not found.
+		 */
+		 GraphNodePrototype* GetPrototypedNode(graphs::BaseNode* pNode);
+
+		/**
+		 * @brief Retrieves the prototyped refer node corresponding to the given base node.
+		 * @param pNode The base node to find the refer prototype for.
+		 * @return Pointer to the prototyped refer node, or nullptr if not found.
+		 */
+		 GraphNodePrototype* GetPrototypedReferNode(graphs::BaseNode* pNode);
+
+		/**
+		 * @brief Gets the map of all prototyped nodes.
+		 * @return Reference to the map of prototyped nodes.
+		 */
+		SHADE_INLINE  std::unordered_map<std::size_t, GraphNodePrototype*>& GetNodes() { return m_Nodes; }
+
+		/**
+		 * @brief Gets the map of all prototyped refer nodes.
+		 * @return Reference to the map of prototyped refer nodes.
+		 */
+		SHADE_INLINE  std::unordered_map<std::size_t, GraphNodePrototype*>& GetReferNodes() { return m_ReferNodes; }
+
+		/**
+		 * @brief Gets the root graph node.
+		 * @return Pointer to the root graph node.
+		 */
+		SHADE_INLINE  graphs::BaseNode* GetRootGraph() { return m_pRootGraph.Raw(); }
+
+		/**
+		 * @brief Marks a node for removal.
+		 * @param pNode The node to mark for removal.
+		 */
+		 void SetToRemove(graphs::BaseNode* pNode);
+
 	public:
-		bool Edit(const char* title, const ImVec2& size, const std::function<void()>& menuCallBack = std::function<void()>());
-	private:
+		/**
+		 * @brief Opens the editor UI to edit the graph.
+		 * @param title The title of the editor window.
+		 * @param size The size of the editor window.
+		 * @param menuCallBack Optional callback function for menu actions.
+		 * @return True if the graph was edited, false otherwise.
+		 */
+		 bool Edit(const char* title, const ImVec2& size, const std::function<void()>& menuCallBack = std::function<void()>());
 
+	private:
+		/**
+		 * @brief Creates a node of type T and adds it to the provided map.
+		 * @tparam T The type of the node to create.
+		 * @param pNode The base node to create from.
+		 * @param nodes The map to add the created node prototype to.
+		 */
 		template<typename T>
-		void CreateNode(shade::graphs::BaseNode* pNode, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes)
+		SHADE_INLINE  void CreateNode(shade::graphs::BaseNode* pNode, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes)
 		{
 			nodes.insert({ std::size_t(pNode) ^ pNode->GetNodeIdentifier(), new T(pNode, this) });
 		}
 
-		Asset<AnimationGraph> m_pRootGraph;
-		GraphNodePrototype*	m_pSelectedNode = nullptr;
+		// Root animation graph asset
+		 Asset<AnimationGraph> m_pRootGraph;
 
-		std::unordered_map<std::size_t, GraphNodePrototype*>  m_Nodes;
-		std::unordered_map<std::size_t, GraphNodePrototype*>  m_ReferNodes;
+		// Currently selected graph node prototype
+		 GraphNodePrototype* m_pSelectedNode = nullptr;
 
-		std::vector<GraphNodePrototype*> m_Path;
+		// Maps of nodes and refer nodes prototypes
+		 std::unordered_map<std::size_t, GraphNodePrototype*>  m_Nodes;
+		 std::unordered_map<std::size_t, GraphNodePrototype*>  m_ReferNodes;
 
-		InternalContext  m_Context;
-		GraphVisualStyle m_VisualStyle;
-	
-	private:
-		bool RemoveNode(graphs::BaseNode*& pNode);
-		void ProcessScale();
-		ImVec2 CalculateMouseWorldPos(const ImVec2& mousePosition);
-		void DrawNodes();
-		void DrawConnections();
-		void PopupMenu();
+		// Path of graph nodes
+		 std::vector<GraphNodePrototype*> m_Path;
 
-		void DrawPathRecursevly(graphs::BaseNode* pNode);
+		// Internal context and visual style for the graph editor
+		 InternalContext  m_Context;
+		 GraphVisualStyle m_VisualStyle;
 
-		graphs::BaseNode* m_pNodeToRemove = nullptr;
+		/**
+		 * @brief Removes the specified node.
+		 * @param pNode The node to remove.
+		 * @return True if the node was successfully removed, false otherwise.
+		 */
+		 bool RemoveNode(graphs::BaseNode*& pNode);
+
+		/**
+		 * @brief Processes scaling of the graph editor view.
+		 */
+		 void ProcessScale();
+
+		/**
+		 * @brief Calculates the world position of the mouse based on its screen position.
+		 * @param mousePosition The position of the mouse on the screen.
+		 * @return The calculated world position of the mouse.
+		 */
+		 ImVec2 CalculateMouseWorldPos(const ImVec2& mousePosition);
+
+		/**
+		 * @brief Draws all nodes in the graph.
+		 */
+		 void DrawNodes();
+
+		/**
+		 * @brief Draws all connections between nodes.
+		 */
+		 void DrawConnections();
+
+		/**
+		 * @brief Displays a popup menu for graph nodes.
+		 */
+		 void PopupMenu();
+
+		/**
+		 * @brief Recursively draws the path for the specified node.
+		 * @param pNode The node to start drawing the path from.
+		 */
+		 void DrawPathRecursevly(graphs::BaseNode* pNode);
+
+		 // Node marked for removal
+		 graphs::BaseNode* m_pNodeToRemove = nullptr;
 	};
+
 
 	class AnimationGraphDeligate : public GraphNodePrototype
 	{

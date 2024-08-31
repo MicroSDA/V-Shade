@@ -104,6 +104,8 @@ namespace shade
 		* @return True if the file is open; otherwise, false.
 		*/
 		bool IsOpen() const;
+
+		operator bool() const { return IsOpen(); }
 		/**
 		 * @brief Return true if the end of the file has been reached.
 		 */
