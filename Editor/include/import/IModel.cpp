@@ -39,10 +39,10 @@ namespace utils
 std::pair<shade::SharedPointer<shade::Model>, std::unordered_map<std::string, shade::SharedPointer<shade::Animation>>> IModel::Import(const std::string& filePath, IImportFlag flags)
 {
 	Assimp::Importer importer;
-	importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
+	importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false); // false
 	importer.SetPropertyBool(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 1.f); // Add as settings
 	importer.SetPropertyBool(AI_CONFIG_FBX_CONVERT_TO_M, false);
-
+	
 	unsigned int ImportFagls =
 		aiProcess_OptimizeGraph |
 		aiProcess_ValidateDataStructure |
@@ -250,10 +250,8 @@ void ISkeleton::ProcessBone(const aiScene* pScene, const aiNode* pNode, shade::S
 		const aiMesh* mesh = pScene->mMeshes[meshIndex];
 		for (uint32_t boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex)
 		{
-
-			SHADE_INFO("-- Add Armature --");
+			//SHADE_INFO("-- Add Armature --");
 			skeleton->AddArmature(utils::FromAssimToToGLM<glm::mat4>(mesh->mBones[boneIndex]->mArmature->mTransformation));
-
 
 			if (pNode == mesh->mBones[boneIndex]->mNode)
 			{
@@ -352,8 +350,7 @@ std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> IAnimati
 			animation->AddChannel(pChannel->mNodeName.C_Str(), channel);
 		}
 
-		/*Animations->AddAnimation(animation);
-		Animations->SetCurrentAnimation(animation);*/
+		Animations[pAnimation->mName.C_Str()] = animation;
 	}
 
 	return Animations;

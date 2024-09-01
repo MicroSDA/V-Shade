@@ -1936,8 +1936,8 @@ void graph_editor::PoseNodeDelegate::ProcessBodyContent(const InternalContext* c
 	ImGui::Spacing();
 	ImGui::Spacing();
 
-	std::string animation = (!node.GetAnimationData().Animation) ? "  Not select" : node.GetAnimationData().Animation->GetAssetData()->GetId();
-	shade::ImGuiLayer::DrawFontIcon(u8"\xe823", 1, 0.5f);
+	std::string animation = (!node.GetAnimationData().Animation || !node.GetAnimationData().Animation->GetAssetData()) ? "  Not select" : node.GetAnimationData().Animation->GetAssetData()->GetId();
+	shade::ImGuiLayer::DrawFontIcon(u8"\xe823", 1, 0.5f); 
 	ImGui::SameLine(); ImGui::Text(animation.c_str());
 
 	
@@ -2053,6 +2053,22 @@ void graph_editor::PoseNodeDelegate::ProcessSideBar(const InternalContext* conte
 				ImGui::TableNextColumn();
 				{
 					shade::ImGuiLayer::DrawFontIcon(u8"\xe823", 1, 0.5f);
+					ImGui::SameLine();
+					{
+						if (ImGuiLayer::IconButton("Open", u8"\xe85f", 1, 1.f))
+						{
+							auto path = shade::FileDialog::OpenFile("Shade mesh(*.s_anim) \0*.s_anim\0");
+
+							if (shade::File file = shade::File(path.string(), shade::File::In, "@s_anim", shade::File::VERSION(0, 0, 1)))
+							{
+								node.GetAnimationData().Animation = shade::Animation::CreateEXP();
+								file.Read(node.GetAnimationData().Animation);
+								node.ResetAnimationData(node.GetAnimationData().Animation);
+							}
+							else
+								SHADE_CORE_WARNING("Couldn't open animation file, path ={0}", path);
+						}
+					}
 				}
 				ImGui::TableNextColumn();
 				{
@@ -2061,7 +2077,7 @@ void graph_editor::PoseNodeDelegate::ProcessSideBar(const InternalContext* conte
 						ImGui::TableNextRow();
 						ImGui::TableNextColumn();
 						{
-							std::string buttonTitle = (!node.GetAnimationData().Animation) ? "Not set" : node.GetAnimationData().Animation->GetAssetData()->GetId();
+							std::string buttonTitle = (!node.GetAnimationData().Animation || !node.GetAnimationData().Animation->GetAssetData()) ? "Not set" : node.GetAnimationData().Animation->GetAssetData()->GetId();
 							ImGui::BeginDisabled();
 							ImGui::Button(buttonTitle.c_str(), ImVec2{ ImGui::GetContentRegionAvail().x, 0.f });
 							ImGui::EndDisabled();

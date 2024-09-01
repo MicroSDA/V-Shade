@@ -83,10 +83,37 @@ void shade::Drawable::RecalculateAllLods(std::size_t levelCount, std::size_t max
 {
     std::vector<std::size_t> faceCounts = shade::algo::CalculateFaceCountLodLevel(levelCount, maxFaces, minFaces, splitLambda);
 
+    /*std::vector<std::future<Lod>> futures;
+
+    for (std::size_t i = 1; i < levelCount; i++) {
+        
+        futures.emplace_back(std::async(std::launch::async, [=]() 
+            {
+                auto start = std::chrono::system_clock::now();
+
+                Lod simlyfied = GetLod(i - 1);
+
+                algo::SimplifyMesh(simlyfied.Vertices, simlyfied.Indices, faceCounts[i]);
+
+                SHADE_CORE_DEBUG("Mesh Simplify lod :{}, duration {}.s", i, std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - start).count());
+
+                return simlyfied;
+            }));
+    }
+
+    for (std::size_t i = 1; i < levelCount; i++) 
+        GetLod(i) = futures[i - 1].get();*/
+
     for (std::size_t i = 1; i < levelCount; i++)
     {
         Lod simlyfied = GetLod(i - 1);
+        auto start = std::chrono::system_clock::now();
+
         algo::SimplifyMesh(simlyfied.Vertices, simlyfied.Indices, faceCounts[i]);
+
+        SHADE_CORE_DEBUG("Mesh Simplify lod :{}, duration {}.s", i, std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - start).count());
+
+        
         GetLod(i) = simlyfied;
     }
 }

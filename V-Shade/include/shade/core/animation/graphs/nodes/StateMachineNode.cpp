@@ -153,6 +153,18 @@ void shade::animation::state_machine::StateNode::Evaluate(const FrameTimer& delt
 	GetRootNode()->ProcessBranch(deltaTime);
 }
 
+shade::animation::state_machine::EntryStateNode::EntryStateNode(
+	shade::graphs::GraphContext* context,
+	graphs::NodeIdentifier identifier,
+	graphs::BaseNode* pParentNode,
+	const std::string& name)
+	: StateNode(context, identifier, pParentNode, name)
+{
+	m_IsRenamable = false;
+	m_IsRemovable = true;
+	m_CanBeOpen = false;
+}
+
 shade::animation::state_machine::TransitionNode* shade::animation::state_machine::StateNode::EmplaceTransition(StateNode* destination)
 {
 	auto it = std::find_if(m_Transitions.begin(), m_Transitions.end(), [this, destination](const TransitionNode* tr)

@@ -48,7 +48,6 @@ shade::Mesh::Mesh(SharedPointer<AssetData> assetData, LifeTime lifeTime, Instant
 
 std::size_t shade::Mesh::Serialize(std::ostream& stream) const
 {
-	
 	Serializer::Serialize(stream, Drawable::MAX_LEVEL_OF_DETAIL);
 
 	for (auto& lod : GetLods())

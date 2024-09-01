@@ -1,193 +1,3 @@
-//#pragma once
-//#include <shade/config/ShadeAPI.h>
-//#include <shade/core/memory/Memory.h>
-//#include <shade/core/graphs/nodes/BaseNode.h>
-//#include <shade/core/graphs/nodes/IntEqualsNode.h>
-//#include <shade/core/graphs/nodes/BoolNode.h>
-//#include <shade/core/animation/graphs/nodes/OutputPoseNode.h>
-//#include <shade/core/animation/graphs/nodes/BlendNode2D.h>
-//#include <shade/core/animation/graphs/nodes/PoseNode.h>
-//
-//namespace shade
-//{
-//	namespace animation
-//	{
-//		namespace state_machine
-//		{
-//			class StateNode;
-//
-//			enum class TransitionStatus
-//			{
-//				Start = 0,
-//				InProcess,
-//				End
-//			};
-//
-//			enum class SyncStyle
-//			{
-//				Async = 0,
-//				// Freeze source animation
-//				SourceFrozen,
-//				// Sync destination animation time based on source animation
-//				SourceToDestinationTimeSync,
-//				// Sync source animation time based on destination animation
-//				DestinationToSourceTimeSync,
-//				// Sync both animations based on their own time
-//				DestinationAndSourceTimeSync,
-//				// Sync by keyframes
-//				KeyFrameSync
-//			};
-//
-//			struct SyncPreferences
-//			{
-//				SyncStyle Style = SyncStyle::Async;
-//				bool  ResetFromStart = false;
-//				float Offset = 0.f;
-//			};
-//
-//			struct TransitionSyncData
-//			{
-//				SyncPreferences Preferences;
-//				float BlendFactor = 0.f;
-//				float CurrentTransitionTime = 0.f;
-//				float TimeMultiplier = 1.f;
-//				// Describes another animation 
-//				float PStateAnimationDuration = 0.f;
-//				float PStateAnimationCurrentPlayTime = 0.f;
-//				TransitionStatus Status = TransitionStatus::End;
-//			};
-//
-//			class  SHADE_API OutputTransitionNode : public graphs::BaseNode
-//			{
-//			public:
-//				OutputTransitionNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode);
-//				virtual ~OutputTransitionNode() = default;
-//
-//				void Evaluate(const FrameTimer& deltaTime) override {};
-//		
-//				bool ShouldTransit() const;
-//				bool IsReverse() const { return m_IsReverse; } 
-//				float GetTransitionDuration();
-//				float GetTransitionAccumulator();
-//				std::vector<float>& GetCurveControllPoints() { return m_CurveControlPoints; }
-//				SyncStyle& GetSynStyle() { return m_SyncStyle; }
-//			private:
-//				void ResetTransitionAccumulator();
-//				void SetTransitionAccumulator(float time);
-//				void ProcessTransitionAccumulator(const FrameTimer& deltaTime);
-//				void SetTransitionReverse(bool set);
-//				void ReverseTransition();
-//			private:
-//				float m_TimeAccumulator = 0.f;
-//				std::vector<float> m_CurveControlPoints = {0.5f};
-//				SyncStyle m_SyncStyle = SyncStyle::Async;
-//				bool m_IsReverse = false;
-//			private:
-//				friend class StateMachineNode;
-//			};
-//
-//			class SHADE_API TransitionNode : public graphs::BaseNode
-//			{
-//			public:
-//				struct Data
-//				{
-//					StateNode* SourceState			= nullptr;
-//					StateNode* DestinationState		= nullptr;
-//				};
-//			public:
-//				TransitionNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode, const Data& data);
-//				virtual ~TransitionNode() = default;
-//
-//				virtual void Initialize() override;
-//
-//				Data& GetTransitionData();
-//				const Data& GetTransitionData() const;
-//
-//				void Evaluate(const FrameTimer& deltaTime) override;
-//
-//				SHADE_INLINE bool ShouldTransit() const
-//				{
-//					return GetRootNode()->As<OutputTransitionNode>().ShouldTransit();
-//				}
-//				SHADE_INLINE bool CanBeInterrupted() const
-//				{
-//					return m_CanBeInterrupted;
-//				}
-//				SHADE_INLINE void SetInterrupted(bool is)
-//				{
-//					m_CanBeInterrupted = is;
-//				}
-//			private:
-//				Data m_TransitionData;
-//				OutputTransitionNode* m_pOutputTransitionNode = nullptr;
-//				bool m_CanBeInterrupted = false;
-//				
-//			};
-//
-//			class SHADE_API StateNode : public graphs::BaseNode
-//			{
-//			public:
-//				
-//				StateNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode, const std::string& name);
-//				virtual ~StateNode() = default;
-//
-//				virtual void Initialize() override;
-//
-//				/// @brief 
-//				/// @return 
-//				virtual bool RemoveNode(BaseNode* pNode) override;
-//
-//				void Evaluate(const FrameTimer& deltaTime) override;
-//
-//				// TODO ! Need to check if this already exist transition !!
-//				TransitionNode* AddTransition(StateNode* destination);
-//				bool RemoveTransition(TransitionNode* transition);
-//
-//				SHADE_INLINE std::vector<TransitionNode*>& GetTransitions() { return m_Transitions; }
-//				SHADE_INLINE const std::vector<TransitionNode*>& GetTransitions() const { return m_Transitions; }
-//				SHADE_INLINE void  SetTransitionSyncData(const TransitionSyncData& data) { m_TransitionSyncData = data; }
-//				SHADE_INLINE TransitionSyncData& GetTransitionSyncData() { return m_TransitionSyncData; }
-//
-//				SHADE_INLINE Pose* GetOutPutPose()
-//				{
-//					return GetRootNode()->As<OutputPoseNode>().GetEndpoint<graphs::Connection::Input>(0)->As<NodeValueType::Pose>();
-//				}
-//				SHADE_INLINE const Pose* GetOutPutPose() const
-//				{
-//					return GetRootNode()->As<OutputPoseNode>().GetFinalPose();
-//				}
-//			private:
-//				std::vector<TransitionNode*> m_Transitions;
-//				TransitionNode* m_pActiveTransition = nullptr;
-//				OutputPoseNode* m_pOutPutPoseNode = nullptr;
-//
-//				TransitionSyncData m_TransitionSyncData;
-//			};
-//
-//			class SHADE_API StateMachineNode : public graphs::BaseNode
-//			{
-//			public:
-//				StateMachineNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode);
-//				virtual ~StateMachineNode() = default;
-//
-//				/// @brief 
-//				/// @return 
-//				virtual bool RemoveNode(BaseNode* pNode) override;
-//
-//			public:
-//				void Evaluate(const FrameTimer& deltaTime) override;
-//				StateNode* CreateState(const std::string& name);
-//			private:
-//				TransitionNode* m_pActiveTransition = nullptr;
-//			private:
-//				Pose* Transit(TransitionNode* pTransition, const FrameTimer& deltaTime, Pose* pPTPose = nullptr);
-//			private:
-//			;	bool  m_IsTransitionHasBeenInterrupted = false;
-//			};
-//		}
-//	}
-//}
-
 #pragma once
 #include <shade/config/ShadeAPI.h>
 #include <shade/core/memory/Memory.h>
@@ -486,14 +296,14 @@ namespace shade
 
 				/// @brief Gets the output pose of the state.
 				/// @return Pointer to the Pose object.
-				SHADE_INLINE Pose* GetOutputPose()
+				virtual SHADE_INLINE Pose* GetOutputPose()
 				{
 					return GetRootNode()->GET_ENDPOINT<graphs::Connection::Input, NodeValueType::Pose>(0);
 				}
 
 				/// @brief Gets the output pose of the state (const version).
 				/// @return Const pointer to the Pose object.
-				SHADE_INLINE const Pose* GetOutputPose() const
+				virtual SHADE_INLINE const Pose* GetOutputPose() const
 				{
 					return GetRootNode()->As<OutputPoseNode>().GetFinalPose();
 				}
@@ -503,6 +313,25 @@ namespace shade
 				TransitionSyncData m_TransitionSyncData;          ///< Synchronization data for the transition.
 
 				virtual std::size_t Serialize(std::ostream& stream) const override;
+			};
+
+	
+			// @brief Represents a entry state node in an animation state machine.
+			class SHADE_API EntryStateNode : public StateNode
+			{
+				NODE_STATIC_TYPE_HELPER(EntryStateNode)
+			public:
+				EntryStateNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode, const std::string& name = "Entry");
+				virtual ~EntryStateNode() = default;
+
+				SHADE_INLINE virtual Pose* GetOutputPose() override
+				{
+					return nullptr;
+				}
+				SHADE_INLINE virtual Pose* GetOutputPose() const override
+				{
+					return nullptr;
+				}
 			};
 
 			/// @brief Represents a state machine node in an animation graph.

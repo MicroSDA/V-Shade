@@ -203,7 +203,7 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 		ImGui::EndMenuBar();
 	}
 
-	ImGui::SetNextWindowSize(ImVec2{ 400, 500 });
+	ImGui::SetNextWindowSize(ImGui::GetContentRegionMax() / 2.f);
 	DrawModal("Import model", m_ImportModelModal, [&]()
 		{
 			static std::string from;
@@ -226,78 +226,95 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 
 			//if (!m_ImportedModel)
 			{
-				ImGui::Text("Import settings:");
-				ImGui::Separator();
 
-				if (ImGui::BeginTable("ImportSettings", 2, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg, { ImGui::GetContentRegionAvail().x, 0 }))
+				if (ImGui::BeginTable("ImportModelTable", 2, ImGuiTableFlags_SizingStretchProp))
 				{
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn(); { ImGui::Text("Import Model"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotModelsCheckBox", &importModels);  HelpMarker("(?)", "TODO"); }
+					ImGui::TableSetupColumn("Import settings");
+					ImGui::TableSetupColumn("Post process");
+					ImGui::TableHeadersRow();
 
 					ImGui::TableNextRow();
-					ImGui::TableNextColumn(); { ImGui::Text("Import Meshes"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotMeshesCheckBox", &importMeshes); HelpMarker("(?)", "Import and convert meshes into valid engine file format."); }
+					ImGui::TableNextColumn();
+					{
 
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn(); { ImGui::Text("Import Materials"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotMaterialsCheckBox", &importMaterials); HelpMarker("(?)", "Import and convert materials into valid engine file format."); }
+						if (ImGui::BeginTable("ImportSettingsTable", 2, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg, { 0, 0 }))
+						{
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn(); { ImGui::Text("Import Model"); }
+							ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotModelsCheckBox", &importModels);  HelpMarker("(?)", "TODO"); }
 
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn(); { ImGui::Text("Try to import Skeleton"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotSkeletonCheckBox", &importSkeleton); HelpMarker("(?)", "Try to find and convert skeleton into valid engine file format if skeleton is present."); }
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn(); { ImGui::Text("Import Meshes"); }
+							ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotMeshesCheckBox", &importMeshes); HelpMarker("(?)", "Import and convert meshes into valid engine file format."); }
 
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn(); { ImGui::Text("Try to import Animations"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotAnimationsCheckBox", &importAnimations); HelpMarker("(?)", "Try to find and convert animations into valid engine file format if animations are present."); }
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn(); { ImGui::Text("Import Materials"); }
+							ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotMaterialsCheckBox", &importMaterials); HelpMarker("(?)", "Import and convert materials into valid engine file format."); }
 
-					ImGui::TableNextRow();
-					(!importSkeleton || !importAnimations) ? ImGui::BeginDisabled() : void();
-					ImGui::TableNextColumn(); { ImGui::Text("	Validate animation channels"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##ValidateAnimationsChannels", &validateAnimationChannels); HelpMarker("(?)", "Remove animation channels if there are no specific bones present."); }
-					(!importSkeleton || !importAnimations) ? ImGui::EndDisabled() : void();
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn(); { ImGui::Text("Try to import Skeleton"); }
+							ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotSkeletonCheckBox", &importSkeleton); HelpMarker("(?)", "Try to find and convert skeleton into valid engine file format if skeleton is present."); }
+
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn(); { ImGui::Text("Try to import Animations"); }
+							ImGui::TableNextColumn(); { ImGui::Checkbox("##ImprotAnimationsCheckBox", &importAnimations); HelpMarker("(?)", "Try to find and convert animations into valid engine file format if animations are present."); }
+
+							ImGui::TableNextRow();
+							(!importSkeleton || !importAnimations) ? ImGui::BeginDisabled() : void();
+							ImGui::TableNextColumn(); { ImGui::Text("	Validate animation channels"); }
+							ImGui::TableNextColumn(); { ImGui::Checkbox("##ValidateAnimationsChannels", &validateAnimationChannels); HelpMarker("(?)", "Remove animation channels if there are no specific bones present."); }
+							(!importSkeleton || !importAnimations) ? ImGui::EndDisabled() : void();
+
+							ImGui::EndTable();
+						}
+					}
+					ImGui::TableNextColumn();
+					{
+						if (ImGui::BeginTable("PostProcessTable", 2, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg, { 0, 0 }))
+						{
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn(); { ImGui::Text("Global scale"); }
+							ImGui::TableNextColumn(); { ImGui::Checkbox("##GlobalScale", &useScale); HelpMarker("(?)", "This step will perform a global scale of the model."); }
+
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn(); { ImGui::Text("Triangulate"); }
+							ImGui::TableNextColumn(); { ImGui::Checkbox("##TriangulateCheckBox", &triangulate); HelpMarker("(?)", "Triangulates all faces of all meshes."); }
+
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn(); { ImGui::Text("FlipUVs"); }
+							ImGui::TableNextColumn(); { ImGui::Checkbox("##FlipUVsCheckBox", &flipUvs); HelpMarker("(?)", "Flips all UV coordinates along the y-axis and adjusts material settings and bitangents accordingly."); }
+
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn(); { ImGui::Text("Join identical vertices"); }
+							ImGui::TableNextColumn(); { ImGui::Checkbox("##JoinVertiesCheckBox", &joinVerties);  HelpMarker("(?)", "Identifies and joins identical vertex data sets within all imported meshes."); }
+
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn(); { ImGui::Text("Calculate normals"); }
+							ImGui::TableNextColumn(); { ImGui::Checkbox("##CalculateNormalsCheckBox", &calcNormals); }
+
+							(!calcNormals) ? ImGui::BeginDisabled() : void();
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn(); { ImGui::Text("	Generate smooth normals"); }
+							ImGui::TableNextColumn(); { ImGui::Checkbox("##GenerateSmoothNormalsCheckBox", &genSmoothNormals); }
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn(); { ImGui::Text("	Calculate tangents"); }
+							ImGui::TableNextColumn(); { ImGui::Checkbox("##CalculateTangentsCheckBox", &calcTangents); }
+							(!calcNormals) ? ImGui::EndDisabled() : void();
+
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn(); { ImGui::Text("Bake bones into mesh data"); }
+							ImGui::TableNextColumn(); { ImGui::Checkbox("##BakeNormalsCheckBox", &bakeBones); }
+
+							ImGui::EndTable();
+						}
+					}
 
 					ImGui::EndTable();
 				}
 
-				ImGui::Text("Post process:"); ImGui::Separator();
-				if (ImGui::BeginTable("PostProcess", 2, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg, { ImGui::GetContentRegionAvail().x, 0 }))
-				{
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn(); { ImGui::Text("Global scale"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##GlobalScale", &useScale); HelpMarker("(?)", "This step will perform a global scale of the model."); }
+				//ImGui::SameLine();
+				//ImGui::Text("Post process:"); ImGui::Separator();
 
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn(); { ImGui::Text("Triangulate"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##TriangulateCheckBox", &triangulate); HelpMarker("(?)", "Triangulates all faces of all meshes."); }
-
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn(); { ImGui::Text("FlipUVs"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##FlipUVsCheckBox", &flipUvs); HelpMarker("(?)", "Flips all UV coordinates along the y-axis and adjusts material settings and bitangents accordingly."); }
-
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn(); { ImGui::Text("Join identical vertices"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##JoinVertiesCheckBox", &joinVerties);  HelpMarker("(?)", "Identifies and joins identical vertex data sets within all imported meshes."); }
-
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn(); { ImGui::Text("Calculate normals"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##CalculateNormalsCheckBox", &calcNormals); }
-
-					(!calcNormals) ? ImGui::BeginDisabled() : void();
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn(); { ImGui::Text("	Generate smooth normals"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##GenerateSmoothNormalsCheckBox", &genSmoothNormals); }
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn(); { ImGui::Text("	Calculate tangents"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##CalculateTangentsCheckBox", &calcTangents); }
-					(!calcNormals) ? ImGui::EndDisabled() : void();
-
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn(); { ImGui::Text("Bake bones into mesh data"); }
-					ImGui::TableNextColumn(); { ImGui::Checkbox("##BakeNormalsCheckBox", &bakeBones); }
-
-					ImGui::EndTable();
-				}
 
 
 				if (ImGui::BeginTable("SelectFrom", 2, ImGuiTableFlags_SizingStretchProp, { ImGui::GetContentRegionAvail().x, 0 }))
@@ -333,6 +350,7 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 								auto [model, animation] = IModel::Import(selectedPath.string(), importFlags);
 
 								m_ImportedModel = model;
+								m_ImportedAnimations = animation;
 
 								if (m_ImportedModel)
 								{
@@ -359,62 +377,65 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 				}
 			}
 
-			if (m_ImportedModel)
+			if (m_ImportedModel && m_ImportedEntity.IsValid())
 			{
-				for (auto& mesh : *m_ImportedModel)
-				{
-					const int maxFaces = mesh->GetLod(0).Indices.size() / 3;
-					static int faces = maxFaces;
-					static float lambda = 0.1;
 
-					if (ImGui::TreeNodeEx(std::format("Mesh: {}", mesh->GetAssetData()->GetId()).c_str(), ImGuiTreeNodeFlags_Framed))
-					{
-						ImGui::Text("Set globally :"); ImGui::Separator();
-						if (ImGui::BeginTable("_title.c_str()", 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp, { 0, 0 }))
-						{
-							ImGui::TableNextColumn();
-							{
-								if (DragInt("Faces", &faces, 1, 1, maxFaces))
-									mesh->RecalculateAllLods(shade::Drawable::MAX_LEVEL_OF_DETAIL, maxFaces, faces, lambda);
-							}
-							ImGui::TableNextColumn();
-							{
-								if (DragFloat("Split power", &lambda, 0.01, 0.01, 1.0))
-									mesh->RecalculateAllLods(shade::Drawable::MAX_LEVEL_OF_DETAIL, maxFaces, faces, lambda);
-							}
-							ImGui::EndTable();
-						}
+				ModelComponent(m_ImportedEntity);
 
-						ImGui::Text("Set manually :"); ImGui::Separator();
-						for (int i = 1; i < mesh->GetLods().size(); i++)
-						{
-							int faces = mesh->GetLod(i).Indices.size() / 3;
+				//for (auto& mesh : *m_ImportedModel)
+				//{
+				//	const int maxFaces = mesh->GetLod(0).Indices.size() / 3;
+				//	static int faces = maxFaces;
+				//	static float lambda = 0.1;
 
-							if (DragInt(std::format("Lod level #:{}, faces :", i).c_str(), &faces, 1, 1, maxFaces))
-							{
-								mesh->RecalculateLod(i, faces);
-							}
-						}
+				//	if (ImGui::TreeNodeEx(std::format("Mesh: {}", mesh->GetAssetData()->GetId()).c_str(), ImGuiTreeNodeFlags_Framed))
+				//	{
+				//		ImGui::Text("Set globally :"); ImGui::Separator();
+				//		if (ImGui::BeginTable("_title.c_str()", 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_SizingStretchProp, { 0, 0 }))
+				//		{
+				//			ImGui::TableNextColumn();
+				//			{
+				//				if (DragInt("Faces", &faces, 1, 1, maxFaces))
+				//					mesh->RecalculateAllLods(shade::Drawable::MAX_LEVEL_OF_DETAIL, maxFaces, faces, lambda);
+				//			}
+				//			ImGui::TableNextColumn();
+				//			{
+				//				if (DragFloat("Split power", &lambda, 0.01, 0.01, 1.0))
+				//					mesh->RecalculateAllLods(shade::Drawable::MAX_LEVEL_OF_DETAIL, maxFaces, faces, lambda);
+				//			}
+				//			ImGui::EndTable();
+				//		}
 
-						/*if (ImGui::Button("Save"))
-						{
-							auto path = mesh->GetAssetData()->GetReference()->GetAttribute<std::string>("Path");
+				//		ImGui::Text("Set manually :"); ImGui::Separator();
+				//		for (int i = 1; i < mesh->GetLods().size(); i++)
+				//		{
+				//			int faces = mesh->GetLod(i).Indices.size() / 3;
 
-							if (!path.empty())
-							{
-								std::ofstream file(path, std::ios::binary);
-								shade::Serializer::Serialize(file, mesh);
-								file.close();
-							}
-							else
-							{
-								SHADE_CORE_WARNING("Couldn't save mesh, asset path is empty!");
-							}
+				//			if (DragInt(std::format("Lod level #:{}, faces :", i).c_str(), &faces, 1, 1, maxFaces))
+				//			{
+				//				mesh->RecalculateLod(i, faces);
+				//			}
+				//		}
 
-						}*/
-						ImGui::TreePop();
-					}
-				}
+				//		/*if (ImGui::Button("Save"))
+				//		{
+				//			auto path = mesh->GetAssetData()->GetReference()->GetAttribute<std::string>("Path");
+
+				//			if (!path.empty())
+				//			{
+				//				std::ofstream file(path, std::ios::binary);
+				//				shade::Serializer::Serialize(file, mesh);
+				//				file.close();
+				//			}
+				//			else
+				//			{
+				//				SHADE_CORE_WARNING("Couldn't save mesh, asset path is empty!");
+				//			}
+
+				//		}*/
+				//		ImGui::TreePop();
+				//	}
+				//}
 
 				if (ImGui::BeginTable("Save to", 2, ImGuiTableFlags_SizingStretchProp, { ImGui::GetContentRegionAvail().x, 0 }))
 				{
@@ -467,6 +488,17 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 							}
 						}
 
+						for (const auto& [name, animation] : m_ImportedAnimations)
+						{
+							const std::string path(to + animation->GetAssetData()->GetId() + ".s_anim");
+
+							shade::File file(path, shade::File::Out, "@s_anim", shade::File::VERSION(0, 0, 1));
+
+							if (file.IsOpen())
+								file.Write(animation);
+							else
+								SHADE_CORE_WARNING("Failed to save animation, path = {}", path);
+						}
 						//if (m_ImportedEntity.HasComponent<shade::AnimationGraphComponent>())
 						//{
 						//	/*for (const auto& [name, animation] : *m_ImportedEntity.GetComponent<shade::AnimationControllerComponent>())
@@ -481,7 +513,7 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 						//	}*/
 						//}
 
-						m_ImportedModel = nullptr;
+						m_ImportedModel = nullptr; m_ImportedAnimations.clear();
 						m_ImportModelModal = false;
 					}
 				}
@@ -847,7 +879,7 @@ void EditorLayer::Entities(shade::SharedPointer<shade::Scene>& scene)
 					{
 						entity.AddComponent<shade::RigidBodyComponent>();
 					}, m_SelectedEntity);
-				
+
 				AddComponent<shade::AnimationGraphComponent>("Animation graph", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
 					{
 						// WRONG ASSET Creation !!
@@ -1674,7 +1706,7 @@ void EditorLayer::CameraComponent(shade::ecs::Entity& entity)
 
 
 void CreateArrowButton(const std::string& id, bool& isPopupOpen, float& screenPosY, std::function<bool()>& AssetLoadCallback, const std::function<bool()>& callback) {
-	if (ImGui::ArrowButton(id.c_str(), ImGuiDir_Down)) 
+	if (ImGui::ArrowButton(id.c_str(), ImGuiDir_Down))
 	{
 		AssetLoadCallback = callback;
 		isPopupOpen = !isPopupOpen;
@@ -1833,13 +1865,10 @@ void EditorLayer::ModelComponent(shade::ecs::Entity& entity)
 					if (ImGuiLayer::IconButton("Open", u8"\xe85f", 1, 1.f))
 					{
 						auto path = shade::FileDialog::OpenFile("Shade mesh(*.s_mesh) \0*.s_mesh\0");
-						if (!path.empty())
-						{
-							if (shade::File file = shade::File(path.string(), shade::File::In, "@s_mesh", shade::File::VERSION(0, 0, 1)))
-								file.Read(mesh);
-							else
-								SHADE_CORE_WARNING("Couldn't open mesh file, path ={0}", path);
-						}
+						if (shade::File file = shade::File(path.string(), shade::File::In, "@s_mesh", shade::File::VERSION(0, 0, 1)))
+							file.Read(mesh);
+						else
+							SHADE_CORE_WARNING("Couldn't open mesh file, path ={0}", path);
 					}
 				}
 				ImGui::TableNextColumn();
@@ -1869,12 +1898,12 @@ void EditorLayer::ModelComponent(shade::ecs::Entity& entity)
 					CreateArrowButton("##MeshAssetPopup", IsAssetLoadPopupOpen, screenPostionY, AssetLoadCallback, [&]() { return LoadAsset<shade::Mesh>(search, mesh, shade::AssetMeta::Type::Mesh, shade::AssetMeta::Category::Primary); });
 				}
 
-				bool isRemove = false; 
+				bool isRemove = false;
 				ImGui::TableNextColumn();
 				{
 					if (ImGuiLayer::IconButton("##RemoveMesh", u8"\xe85d", 1, 1.0f))
 					{
-						it = meshes.erase(it); 
+						it = meshes.erase(it);
 						isRemove = true;
 					}
 				}
@@ -1939,7 +1968,7 @@ void EditorLayer::ModelComponent(shade::ecs::Entity& entity)
 						if (ImGuiLayer::IconButton("##MaterialRemove", u8"\xe85d", 1, 1.0f)) { material = shade::Material::CreateEXP(); }
 					}
 
-					HandleTexture(*this,"Albedo", u8"\xe9a5", "Albedo", IsAssetLoadPopupOpen, screenPostionY, search, material->TextureAlbedo, AssetLoadCallback);
+					HandleTexture(*this, "Albedo", u8"\xe9a5", "Albedo", IsAssetLoadPopupOpen, screenPostionY, search, material->TextureAlbedo, AssetLoadCallback);
 					HandleTexture(*this, "Diffuse", u8"\xe9a4", "Diffuse", IsAssetLoadPopupOpen, screenPostionY, search, material->TextureDiffuse, AssetLoadCallback);
 					HandleTexture(*this, "Specular", u8"\xea1a", "Specular", IsAssetLoadPopupOpen, screenPostionY, search, material->TextureSpecular, AssetLoadCallback);
 					HandleTexture(*this, "Normals", u8"\xe96f", "Normal map", IsAssetLoadPopupOpen, screenPostionY, search, material->TextureNormals, AssetLoadCallback);
@@ -1949,7 +1978,29 @@ void EditorLayer::ModelComponent(shade::ecs::Entity& entity)
 					ImGui::EndTable();
 				}
 
-				Material(material.Get());
+				if (ImGui::BeginTable("##MaterialAndLods", 2))
+				{
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					Material(material.Get());
+					ImGui::TableNextColumn();
+					{
+						const int maxFaces = mesh->GetLod(0).Indices.size() / 3;
+
+						for (int i = 1; i < mesh->GetLods().size(); i++)
+						{
+							int faces = mesh->GetLod(i).Indices.size() / 3;
+
+							if (DragInt(std::format("Lod level #:{}, faces :", i).c_str(), &faces, 1, 1, maxFaces))
+							{
+								mesh->RecalculateLod(i, faces);
+							}
+						}
+					}
+
+					ImGui::EndTable();
+				}
+
 			}
 
 			it++;
@@ -2176,8 +2227,7 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 
 				if (!path.empty())
 				{
-					shade::File file(path.string(), shade::File::In, "@s_animgraph", shade::File::VERSION(0, 0, 1));
-					if (file.IsOpen())
+					if (shade::File file = shade::File(path.string(), shade::File::In, "@s_animgraph", shade::File::VERSION(0, 0, 1)))
 					{
 						graph.GraphContext.Drop();
 						graph.AnimationGraph = shade::SharedPointer<shade::animation::AnimationGraph>::Create(&graph.GraphContext); file.Read(graph.AnimationGraph); m_GraphEditor.Initialize(graph.AnimationGraph);
@@ -2195,8 +2245,7 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 
 				if (!path.empty())
 				{
-					shade::File file(path.string(), shade::File::Out, "@s_animgraph", shade::File::VERSION(0, 0, 1));
-					if (file.IsOpen())
+					if (shade::File file = shade::File(path.string(), shade::File::Out, "@s_animgraph", shade::File::VERSION(0, 0, 1)))
 					{
 						file.Write(graph.AnimationGraph);
 					}
@@ -2227,12 +2276,32 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 		ImGui::EndTable();
 	}
 
-	if (ImGui::BeginTable("##SelectSkeletonTable", 3, ImGuiTableFlags_SizingStretchProp))
+	if (ImGui::BeginTable("##SelectSkeletonTable", 4, ImGuiTableFlags_SizingStretchProp))
 	{
 		ImGui::TableNextRow();
 		ImGui::TableNextColumn();
 		{
 			shade::ImGuiLayer::DrawFontIcon(u8"\xf29a", 1, 0.6f);
+		}
+		ImGui::TableNextColumn();
+		{
+			if (ImGuiLayer::IconButton("Open", u8"\xe85f", 1, 1.f))
+			{
+				auto path = shade::FileDialog::OpenFile("Shade skeleton(*.s_skel) \0*.s_skel\0");
+
+				if (!path.empty())
+				{
+					if (shade::File file = shade::File(path.string(), shade::File::In, "@s_skel", shade::File::VERSION(0, 0, 1)))
+					{
+						graph.GraphContext.Skeleton = shade::Skeleton::CreateEXP();
+						file.Read(graph.GraphContext.Skeleton);
+					}
+					else
+					{
+						SHADE_CORE_WARNING("Couldn't open skeleton file, path ={0}", path);
+					}
+				}
+			}
 		}
 		ImGui::TableNextColumn();
 		{

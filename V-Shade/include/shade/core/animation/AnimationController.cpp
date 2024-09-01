@@ -128,8 +128,11 @@ shade::animation::Pose* shade::animation::AnimationController::CalculatePose(ani
 		}
 		else
 		{
-			animationData.CurrentPlayTime = glm::fmod(animationData.CurrentPlayTime, animationData.End);
-			animationData.CurrentPlayTime = glm::clamp(animationData.CurrentPlayTime, animationData.Start, animationData.End);
+			if (animationData.TicksPerSecond)
+			{
+				animationData.CurrentPlayTime = glm::fmod(animationData.CurrentPlayTime, animationData.End);
+				animationData.CurrentPlayTime = glm::clamp(animationData.CurrentPlayTime, animationData.Start, animationData.End);
+			}
 		}
 		break;
 
@@ -187,7 +190,7 @@ shade::animation::Pose* shade::animation::AnimationController::CalculatePose(ani
 
 std::size_t shade::animation::AnimationController::AnimationControlData::Serialize(std::ostream& stream) const
 {
-	std::size_t size = Serializer::Serialize(stream, (Animation) ? Animation->GetAssetData()->GetId() : "");
+	std::size_t size = Serializer::Serialize(stream, (Animation && Animation->GetAssetData()) ? Animation->GetAssetData()->GetId() : "");
 	size += Serializer::Serialize(stream, std::uint8_t(State));
 	size += Serializer::Serialize(stream, Start);
 	size += Serializer::Serialize(stream, End);

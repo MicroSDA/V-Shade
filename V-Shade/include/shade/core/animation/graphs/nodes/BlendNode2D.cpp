@@ -16,4 +16,12 @@ void shade::animation::BlendNode2D::Evaluate(const FrameTimer& deltaTime)
 				GET_ENDPOINT<graphs::Connection::Input, NodeValueType::Float>(0),
 				GET_ENDPOINT<graphs::Connection::Input, NodeValueType::BoneMask>(1)));
 	}
+	else if (source)
+	{
+		GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, source);
+	}
+	else if (destination)
+	{
+		GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, destination);
+	}
 }

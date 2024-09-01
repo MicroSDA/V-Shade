@@ -37,6 +37,7 @@ private:
 	shade::AnimationGraphComponent m_SelectedAnimationGraphComponent;
 
 	shade::SharedPointer<shade::Model> m_ImportedModel;
+	std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> m_ImportedAnimations;
 	shade::ecs::Entity m_ImportedEntity;
 	shade::SharedPointer<shade::SceneRenderer>  m_SceneRenderer;
 

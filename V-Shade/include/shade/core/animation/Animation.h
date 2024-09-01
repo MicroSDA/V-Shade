@@ -215,11 +215,23 @@ namespace shade
 	{
 		return animation.Deserialize(stream);
 	}
+	/* Serialize SharedPointer<Animation>.*/
+	template<>
+	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const SharedPointer<Animation>& animation, std::size_t)
+	{
+		return animation->Serialize(stream);
+	}
 	/* Serialize Asset<Animation>.*/
 	template<>
 	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Asset<Animation>& animation, std::size_t)
 	{
 		return animation->Serialize(stream);
+	}
+	/* Deserialize SharedPointer<Animation>.*/
+	template<>
+	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, SharedPointer<Animation>& animation, std::size_t)
+	{
+		return animation->Deserialize(stream);
 	}
 	/* Deserialize Asset<Animation>.*/
 	template<>
