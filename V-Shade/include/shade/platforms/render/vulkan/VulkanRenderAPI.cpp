@@ -279,12 +279,15 @@ void shade::VulkanRenderAPI::DrawInstancedAnimated(SharedPointer<RenderCommandBu
 {
 	static constexpr std::uint32_t VERTEX_BINDING = 0, BONES_BINDING = 1, TRANSFORMS_BINDING = 2;
 
-	vertices->Bind(commandBuffer, m_sCurrentFrameIndex, VERTEX_BINDING);
-	indices->Bind(commandBuffer, m_sCurrentFrameIndex);
-	bones->Bind(commandBuffer, m_sCurrentFrameIndex, BONES_BINDING);
-	transforms->Bind(commandBuffer, m_sCurrentFrameIndex, TRANSFORMS_BINDING, transformOffset);
+	if (vertices && indices && bones && transforms)
+	{
+		vertices->Bind(commandBuffer, m_sCurrentFrameIndex, VERTEX_BINDING);
+		indices->Bind(commandBuffer, m_sCurrentFrameIndex);
+		bones->Bind(commandBuffer, m_sCurrentFrameIndex, BONES_BINDING);
+		transforms->Bind(commandBuffer, m_sCurrentFrameIndex, TRANSFORMS_BINDING, transformOffset);
 
-	vkCmdDrawIndexed(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(m_sCurrentFrameIndex), static_cast<std::uint32_t>(indices->GetCount()), count, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(m_sCurrentFrameIndex), static_cast<std::uint32_t>(indices->GetCount()), count, 0, 0, 0);
+	}
 }
 
 const std::shared_ptr<shade::VulkanDescriptorSet> shade::VulkanRenderAPI::GetGlobalDescriptorSet(std::uint32_t frameIndex)

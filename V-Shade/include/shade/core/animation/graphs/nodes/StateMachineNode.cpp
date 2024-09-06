@@ -25,31 +25,6 @@ bool shade::animation::state_machine::OutputTransitionNode::ShouldTransit() cons
 	return GetEndpoint<graphs::Connection::Input>(0)->As<NodeValueType::Bool>();
 }
 
-float shade::animation::state_machine::OutputTransitionNode::GetTransitionDuration()
-{
-	return  GET_ENDPOINT<graphs::Connection::Input, NodeValueType::Float>(1);
-}
-
-float shade::animation::state_machine::OutputTransitionNode::GetTransitionAccumulator()
-{
-	return m_TimeAccumulator;
-}
-
-void shade::animation::state_machine::OutputTransitionNode::ResetTransitionAccumulator()
-{
-	m_TimeAccumulator = 0.f;
-}
-
-void shade::animation::state_machine::OutputTransitionNode::SetTransitionAccumulator(float time)
-{
-	m_TimeAccumulator = time;
-}
-
-void shade::animation::state_machine::OutputTransitionNode::ProcessTransitionAccumulator(const FrameTimer& deltaTime)
-{
-	m_TimeAccumulator += !m_IsReverse ? deltaTime.GetInSeconds<float>() : -deltaTime.GetInSeconds<float>();
-}
-
 void shade::animation::state_machine::OutputTransitionNode::SetTransitionReverse(bool set)
 {
 	m_IsReverse = set;
@@ -161,8 +136,14 @@ shade::animation::state_machine::EntryStateNode::EntryStateNode(
 	: StateNode(context, identifier, pParentNode, name)
 {
 	m_IsRenamable = false;
-	m_IsRemovable = true;
+	m_IsRemovable = false;
 	m_CanBeOpen = false;
+}
+
+void shade::animation::state_machine::EntryStateNode::Evaluate(const FrameTimer& deltaTime)
+{
+	GetRootNode()->As<OutputPoseNode>().GET_ENDPOINT<graphs::Connection::Input, NodeValueType::Pose>(0,
+		GetParrentGraph()->As<StateMachineNode>().GET_ENDPOINT<graphs::Connection::Input, NodeValueType::Pose>(0));
 }
 
 shade::animation::state_machine::TransitionNode* shade::animation::state_machine::StateNode::EmplaceTransition(StateNode* destination)
@@ -228,13 +209,16 @@ bool shade::animation::state_machine::StateNode::RemoveTransition(TransitionNode
 shade::animation::state_machine::StateMachineNode::StateMachineNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode)
 	: BaseNode(context, identifier, pParentNode, "State machine")
 {
-	REGISTER_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(nullptr);
+	REGISTER_ENDPOINT<graphs::Connection::Input, NodeValueType::Pose>(nullptr);
+
+	REGISTER_ENDPOINT<graphs::Connection::Output, NodeValueType::Float>(0.0);
+	REGISTER_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(nullptr);  // transition blend !	
 }
 
 shade::animation::state_machine::StateNode* shade::animation::state_machine::StateMachineNode::CreateState(const std::string& name)
 {
 	auto state = CreateNode<StateNode>(name);
-	if (GetRootNode() == nullptr) SetRootNode(state);
+	if (m_pCurrentState == nullptr) m_pCurrentState = state;
 	return state;
 }
 
@@ -270,73 +254,321 @@ bool shade::animation::state_machine::StateMachineNode::RemoveNode(BaseNode* pNo
 	return GetGraphContext()->RemoveNode(pNode);
 }
 
+void shade::animation::state_machine::StateMachineNode::Initialize()
+{
+	SetRootNode(CreateNode<EntryStateNode>());
+	m_pCurrentState = &GetRootNode()->As<StateNode>();
+}
+
+//void shade::animation::state_machine::StateMachineNode::Evaluate(const FrameTimer& deltaTime)
+//{
+//	if (StateNode* pState = m_pCurrentState)
+//	{
+//		if (m_pActiveTransition)
+//		{
+//			OutputTransitionNode& transition = m_pActiveTransition->GetRootNode()->As<OutputTransitionNode>();
+//				
+//			if (m_pActiveTransition->CanBeInterrupted())
+//			{
+//				StateNode* dstState = m_pActiveTransition->GetTransitionData().DestinationState;
+//
+//				// Go through all state transitions
+//				for (TransitionNode* pTransition : dstState->GetTransitions())
+//				{
+//					pTransition->ProcessBranch(deltaTime);
+//
+//					//m_pActiveTransition = pTransition;
+//					if (pTransition->GetTransitionData().DestinationState == pState && pTransition->ShouldTransit())
+//					{
+//						if(!transition.IsReverse()) transition.ReverseTransition();
+//						
+//						break;
+//					}
+//				}
+//
+//
+//				StateNode* srcState = m_pActiveTransition->GetTransitionData().SourceState;
+//
+//				// Go through all state transitions
+//				for (TransitionNode* pTransition : srcState->GetTransitions())
+//				{
+//					// Process transition 
+//					pTransition->ProcessBranch(deltaTime);
+//					// If we has to transit
+//					if (pTransition->GetTransitionData().SourceState == pState && pTransition->ShouldTransit())
+//					{
+//						if (transition.IsReverse()) transition.ReverseTransition();
+//						break;
+//					}
+//				}
+//			}
+//			// When transition active, set blended pose to state machine 
+//			if (Pose* blendPose = Transit(m_pActiveTransition, deltaTime, nullptr))
+//			{
+//				GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(1, blendPose);
+//			}
+//			else
+//			{
+//				// When transition has been done, set current state and pose to state machine 
+//				SetCurrentState(!transition.IsReverse() ? m_pActiveTransition->GetTransitionData().DestinationState : m_pActiveTransition->GetTransitionData().SourceState);
+//				m_pActiveTransition = nullptr;
+//				transition.SetTransitionReverse(false); 
+//			}
+//		}
+//		else // If there's no active transition 
+//		{
+//			// Process current state branch
+//			pState->ProcessBranch(deltaTime);
+//
+//			// Go through all state transitions
+//			for (TransitionNode* pTransition : pState->GetTransitions())
+//			{
+//				// Process transition 
+//				pTransition->ProcessBranch(deltaTime);
+//
+//				// If we has to transit
+//				if (pTransition->ShouldTransit())
+//				{
+//					m_pActiveTransition = pTransition;
+//					m_pActiveTransition->GetRootNode()->As<OutputTransitionNode>().ResetTransitionAccumulator();
+//					return;
+//				}
+//			}
+//			
+//			const animation::Pose* statePose = pState->GetOutputPose();
+//
+//			if (m_IsBlendWithEntryPoint && pState!= GetRootNode())
+//			{
+//				auto& context = GetGraphContext()->As<AnimationGraphContext>();
+//				const animation::Pose* entryPointPose = GetRootNode()->As<EntryStateNode>().GetOutputPose();
+//				
+//				if (statePose && entryPointPose)
+//				{
+//					// Set current pose to state machine output
+//					GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(1, 
+//						context.Controller->Blend(context.Skeleton, statePose, entryPointPose, m_EntryPointClampMax, animation::BoneMask{ nullptr }));
+//				}
+//				else
+//				{
+//					GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(1, statePose);
+//				}
+//			}
+//			else
+//			{
+//				GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(1, statePose);
+//			}
+//		}
+//	}
+//}
+
+//namespace untils
+//{
+//	float ScaleToRange(float value, float inputMin, float inputMax, float outputMin, float outputMax)
+//	{
+//		float normalizedValue = (value - inputMin) / (inputMax - inputMin);
+//		return glm::mix(outputMin, outputMax, value);
+//	}
+//}
+//
+//shade::animation::Pose* shade::animation::state_machine::StateMachineNode::Transit(TransitionNode* pTransition, const FrameTimer& deltaTime, Pose* pPTPose)
+//{	
+//	OutputTransitionNode& transition		= pTransition->GetRootNode()->As<OutputTransitionNode>();
+//	TransitionNode::Data& transitionData	= pTransition->GetTransitionData();
+//
+//	pTransition->SetInterrupted(transition.GetEndpoint<graphs::Connection::Input>(4)->As<NodeValueType::Bool>());
+//	// If accumulator more than duration that means transition has been done, or duration is 0 so transition should be immediately
+//	if ((transition.IsReverse() && transition.GetTransitionAccumulator() <= 0.f) || (!transition.IsReverse() && transition.GetTransitionAccumulator() > transition.GetTransitionDuration()) || !transition.GetTransitionDuration())
+//	{
+//		// Reset transition data
+//		transitionData.SourceState->SetTransitionSyncData(TransitionSyncData{}); transitionData.DestinationState->SetTransitionSyncData(TransitionSyncData{});
+//		// Reset accamulator
+//		transition.ResetTransitionAccumulator();
+//
+//		//GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Float>(1, 1.0);
+//	}
+//	else // We need make a transition
+//	{
+//		auto& controller = GetGraphContext()->As<AnimationGraphContext>().Controller;
+//		auto& skeleton = GetGraphContext()->As<AnimationGraphContext>().Skeleton;
+//
+//		const animation::Pose* sPose = transitionData.SourceState->GetOutputPose();
+//		const animation::Pose* dPose = transitionData.DestinationState->GetOutputPose();
+//
+//		// TODO: При переходе из транзишена в транзишен нужно добавить стейту Указатель на тот стейт из которого оно пришло, если возвращяемся назад в предыдухий стейт то 	GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Float>(1, blendFactor); == 1,0 - blend factor
+//
+//		float blendFactor = math::CalculateBezierFactor(transition.GetTransitionAccumulator(), 0.f, transition.GetTransitionDuration(), 0.f, 1.f, transition.GetCurveControllPoints());
+//
+//		if (m_IsEntryPointBlendClamp)
+//		{
+//			if(!transition.IsReverse() && transitionData.DestinationState == GetRootNode())
+//				blendFactor = m_EntryPointClampMax - untils::ScaleToRange(blendFactor, 0.f, 1.f, 0.f, m_EntryPointClampMax);
+//			else
+//				blendFactor = untils::ScaleToRange(blendFactor, 0.f, 1.f, 0.f, m_EntryPointClampMax);
+//		}
+//	
+//		std::cout << blendFactor << std::endl;
+//		//blendFactor = m_IsEntryPointBlendClamp ? untils::ScaleToRange((!transition.IsReverse() && transitionData.DestinationState == GetRootNode()) ? blendFactor : blendFactor, 0.f, 1.f, 0.f, m_EntryPointClampMax) : blendFactor;
+//
+//		GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Float>(0, blendFactor);
+//
+//		if (sPose && dPose) // Почему то dPose nullptr в transitionData.DestinationState->GetOutputPose(); нужно проплеить все стейты при десериализации ? после востановления конекшенов ?
+//		{ 
+//			TransitionStatus status = transition.GetTransitionAccumulator() ? TransitionStatus::InProcess : TransitionStatus::Start;
+//			SyncStyle style =  transition.GetSynStyle();
+//			
+//			
+//			//float blendFactor = glm::clamp(transition.GetTransitionAccumulator(), transition.GetTransitionDuration(), 0.f, 1.f);
+//		
+//			auto [sMultiplier, dMultiplier] = controller->GetTimeMultiplier(sPose->GetDuration(), dPose->GetDuration(), blendFactor);
+//
+//			const bool isReset = transition.GetEndpoint<graphs::Connection::Input>(3)->As<NodeValueType::Bool>();
+//
+//			switch (style)
+//			{
+//				case SyncStyle::Async:
+//				case SyncStyle::SourceFrozen:
+//				{
+//					sMultiplier = 1.f; dMultiplier = 1.f;
+//					break;
+//				}
+//				case SyncStyle::SourceToDestinationTimeSync:
+//				{
+//					dMultiplier = 1.f;
+//					break;
+//				}
+//				case SyncStyle::DestinationToSourceTimeSync:
+//				{
+//					sMultiplier = 1.f;
+//					break;
+//				}
+//				case SyncStyle::DestinationAndSourceTimeSync:
+//				{
+//					//
+//					break;
+//				}
+//				case SyncStyle::KeyFrameSync:
+//				{
+//					break;
+//				}
+//			}
+//
+//			transitionData.SourceState->SetTransitionSyncData({
+//					.Preferences = {.Style = style,.ResetFromStart = false, .Offset = 0.f },
+//					.BlendFactor = blendFactor,
+//					.CurrentTransitionTime = transition.GetTransitionAccumulator(),
+//					.TimeMultiplier = sMultiplier,
+//					.PStateAnimationDuration = dPose->GetDuration(),
+//					.PStateAnimationCurrentPlayTime = dPose->GetCurrentPlayTime(),
+//					.Status = status
+//				});
+//
+//			transitionData.DestinationState->SetTransitionSyncData({
+//				.Preferences = {
+//					.Style = SyncStyle::Async,
+//					.ResetFromStart = transition.GetEndpoint<graphs::Connection::Input>(3)->As<NodeValueType::Bool>(), 
+//					.Offset = transition.GetEndpoint<graphs::Connection::Input>(2)->As<NodeValueType::Float>() 
+//				},
+//				.BlendFactor = blendFactor,
+//				.CurrentTransitionTime = transition.GetTransitionAccumulator(),
+//				.TimeMultiplier = dMultiplier,
+//				.PStateAnimationDuration = sPose->GetDuration(),
+//				.PStateAnimationCurrentPlayTime = sPose->GetCurrentPlayTime(),
+//				.Status = status
+//				});
+//			
+//			// Сначала евалуейт а потом уже бленд ! вне if (sPose && dPose) 
+//			transitionData.SourceState->Evaluate(deltaTime); transitionData.DestinationState->Evaluate(deltaTime);
+//
+//			transition.ProcessTransitionAccumulator(deltaTime);
+//
+//			return (transitionData.DestinationState == GetRootNode()) ? controller->Blend(skeleton, dPose, sPose, blendFactor, animation::BoneMask{ nullptr }) : controller->Blend(skeleton, sPose, dPose, blendFactor, animation::BoneMask{ nullptr });
+//			
+//		}
+//		else if(sPose)
+//		{
+//			transitionData.SourceState->Evaluate(deltaTime);
+//			transition.ProcessTransitionAccumulator(deltaTime);
+//			return const_cast<shade::animation::Pose*>(sPose);
+//		}
+//		else if (dPose)
+//		{
+//			transitionData.DestinationState->Evaluate(deltaTime);
+//			transition.ProcessTransitionAccumulator(deltaTime);
+//			return const_cast<shade::animation::Pose*>(dPose);
+//		}
+//	}
+//
+//	return nullptr;
+//}
+
+
+
 void shade::animation::state_machine::StateMachineNode::Evaluate(const FrameTimer& deltaTime)
 {
-	if (StateNode* pState = &GetRootNode()->As<StateNode>())
+	if (StateNode* pState = m_pCurrentState)
 	{
 		if (m_pActiveTransition)
 		{
 			OutputTransitionNode& transition = m_pActiveTransition->GetRootNode()->As<OutputTransitionNode>();
-				
+
 			if (m_pActiveTransition->CanBeInterrupted())
 			{
 				StateNode* dstState = m_pActiveTransition->GetTransitionData().DestinationState;
 
-				// Go through all state transitions
+				// Process transitions from destination state
 				for (TransitionNode* pTransition : dstState->GetTransitions())
 				{
 					pTransition->ProcessBranch(deltaTime);
 
-					//m_pActiveTransition = pTransition;
 					if (pTransition->GetTransitionData().DestinationState == pState && pTransition->ShouldTransit())
 					{
-						if(!transition.IsReverse()) transition.ReverseTransition();
-						
+						if (!transition.IsReverse())
+							transition.ReverseTransition();
 						break;
 					}
 				}
-
 
 				StateNode* srcState = m_pActiveTransition->GetTransitionData().SourceState;
 
-				// Go through all state transitions
+				// Process transitions from source state
 				for (TransitionNode* pTransition : srcState->GetTransitions())
 				{
-					// Process transition 
 					pTransition->ProcessBranch(deltaTime);
-					// If we has to transit
+
 					if (pTransition->GetTransitionData().SourceState == pState && pTransition->ShouldTransit())
 					{
-						if (transition.IsReverse()) transition.ReverseTransition();
+						if (transition.IsReverse())
+							transition.ReverseTransition();
 						break;
 					}
 				}
 			}
-			// When transition active, set blended pose to state machine 
+
+			// Handle active transition
 			if (Pose* blendPose = Transit(m_pActiveTransition, deltaTime, nullptr))
 			{
-				GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, blendPose);
+				GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(1, blendPose);
 			}
 			else
 			{
-				// When transition has been done, set current state and pose to state machine 
-				SetRootNode(!transition.IsReverse() ? m_pActiveTransition->GetTransitionData().DestinationState : m_pActiveTransition->GetTransitionData().SourceState);
+				// Transition completed, set the current state and pose
+				SetCurrentState(!transition.IsReverse() ?
+					m_pActiveTransition->GetTransitionData().DestinationState :
+					m_pActiveTransition->GetTransitionData().SourceState);
 				m_pActiveTransition = nullptr;
-				transition.SetTransitionReverse(false); 
+				transition.SetTransitionReverse(false);
 			}
 		}
-		else // If there's no active transition 
+		else // No active transition
 		{
 			// Process current state branch
 			pState->ProcessBranch(deltaTime);
 
-			// Go through all state transitions
+			// Process all state transitions
 			for (TransitionNode* pTransition : pState->GetTransitions())
 			{
-				// Process transition 
 				pTransition->ProcessBranch(deltaTime);
 
-				// If we has to transit
 				if (pTransition->ShouldTransit())
 				{
 					m_pActiveTransition = pTransition;
@@ -345,111 +577,220 @@ void shade::animation::state_machine::StateMachineNode::Evaluate(const FrameTime
 				}
 			}
 
-			// Set current pose to state machine output
-			GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, pState->GetOutputPose());
+			const animation::Pose* statePose = pState->GetOutputPose();
+			HandlePoseBlending(pState, statePose);
 		}
+	}
+}
+
+void shade::animation::state_machine::StateMachineNode::HandlePoseBlending(StateNode* pState, const animation::Pose* statePose)
+{
+	if (m_IsBlendWithEntryPoint && pState != GetRootNode())
+	{
+		auto& context = GetGraphContext()->As<AnimationGraphContext>();
+		const animation::Pose* entryPointPose = GetRootNode()->As<EntryStateNode>().GetOutputPose();
+
+		if (statePose && entryPointPose)
+		{
+			GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(1,
+				context.Controller->Blend(context.Skeleton, statePose, entryPointPose, m_EntryPointClampMax, animation::BoneMask{ nullptr }));
+		}
+		else
+		{
+			GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(1, statePose);
+		}
+	}
+	else
+	{
+		GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(1, statePose);
+	}
+}
+
+namespace untils
+{
+	float ScaleToRange(float value, float inputMin, float inputMax, float outputMin, float outputMax)
+	{
+		float normalizedValue = (value - inputMin) / (inputMax - inputMin);
+		return glm::mix(outputMin, outputMax, normalizedValue); // исправлен параметр, используем normalizedValue
 	}
 }
 
 shade::animation::Pose* shade::animation::state_machine::StateMachineNode::Transit(TransitionNode* pTransition, const FrameTimer& deltaTime, Pose* pPTPose)
-{	
-	OutputTransitionNode& transition		= pTransition->GetRootNode()->As<OutputTransitionNode>();
-	TransitionNode::Data& transitionData	= pTransition->GetTransitionData();
+{
+	OutputTransitionNode& transition = pTransition->GetRootNode()->As<OutputTransitionNode>();
+	TransitionNode::Data& transitionData = pTransition->GetTransitionData();
 
+	// Set interrupted flag
 	pTransition->SetInterrupted(transition.GetEndpoint<graphs::Connection::Input>(4)->As<NodeValueType::Bool>());
-	// If accumulator more than duration that means transition has been done, or duration is 0 so transition should be immediately
-	if ((transition.IsReverse() && transition.GetTransitionAccumulator() <= 0.f) || (!transition.IsReverse() && transition.GetTransitionAccumulator() > transition.GetTransitionDuration()) || !transition.GetTransitionDuration())
+
+	// Check if transition is completed or immediate
+	if (IsTransitionCompletedOrImmediate(transition))
 	{
-		// Reset transition data
-		transitionData.SourceState->SetTransitionSyncData(TransitionSyncData{}); transitionData.DestinationState->SetTransitionSyncData(TransitionSyncData{});
-		// Reset accamulator
+		ResetTransitionData(transitionData);
 		transition.ResetTransitionAccumulator();
 	}
-	else // We need make a transition
+	else
 	{
-		auto& controller = GetGraphContext()->As<AnimationGraphContext>().Controller;
-		auto& skeleton = GetGraphContext()->As<AnimationGraphContext>().Skeleton;
-
-		const animation::Pose* sPose = transitionData.SourceState->GetOutputPose();
-		const animation::Pose* dPose = transitionData.DestinationState->GetOutputPose();
-
-		if (sPose && dPose) // Почему то dPose nullptr в transitionData.DestinationState->GetOutputPose(); нужно проплеить все стейты при десериализации ? после востановления конекшенов ?
-		{ 
-			TransitionStatus status = transition.GetTransitionAccumulator() ? TransitionStatus::InProcess : TransitionStatus::Start;
-			SyncStyle style =  transition.GetSynStyle();
-			
-			float blendFactor = math::CalculateBezierFactor(transition.GetTransitionAccumulator(), 0.f, transition.GetTransitionDuration(), 0.f, 1.f, transition.GetCurveControllPoints());
-
-			//float blendFactor = glm::clamp(transition.GetTransitionAccumulator(), transition.GetTransitionDuration(), 0.f, 1.f);
-		
-			auto [sMultiplier, dMultiplier] = controller->GetTimeMultiplier(sPose->GetDuration(), dPose->GetDuration(), blendFactor);
-
-			const bool isReset = transition.GetEndpoint<graphs::Connection::Input>(3)->As<NodeValueType::Bool>();
-
-			switch (style)
-			{
-				case SyncStyle::Async:
-				case SyncStyle::SourceFrozen:
-				{
-					sMultiplier = 1.f; dMultiplier = 1.f;
-					break;
-				}
-				case SyncStyle::SourceToDestinationTimeSync:
-				{
-					dMultiplier = 1.f;
-					break;
-				}
-				case SyncStyle::DestinationToSourceTimeSync:
-				{
-					sMultiplier = 1.f;
-					break;
-				}
-				case SyncStyle::DestinationAndSourceTimeSync:
-				{
-					//
-					break;
-				}
-				case SyncStyle::KeyFrameSync:
-				{
-					break;
-				}
-			}
-
-			transitionData.SourceState->SetTransitionSyncData({
-					.Preferences = {.Style = style,.ResetFromStart = false, .Offset = 0.f },
-					.BlendFactor = blendFactor,
-					.CurrentTransitionTime = transition.GetTransitionAccumulator(),
-					.TimeMultiplier = sMultiplier,
-					.PStateAnimationDuration = dPose->GetDuration(),
-					.PStateAnimationCurrentPlayTime = dPose->GetCurrentPlayTime(),
-					.Status = status
-				});
-
-			transitionData.DestinationState->SetTransitionSyncData({
-				.Preferences = {
-					.Style = SyncStyle::Async,
-					.ResetFromStart = transition.GetEndpoint<graphs::Connection::Input>(3)->As<NodeValueType::Bool>(), 
-					.Offset = transition.GetEndpoint<graphs::Connection::Input>(2)->As<NodeValueType::Float>() 
-				},
-				.BlendFactor = blendFactor,
-				.CurrentTransitionTime = transition.GetTransitionAccumulator(),
-				.TimeMultiplier = dMultiplier,
-				.PStateAnimationDuration = sPose->GetDuration(),
-				.PStateAnimationCurrentPlayTime = sPose->GetCurrentPlayTime(),
-				.Status = status
-				});
-			
-			// Сначала евалуейт а потом уже бленд ! вне if (sPose && dPose) 
-			transitionData.SourceState->Evaluate(deltaTime); transitionData.DestinationState->Evaluate(deltaTime);
-
-			transition.ProcessTransitionAccumulator(deltaTime);
-
-			return controller->Blend(skeleton, pPTPose ? pPTPose : sPose, dPose, blendFactor, animation::BoneMask{ nullptr });
-		}
+		return HandleTransitionInProcess(transition, transitionData, deltaTime);
 	}
 
 	return nullptr;
 }
+
+// Helper function to determine if transition is completed or should be immediate
+bool shade::animation::state_machine::StateMachineNode::IsTransitionCompletedOrImmediate(const OutputTransitionNode& transition)
+{
+	return (transition.IsReverse() && transition.GetTransitionAccumulator() <= 0.f) ||
+		(!transition.IsReverse() && transition.GetTransitionAccumulator() > transition.GetTransitionDuration()) ||
+		!transition.GetTransitionDuration();
+}
+
+// Helper function to reset transition data
+void shade::animation::state_machine::StateMachineNode::ResetTransitionData(TransitionNode::Data& transitionData)
+{
+	transitionData.SourceState->SetTransitionSyncData(TransitionSyncData{});
+	transitionData.DestinationState->SetTransitionSyncData(TransitionSyncData{});
+}
+
+// Handle transition in process
+shade::animation::Pose* shade::animation::state_machine::StateMachineNode::HandleTransitionInProcess(OutputTransitionNode& transition, TransitionNode::Data& transitionData, const FrameTimer& deltaTime)
+{
+	auto& context = GetGraphContext()->As<AnimationGraphContext>();
+	auto& controller = context.Controller;
+	auto& skeleton = context.Skeleton;
+
+	const animation::Pose* sPose = transitionData.SourceState->GetOutputPose();
+	const animation::Pose* dPose = transitionData.DestinationState->GetOutputPose();
+
+	float blendFactor = math::CalculateBezierFactor(transition.GetTransitionAccumulator(), 0.f, transition.GetTransitionDuration(), 0.f, 1.f, transition.GetCurveControllPoints());
+
+	/*if (m_IsEntryPointBlendClamp)
+	{
+		if (!transition.IsReverse() && transitionData.DestinationState == GetRootNode())
+			blendFactor = m_EntryPointClampMax - untils::ScaleToRange(blendFactor, 0.f, 1.f, 0.f, m_EntryPointClampMax);
+		else
+			blendFactor = untils::ScaleToRange(blendFactor, 0.f, 1.f, 0.f, m_EntryPointClampMax);
+	}*/
+
+	if (m_IsEntryPointBlendClamp)
+	{
+		blendFactor = AdjustBlendFactorForEntryPoint(transition, transitionData.DestinationState, blendFactor);
+	}
+
+	GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Float>(0, blendFactor);
+
+	if (sPose && dPose)
+	{
+		return ProcessTransitionPoses(controller.Raw(), skeleton, transition, transitionData, sPose, dPose, blendFactor, deltaTime);
+	}
+	else if (sPose)
+	{
+		transitionData.SourceState->Evaluate(deltaTime);
+		transition.ProcessTransitionAccumulator(deltaTime);
+		return const_cast<shade::animation::Pose*>(sPose);
+	}
+	else if (dPose)
+	{
+		transitionData.DestinationState->Evaluate(deltaTime);
+		transition.ProcessTransitionAccumulator(deltaTime);
+		return const_cast<shade::animation::Pose*>(dPose);
+	}
+
+	return nullptr;
+}
+
+// Helper function to adjust blend factor for entry point transitions
+float shade::animation::state_machine::StateMachineNode::AdjustBlendFactorForEntryPoint(const OutputTransitionNode& transition, const StateNode* dstState, float blendFactor)
+{
+	return (!transition.IsReverse() && dstState == GetRootNode() && dstState->GetOutputPose()) ?
+		m_EntryPointClampMax - untils::ScaleToRange(blendFactor, 0.f, 1.f, 0.f, m_EntryPointClampMax) :
+		untils::ScaleToRange(blendFactor, 0.f, 1.f, 0.f, m_EntryPointClampMax);
+}
+
+void shade::animation::state_machine::StateMachineNode::AdjustMultipliersForSyncStyle(SyncStyle style, float& sMultiplier, float& dMultiplier)
+{
+	switch (style)
+	{
+	case SyncStyle::Async:
+	case SyncStyle::SourceFrozen:
+		sMultiplier = 1.f;
+		dMultiplier = 1.f;
+		break;
+
+	case SyncStyle::SourceToDestinationTimeSync:
+		dMultiplier = 1.f; // Дестинация синхронизирована по времени с источником
+		break;
+
+	case SyncStyle::DestinationToSourceTimeSync:
+		sMultiplier = 1.f; // Источник синхронизирован по времени с дестинацией
+		break;
+
+	case SyncStyle::DestinationAndSourceTimeSync:
+		// Оба состояния синхронизированы, не изменяем множители
+		break;
+
+	case SyncStyle::KeyFrameSync:
+		// Обработка синхронизации по ключевым кадрам (если требуется)
+		break;
+	}
+}
+void shade::animation::state_machine::StateMachineNode::SetTransitionSyncData(
+	OutputTransitionNode& transition,
+	TransitionNode::Data& transitionData, TransitionStatus status, SyncStyle style,
+	float blendFactor, float sMultiplier, float dMultiplier,
+	const animation::Pose* sPose, const animation::Pose* dPose)
+{
+	// Установка данных синхронизации для исходного состояния
+	transitionData.SourceState->SetTransitionSyncData({
+		.Preferences = {
+			.Style = style,
+			.ResetFromStart = false,
+			.Offset = 0.f
+		},
+		.BlendFactor = blendFactor,
+		.CurrentTransitionTime = transition.GetTransitionAccumulator(),
+		.TimeMultiplier = sMultiplier,
+		.PStateAnimationDuration = dPose->GetDuration(),
+		.PStateAnimationCurrentPlayTime = dPose->GetCurrentPlayTime(),
+		.Status = status
+		});
+
+	// Установка данных синхронизации для целевого состояния
+	transitionData.DestinationState->SetTransitionSyncData({
+		.Preferences = {
+			.Style = SyncStyle::Async,
+			.ResetFromStart = transition.GetEndpoint<graphs::Connection::Input>(3)->As<NodeValueType::Bool>(),
+			.Offset = transition.GetEndpoint<graphs::Connection::Input>(2)->As<NodeValueType::Float>()
+		},
+		.BlendFactor = blendFactor,
+		.CurrentTransitionTime = transition.GetTransitionAccumulator(),
+		.TimeMultiplier = dMultiplier,
+		.PStateAnimationDuration = sPose->GetDuration(),
+		.PStateAnimationCurrentPlayTime = sPose->GetCurrentPlayTime(),
+		.Status = status
+		});
+}
+// Process and blend transition poses
+shade::animation::Pose* shade::animation::state_machine::StateMachineNode::ProcessTransitionPoses(AnimationController* controller, const Asset<Skeleton>& skeleton, OutputTransitionNode& transition, TransitionNode::Data& transitionData, const animation::Pose* sPose, const animation::Pose* dPose, float blendFactor, const FrameTimer& deltaTime)
+{
+	TransitionStatus status = transition.GetTransitionAccumulator() ? TransitionStatus::InProcess : TransitionStatus::Start;
+	SyncStyle style = transition.GetSynStyle();
+
+	auto [sMultiplier, dMultiplier] = controller->GetTimeMultiplier(sPose->GetDuration(), dPose->GetDuration(), blendFactor);
+	AdjustMultipliersForSyncStyle(style, sMultiplier, dMultiplier);
+
+	SetTransitionSyncData(transition, transitionData, status, style, blendFactor, sMultiplier, dMultiplier, sPose, dPose);
+	transitionData.SourceState->Evaluate(deltaTime);
+	transitionData.DestinationState->Evaluate(deltaTime);
+	transition.ProcessTransitionAccumulator(deltaTime);
+
+	return (transitionData.DestinationState == GetRootNode()) ?
+		controller->Blend(skeleton, dPose, sPose, blendFactor, animation::BoneMask{ nullptr }) :
+		controller->Blend(skeleton, sPose, dPose, blendFactor, animation::BoneMask{ nullptr });
+}
+
+
+
 
 std::size_t shade::animation::state_machine::StateNode::Serialize(std::ostream& stream) const
 {
@@ -525,7 +866,7 @@ std::size_t shade::animation::state_machine::StateMachineNode::Serialize(std::os
 	size += shade::Serializer::Serialize(stream, GetScreenPosition());
 	// Serialzie count of internal nodes
 	size += shade::Serializer::Serialize(stream, std::uint32_t(GetInternalNodes().size()));
-	
+
 	//------------------------------------------------------------------------
 	// Body section
 	//------------------------------------------------------------------------
@@ -605,7 +946,7 @@ std::size_t shade::animation::state_machine::StateMachineNode::Deserialize(std::
 	// !Body section
 	//------------------------------------------------------------------------
 
-	auto& inputs  = GetEndpoints().at(shade::graphs::Connection::Type::Input);
+	auto& inputs = GetEndpoints().at(shade::graphs::Connection::Type::Input);
 	auto& outputs = GetEndpoints().at(shade::graphs::Connection::Type::Output);
 
 	//------------------------------------------------------------------------
@@ -634,7 +975,7 @@ std::size_t shade::animation::state_machine::StateMachineNode::Deserialize(std::
 	{
 		// Deserialize Type
 		graphs::NodeType type;	size += shade::Serializer::Deserialize(stream, type);
-		BaseNode*				pNode = CreateNodeByType(type);
+		BaseNode* pNode = CreateNodeByType(type);
 		// Deserialize node
 		size += Serializer::Deserialize(stream, *pNode);
 	}
@@ -647,8 +988,8 @@ std::size_t shade::animation::state_machine::StateMachineNode::Deserialize(std::
 
 		for (std::size_t j = 0; j < transitionCount; ++j)
 		{
-			graphs::NodeType type;	size	+= shade::Serializer::Deserialize(stream, type);
-			TransitionNode* pTransition		= node->As<StateNode>().CreateTransition(nullptr);
+			graphs::NodeType type;	size += shade::Serializer::Deserialize(stream, type);
+			TransitionNode* pTransition = node->As<StateNode>().CreateTransition(nullptr);
 			size += shade::Serializer::Deserialize(stream, pTransition->As<BaseNode>());
 
 			node->As<StateNode>().AddTransition(pTransition);

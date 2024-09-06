@@ -630,8 +630,23 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 
 }
 
+void DrawGizmoOperationButton(const char* id, const char8_t* icon, ImGuizmo::OPERATION operation, uint32_t& currentOperation, uint32_t allowedOperation)
+{
+	ImVec4 color = ImGui::GetStyle().Colors[ImGuiCol_Button];
+
+	if (currentOperation & operation) color = ImVec4(0.995f, 0.857f, 0.420f, 1.000f);
+		
+	ImGui::PushStyleColor(ImGuiCol_Button, color);
+	
+	if (shade::ImGuiLayer::IconButton(id, icon, 1, 1.0f)) 
+		if (allowedOperation & operation) { currentOperation = operation; }
+
+	ImGui::PopStyleColor(); 
+}
+
 void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 {
+	ImGui::ShowDemoWindow();
 	// Bool shit
 	const std::uint32_t frameIndex = shade::Renderer::GetCurrentFrameIndex();
 
@@ -670,18 +685,59 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 
 	DrawImage(m_SceneRenderer->GetMainTargetFrameBuffer()[frameIndex]->GetTextureAttachment(0), { m_SceneViewPort.ViewPort.z, m_SceneViewPort.ViewPort.w }, focusColor);
 
-	ImGui::SetNextWindowSize(ImVec2{ ImGui::GetWindowSize().x - 20.0f,0 }, ImGuiCond_Always);
+	ImGui::SetNextWindowSize(ImVec2{ ImGui::GetWindowSize().x - 50.0f,0 }, ImGuiCond_Always);
 	ShowWindowBarOverlay("Overlay", ImGui::GetWindowViewport(), [&]()
 		{
-			if (ImGui::BeginTable("##OverlayTable", 2))
+			if (ImGui::BeginTable("##OverlayTable", 3, ImGuiTableFlags_SizingStretchProp))
 			{
 				ImGui::TableNextRow();
 				{
 					ImGui::TableNextColumn();
 					{
-						ImGuiIO& io = ImGui::GetIO();
-						ImGui::Text("Application average %.1f ms/frame (%.0f FPS)", 1000.0f / io.Framerate, io.Framerate);
+						if (ImGui::BeginTable("##GuizmoEditMode", 4, ImGuiTableFlags_SizingFixedFit))
+						{
+							ImGui::TableNextColumn();
+							{
+								// Select
+
+								/*ImVec4 color = ImGui::GetStyle().Colors[ImGuiCol_Button];
+
+								if (m_ImGuizmoOperation == 0) color = ImVec4(0.995f, 0.857f, 0.420f, 1.000f);
+
+								ImGui::PushStyleColor(ImGuiCol_Button, color);
+
+								if (shade::ImGuiLayer::IconButton("##Select", u8"\xe9d9", 1, 1.0f))
+								{
+									m_ImGuizmoOperation = 0;
+								}
+									
+								ImGui::PopStyleColor();*/
+
+								DrawGizmoOperationButton("##Select", u8"\xe9d9", ImGuizmo::BOUNDS, m_ImGuizmoOperation, m_ImGuizmoAllowedOperation);
+							}
+							ImGui::TableNextColumn();
+							{
+								// Translate
+								DrawGizmoOperationButton("##Translate", u8"\xea93", ImGuizmo::TRANSLATE, m_ImGuizmoOperation, m_ImGuizmoAllowedOperation);
+							}
+							ImGui::TableNextColumn();
+							{
+								// Rotation
+								DrawGizmoOperationButton("##Rotate", u8"\xea98", ImGuizmo::ROTATE, m_ImGuizmoOperation, m_ImGuizmoAllowedOperation);
+							}
+							ImGui::TableNextColumn();
+							{
+								// Scale
+								DrawGizmoOperationButton("##Scale", u8"\xea91", ImGuizmo::SCALE, m_ImGuizmoOperation, m_ImGuizmoAllowedOperation);
+							}
+
+							ImGui::EndTable();
+						}
+
+						ImGui::Dummy({ ImGui::GetWindowSize().x / 3.f, 0.f }); 
+
 					}
+					// Play, Puse, Stop scene
 					ImGui::TableNextColumn();
 					{
 						if (ImGuiLayer::IconButton("##PlayButton", u8"\xe88b", 1, 1.f))
@@ -700,6 +756,12 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 							m_IsScenePlaying = false;
 							shade::Input::ShowMouseCursor(true);
 						}
+
+					}
+					ImGui::TableNextColumn();
+					{
+						ImGuiIO& io = ImGui::GetIO();
+						ImGui::Text("Application average %.1f ms/frame (%.0f FPS)", 1000.0f / io.Framerate, io.Framerate);
 					}
 				}
 
@@ -716,15 +778,17 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 			auto pcTransform = scene->ComputePCTransform(m_SelectedEntity);
 
 			if (m_SelectedEntity.HasComponent<shade::GlobalLightComponent>())
-				m_ImGuizmoOperation = ImGuizmo::ROTATE;
+				m_ImGuizmoAllowedOperation = ImGuizmo::ROTATE | ImGuizmo::BOUNDS;
 			else if (m_SelectedEntity.HasComponent<shade::PointLightComponent>())
-				m_ImGuizmoOperation = ImGuizmo::TRANSLATE;
+				m_ImGuizmoAllowedOperation = ImGuizmo::TRANSLATE | ImGuizmo::BOUNDS;
 			else if (m_SelectedEntity.HasComponent<shade::SpotLightComponent>())
-				m_ImGuizmoOperation = ImGuizmo::TRANSLATE | ImGuizmo::ROTATE;
+				m_ImGuizmoAllowedOperation = ImGuizmo::TRANSLATE | ImGuizmo::ROTATE | ImGuizmo::BOUNDS;
 			else
-				m_ImGuizmoOperation = ImGuizmo::TRANSLATE | ImGuizmo::ROTATE | ImGuizmo::SCALE;
+				m_ImGuizmoAllowedOperation = ImGuizmo::TRANSLATE | ImGuizmo::ROTATE | ImGuizmo::SCALE | ImGuizmo::BOUNDS;
 
-			if (DrawImGuizmo(pcTransform, m_SceneRenderer->GetActiveCamera(), static_cast<ImGuizmo::OPERATION>(m_ImGuizmoOperation), { ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, ImGui::GetWindowSize().x, ImGui::GetWindowSize().y }))
+			if (!(m_ImGuizmoAllowedOperation & m_ImGuizmoOperation)) m_ImGuizmoOperation = ImGuizmo::BOUNDS;
+
+			if (DrawImGuizmo(pcTransform, m_SceneRenderer->GetActiveCamera(), static_cast<ImGuizmo::OPERATION>(m_ImGuizmoAllowedOperation & m_ImGuizmoOperation), { ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, ImGui::GetWindowSize().x, ImGui::GetWindowSize().y }))
 			{
 				if (m_SelectedEntity.HasParent())
 				{
@@ -742,9 +806,11 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 	}
 }
 
-void EditorLayer::EntitiesList(const char* search, shade::SharedPointer<shade::Scene>& scene)
+bool EditorLayer::EntitiesList(const char* search, shade::SharedPointer<shade::Scene>& scene)
 {
 	static ImGuiTreeNodeFlags baseFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
+
+	bool isItemSelected = false;
 
 	scene->View<shade::TagComponent>().Each([&](shade::ecs::Entity& entity, shade::TagComponent& tag)
 		{
@@ -761,8 +827,11 @@ void EditorLayer::EntitiesList(const char* search, shade::SharedPointer<shade::S
 				bool isNodeOpen = ImGui::TreeNodeEx(name.c_str(), nodeFlags);
 
 				if (ImGui::IsItemClicked())
+				{
 					m_SelectedEntity = entity;
-
+					isItemSelected = true;
+				}
+					
 				if (isNodeOpen)
 				{
 					EntitiesList(search, entity);
@@ -771,6 +840,7 @@ void EditorLayer::EntitiesList(const char* search, shade::SharedPointer<shade::S
 			}
 		});
 
+	return isItemSelected;
 }
 
 void EditorLayer::EntitiesList(const char* search, shade::ecs::Entity& entity)
@@ -841,7 +911,7 @@ void EditorLayer::Entities(shade::SharedPointer<shade::Scene>& scene)
 		}
 
 		EntitiesList("", scene);
-
+		
 		ImGui::ListBoxFooter();
 
 		if (m_SelectedEntity.IsValid())

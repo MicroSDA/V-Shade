@@ -103,6 +103,7 @@ shade::graphs::BaseNode* shade::graphs::BaseNode::CreateNodeByType(NodeType type
 
 		case shade::graphs::GetNodeTypeId<shade::graphs::BoolNode>() : return CreateNode<shade::graphs::BoolNode>();
 		case shade::graphs::GetNodeTypeId<shade::graphs::FloatEqualsNode>() : return CreateNode<shade::graphs::FloatEqualsNode>();
+		case shade::graphs::GetNodeTypeId<shade::graphs::FloatScaleRange>() : return CreateNode<shade::graphs::FloatScaleRange>();
 		case shade::graphs::GetNodeTypeId<shade::graphs::FloatNode>() : return CreateNode<shade::graphs::FloatNode>();
 		case shade::graphs::GetNodeTypeId<shade::graphs::IntEqualsNode>() : return CreateNode<shade::graphs::IntEqualsNode>();
 		case shade::graphs::GetNodeTypeId<shade::graphs::IntNode>() : return CreateNode<shade::graphs::IntNode>();
@@ -117,6 +118,7 @@ shade::graphs::BaseNode* shade::graphs::BaseNode::CreateNodeByType(NodeType type
 		case shade::graphs::GetNodeTypeId<shade::animation::state_machine::TransitionNode>() : return CreateNode<shade::animation::state_machine::TransitionNode>();
 		case shade::graphs::GetNodeTypeId<shade::animation::state_machine::StateNode>() : return CreateNode<shade::animation::state_machine::StateNode>();
 		case shade::graphs::GetNodeTypeId<shade::animation::state_machine::StateMachineNode>() : return CreateNode<shade::animation::state_machine::StateMachineNode>();
+		case shade::graphs::GetNodeTypeId<shade::animation::state_machine::EntryStateNode>() : return  &GetRootNode()->As<shade::animation::state_machine::EntryStateNode>();
 
 		default: return nullptr;
 	}

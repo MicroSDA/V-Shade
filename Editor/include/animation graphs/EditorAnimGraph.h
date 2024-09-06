@@ -469,6 +469,14 @@ namespace graph_editor
 		virtual void ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint) override;
 		virtual void ProcessBodyContent(const InternalContext* context) override;
 	};
+	class FloatScaleRangeDelegate : public GraphNodePrototype
+	{
+	public:
+		FloatScaleRangeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor);
+		virtual ~FloatScaleRangeDelegate() = default;
+		virtual void ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint) override;
+		virtual void ProcessBodyContent(const InternalContext* context) override;
+	};
 
 	class StringNodeDelegate : public GraphNodePrototype
 	{

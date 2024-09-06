@@ -7,6 +7,7 @@
 #include <shade/core/animation/graphs/nodes/OutputPoseNode.h>
 #include <shade/core/animation/graphs/nodes/BlendNode2D.h>
 #include <shade/core/animation/graphs/nodes/PoseNode.h>
+#include <shade/core/graphs/nodes/FloatScaleRange.h>
 
 namespace shade
 {
@@ -89,11 +90,26 @@ namespace shade
 
 				/// @brief Gets the transition duration.
 				/// @return The transition duration.
-				float GetTransitionDuration();
-
+				SHADE_INLINE float GetTransitionDuration()
+				{
+					return GET_ENDPOINT<graphs::Connection::Input, NodeValueType::Float>(1);
+				}
+				/// @brief Gets the transition duration.
+				/// @return The transition duration.
+				SHADE_INLINE float GetTransitionDuration() const
+				{
+					return GET_ENDPOINT<graphs::Connection::Input, NodeValueType::Float>(1);
+				}
 				/// @brief Gets the current transition accumulator value.
 				/// @return The current transition accumulator value.
-				float GetTransitionAccumulator();
+				SHADE_INLINE float GetTransitionAccumulator()
+				{
+					return m_TimeAccumulator;
+				}
+				SHADE_INLINE float GetTransitionAccumulator() const
+				{
+					return m_TimeAccumulator;
+				}
 
 				/// @brief Gets the control points of the curve used in the transition.
 				/// @return A reference to the vector of curve control points.
@@ -110,15 +126,24 @@ namespace shade
 				}
 			private:
 				/// @brief Resets the transition accumulator to its initial value.
-				void ResetTransitionAccumulator();
+				SHADE_INLINE void ResetTransitionAccumulator()
+				{
+					m_TimeAccumulator = 0.f;
+				}
 
 				/// @brief Sets the transition accumulator to a specific time.
 				/// @param time The time to set the accumulator to.
-				void SetTransitionAccumulator(float time);
+				SHADE_INLINE void SetTransitionAccumulator(float time)
+				{
+					m_TimeAccumulator = time;
+				}
 
 				/// @brief Processes the transition accumulator, advancing it based on deltaTime.
 				/// @param deltaTime The time elapsed since the last frame.
-				void ProcessTransitionAccumulator(const FrameTimer& deltaTime);
+				SHADE_INLINE void ProcessTransitionAccumulator(const FrameTimer& deltaTime)
+				{
+					m_TimeAccumulator += !m_IsReverse ? deltaTime.GetInSeconds<float>() : -deltaTime.GetInSeconds<float>();
+				}
 
 				/// @brief Sets whether the transition should be in reverse.
 				/// @param set Boolean indicating if the transition should be reversed.
@@ -308,30 +333,30 @@ namespace shade
 					return GetRootNode()->As<OutputPoseNode>().GetFinalPose();
 				}
 			private:
-				std::vector<TransitionNode*> m_Transitions;       ///< List of transitions from this state.
-				TransitionNode* m_pActiveTransition = nullptr;    ///< Pointer to the currently active transition.
-				TransitionSyncData m_TransitionSyncData;          ///< Synchronization data for the transition.
+				std::vector<TransitionNode*> m_Transitions;			///< List of transitions from this state.
+				StateNode* m_pPreviousState = nullptr;				///< Pointer to the previous state.
+				TransitionSyncData m_TransitionSyncData;			///< Synchronization data for the transition.
 
 				virtual std::size_t Serialize(std::ostream& stream) const override;
+
+				friend class StateMachineNode;
 			};
 
 	
 			// @brief Represents a entry state node in an animation state machine.
+			//1. Сделать EntryState как рут StateMachine, добавть метотд сет руут стейт
+			//2. Добавить на вход State machine позу, если она не нулл птр, значит EntryState будет ее хранить
+			//3. При переходе из EntryState в любую другую стейт будет бленд как и обычно, если pose не nullptr
 			class SHADE_API EntryStateNode : public StateNode
 			{
 				NODE_STATIC_TYPE_HELPER(EntryStateNode)
 			public:
 				EntryStateNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode, const std::string& name = "Entry");
 				virtual ~EntryStateNode() = default;
+				/// @brief Evaluates the state logic.
+				/// @param deltaTime The time elapsed since the last frame.
+				void Evaluate(const FrameTimer& deltaTime) override;
 
-				SHADE_INLINE virtual Pose* GetOutputPose() override
-				{
-					return nullptr;
-				}
-				SHADE_INLINE virtual Pose* GetOutputPose() const override
-				{
-					return nullptr;
-				}
 			};
 
 			/// @brief Represents a state machine node in an animation graph.
@@ -354,6 +379,9 @@ namespace shade
 				/// @return True if the node was removed successfully, false otherwise.
 				virtual bool RemoveNode(BaseNode* pNode) override;
 
+				/// @brief Initializes the StateMachineNode.
+				virtual void Initialize() override;
+
 			public:
 				/// @brief Evaluates the state machine logic.
 				/// @param deltaTime The time elapsed since the last frame.
@@ -363,6 +391,20 @@ namespace shade
 				/// @param name The name of the new state.
 				/// @return Pointer to the created StateNode.
 				StateNode* CreateState(const std::string& name);
+
+				SHADE_INLINE void SetCurrentState(StateNode* pState)
+				{
+					pState->m_pPreviousState = m_pCurrentState;
+					m_pCurrentState = pState;
+				}
+				SHADE_INLINE StateNode* GetCurrentState()
+				{
+					return m_pCurrentState;
+				}
+				SHADE_INLINE const StateNode* GetCurrentState() const
+				{
+					return m_pCurrentState;
+				}
 			private:
 				TransitionNode* m_pActiveTransition = nullptr;    ///< Pointer to the currently active transition.
 			private:
@@ -373,11 +415,26 @@ namespace shade
 				/// @return Pointer to the Pose after transition.
 				Pose* Transit(TransitionNode* pTransition, const FrameTimer& deltaTime, Pose* pPTPose = nullptr);
 			private:
-				bool m_IsTransitionHasBeenInterrupted = false;    ///< Flag indicating if the transition was interrupted.
+				bool	m_IsTransitionHasBeenInterrupted = false;    ///< Flag indicating if the transition was interrupted.
+				void	HandlePoseBlending(StateNode* pState, const animation::Pose* statePose);
+				bool	IsTransitionCompletedOrImmediate(const OutputTransitionNode& transition);
+				void	ResetTransitionData(TransitionNode::Data& transitionData);
+				Pose*	HandleTransitionInProcess(OutputTransitionNode& transition, TransitionNode::Data& transitionData, const FrameTimer& deltaTime);
+				float	AdjustBlendFactorForEntryPoint(const OutputTransitionNode& transition, const StateNode* dstState, float blendFactor);
+				Pose*	ProcessTransitionPoses(AnimationController* controller, const Asset<Skeleton>& skeleton, OutputTransitionNode& transition, TransitionNode::Data& transitionData, const animation::Pose* sPose, const animation::Pose* dPose, float blendFactor, const FrameTimer& deltaTime);
+				void	AdjustMultipliersForSyncStyle(SyncStyle style, float& sMultiplier, float& dMultiplier);
+				void SetTransitionSyncData(
+					OutputTransitionNode& transition,
+					TransitionNode::Data& transitionData, TransitionStatus status, SyncStyle style,
+					float blendFactor, float sMultiplier, float dMultiplier,
+					const animation::Pose* sPose, const animation::Pose* dPose);
 
 				virtual std::size_t Serialize(std::ostream& stream) const override;
 				virtual std::size_t Deserialize(std::istream& stream) override;
-
+				StateNode* m_pCurrentState = nullptr;
+			public:
+				bool m_IsBlendWithEntryPoint = true, m_IsEntryPointBlendClamp = true;
+				float m_EntryPointClampMax = 0.5f;
 			};
 		}
 	}

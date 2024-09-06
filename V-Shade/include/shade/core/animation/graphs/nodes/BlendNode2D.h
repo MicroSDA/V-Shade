@@ -8,6 +8,21 @@ namespace shade
 	{
 		class SHADE_API BlendNode2D : public graphs::BaseNode
 		{
+		public:
+			enum class SyncStyle : std::uint8_t
+			{
+				Async = 0,
+				// Freeze source animation
+				FirstFrozen,
+				// Sync destination animation time based on source animation
+				FirstToSecondTimeSync,
+				// Sync source animation time based on destination animation
+				SecondToFristTimeSync,
+				// Sync both animations based on their own time
+				SecondAndFirstTimeSync,
+				// Sync by keyframes
+				KeyFrameSync
+			};
 			NODE_STATIC_TYPE_HELPER(BlendNode2D)
 
 		public:
@@ -31,6 +46,7 @@ namespace shade
 			float DefaultWeightValue;
 			////////Internal/////////
 			BoneMask Mask;
+			SyncStyle m_Sync;
 		};
 	}
 }

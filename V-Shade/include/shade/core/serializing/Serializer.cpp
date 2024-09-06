@@ -273,6 +273,7 @@ shade::File::Header shade::File::GetHeader() const
 
 void shade::File::ReadHeader(std::istream& stream, version_t version, const magic_t& magic, FileFlag flag, bool skipContent)
 {
+
 	if (!(flag & shade::File::SkipMagic))
 	{
 		Serializer::Deserialize(stream, m_Header.Magic);
@@ -321,6 +322,7 @@ void shade::File::ReadHeader(std::istream& stream, version_t version, const magi
 	}
 	else
 	{
+
 		if (!skipContent)
 		{
 			m_CheckSumPosition = m_File.tellp();

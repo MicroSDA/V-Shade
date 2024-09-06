@@ -170,10 +170,10 @@ void graph_editor::GraphNodePrototype::DrawBorder(const InternalContext* context
 	const ImVec2 pMax = (context->Offset + scaledPosition + Style.Size * context->Scale.Factor);
 
 	const ImVec4 color = IsSelected() ? ImVec4(
-		Style.BorderColor.x * 1.6f,
-		Style.BorderColor.y * 1.6f,
-		Style.BorderColor.z * 1.6f,
-		Style.BorderColor.w) : Style.BorderColor;
+		Style.BackgroundColor.x * 2.0f,
+		Style.BackgroundColor.y * 2.0f,
+		Style.BackgroundColor.z * 2.0f,
+		Style.BackgroundColor.w) : Style.BackgroundColor;
 
 	context->DrawList->AddRect(pMin, pMax, ImGui::ColorConvertFloat4ToU32(color), graphStyle->Rounding, 0, graphStyle->NodeBorderWidth * context->Scale.Factor);
 }
@@ -680,6 +680,11 @@ void graph_editor::GraphEditor::InitializeRecursively(graphs::BaseNode* pNode, s
 			shade::animation::BoneMaskNode* value = reinterpret_cast<shade::animation::BoneMaskNode*>(pNode);
 			CreateNode<BoneMaskNodeDelegate>(pNode, nodes);
 		}
+		if (dynamic_cast<shade::graphs::FloatScaleRange*>(pNode))
+		{
+			shade::graphs::FloatScaleRange* value = reinterpret_cast<shade::graphs::FloatScaleRange*>(pNode);
+			CreateNode<FloatScaleRangeDelegate>(pNode, nodes);
+		}
 	}
 }
 
@@ -1109,6 +1114,7 @@ void graph_editor::GraphEditor::PopupMenu()
 
 		if (ImGui::MenuItem("+ Float"))  InitializeRecursively(m_Context.CurrentNode->CreateNode<graphs::FloatNode>(), m_Nodes);
 		if (ImGui::MenuItem("Float equals"))  InitializeRecursively(m_Context.CurrentNode->CreateNode<graphs::FloatEqualsNode>(), m_Nodes);
+		if (ImGui::MenuItem("Float scale range"))  InitializeRecursively(m_Context.CurrentNode->CreateNode<graphs::FloatScaleRange>(), m_Nodes);
 
 		ImGui::BeginDisabled();
 		ImGui::MenuItem("Float not equals");
@@ -2094,12 +2100,14 @@ void graph_editor::PoseNodeDelegate::ProcessSideBar(const InternalContext* conte
 
 					if (m_IsAnimationPopupActive)
 					{
-						ImGuiLayer::BeginWindowOverlay("##AnimationSearchOverlay", ImGui::GetWindowViewport(), std::size_t(&node), ImVec2{ windowSize.x - 10.f, 0.f }, ImVec2{ windowPosition.x + 5.f, ImGui::GetCursorScreenPos().y + 5.f }, 0.3f,
+						ImGuiLayer::BeginWindowOverlay("##AnimationSearchOverlay", 
+							ImGui::GetWindowViewport(), 
+							std::size_t(&node), { ImGui::GetWindowSize().x, 200.f }, ImVec2{ ImGui::GetWindowPos().x + ImGui::GetStyle().IndentSpacing + 7.f, ImGui::GetCursorScreenPos().y + 2.f}, 1.0f,
 							[&]() mutable
 							{
 								ImGuiLayer::InputTextCol("Search", m_Search);
 
-								if (ImGui::BeginListBox("##SelectAnimation", ImVec2{ ImGui::GetContentRegionAvail().x, 0.f }))
+								if (ImGui::BeginListBox("##SelectAsset", ImVec2{ ImGui::GetContentRegionAvail() }))
 								{
 									for (const auto& assetData : shade::AssetManager::GetAssetDataList(shade::AssetMeta::Category::Secondary))
 									{
@@ -2148,7 +2156,8 @@ graph_editor::StateMachineNodeDeligate::StateMachineNodeDeligate(graphs::BaseNod
 
 void graph_editor::StateMachineNodeDeligate::ProcessBodyContent(const InternalContext* context)
 {
-	
+	ImGui::Checkbox("Blend with entry point", &GetNode()->As<state_machine::StateMachineNode>().m_IsBlendWithEntryPoint);
+	ImGui::DragFloat("Clamp blend", &GetNode()->As<state_machine::StateMachineNode>().m_EntryPointClampMax, 0.001f, 0.0f, 1.f);
 }
 
 void graph_editor::StateMachineNodeDeligate::ProcessSideBar(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, std::unordered_map<std::size_t, GraphNodePrototype*>& referNodes)
@@ -2539,5 +2548,59 @@ void graph_editor::BoolNodeDelegate::ProcessBodyContent(const InternalContext* c
 }
 
 graph_editor::TransitionNodeDelegate::TransitionNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
+{
+}
+
+graph_editor::FloatScaleRangeDelegate::FloatScaleRangeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
+{
+}
+
+void graph_editor::FloatScaleRangeDelegate::ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint)
+{
+	if (type == graphs::Connection::Type::Input)
+	{
+		if (identifier == 0)
+		{
+			ImGui::Text("Value");
+			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+			ImGui::DragFloat(std::string("##" + std::to_string(identifier)).c_str(), &endpoint.As<NodeValueType::Float>(), 0.1, -FLT_MAX, FLT_MAX);
+			ImGui::PopItemWidth();
+		}
+		if (identifier == 1)
+		{
+			ImGui::Text("Min");
+			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+			ImGui::DragFloat(std::string("##" + std::to_string(identifier)).c_str(), &endpoint.As<NodeValueType::Float>(), 0.1, -FLT_MAX, FLT_MAX);
+			ImGui::PopItemWidth();
+		}
+		if (identifier == 2)
+		{
+			ImGui::Text("Max");
+			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+			ImGui::DragFloat(std::string("##" + std::to_string(identifier)).c_str(), &endpoint.As<NodeValueType::Float>(), 0.1, -FLT_MAX, FLT_MAX);
+			ImGui::PopItemWidth();
+		}
+		if (identifier == 3)
+		{
+			ImGui::Text("Range min");
+			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+			ImGui::DragFloat(std::string("##" + std::to_string(identifier)).c_str(), &endpoint.As<NodeValueType::Float>(), 0.1, -FLT_MAX, FLT_MAX);
+			ImGui::PopItemWidth();
+		}
+		if (identifier == 4)
+		{
+			ImGui::Text("Range max");
+			ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+			ImGui::DragFloat(std::string("##" + std::to_string(identifier)).c_str(), &endpoint.As<NodeValueType::Float>(), 0.1, -FLT_MAX, FLT_MAX);
+			ImGui::PopItemWidth();
+		}
+	}
+	else
+	{
+		ImGui::Text("Result ");
+	}
+}
+
+void graph_editor::FloatScaleRangeDelegate::ProcessBodyContent(const InternalContext* context)
 {
 }

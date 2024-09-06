@@ -5,7 +5,7 @@ shade::Animation::Animation(SharedPointer<AssetData> assetData, LifeTime lifeTim
 {
 	const std::string filePath = assetData->GetAttribute<std::string>("Path");
 
-	shade::File file(filePath, shade::File::In, "@s_sanim", shade::File::VERSION(0, 0, 1));
+	shade::File file(filePath, shade::File::In, "@s_anim", shade::File::VERSION(0, 0, 1));
 	if (!file.IsOpen())
 		SHADE_CORE_WARNING("Failed to read file, wrong path = {0}", filePath)
 	else

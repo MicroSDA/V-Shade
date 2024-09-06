@@ -83,11 +83,11 @@ namespace shade
 				// Common default values.
 				LightCulling			= false;
 				ShowLightComplexity		= false;
-				GlobalShadowsEnabled	= true;
-				SpotShadowEnabled		= true;
-				PointShadowEnabled		= true;
+				GlobalShadowsEnabled	= false;
+				SpotShadowEnabled		= false;
+				PointShadowEnabled		= false;
 				ShowShadowCascades		= false;
-				SSAOEnabled				= true;
+				SSAOEnabled				= false;
 			}
 			alignas(4) bool LightCulling;
 			alignas(4) bool ShowLightComplexity;

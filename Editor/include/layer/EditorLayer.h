@@ -30,7 +30,8 @@ public:
 	virtual void OnEvent(shade::SharedPointer<shade::Scene>& scene, const shade::Event& event, const shade::FrameTimer& deltaTime) override;
 	virtual void OnDestroy() override;
 private:
-	std::uint32_t				m_ImGuizmoOperation = ImGuizmo::OPERATION::TRANSLATE;
+	std::uint32_t				m_ImGuizmoOperation			= ImGuizmo::OPERATION::TRANSLATE;
+	std::uint32_t				m_ImGuizmoAllowedOperation	= 0;
 	shade::ecs::Entity			m_SelectedEntity;
 	shade::MaterialComponent	m_SelectedMaterial;
 	shade::MeshComponent		m_SelectedMesh;
@@ -63,7 +64,7 @@ private:
 
 	void MainMenu(shade::SharedPointer<shade::Scene>& scene);
 	void Scene(shade::SharedPointer<shade::Scene>& scene);
-	void EntitiesList(const char* search, shade::SharedPointer<shade::Scene>& scene);
+	bool EntitiesList(const char* search, shade::SharedPointer<shade::Scene>& scene);
 	void EntitiesList(const char* search, shade::ecs::Entity& entity);
 	void Entities(shade::SharedPointer<shade::Scene>& scene);
 	void AssetsExplorer();
