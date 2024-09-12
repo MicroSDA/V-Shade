@@ -24,10 +24,10 @@ void shade::animation::AnimationController::CalculateBoneTransforms(
 		glm::mat4 translation = animationData.Animation->InterpolatePosition(animationChannel->second, animationData.CurrentPlayTime);
 		glm::mat4 rotation = animationData.Animation->InterpolateRotation(animationChannel->second, animationData.CurrentPlayTime);
 		glm::mat4 scale = animationData.Animation->InterpolateScale(animationChannel->second, animationData.CurrentPlayTime);
-		glm::mat4 interpolatedTransfom = translation * rotation * scale;
+		glm::mat4 interpolatedTransform = translation * rotation * scale;
 
-		localMatrix *= interpolatedTransfom;
-		globalMatrix *= interpolatedTransfom;
+		localMatrix *= interpolatedTransform;
+		globalMatrix *= interpolatedTransform;
 
 		pose->GetBoneLocalTransform(bone->ID) = localMatrix;
 		pose->GetBoneGlobalTransform(bone->ID) = globalMatrix * bone->InverseBindPose * armature.Transform;
@@ -56,12 +56,7 @@ void shade::animation::AnimationController::CalculateBoneTransformsBlend(
 	float blendFactorWithBoneMask = blendFactor * boneMask.GetWeight(bone->ID);
 
 	glm::mat4 combined = glm::mat4_cast(glm::slerp(glm::quat_cast(firstPose), glm::quat_cast(secondPose), blendFactorWithBoneMask));
-	//glm::vec3 translate	    = glm::mix(firstPose[3], secondPose[3], blendFactor);
-	//glm::vec3 scale		= glm::mix(firstPose[3], secondPose[3], blendFactor);
-
-	//result->RootMotion.Translation = glm::mix(poseA->RootMotion.Translation, poseB->RootMotion.Translation, w);
-
-
+	
 	combined[3] = (1.0f - blendFactorWithBoneMask) * firstPose[3] + secondPose[3] * blendFactorWithBoneMask;
 
 	glm::mat4 locallMatrix = combined, globalMatrix = parrentTransform * combined;
@@ -99,6 +94,20 @@ shade::animation::Pose* shade::animation::AnimationController::Blend(const Asset
 	auto targetPose = ReceiveAnimationPose(skeleton, first->GetAnimationHash(), second->GetAnimationHash());
 	CalculateBoneTransformsBlend(targetPose->GetSkeleton()->GetRootNode(), targetPose, first, second, glm::identity<glm::mat4>(), blendFactor, boneMask);
 	return targetPose;
+}
+
+shade::animation::Pose* shade::animation::AnimationController::BlendTriangular(const Asset<Skeleton>& skeleton, const animation::Pose* aPose, const animation::Pose* bPose, const animation::Pose* cPose, float aBlend, float bBlend, float cBlend, const animation::BoneMask& boneMask)
+{
+	Pose* AB =	ReceiveAnimationPose(skeleton, aPose->GetAnimationHash(), bPose->GetAnimationHash());
+	CalculateBoneTransformsBlend(skeleton->GetRootNode(), AB, aPose, bPose, glm::identity<glm::mat4>(), aBlend, boneMask);
+
+	Pose* BC = ReceiveAnimationPose(skeleton, bPose->GetAnimationHash(), cPose->GetAnimationHash());
+	CalculateBoneTransformsBlend(skeleton->GetRootNode(), BC, bPose, cPose, glm::identity<glm::mat4>(), bBlend, boneMask);
+
+	Pose* AB_BC = ReceiveAnimationPose(skeleton, AB->GetAnimationHash(), BC->GetAnimationHash());
+	CalculateBoneTransformsBlend(skeleton->GetRootNode(), AB_BC, AB, BC, glm::identity<glm::mat4>(), cBlend, boneMask);
+
+	return AB_BC;
 }
 
 shade::animation::Pose* shade::animation::AnimationController::CreatePose(const Asset<Skeleton>& skeleton, std::size_t hash)
@@ -188,30 +197,28 @@ shade::animation::Pose* shade::animation::AnimationController::CalculatePose(ani
 	return targetPose;
 }
 
-std::size_t shade::animation::AnimationController::AnimationControlData::Serialize(std::ostream& stream) const
+void shade::animation::AnimationController::AnimationControlData::Serialize(std::ostream& stream) const
 {
-	std::size_t size = Serializer::Serialize(stream, (Animation && Animation->GetAssetData()) ? Animation->GetAssetData()->GetId() : "");
-	size += Serializer::Serialize(stream, std::uint8_t(State));
-	size += Serializer::Serialize(stream, Start);
-	size += Serializer::Serialize(stream, End);
-	size += Serializer::Serialize(stream, Duration);
-	size += Serializer::Serialize(stream, CurrentPlayTime);
-	size += Serializer::Serialize(stream, TicksPerSecond);
-	size += Serializer::Serialize(stream, IsLoop);
-
-	return size;
+	serialize::Serializer::Serialize(stream, (Animation && Animation->GetAssetData()) ? Animation->GetAssetData()->GetId() : "");
+	serialize::Serializer::Serialize(stream, std::uint8_t(State));
+	serialize::Serializer::Serialize(stream, Start);
+	serialize::Serializer::Serialize(stream, End);
+	serialize::Serializer::Serialize(stream, Duration);
+	serialize::Serializer::Serialize(stream, CurrentPlayTime);
+	serialize::Serializer::Serialize(stream, TicksPerSecond);
+	serialize::Serializer::Serialize(stream, IsLoop);
 }
 
-std::size_t shade::animation::AnimationController::AnimationControlData::Deserialize(std::istream& stream)
+void shade::animation::AnimationController::AnimationControlData::Deserialize(std::istream& stream)
 {
-	std::string assetId; std::size_t size = Serializer::Deserialize(stream, assetId);
-	size += Serializer::Deserialize(stream, static_cast<Animation::State&>(State));
-	size += Serializer::Deserialize(stream, Start);
-	size += Serializer::Deserialize(stream, End);
-	size += Serializer::Deserialize(stream, Duration);
-	size += Serializer::Deserialize(stream, CurrentPlayTime);
-	size += Serializer::Deserialize(stream, TicksPerSecond);
-	size += Serializer::Deserialize(stream, IsLoop);
+	std::string assetId; serialize::Serializer::Deserialize(stream, assetId);
+	serialize::Serializer::Deserialize(stream, static_cast<Animation::State&>(State));
+	serialize::Serializer::Deserialize(stream, Start);
+	serialize::Serializer::Deserialize(stream, End);
+	serialize::Serializer::Deserialize(stream, Duration);
+	serialize::Serializer::Deserialize(stream, CurrentPlayTime);
+	serialize::Serializer::Deserialize(stream, TicksPerSecond);
+	serialize::Serializer::Deserialize(stream, IsLoop);
 
 	shade::AssetManager::GetAsset<shade::Animation,
 		shade::BaseAsset::InstantiationBehaviour::Synchronous>(assetId,
@@ -221,6 +228,4 @@ std::size_t shade::animation::AnimationController::AnimationControlData::Deseria
 			{
 				Animation = animation;
 			});
-
-	return size;
 }

@@ -8,6 +8,7 @@
 #include <shade/core/animation/graphs/nodes/BlendNode2D.h>
 #include <shade/core/animation/graphs/nodes/PoseNode.h>
 #include <shade/core/graphs/nodes/FloatScaleRange.h>
+#include <shade/core/graphs/nodes/Vec2FloatNode.h>
 
 namespace shade
 {
@@ -159,9 +160,9 @@ namespace shade
 			private:
 				friend class StateMachineNode;                      ///< Friend class for state machine integration.
 
-				virtual std::size_t SerializeBody(std::ostream& stream) const override;
+				virtual void SerializeBody(std::ostream& stream) const override;
 
-				virtual std::size_t DeserializeBody(std::istream& stream) override;
+				virtual void DeserializeBody(std::istream& stream) override;
 
 			};
 
@@ -234,12 +235,11 @@ namespace shade
 				}
 			private:
 				Data m_TransitionData;                         ///< Data containing source and destination states.
-				//OutputTransitionNode* m_pOutputTransitionNode = nullptr; ///< Pointer to the output transition node.
 				bool m_CanBeInterrupted = false;               ///< Indicates if the transition can be interrupted.
 
-				virtual std::size_t SerializeBody(std::ostream& stream) const override;
+				virtual void SerializeBody(std::ostream& stream) const override;
 
-				virtual std::size_t DeserializeBody(std::istream& stream) override;
+				virtual void DeserializeBody(std::istream& stream) override;
 
 			};
 
@@ -337,7 +337,7 @@ namespace shade
 				StateNode* m_pPreviousState = nullptr;				///< Pointer to the previous state.
 				TransitionSyncData m_TransitionSyncData;			///< Synchronization data for the transition.
 
-				virtual std::size_t Serialize(std::ostream& stream) const override;
+				virtual void Serialize(std::ostream& stream) const override;
 
 				friend class StateMachineNode;
 			};
@@ -429,12 +429,9 @@ namespace shade
 					float blendFactor, float sMultiplier, float dMultiplier,
 					const animation::Pose* sPose, const animation::Pose* dPose);
 
-				virtual std::size_t Serialize(std::ostream& stream) const override;
-				virtual std::size_t Deserialize(std::istream& stream) override;
+				virtual void Serialize(std::ostream& stream) const override;
+				virtual void Deserialize(std::istream& stream) override;
 				StateNode* m_pCurrentState = nullptr;
-			public:
-				bool m_IsBlendWithEntryPoint = true, m_IsEntryPointBlendClamp = true;
-				float m_EntryPointClampMax = 0.5f;
 			};
 		}
 	}

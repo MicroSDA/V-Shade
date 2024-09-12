@@ -98,5 +98,15 @@ namespace shade
 		SHADE_API float Lerp(float a, float b, float f);
 		SHADE_API int BinomialCoefficient(int n, int k);
 		SHADE_API float CalculateBezierFactor(float currentTime, float start, float end, float blendMin, float blendMax, const std::vector<float>& points);
+
+		[[nodiscard]] SHADE_INLINE float SignedAngle(const glm::vec2& a, const glm::vec2& b) 
+		{
+			return std::atan2(a.x * b.y - a.y * b.x, a.x * b.x + a.y * b.y);
+		}
+
+		SHADE_API std::array<std::pair<std::size_t, float>, 3> CalculateGeneralizedTriangularWeights(const std::vector<glm::vec2>& points, const glm::vec2& sample_point);
+		SHADE_API std::vector<float> Calculate2DWeightsPolar(const std::vector<glm::vec2>& points, const glm::vec2& sample_point);
+		SHADE_API std::vector<float> Calculate2DWeightsCartesian(const std::vector<glm::vec2>& points, const glm::vec2& sample_point);
+		SHADE_API std::vector<float> Calculate2DWeightsGBi(const std::vector<glm::vec2>& points, const glm::vec2& sample_point);
 	}
 }

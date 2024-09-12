@@ -22,11 +22,11 @@ namespace shade
 			const std::vector<glm::vec<3, scalar_t>>& GetVertices() const;
 			std::vector<glm::vec<3, scalar_t>>& GetVertices();
 		private:
-			virtual std::size_t Serialize(std::ostream& stream) const override;
-			virtual std::size_t Deserialize(std::istream& stream) override;
+			virtual void Serialize(std::ostream& stream) const override;
+			virtual void Deserialize(std::istream& stream) override;
 
 			std::vector<glm::vec<3, scalar_t>> m_Vertices;
-			friend class Serializer;
+			friend class serialize::Serializer;
 		};
 	}
 }

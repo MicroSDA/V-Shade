@@ -196,39 +196,37 @@ void shade::physic::RigidBody::UpdateIntertiaTensor(const glm::vec<3, scalar_t>&
 	UpdateIntertiaTensor(glm::qua<scalar_t>(rotate));
 }
 
-std::size_t shade::physic::RigidBody::Serialize(std::ostream& stream) const
+void shade::physic::RigidBody::Serialize(std::ostream& stream) const
 {
-	std::uint32_t size = 0u;
-	size += Serializer::Serialize(stream, static_cast<std::uint32_t>(GetBodyType()));
-	size += Serializer::Serialize(stream, static_cast<float>(Mass));
-	size += Serializer::Serialize(stream, static_cast<float>(StaticFriction));
-	size += Serializer::Serialize(stream, static_cast<float>(Restitution));
-	size += Serializer::Serialize(stream, static_cast<float>(LinearDamping));
-	size += Serializer::Serialize(stream, static_cast<float>(AngularDamping));
+	serialize::Serializer::Serialize(stream, static_cast<std::uint32_t>(GetBodyType()));
+	serialize::Serializer::Serialize(stream, static_cast<float>(Mass));
+	serialize::Serializer::Serialize(stream, static_cast<float>(StaticFriction));
+	serialize::Serializer::Serialize(stream, static_cast<float>(Restitution));
+	serialize::Serializer::Serialize(stream, static_cast<float>(LinearDamping));
+	serialize::Serializer::Serialize(stream, static_cast<float>(AngularDamping));
 
 	std::string assetId;
 	if (m_CollisionShapes)
 		assetId = m_CollisionShapes->GetAssetData()->GetId();
 
-	size += Serializer::Serialize(stream, assetId);
-	return size;
+	serialize::Serializer::Serialize(stream, assetId);
 }
 
-std::size_t shade::physic::RigidBody::Deserialize(std::istream& stream)
+void shade::physic::RigidBody::Deserialize(std::istream& stream)
 {
 	float mass, staticFriction, restitution, linearDamping, angularDamping;
-	std::uint32_t size = 0u, bodyType;
-	size += Serializer::Deserialize(stream, bodyType);
-	size += Serializer::Deserialize(stream, mass);
-	size += Serializer::Deserialize(stream, staticFriction);
-	size += Serializer::Deserialize(stream, restitution);
-	size += Serializer::Deserialize(stream, linearDamping);
-	size += Serializer::Deserialize(stream, angularDamping);
+	std::uint32_t bodyType;
+	serialize::Serializer::Deserialize(stream, bodyType);
+	serialize::Serializer::Deserialize(stream, mass);
+	serialize::Serializer::Deserialize(stream, staticFriction);
+	serialize::Serializer::Deserialize(stream, restitution);
+	serialize::Serializer::Deserialize(stream, linearDamping);
+	serialize::Serializer::Deserialize(stream, angularDamping);
 	Mass = mass, StaticFriction = staticFriction, Restitution = restitution, LinearDamping = linearDamping, AngularDamping = angularDamping;
 	SetBodyType(static_cast<RigidBody::Type>(bodyType));
 
 	std::string assetId;
-	size += Serializer::Deserialize(stream, assetId);
+	serialize::Serializer::Deserialize(stream, assetId);
 
 	if (!assetId.empty())
 	{
@@ -238,8 +236,6 @@ std::size_t shade::physic::RigidBody::Deserialize(std::istream& stream)
 			});
 
 	}
-
-	return size;
 }
 
 void shade::physic::RigidBody::Integrate(Transform& transform, scalar_t deltaTime, scalar_t deltaDT)

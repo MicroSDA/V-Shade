@@ -2,6 +2,7 @@
 #include <shade/core/math/Math.h>
 #include <shade/core/memory/Memory.h>
 #include <shade/core/asset/Asset.h>
+#include <shade/core/serializing/File.h>
 
 namespace shade
 {
@@ -95,11 +96,11 @@ namespace shade
 		// Create a skeleton object with the given asset data, lifetime, and instantiation behaviour
 		Skeleton(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
 		// Serialize the skeleton object and write the serialized data to the given output stream
-		std::size_t Serialize(std::ostream& stream) const;
+		void Serialize(std::ostream& stream) const;
 		// Deserialize the skeleton object from the given input stream and return the number of bytes read
-		std::size_t Deserialize(std::istream& stream);
+		void Deserialize(std::istream& stream);
 	private:
-		friend class Serializer;
+		friend class serialize::Serializer;
 	private:
 		BoneNodes m_BoneNodes;
 		BoneNode* m_RootNode = nullptr;
@@ -107,25 +108,25 @@ namespace shade
 	};
 
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Skeleton& skeleton, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const Skeleton& skeleton)
 	{
 		return skeleton.Serialize(stream);
 	}
 	/* Deserialize Skeleton.*/
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, Skeleton& skeleton, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, Skeleton& skeleton)
 	{
 		return skeleton.Deserialize(stream);
 	}
 	/* Serialize Asset<Skeleton>.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Asset<Skeleton>& skeleton, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const Asset<Skeleton>& skeleton)
 	{
 		return skeleton->Serialize(stream);
 	}
 	/* Deserialize Asset<Skeleton>.*/
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, Asset<Skeleton>& skeleton, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, Asset<Skeleton>& skeleton)
 	{
 		return skeleton->Deserialize(stream);
 	}

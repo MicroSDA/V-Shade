@@ -71,10 +71,10 @@ namespace shade
 		void SetDuration(float duration);
 	private:
 		Animation(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
-		std::size_t Serialize(std::ostream& stream) const;
-		std::size_t Deserialize(std::istream& stream);
+		void Serialize(std::ostream& stream) const;
+		void Deserialize(std::istream& stream);
 	private:
-		friend class Serializer;
+		friend class serialize::Serializer;
 	private:
 		AnimationChannels m_AnimationChannels;
 		float m_TicksPerSecond = 0.f;
@@ -82,7 +82,7 @@ namespace shade
 	};
 
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const std::vector<Animation::AnimationKey<glm::quat>>& key, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const std::vector<Animation::AnimationKey<glm::quat>>& key)
 	{
 		std::uint32_t size = key.size();
 		if (size == UINT32_MAX)
@@ -91,12 +91,10 @@ namespace shade
 		Serialize<std::uint32_t>(stream, size);
 
 		if (size)
-			return stream.write(reinterpret_cast<const char*>(key.data()), key.size() * sizeof(Animation::AnimationKey<glm::quat>)).tellp();
-		else
-			return stream.tellp();
+			stream.write(reinterpret_cast<const char*>(key.data()), key.size() * sizeof(Animation::AnimationKey<glm::quat>));
 	}
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, std::vector<Animation::AnimationKey<glm::quat>>& key, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, std::vector<Animation::AnimationKey<glm::quat>>& key)
 	{
 		std::uint32_t size = 0;
 		// Read size first.
@@ -108,13 +106,11 @@ namespace shade
 		if (size)
 		{
 			key.resize(size);
-			return stream.read(reinterpret_cast<char*>(key.data()), key.size() * sizeof(Animation::AnimationKey<glm::quat>)).tellg();
+			stream.read(reinterpret_cast<char*>(key.data()), key.size() * sizeof(Animation::AnimationKey<glm::quat>));
 		}
-		else
-			return stream.tellg();
 	}
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const std::vector<Animation::AnimationKey<glm::vec3>>& key, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const std::vector<Animation::AnimationKey<glm::vec3>>& key)
 	{
 		std::uint32_t size = key.size();
 		if (size == UINT32_MAX)
@@ -123,12 +119,10 @@ namespace shade
 		Serialize<std::uint32_t>(stream, size);
 	
 		if (size)
-			return stream.write(reinterpret_cast<const char*>(key.data()), key.size() * sizeof(Animation::AnimationKey<glm::vec3>)).tellp();
-		else
-			return stream.tellp();
+			stream.write(reinterpret_cast<const char*>(key.data()), key.size() * sizeof(Animation::AnimationKey<glm::vec3>));
 	}
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, std::vector<Animation::AnimationKey<glm::vec3>>& key, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, std::vector<Animation::AnimationKey<glm::vec3>>& key)
 	{
 		std::uint32_t size = 0;
 		// Read size first.
@@ -140,55 +134,49 @@ namespace shade
 		if (size)
 		{
 			key.resize(size);
-			return stream.read(reinterpret_cast<char*>(key.data()), key.size() * sizeof(Animation::AnimationKey<glm::vec3>)).tellg();
+			stream.read(reinterpret_cast<char*>(key.data()), key.size() * sizeof(Animation::AnimationKey<glm::vec3>));
 		}
-		else
-			return stream.tellg();
 	}
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Animation::Channel& channel, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const Animation::Channel& channel)
 	{
-		std::size_t size = Serialize<std::uint32_t>(stream, channel.ID);
-		size += Serialize<std::vector<Animation::AnimationKey<glm::vec3>>>(stream, channel.PositionKeys);
-		size += Serialize<std::vector<Animation::AnimationKey<glm::quat>>>(stream, channel.RotationKeys);
-		size += Serialize<std::vector<Animation::AnimationKey<glm::vec3>>>(stream, channel.ScaleKeys);
-		return size;
+		serialize::Serializer::Serialize<std::uint32_t>(stream, channel.ID);
+		serialize::Serializer::Serialize<std::vector<Animation::AnimationKey<glm::vec3>>>(stream, channel.PositionKeys);
+		serialize::Serializer::Serialize<std::vector<Animation::AnimationKey<glm::quat>>>(stream, channel.RotationKeys);
+		serialize::Serializer::Serialize<std::vector<Animation::AnimationKey<glm::vec3>>>(stream, channel.ScaleKeys);
 	}
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, Animation::Channel& channel, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, Animation::Channel& channel)
 	{
-		std::size_t size = Deserialize<std::uint32_t>(stream, channel.ID);
-		size += Deserialize<std::vector<Animation::AnimationKey<glm::vec3>>>(stream, channel.PositionKeys);
-		size += Deserialize<std::vector<Animation::AnimationKey<glm::quat>>>(stream, channel.RotationKeys);
-		size += Deserialize<std::vector<Animation::AnimationKey<glm::vec3>>>(stream, channel.ScaleKeys);
-		return size;
+		serialize::Serializer::Deserialize<std::uint32_t>(stream, channel.ID);
+		serialize::Serializer::Deserialize<std::vector<Animation::AnimationKey<glm::vec3>>>(stream, channel.PositionKeys);
+		serialize::Serializer::Deserialize<std::vector<Animation::AnimationKey<glm::quat>>>(stream, channel.RotationKeys);
+		serialize::Serializer::Deserialize<std::vector<Animation::AnimationKey<glm::vec3>>>(stream, channel.ScaleKeys);
 	}
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Animation::AnimationChannels& channels, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const Animation::AnimationChannels& channels)
 	{
 		std::uint32_t size = static_cast<std::uint32_t>(channels.size());
 		if (size == UINT32_MAX)
 			throw std::out_of_range(std::format("Incorrect array size = {}", size));
 
-		std::size_t totalSize = Serialize<std::uint32_t>(stream, size);
+		serialize::Serializer::Serialize<std::uint32_t>(stream, size);
 	
 		if (size)
 		{
 			for (auto& [str, value] : channels)
 			{
-				totalSize += Serialize<std::string>(stream, str);
-				totalSize += Serialize<Animation::Channel>(stream, value);
+				serialize::Serializer::Serialize<std::string>(stream, str);
+				serialize::Serializer::Serialize<Animation::Channel>(stream, value);
 			}
 		}
-
-		return totalSize;
 	}
 	template<>
-	inline std::size_t Serializer::Deserialize(std::istream& stream, Animation::AnimationChannels& channels, std::size_t count)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, Animation::AnimationChannels& channels)
 	{
 		std::uint32_t size = 0;
 		// Read size first.
-		std::size_t totalSize = Deserialize<std::uint32_t>(stream, size);
+		serialize::Serializer::Deserialize<std::uint32_t>(stream, size);
 		if (size == UINT32_MAX)
 			throw std::out_of_range(std::format("Incorrect array size = {}", size));
 
@@ -196,50 +184,48 @@ namespace shade
 		{
 			std::string key; Animation::Channel value;
 
-			totalSize += Deserialize<std::string>(stream, key);
-			totalSize += Deserialize<Animation::Channel>(stream, value);
+			serialize::Serializer::Deserialize<std::string>(stream, key);
+			serialize::Serializer::Deserialize<Animation::Channel>(stream, value);
 
 			channels.insert({ key, value });
 		}
-		return totalSize;
 	}
 	/* Serialize Animation.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Animation& animation, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const Animation& animation)
 	{
 		return animation.Serialize(stream);
 	}
 	/* Deserialize Animation.*/
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, Animation& animation, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, Animation& animation)
 	{
 		return animation.Deserialize(stream);
 	}
 	/* Serialize SharedPointer<Animation>.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const SharedPointer<Animation>& animation, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const SharedPointer<Animation>& animation)
 	{
 		return animation->Serialize(stream);
 	}
 	/* Serialize Asset<Animation>.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Asset<Animation>& animation, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const Asset<Animation>& animation)
 	{
 		return animation->Serialize(stream);
 	}
 	/* Deserialize SharedPointer<Animation>.*/
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, SharedPointer<Animation>& animation, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, SharedPointer<Animation>& animation)
 	{
 		return animation->Deserialize(stream);
 	}
 	/* Deserialize Asset<Animation>.*/
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, Asset<Animation>& animation, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, Asset<Animation>& animation)
 	{
 		return animation->Deserialize(stream);
 	}
-
 
 #ifndef BONE_TRANSFORM_DATA_SIZE
 	#define BONE_TRANSFORM_DATA_SIZE (sizeof(glm::mat4) * RenderAPI::MAX_BONES_PER_INSTANCE)

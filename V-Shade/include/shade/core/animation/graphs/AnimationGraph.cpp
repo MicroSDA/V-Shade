@@ -56,33 +56,33 @@ const shade::graphs::BaseNode* shade::animation::AnimationGraph::GetInputNode(co
 	return node->second;
 }
 
-std::size_t shade::animation::AnimationGraph::Serialize(std::ostream& stream) const
+void shade::animation::AnimationGraph::Serialize(std::ostream& stream) const
 {
 	//------------------------------------------------------------------------
 	// Skeleton section
 	//------------------------------------------------------------------------
 	auto skeleton = GetGraphContext()->As<AnimationGraphContext>().Skeleton;
-	std::size_t size = shade::Serializer::Serialize(stream, (skeleton && skeleton->GetAssetData()) ? skeleton->GetAssetData()->GetId() : std::string(""));
+	serialize::Serializer::Serialize(stream, (skeleton && skeleton->GetAssetData()) ? skeleton->GetAssetData()->GetId() : std::string(""));
 	//------------------------------------------------------------------------
 	// !Skeleton section
 	//------------------------------------------------------------------------
 	
 	// Serialzie type
-	size += shade::Serializer::Serialize(stream, GetNodeType());
+	serialize::Serializer::Serialize(stream, GetNodeType());
 	// Serialzie Identifier
-	size += shade::Serializer::Serialize(stream, GetNodeIdentifier());
+	serialize::Serializer::Serialize(stream, GetNodeIdentifier());
 	// Serialzie Name
-	size += shade::Serializer::Serialize(stream, GetName());
+	serialize::Serializer::Serialize(stream, GetName());
 
 	// Serialzie screen position
-	size += shade::Serializer::Serialize(stream, GetScreenPosition());
+	serialize::Serializer::Serialize(stream, GetScreenPosition());
 	// Serialzie count of internal nodes
-	size += shade::Serializer::Serialize(stream, std::uint32_t(GetInternalNodes().size() - GetInputNodes().size()));
+	serialize::Serializer::Serialize(stream, std::uint32_t(GetInternalNodes().size() - GetInputNodes().size()));
 
 	//------------------------------------------------------------------------
 	// Body section
 	//------------------------------------------------------------------------
-	size += SerializeBody(stream);
+	SerializeBody(stream);
 	//------------------------------------------------------------------------
 	// !Body section
 	//------------------------------------------------------------------------
@@ -94,16 +94,16 @@ std::size_t shade::animation::AnimationGraph::Serialize(std::ostream& stream) co
 	// Endpoints section
 	//------------------------------------------------------------------------
 
-	size += shade::Serializer::Serialize(stream, std::uint32_t(inputs.GetSize()));
+	serialize::Serializer::Serialize(stream, std::uint32_t(inputs.GetSize()));
 	for (const auto& [i, d] : inputs)
 	{
-		size += shade::Serializer::Serialize(stream, d); // d means default value
+		serialize::Serializer::Serialize(stream, d); // d means default value
 	}
 
-	size += shade::Serializer::Serialize(stream, std::uint32_t(outputs.GetSize()));
+	serialize::Serializer::Serialize(stream, std::uint32_t(outputs.GetSize()));
 	for (const auto& [i, d] : outputs)
 	{
-		size += shade::Serializer::Serialize(stream, d); // d means default value
+		serialize::Serializer::Serialize(stream, d); // d means default value
 	}
 
 	//------------------------------------------------------------------------
@@ -119,38 +119,36 @@ std::size_t shade::animation::AnimationGraph::Serialize(std::ostream& stream) co
 			}))
 		{
 			// Serialize type
-			size += shade::Serializer::Serialize(stream, pNode->GetNodeType());
+			serialize::Serializer::Serialize(stream, pNode->GetNodeType());
 			// Serialize node
-			size += shade::Serializer::Serialize(stream, *pNode);
+			serialize::Serializer::Serialize(stream, *pNode);
 		}
 	}
 
 	// Serialize input nodes count
-	size += shade::Serializer::Serialize(stream, std::uint32_t(GetInputNodes().size()));
+	serialize::Serializer::Serialize(stream, std::uint32_t(GetInputNodes().size()));
 
 	// Serialize input nodes only
 	for (const auto& [name, pNode] : GetInputNodes())
 	{
 		// Serialize type
-		size += shade::Serializer::Serialize(stream, pNode->GetNodeType());
+		serialize::Serializer::Serialize(stream, pNode->GetNodeType());
 		// Serialize node
-		size += shade::Serializer::Serialize(stream, *pNode);
+		serialize::Serializer::Serialize(stream, *pNode);
 	}
 	// Serialize root node id 
-	size += shade::Serializer::Serialize(stream, (GetRootNode()) ? GetRootNode()->GetNodeIdentifier() : shade::graphs::INVALID_NODE_IDENTIFIER);
+	serialize::Serializer::Serialize(stream, (GetRootNode()) ? GetRootNode()->GetNodeIdentifier() : shade::graphs::INVALID_NODE_IDENTIFIER);
 
 	// Serialize Graph context
-	size += Serializer::Serialize(stream, *GetGraphContext());
-
-	return size;
+	serialize::Serializer::Serialize(stream, *GetGraphContext());
 }
 
-std::size_t shade::animation::AnimationGraph::Deserialize(std::istream& stream)
+void shade::animation::AnimationGraph::Deserialize(std::istream& stream)
 {
 	//------------------------------------------------------------------------
 	// Skeleton section
 	//------------------------------------------------------------------------
-	std::string assetId; std::size_t size = shade::Serializer::Deserialize(stream, assetId);
+	std::string assetId; serialize::Serializer::Deserialize(stream, assetId);
 
 	if (!assetId.empty())
 	{
@@ -168,21 +166,21 @@ std::size_t shade::animation::AnimationGraph::Deserialize(std::istream& stream)
 	//------------------------------------------------------------------------
 	
 	// Deserialize type
-	graphs::NodeType type;				size += shade::Serializer::Deserialize(stream, type);
+	graphs::NodeType type;				serialize::Serializer::Deserialize(stream, type);
 	// Deserialize Identifier
-	shade::graphs::NodeIdentifier id;   size += shade::Serializer::Deserialize(stream, id);
+	shade::graphs::NodeIdentifier id;   serialize::Serializer::Deserialize(stream, id);
 	// Deserialize Name
-	std::string name; 					size += shade::Serializer::Deserialize(stream, name);
+	std::string name; 					serialize::Serializer::Deserialize(stream, name);
 
 	// Deserialize Screen position
-										size += shade::Serializer::Deserialize(stream, GetScreenPosition());
+										serialize::Serializer::Deserialize(stream, GetScreenPosition());
 	// Deserialize count of internal nodes
-	std::uint32_t internalNodesCount;	size += shade::Serializer::Deserialize(stream, internalNodesCount);
+	std::uint32_t internalNodesCount;	serialize::Serializer::Deserialize(stream, internalNodesCount);
 
 	//------------------------------------------------------------------------
 	// Body section
 	//------------------------------------------------------------------------
-	size += DeserializeBody(stream); SetName(name); SetNodeIdentifier(id);
+	DeserializeBody(stream); SetName(name); SetNodeIdentifier(id);
 	//------------------------------------------------------------------------
 	// !Body section
 	//------------------------------------------------------------------------
@@ -194,18 +192,18 @@ std::size_t shade::animation::AnimationGraph::Deserialize(std::istream& stream)
 	// Endpoints section
 	//------------------------------------------------------------------------
 
-	std::uint32_t inputEndpointsCount;	size += shade::Serializer::Deserialize(stream, inputEndpointsCount);
+	std::uint32_t inputEndpointsCount;	serialize::Serializer::Deserialize(stream, inputEndpointsCount);
 
 	for (std::uint32_t i = 0; i < inputEndpointsCount; ++i)
 	{
-		size += shade::Serializer::Deserialize(stream, inputs.At(i)); // d means default value
+		serialize::Serializer::Deserialize(stream, inputs.At(i)); // d means default value
 	}
 
-	std::uint32_t outputEndpointsCount;  size += shade::Serializer::Deserialize(stream, outputEndpointsCount);
+	std::uint32_t outputEndpointsCount;  serialize::Serializer::Deserialize(stream, outputEndpointsCount);
 
 	for (std::uint32_t i = 0; i < outputEndpointsCount; ++i)
 	{
-		size += shade::Serializer::Deserialize(stream, outputs.At(i)); // d means default value
+		serialize::Serializer::Deserialize(stream, outputs.At(i)); // d means default value
 	}
 
 	//------------------------------------------------------------------------
@@ -216,42 +214,40 @@ std::size_t shade::animation::AnimationGraph::Deserialize(std::istream& stream)
 	for (std::size_t i = 0; i < internalNodesCount; ++i)
 	{
 		// Deserialize Type
-		graphs::NodeType type;	size += shade::Serializer::Deserialize(stream, type);
+		graphs::NodeType type;	serialize::Serializer::Deserialize(stream, type);
 		BaseNode*				pNode = CreateNodeByType(type);
 		// Deserialize node
-		size += Serializer::Deserialize(stream, *pNode);
+		serialize::Serializer::Deserialize(stream, *pNode);
 	}
 
 	// Deserealize input nodes count
-	std::uint32_t inputNodesCount; size += Serializer::Deserialize(stream, inputNodesCount);
+	std::uint32_t inputNodesCount; serialize::Serializer::Deserialize(stream, inputNodesCount);
 
 	// Deserealize input nodes
 	for (std::size_t i = 0; i < inputNodesCount; ++i)
 	{
 		// Deserialize Type
-		graphs::NodeType type;	size += shade::Serializer::Deserialize(stream, type);
+		graphs::NodeType type;	serialize::Serializer::Deserialize(stream, type);
 		BaseNode* pNode					= CreateNodeByType(type);
 
 		// Deserialize node
-		size += Serializer::Deserialize(stream, *pNode);
+		serialize::Serializer::Deserialize(stream, *pNode);
 		// Add to inputs nodes
 		m_InputNodes.emplace(pNode->GetName(), pNode);
 	}
 
 	// Deserialize root node id  
-	shade::graphs::NodeIdentifier rootId;	  size += shade::Serializer::Deserialize(stream, rootId);
+	shade::graphs::NodeIdentifier rootId;	serialize::Serializer::Deserialize(stream, rootId);
 
 	if (rootId != shade::graphs::INVALID_NODE_IDENTIFIER)
 		SetRootNode(GetGraphContext()->FindInternalNode(this, rootId));
 
 	// Deserialize Graph context
-	size += Serializer::Deserialize(stream, *GetGraphContext());
+	serialize::Serializer::Deserialize(stream, *GetGraphContext());
 
 	for (auto [node, pack] : GetGraphContext()->GetNodes())
 	{
 		// Try to process state once it was created to get all animtions created and played 
 		(state_machine::StateNode::GetNodeStaticType() == node->GetNodeType()) ? node->Evaluate({ 0 }) : void();
 	}
-
-	return size;
 }

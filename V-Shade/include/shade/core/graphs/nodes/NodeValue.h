@@ -220,16 +220,14 @@ namespace shade
 		/**
 		 * @brief Serialize node value.
 		 * @tparam stream - write stream.
-		 * @return size of serialized type.
 		 */
-		std::size_t Serialize(std::ostream& stream) const;
+		void Serialize(std::ostream& stream) const;
 
 		/**
 		 * @brief Deserialize node value.
 		 * @tparam stream - read stream.
-		 * @return size of deserialized type.
 		 */
-		std::size_t Deserialize(std::istream& stream);
+		void Deserialize(std::istream& stream);
 
 	private:
 		// Variant to store the actual value, initialized with std::monostate
@@ -238,34 +236,34 @@ namespace shade
 		// Enum representing the type of the stored value
 		NodeValueType m_Type = NodeValueType::Undefined;
 
-		friend class Serializer;
+		friend class serialize::Serializer;
 	};
 
 
 	// Serialize NodeValue
 	template<>
-	SHADE_INLINE std::size_t shade::Serializer::Serialize(std::ostream& stream, const shade::NodeValue& value, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const shade::NodeValue& value)
 	{
 		return value.Serialize(stream);
 	}
 
 	// Serialize std::shared_ptr<shade::NodeValue>
 	template<>
-	SHADE_INLINE std::size_t shade::Serializer::Serialize(std::ostream& stream, const std::shared_ptr<shade::NodeValue>& value, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const std::shared_ptr<shade::NodeValue>& value)
 	{
 		return value->Serialize(stream);
 	}
 
 	// Deserialize NodeValue
 	template<>
-	SHADE_INLINE std::size_t shade::Serializer::Deserialize(std::istream& stream, shade::NodeValue& value, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, shade::NodeValue& value)
 	{
 		return value.Deserialize(stream);
 	}
 
 	// Deserialize std::shared_ptr<shade::NodeValue>
 	template<>
-	SHADE_INLINE std::size_t shade::Serializer::Deserialize(std::istream& stream, std::shared_ptr<shade::NodeValue>& value, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, std::shared_ptr<shade::NodeValue>& value)
 	{
 		return value->Deserialize(stream);
 	}

@@ -56,7 +56,6 @@ EditorLayer::EditorLayer() : ImGuiLayer()
 {
 	ImGui::SetCurrentContext(GetImGuiContext());
 	shade::ImGuiThemeEditor::SetColors(0x202020FF, 0xFAFFFDFF, 0x505050FF, 0x9C1938CC, 0xFFC307B1);
-	shade::ImGuiThemeEditor::SetColors(0x202020FF, 0xFAFFFDFF, 0x505050FF, 0x9C1938CC, 0xFFC307B1);
 	shade::ImGuiThemeEditor::ApplyTheme();
 }
 
@@ -105,21 +104,14 @@ void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shad
 		ShowWindowBar("Render settings", NULL, &EditorLayer::RenderSettings, this, m_SceneRenderer);
 
 		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 1));
+		ImGui::PushItemFlag(ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse, true);
+
 		ShowWindowBar("Scene", NULL, &EditorLayer::Scene, this, scene);
+
+		ImGui::PopItemFlag();
 		ImGui::PopStyleColor();
-		//ImGui::ShowDemoWindow();
+		
 		ImGui::End();
-		/*	enum States : std::uint8_t
-			{
-				Idle,
-				Walk
-			};
-			shade::PlayerStateMachineComponent stateMachine = shade::PlayerStateMachineComponent::Create();
-			stateMachine->AddState<Idle, shade::state_machine::PlayerStateMachine>("Idle");
-
-
-			stateMachine->GetState(Idle, Idle)->Evaluate(deltaTime);*/
-
 	}
 }
 
@@ -152,8 +144,7 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 					auto path = shade::FileDialog::OpenFile("Shade scene(*.scene) \0*.scene\0");
 					if (!path.empty())
 					{
-						shade::File file(path.string(), shade::File::In, "@s_scene", shade::File::VERSION(0, 0, 1));
-						if (file.IsOpen())
+						if (shade::file::File file = shade::file::FileManager::LoadFile(path.string(), "@s_scene"))
 						{
 							scene->DestroyAllEntites();
 							file.Read(scene);
@@ -170,8 +161,7 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 					auto path = shade::FileDialog::SaveFile("Shade scene(*.scene) \0*.scene\0");
 					if (!path.empty())
 					{
-						shade::File file(path.string(), shade::File::Out, "@s_scene", shade::File::VERSION(0, 0, 1));
-						if (file.IsOpen())
+						if (shade::file::File file = shade::file::FileManager::SaveFile(path.string(), "@s_scene"))
 						{
 							file.Write(scene);
 						}
@@ -463,8 +453,8 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 						if (m_ImportedModel->GetSkeleton())
 						{
 							const std::string path(to + m_ImportedModel->GetSkeleton()->GetAssetData()->GetId() + ".s_skel");
-							shade::File file(path, shade::File::Out, "@s_skel", shade::File::VERSION(0, 0, 1));
-							if (file.IsOpen())
+
+							if (shade::file::File file = shade::file::FileManager::SaveFile(path, "@s_skel"))
 							{
 								file.Write(m_ImportedModel->GetSkeleton());
 							}
@@ -477,8 +467,8 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 						for (const auto& mesh : *m_ImportedModel)
 						{
 							const std::string path(to + mesh->GetAssetData()->GetId() + ".s_mesh");
-							shade::File file(path, shade::File::Out, "@s_mesh", shade::File::VERSION(0, 0, 1));
-							if (file.IsOpen())
+
+							if (shade::file::File file = shade::file::FileManager::SaveFile(path, "@s_mesh"))
 							{
 								file.Write(mesh);
 							}
@@ -492,12 +482,14 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 						{
 							const std::string path(to + animation->GetAssetData()->GetId() + ".s_anim");
 
-							shade::File file(path, shade::File::Out, "@s_anim", shade::File::VERSION(0, 0, 1));
-
-							if (file.IsOpen())
+							if (shade::file::File file = shade::file::FileManager::SaveFile(path, "@s_anim"))
+							{
 								file.Write(animation);
+							}
 							else
+							{
 								SHADE_CORE_WARNING("Failed to save animation, path = {}", path);
+							}
 						}
 						//if (m_ImportedEntity.HasComponent<shade::AnimationGraphComponent>())
 						//{
@@ -557,7 +549,7 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 			{
 				if (ImGui::Button("Scan", { ImGui::GetContentRegionAvail().x, 0 }))
 				{
-					from = shade::File::FindFilesWithExtensionExclude(rootPath, { ".dds", ".dll", ".glsl" });
+					from = shade::file::FileManager::FindFilesWithExtensionExclude(rootPath, { ".dds", ".dll", ".glsl" });
 				}
 			}
 
@@ -619,8 +611,8 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 			{
 				if (ImGui::Button("Pack", { ImGui::GetContentRegionAvail().x, 0 }))
 				{
-					shade::File::Specification spec;
-					shade::File::PackFiles({ from, to });
+					shade::file::FileManager::PackSpecification spec;
+					shade::file::FileManager::PackFiles({ from, to });
 
 					from.clear(); to.clear();
 					//m_PackFilesModal = false; 
@@ -646,7 +638,6 @@ void DrawGizmoOperationButton(const char* id, const char8_t* icon, ImGuizmo::OPE
 
 void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 {
-	ImGui::ShowDemoWindow();
 	// Bool shit
 	const std::uint32_t frameIndex = shade::Renderer::GetCurrentFrameIndex();
 
@@ -683,12 +674,12 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 	m_SceneViewPort.ViewPort.y = ImGui::GetWindowPos().x + ImGui::GetCursorPos().x; // With tab size
 	m_SceneViewPort.ViewPort.x = ImGui::GetWindowPos().y + ImGui::GetCursorPos().y; // With tab size
 
+	const ImVec2 screenPos = ImGui::GetCursorScreenPos();
 	DrawImage(m_SceneRenderer->GetMainTargetFrameBuffer()[frameIndex]->GetTextureAttachment(0), { m_SceneViewPort.ViewPort.z, m_SceneViewPort.ViewPort.w }, focusColor);
 
-	ImGui::SetNextWindowSize(ImVec2{ ImGui::GetWindowSize().x - 50.0f,0 }, ImGuiCond_Always);
-	ShowWindowBarOverlay("Overlay", ImGui::GetWindowViewport(), [&]()
+	BeginWindowOverlay("Scene overlay", ImGui::GetWindowViewport(), 0, ImVec2{ m_SceneViewPort.ViewPort.z - 8.f, 0 }, screenPos + ImVec2{5.f, 5.f}, 0.9f, [&]()
 		{
-			if (ImGui::BeginTable("##OverlayTable", 3, ImGuiTableFlags_SizingStretchProp))
+			if (ImGui::BeginTable("##OverlayTable", 2, ImGuiTableFlags_SizingStretchProp))
 			{
 				ImGui::TableNextRow();
 				{
@@ -698,21 +689,6 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 						{
 							ImGui::TableNextColumn();
 							{
-								// Select
-
-								/*ImVec4 color = ImGui::GetStyle().Colors[ImGuiCol_Button];
-
-								if (m_ImGuizmoOperation == 0) color = ImVec4(0.995f, 0.857f, 0.420f, 1.000f);
-
-								ImGui::PushStyleColor(ImGuiCol_Button, color);
-
-								if (shade::ImGuiLayer::IconButton("##Select", u8"\xe9d9", 1, 1.0f))
-								{
-									m_ImGuizmoOperation = 0;
-								}
-									
-								ImGui::PopStyleColor();*/
-
 								DrawGizmoOperationButton("##Select", u8"\xe9d9", ImGuizmo::BOUNDS, m_ImGuizmoOperation, m_ImGuizmoAllowedOperation);
 							}
 							ImGui::TableNextColumn();
@@ -734,35 +710,30 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 							ImGui::EndTable();
 						}
 
-						ImGui::Dummy({ ImGui::GetWindowSize().x / 3.f, 0.f }); 
+						ImGui::Dummy({ m_SceneViewPort.ViewPort.z / 4.f, 0.f });
 
 					}
 					// Play, Puse, Stop scene
 					ImGui::TableNextColumn();
 					{
-						if (ImGuiLayer::IconButton("##PlayButton", u8"\xe88b", 1, 1.f))
+						ImGui::PushStyleColor(ImGuiCol_Button, m_IsScenePlaying ? ImGui::ColorConvertFloat4ToU32({0.8f,0.8f, 0.1f, 1.f}) : ImGui::ColorConvertFloat4ToU32({ 0.1f, 0.8f, 0.1f, 1.f }));
+						if (ImGuiLayer::IconButton("##PlayButton", m_IsScenePlaying ? u8"\xe88e" : u8"\xe88b", 1, 1.3f))
 						{
-							m_IsScenePlaying = true;
+							m_IsScenePlaying = !m_IsScenePlaying;
 						}
-						ImGui::SameLine(); ImGui::Dummy({ 10.f, 0 }); ImGui::SameLine();
-						if (ImGuiLayer::IconButton("##PaueButton", u8"\xe88e", 1, 1.f) || shade::Input::IsKeyPressed(shade::Key::Escape))
-						{
-							m_IsScenePlaying = false;
-							shade::Input::ShowMouseCursor(true);
-						}
-						ImGui::SameLine(); ImGui::Dummy({ 10.f, 0 }); ImGui::SameLine();
-						if (ImGuiLayer::IconButton("##StopButton", u8"\xe88d", 1, 1.f) || shade::Input::IsKeyPressed(shade::Key::Escape))
+						if (m_IsScenePlaying && shade::Input::IsKeyPressed(shade::Key::Escape))
 						{
 							m_IsScenePlaying = false;
-							shade::Input::ShowMouseCursor(true);
 						}
+						ImGui::PopStyleColor();
+
+
+						ImGuiIO& io = ImGui::GetIO();
+						ImGui::SameLine(ImGui::GetContentRegionAvail().x / 8.f);
+						ImGui::Text("Application average %.1f ms/frame (%.0f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
 					}
-					ImGui::TableNextColumn();
-					{
-						ImGuiIO& io = ImGui::GetIO();
-						ImGui::Text("Application average %.1f ms/frame (%.0f FPS)", 1000.0f / io.Framerate, io.Framerate);
-					}
+					
 				}
 
 				ImGui::EndTable();
@@ -797,7 +768,7 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 					pcTransform = glm::inverse(parentTransform) * pcTransform;
 				}
 
-				transform.SetTransform(pcTransform);
+				transform.SetTransformMatrix(pcTransform);
 			}
 		}
 	}
@@ -1085,8 +1056,23 @@ void EditorLayer::AssetsExplorer()
 		{
 			if (id.find(search) != std::string::npos)
 			{
-				if (ImGui::Selectable(id.c_str(), selectedAssetData == asset))
+				
+				if (ImGui::Selectable(id.c_str(), selectedAssetData == asset, ImGuiSelectableFlags_AllowItemOverlap, { ImGui::GetContentRegionAvail().x - 30.f ,0}))
+				{
 					selectedAssetData = asset;
+				}
+				
+
+				ImGui::SameLine();
+
+				if (ImGuiLayer::IconButton("##RemoveAsset", u8"\xe85d", 1, 0.8f))
+				{
+					auto& data = shade::AssetManager::GetAssetDataList(selectedCategory);
+					data.erase(id.c_str());
+					selectedAssetData = nullptr;
+					break;
+				}
+					
 			}
 		}
 	}
@@ -1227,8 +1213,8 @@ void EditorLayer::AssetsExplorer()
 					shade::AssetManager::AddNewAssetData(assetData);
 					// Reset
 					assetData = shade::SharedPointer<shade::AssetData>::Create();
-					selectedCategory = shade::AssetMeta::Category::None;
-					selectedType = shade::AssetMeta::Type::ASSET_TYPE_MAX_ENUM;
+					/*selectedCategory = shade::AssetMeta::Category::None;
+					selectedType = shade::AssetMeta::Type::ASSET_TYPE_MAX_ENUM;*/
 					id.clear();
 					path.clear();
 				}
@@ -1630,6 +1616,7 @@ void EditorLayer::EntityInspector(shade::ecs::Entity& entity)
 {
 	if (entity.IsValid())
 	{
+		ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 0.f);
 		DrawComponent<shade::TagComponent>("Tag", entity, &EditorLayer::TagComponent,
 			[&](auto isTreeOpen)->bool { return EditComponent<shade::TagComponent>(entity, {}, isTreeOpen); }, this, entity);
 		DrawComponent<shade::TransformComponent>("Transform", entity, &EditorLayer::TransformComponent,
@@ -1650,6 +1637,7 @@ void EditorLayer::EntityInspector(shade::ecs::Entity& entity)
 			[&](auto isTreeOpen)->bool { return EditComponent<shade::AnimationGraphComponent>(entity, {}, isTreeOpen); }, this, entity);
 		DrawComponent<shade::NativeScriptComponent>("Naitve script", entity, &EditorLayer::NativeScriptComponent,
 			[&](auto isTreeOpen)->bool { return EditComponent<shade::NativeScriptComponent>(entity, {}, isTreeOpen); }, this, entity);
+		ImGui::PopStyleVar();
 	}
 }
 
@@ -1721,13 +1709,43 @@ void EditorLayer::TagComponent(shade::ecs::Entity& entity)
 	InputTextCol("Tag", tag);
 }
 
+glm::quat EulerToQuat(float roll, float pitch, float yaw) // roll (x), pitch (Y), yaw (z)
+{
+	// https://en.wikipedia.org/wiki/Conversion_between_quats_and_Euler_angles
+
+	glm::quat q;
+
+	float cr = cos(roll * 0.5);
+	float sr = sin(roll * 0.5);
+	float cp = cos(pitch * 0.5);
+	float sp = sin(pitch * 0.5);
+	float cy = cos(yaw * 0.5);
+	float sy = sin(yaw * 0.5);
+
+	q.w = cr * cp * cy + sr * sp * sy;
+	q.x = sr * cp * cy - cr * sp * sy;
+	q.y = cr * sp * cy + sr * cp * sy;
+	q.z = cr * cp * sy - sr * sp * cy;
+	return q;
+}
+
 void EditorLayer::TransformComponent(shade::ecs::Entity& entity)
 {
 	auto& transform = entity.GetComponent<shade::TransformComponent>();
 	ImGui::AlignTextToFramePadding();
 	//ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 0 , ImGui::GetStyle().FramePadding.y * 2.5f });
 	DragFloat3("Position", glm::value_ptr(transform.GetPosition()), 0.f, 0.1f, -FLT_MAX, FLT_MAX);
-	DragFloat3("Rotation", glm::value_ptr(transform.GetRotation()), 0.f, 0.1f, -FLT_MAX, FLT_MAX);
+
+	
+	glm::vec3 rotation(transform.GetRotationDegrees());
+
+	if (DragFloat3("Rotation", glm::value_ptr(rotation), 0.f, 0.1f, -FLT_MAX, FLT_MAX))
+	{
+		
+		transform.SetRotationDegrees(rotation);
+	}
+	
+
 	DragFloat3("Scale", glm::value_ptr(transform.GetScale()), 0.f, 0.1f, 0.f, FLT_MAX);
 	//ImGui::PopStyleVar();
 }
@@ -1809,7 +1827,7 @@ void OpenImageCallback(shade::Asset<shade::Texture2D>& texture)
 	{
 		if (std::ifstream file = std::ifstream(path, std::ios::binary))
 		{
-			shade::render::Image image; shade::Serializer::Deserialize(file, image);
+			shade::render::Image image; shade::serialize::Serializer::Deserialize(file, image);
 			texture = shade::Texture2D::CreateEXP(shade::render::Image2D::Create(image));
 		}
 	}
@@ -1853,7 +1871,7 @@ void HandleTexture(EditorLayer& layer, const std::string& buttonId, const char8_
 
 void EditorLayer::ModelComponent(shade::ecs::Entity& entity)
 {
-	ImGui::ShowDemoWindow();
+	
 	std::function<void(shade::Asset<shade::Texture2D>&)> OpenImageCallBack = [](shade::Asset<shade::Texture2D>& texture)
 		{
 			auto path = shade::FileDialog::OpenFile("Texture (*.dds) \0*.dds\0");
@@ -1861,7 +1879,7 @@ void EditorLayer::ModelComponent(shade::ecs::Entity& entity)
 			{
 				if (std::ifstream file = std::ifstream(path, std::ios::binary))
 				{
-					shade::render::Image image; shade::Serializer::Deserialize(file, image);
+					shade::render::Image image; shade::serialize::Serializer::Deserialize(file, image);
 					texture = shade::Texture2D::CreateEXP(shade::render::Image2D::Create(image));
 				}
 			}
@@ -1935,10 +1953,16 @@ void EditorLayer::ModelComponent(shade::ecs::Entity& entity)
 					if (ImGuiLayer::IconButton("Open", u8"\xe85f", 1, 1.f))
 					{
 						auto path = shade::FileDialog::OpenFile("Shade mesh(*.s_mesh) \0*.s_mesh\0");
-						if (shade::File file = shade::File(path.string(), shade::File::In, "@s_mesh", shade::File::VERSION(0, 0, 1)))
+
+						if (shade::file::File file = shade::file::FileManager::LoadFile(path.string(), "@s_mesh"))
+						{
+							mesh = shade::Mesh::CreateEXP();
 							file.Read(mesh);
+						}
 						else
+						{
 							SHADE_CORE_WARNING("Couldn't open mesh file, path ={0}", path);
+						}
 					}
 				}
 				ImGui::TableNextColumn();
@@ -1948,10 +1972,14 @@ void EditorLayer::ModelComponent(shade::ecs::Entity& entity)
 						auto path = shade::FileDialog::SaveFile("Shade mesh(*.s_mesh) \0*.s_mesh\0");
 						if (!path.empty())
 						{
-							if (shade::File file = shade::File(path.string(), shade::File::Out, "@s_mesh", shade::File::VERSION(0, 0, 1)))
+							if (shade::file::File file = shade::file::FileManager::SaveFile(path.string(), "@s_mesh"))
+							{
 								file.Write(mesh);
+							}
 							else
+							{
 								SHADE_CORE_WARNING("Couldn't save mesh file, path ={0}", path);
+							}
 						}
 					}
 				}
@@ -1998,10 +2026,14 @@ void EditorLayer::ModelComponent(shade::ecs::Entity& entity)
 							auto path = shade::FileDialog::OpenFile("Shade material(*.s_mat) \0*.s_mat\0");
 							if (!path.empty())
 							{
-								if (shade::File file = shade::File(path.string(), shade::File::In, "@s_mat", shade::File::VERSION(0, 0, 1)))
+								if (shade::file::File file = shade::file::FileManager::LoadFile(path.string(), "@s_mat"))
+								{
 									file.Read(material);
+								}
 								else
+								{
 									SHADE_CORE_WARNING("Couldn't open material file, path ={0}", path);
+								}
 							}
 						}
 					}
@@ -2012,10 +2044,14 @@ void EditorLayer::ModelComponent(shade::ecs::Entity& entity)
 							auto path = shade::FileDialog::SaveFile("Shade material(*.s_mat) \0*.s_mat\0");
 							if (!path.empty())
 							{
-								if (shade::File file = shade::File(path.string(), shade::File::Out, "@s_mat", shade::File::VERSION(0, 0, 1)))
+								if (shade::file::File file = shade::file::FileManager::SaveFile(path.string(), "@s_mat"))
+								{
 									file.Write(material);
+								}
 								else
+								{
 									SHADE_CORE_WARNING("Couldn't save material file, path ={0}", path);
+								}
 							}
 						}
 					}
@@ -2061,7 +2097,7 @@ void EditorLayer::ModelComponent(shade::ecs::Entity& entity)
 						{
 							int faces = mesh->GetLod(i).Indices.size() / 3;
 
-							if (DragInt(std::format("Lod level #:{}, faces :", i).c_str(), &faces, 1, 1, maxFaces))
+							if (DragInt(std::format("Lod level #{}", i).c_str(), &faces, 1, 1, maxFaces))
 							{
 								mesh->RecalculateLod(i, faces);
 							}
@@ -2297,7 +2333,7 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 
 				if (!path.empty())
 				{
-					if (shade::File file = shade::File(path.string(), shade::File::In, "@s_animgraph", shade::File::VERSION(0, 0, 1)))
+					if (shade::file::File file = shade::file::FileManager::LoadFile(path.string(), "@s_animgraph"))
 					{
 						graph.GraphContext.Drop();
 						graph.AnimationGraph = shade::SharedPointer<shade::animation::AnimationGraph>::Create(&graph.GraphContext); file.Read(graph.AnimationGraph); m_GraphEditor.Initialize(graph.AnimationGraph);
@@ -2315,7 +2351,7 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 
 				if (!path.empty())
 				{
-					if (shade::File file = shade::File(path.string(), shade::File::Out, "@s_animgraph", shade::File::VERSION(0, 0, 1)))
+					if (shade::file::File file = shade::file::FileManager::SaveFile(path.string(), "@s_animgraph"))
 					{
 						file.Write(graph.AnimationGraph);
 					}
@@ -2361,7 +2397,7 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 
 				if (!path.empty())
 				{
-					if (shade::File file = shade::File(path.string(), shade::File::In, "@s_skel", shade::File::VERSION(0, 0, 1)))
+					if (shade::file::File file = shade::file::FileManager::LoadFile(path.string(), "@s_skel"))
 					{
 						graph.GraphContext.Skeleton = shade::Skeleton::CreateEXP();
 						file.Read(graph.GraphContext.Skeleton);
@@ -2543,11 +2579,14 @@ void EditorLayer::MaterialEdit(shade::Material& material)
 					path = shade::FileDialog::OpenFile("Shade material(*.s_mat) \0*.s_mat\0").string();
 					if (!path.empty())
 					{
-						shade::File file(path, shade::File::In, "@s_mat", shade::File::VERSION(0, 0, 1));
-						if (file.IsOpen())
+						if (shade::file::File file = shade::file::FileManager::LoadFile(path, "@s_mat"))
 						{
 							m_SelectedMaterial = shade::SharedPointer<shade::Material>::Create();
 							file.Read(m_SelectedMaterial);
+						}
+						else
+						{
+							SHADE_CORE_WARNING("Couldn't open material file, path ={0}", path);
 						}
 					}
 				}
@@ -2562,10 +2601,13 @@ void EditorLayer::MaterialEdit(shade::Material& material)
 	{
 		if (ImGui::Button("Save", { ImGui::GetContentRegionAvail().x, 0 }))
 		{
-			shade::File file(path, shade::File::Out, "@s_mat", shade::File::VERSION(0, 0, 1));
-			if (file.IsOpen())
+			if (shade::file::File file = shade::file::FileManager::SaveFile(path, "@s_mat"))
 			{
 				file.Write(material);
+			}
+			else
+			{
+				SHADE_CORE_WARNING("Couldn't save material file, path ={0}", path);
 			}
 		}
 	}
@@ -2761,12 +2803,13 @@ void EditorLayer::CreateMaterial()
 	{
 		if (ImGui::Button("Save", { ImGui::GetContentRegionAvail().x, 0 }))
 		{
-			shade::File file(path, shade::File::Out, "@s_mat", shade::File::VERSION(0, 0, 1));
-			if (file.IsOpen())
+			if (shade::file::File file = shade::file::FileManager::SaveFile(path, "@s_mat"))
 			{
 				file.Write(material);
-				file.CloseFile();
-				path.clear();
+			}
+			else
+			{
+				SHADE_CORE_WARNING("Couldn't save material file, path ={0}", path);
 			}
 		}
 	}
@@ -2840,11 +2883,9 @@ void EditorLayer::CreateCollisionShapes()
 						});
 
 
-					shade::File file(path.c_str(), shade::File::Out, "@s_c_shape", shade::File::VERSION(0, 0, 1));
-					if (file.IsOpen())
+					if (shade::file::File file = shade::file::FileManager::SaveFile(path, "@s_c_shape"))
 					{
 						file.Write(shapes.Get());
-						file.CloseFile();
 					}
 					else
 					{

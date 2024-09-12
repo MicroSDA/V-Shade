@@ -369,7 +369,23 @@ namespace shade
 
 				return (connection != connections.end()) ? &(*connection) : nullptr; // Return the found connection or nullptr
 			}
+			SHADE_INLINE const Connection* FindConnection(
+				BaseNode* pConnectedTo,
+				EndpointIdentifier connectedToEndpoint) const
+			{
+				std::unordered_map<BaseNode*, NodesPack>::const_iterator to = Nodes.find(pConnectedTo);
+				
+				assert(to != Nodes.end() && "pConnectedTo node is not found in Nodes.");
 
+				const std::vector<Connection>& connections = to->second.Connections;
+
+				auto connection = std::find_if(connections.begin(), connections.end(), [pConnectedTo, connectedToEndpoint](const Connection& connection)
+					{
+						return (connection.PConnectedTo == pConnectedTo && connection.ConnectedToEndpoint == connectedToEndpoint);
+					});
+
+				return (connection != connections.end()) ? &(*connection) : nullptr; // Return the found connection or nullptr
+			}
 			/// @brief Gets the internal node for a given parrent node.
 			/// @param BaseNode* pParrent pointer to the parrent node.
 			/// @param NodeIdentifier identifier of internal node.
@@ -437,6 +453,8 @@ namespace shade
 			/// @param connectedFromEndpoint The endpoint identifier for the source node.
 			/// @return True if the nodes were successfully disconnected, otherwise false.
 			SHADE_API bool DisconnectNodes(BaseNode* pConnectedTo, EndpointIdentifier connectedToEndpoint, BaseNode* pConnectedFrom, EndpointIdentifier connectedFromEndpoint);
+
+			SHADE_API bool DisconnectEndpoint(BaseNode* pConnectedTo, EndpointIdentifier connectedToEndpoint);
 
 			/// @brief Connects the values between two node endpoints.
 			/// @param inputEndpoint Pointer to the input endpoint.
@@ -572,28 +590,28 @@ namespace shade
 			/// @brief Serializes node's connections to the given output stream.
 			/// @param stream The output stream to serialize to.
 			/// @return The number of bytes written.
-			std::size_t Serialize(std::ostream& stream) const;
+			void Serialize(std::ostream& stream) const;
 
 			/// @brief Deserializes node's connections from the given input stream.
 			/// @param stream The input stream to deserialize from.
 			/// @return The number of bytes read.
-			std::size_t Deserialize(std::istream& stream);
+			void Deserialize(std::istream& stream);
 
-			friend class Serializer;
+			friend class serialize::Serializer;
 		};
 	}
 
 	// Serialize GraphContext
 	template<>
-	SHADE_INLINE std::size_t shade::Serializer::Serialize(std::ostream& stream, const graphs::GraphContext& context, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const graphs::GraphContext& context)
 	{
-		return context.Serialize(stream);
+		context.Serialize(stream);
 	}
 
 	// Deserialize GraphContext
 	template<>
-	SHADE_INLINE std::size_t shade::Serializer::Deserialize(std::istream& stream, graphs::GraphContext& context, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, graphs::GraphContext& context)
 	{
-		return context.Deserialize(stream);
+		context.Deserialize(stream);
 	}
 }

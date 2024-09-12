@@ -94,56 +94,56 @@ namespace shade
 		}
 	private:
 		Material(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
-		std::size_t Serialize(std::ostream& stream) const;
-		std::size_t Deserialize(std::istream& stream);
+		void Serialize(std::ostream& stream) const;
+		void Deserialize(std::istream& stream);
 
-		friend class Serializer;
+		friend class serialize::Serializer;
 	};
 
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Material::ShadingModel& shading, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const Material::ShadingModel& shading)
 	{
 		return Serializer::Serialize(stream, static_cast<std::uint32_t>(shading));
 	}
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, Material::ShadingModel& shading, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, Material::ShadingModel& shading)
 	{
 		return Serializer::Deserialize<std::uint32_t>(stream, (std::uint32_t&)shading);
 	}
 
 	/* Serialize Material.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Material& material, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const Material& material)
 	{
 		return material.Serialize(stream);
 	}
 	/* Deserialize Material.*/
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, Material& material, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, Material& material)
 	{
 		return material.Deserialize(stream);
 	}
 	/* Serialize Asset<Material>.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Asset<Material>& material, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const Asset<Material>& material)
 	{
 		return material->Serialize(stream);
 	}
 	/* Deserialize Asset<Material>.*/
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, Asset<Material>& material, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, Asset<Material>& material)
 	{
 		return material->Deserialize(stream);
 	}
 	/* Serialize SharedPointer<Material>.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const SharedPointer<Material>& material, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const SharedPointer<Material>& material)
 	{
 		return material->Serialize(stream);
 	}
 	/* Deserialize SharedPointer<Material>.*/
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, SharedPointer<Material>& material, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, SharedPointer<Material>& material)
 	{
 		return material->Deserialize(stream);
 	}

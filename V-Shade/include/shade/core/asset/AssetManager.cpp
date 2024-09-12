@@ -59,11 +59,9 @@ void shade::AssetManager::Delivery(AssetMeta::Category category)
 
 void shade::AssetManager::Initialize(const std::string& filePath)
 {
-	File file(filePath, File::In, "@s_m_asset", File::VERSION(0, 0, 1));
-	if (file.IsOpen())
+	if (file::File file = file::FileManager::LoadFile(filePath, "@s_m_asset"))
 	{
-		Initialize(file.GetStream());
-		file.CloseFile();
+		Initialize(*file.GetInternalBuffer());
 	}
 
 	//if (std::filesystem::exists(folderPath))
@@ -108,7 +106,7 @@ void shade::AssetManager::Initialize(std::istream& stream)
 	while (stream.peek() != EOF)
 	{
 		SharedPointer<AssetData> asset = SharedPointer<AssetData>::Create();
-		Serializer::Deserialize(stream, asset);
+		serialize::Serializer::Deserialize(stream, asset);
 		ReadAssetDataRecursively(asset);
 	}
 
@@ -220,74 +218,71 @@ void shade::AssetManager::LinkAssetDataRecursivly(const std::string& id, SharedP
 		}
 		m_sAssetDataRelink[assetCategory].insert(id);
 	}
+
+	
 }
 
 void shade::AssetManager::Save(const std::string& filePath)
 {
-	File file(filePath, File::Out, "@s_m_asset", File::VERSION(0, 0, 1));
-	if (file.IsOpen())
+	if (file::File file = file::FileManager::SaveFile(filePath, "@s_m_asset"))
 	{
-		Save(file.GetStream());
-		file.CloseFile();
+		Save(*file.GetInternalBuffer());
 	}
-
-	//std::ofstream file(filePath, std::ios::binary);
-	//if (!file.is_open())
-	//	SHADE_CORE_WARNING("Failed to save asset data, wrong path = {0}", filePath)
-	//else
-	//	Save(file);
-
-	//file.close();
+	else
+	{
+		SHADE_CORE_WARNING("Failed to save asset data, wrong path = {0}", filePath)
+	}
 }
 
 void shade::AssetManager::Save(std::ostream& stream)
 {
+	
 	for (auto& [id, asset] : m_sAssetsDataList[AssetMeta::Category::Secondary])
 	{
 		// Full serialize for secondary asset !
-		Serializer::Serialize(stream, asset);
+		serialize::Serializer::Serialize(stream, asset);
 	}
 	for (auto& [id, asset] : m_sAssetsDataList[AssetMeta::Category::Primary])
 	{
-		Serializer::Serialize(stream, asset->GetId());
-		Serializer::Serialize(stream, std::uint32_t(asset->GetCategory()));
-		Serializer::Serialize(stream, std::uint32_t(asset->GetType()));
+		serialize::Serializer::Serialize(stream, asset->GetId());
+		serialize::Serializer::Serialize(stream, std::uint32_t(asset->GetCategory()));
+		serialize::Serializer::Serialize(stream, std::uint32_t(asset->GetType()));
 		if (asset->GetReference())
-			Serializer::Serialize(stream, asset->GetReference()->GetId());
+			serialize::Serializer::Serialize(stream, asset->GetReference()->GetId());
 		else
-			Serializer::Serialize(stream, std::string("NULL"));
+			serialize::Serializer::Serialize(stream, std::string("NULL"));
 
-		Serializer::Serialize(stream, asset->GetAttributes());
-		Serializer::Serialize(stream, std::uint32_t(asset->GetDependencies().size()));
+		serialize::Serializer::Serialize(stream, asset->GetAttributes());
+		serialize::Serializer::Serialize(stream, std::uint32_t(asset->GetDependencies().size()));
 
 		// Partial serialize for dependecy because they will be as separete encounter anyway 
 		for (auto& dependency : asset->GetDependencies())
 		{
-			Serializer::Serialize(stream, dependency->GetId());
+			serialize::Serializer::Serialize(stream, dependency->GetId());
 			const AssetMeta::Category depsCategory = dependency->GetCategory();
 			if(depsCategory == AssetMeta::Category::Primary)
-				Serializer::Serialize(stream, std::uint32_t(AssetMeta::Category::PrimaryReference));
+				serialize::Serializer::Serialize(stream, std::uint32_t(AssetMeta::Category::PrimaryReference));
 			else if(depsCategory == AssetMeta::Category::Secondary)
-				Serializer::Serialize(stream, std::uint32_t(AssetMeta::Category::SecondaryReference));
+				serialize::Serializer::Serialize(stream, std::uint32_t(AssetMeta::Category::SecondaryReference));
 			else
-				Serializer::Serialize(stream, std::uint32_t(depsCategory));
+				serialize::Serializer::Serialize(stream, std::uint32_t(depsCategory));
 
-				Serializer::Serialize(stream, std::uint32_t(dependency->GetType()));
+			serialize::Serializer::Serialize(stream, std::uint32_t(dependency->GetType()));
 
 			if(dependency->GetReference())
-				Serializer::Serialize(stream, dependency->GetReference()->GetId());
+				serialize::Serializer::Serialize(stream, dependency->GetReference()->GetId());
 			else
-				Serializer::Serialize(stream, std::string("NULL"));
+				serialize::Serializer::Serialize(stream, std::string("NULL"));
 			// Set dependecy's info as min as posible(Just a short link)
 			// No attributes for dependecies
-			Serializer::Serialize(stream, std::uint32_t(0));
+			serialize::Serializer::Serialize(stream, std::uint32_t(0));
 			// No dependecies for dependency
-			Serializer::Serialize(stream, std::uint32_t(0));
+			serialize::Serializer::Serialize(stream, std::uint32_t(0));
 		}
 	}
 	for (auto& [id, asset] : m_sAssetsDataList[AssetMeta::Category::Blueprint])
 	{
-		Serializer::Serialize(stream, asset);
+		serialize::Serializer::Serialize(stream, asset);
 	}
 }
 

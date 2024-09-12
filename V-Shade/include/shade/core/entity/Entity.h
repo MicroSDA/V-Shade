@@ -157,27 +157,30 @@ namespace shade
 			std::size_t GetChildrensCount() const;
 
 			template<typename ComponentType, typename Callback, typename ...Args>
-			std::size_t SerializeComponent(std::ostream& stream, Callback callback, Args&& ...args) const
+			bool SerializeComponent(std::ostream& stream, Callback callback, Args&& ...args) const
 			{
 				if (HasComponent<ComponentType>() && &GetComponent<ComponentType>())
 				{
-					std::size_t size = Serializer::Serialize(stream, static_cast<std::uint32_t>(ctti::type_id<ComponentType>().hash()));
-					size += callback(stream, GetComponent<ComponentType>(), std::forward<Args>(args)...);
-					return size;
+					serialize::Serializer::Serialize(stream, static_cast<std::uint32_t>(ctti::type_id<ComponentType>().hash()));
+					callback(stream, GetComponent<ComponentType>(), std::forward<Args>(args)...);
+					return true;
 				}
-				return 0u;
+
+				return false;
 			}
 			template<typename ComponentType, typename Callback, typename ...Args>
-			std::size_t DeserializeComponent(std::istream& stream, std::uint32_t hash, Callback callback, Args&& ...args)
+			bool DeserializeComponent(std::istream& stream, std::uint32_t hash, Callback callback, Args&& ...args)
 			{
 				if (!HasComponent<ComponentType>())
 				{
 					if (hash == static_cast<std::uint32_t>(ctti::type_id<ComponentType>().hash()))
 					{
-						return callback(stream, AddComponent<ComponentType>(), std::forward<Args>(args)...);
+						callback(stream, AddComponent<ComponentType>(), std::forward<Args>(args)...);
+						return true;
 					}
 				}
-				return 0u;
+
+				return false;
 			}
 			/* Overloaded operator bool */
 			operator bool() const { return IsValid(); }

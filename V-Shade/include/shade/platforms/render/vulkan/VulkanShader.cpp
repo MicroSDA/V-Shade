@@ -74,34 +74,39 @@ shade::VulkanShader::VulkanShader(const std::string& filePath):
         {
             std::filesystem::path cachedPath = cacheDirectory / (GetFileName() + utils::GetCachedFileExtension(stage));
 
-            File in(cachedPath.string(), File::In | File::SkipMagic | File::SkipChecksum, "", File::VERSION(0, 0, 1));
+            // File in(cachedPath.string(), File::In | File::SkipMagic | File::SkipChecksum, "", File::VERSION(0, 0, 1));
 
-            if (in.IsOpen())
+            if (file::File file = file::FileManager::LoadFile(cachedPath.string(), ""))
             {
                 auto& data = shaderData[stage];
-                auto size = in.GetHeader().Size; // in case the sahder can be as part of packet !
+                auto size = file.GeFileHeader().ContentSize; // in case the shader can be as part of packet !
                 data.resize(size / sizeof(std::uint32_t));
-                in.GetStream().read((char*)data.data(), size);
+                file.GetInternalBuffer()->read((char*)data.data(), size);
             }
+            else
+            {
+                SHADE_CORE_ERROR("Failed to load shader form cache or packet, path = {}", filePath);
+            }          
         }
     }
     else
     {
         for (auto&& [stage, source] : m_SourceCode)
         {
-            SHADE_CORE_INFO("Trying to load shader form cache or source, path = {}", filePath);
+            
 
             std::filesystem::path cachedPath = cacheDirectory / (GetFileName() + utils::GetCachedFileExtension(stage));
 
-            File in(cachedPath.string(), File::In | File::SkipMagic | File::SkipChecksum, "", File::VERSION(0, 0, 1));
-
-            if (in.IsOpen())
+            // File in(cachedPath.string(), File::In | File::SkipMagic | File::SkipChecksum, "", File::VERSION(0, 0, 1));
+            if (file::File file = file::FileManager::LoadFile(cachedPath.string(), ""))
             {
+                SHADE_CORE_INFO("Load shader form cache, path = {}", cachedPath.string());
+
                 auto& data = shaderData[stage];
-                auto size = in.GetHeader().Size;
+                auto size = file.GeFileHeader().ContentSize;
                 data.resize(size / sizeof(std::uint32_t));
 
-                in.GetStream().read((char*)data.data(), size);
+                file.GetInternalBuffer()->read((char*)data.data(), size);
             }
             else
             {
@@ -114,14 +119,16 @@ shade::VulkanShader::VulkanShader(const std::string& filePath):
 
                 shaderData[stage] = std::vector<uint32_t>(module.cbegin(), module.cend());
 
-                File out(cachedPath.string(), File::Out | File::SkipMagic | File::SkipChecksum, "", File::VERSION(0, 0, 1));
-
-                if (out.IsOpen())
+               // File out(cachedPath.string(), File::Out | File::SkipMagic | File::SkipChecksum, "", File::VERSION(0, 0, 1));
+                if (file::File file = file::File(cachedPath.string(), file::Out, "", file::utils::VERSION(0, 0, 1)))
                 {
                     auto& data = shaderData[stage];
-                    out.GetStream().write((char*)data.data(), data.size() * sizeof(std::uint32_t));
-                    out.CloseFile();
+                    file.GetInternalBuffer()->write((char*)data.data(), data.size() * sizeof(std::uint32_t));
                 }
+                else
+                {
+                    SHADE_CORE_WARNING("Failed to save shader form cache or packet, path = {}", filePath);
+                } 
             }
         }
        
@@ -337,16 +344,18 @@ void shade::VulkanShader::TryToFindInCacheAndCompile()
 
         // TODO: Read file, with getting size need overlap both cases when size from packed file or size from header !! that the case !!!!
         // Wrong behavier,
-        File in(cachedPath.string(), File::In | File::SkipMagic | File::SkipChecksum, "", File::VERSION(0, 0, 1));
-        // Always recompile shaders !
-#if 1
-        if (in.IsOpen())
+
+        // File in(cachedPath.string(), File::In | File::SkipMagic | File::SkipChecksum, "", File::VERSION(0, 0, 1));
+        if (file::File file = file::FileManager::LoadFile(cachedPath.string(), ""))
         {
+
+#if 1    // Always recompile shaders !
+
             auto& data = shaderData[stage];
-            auto size = in.GetHeader().Size;
+            auto size = file.GeFileHeader().ContentSize;
             data.resize(size / sizeof(std::uint32_t));
 
-            in.GetStream().read((char*)data.data(), size);
+            file.GetInternalBuffer()->read((char*)data.data(), size);
         }
         else
         {
@@ -359,14 +368,12 @@ void shade::VulkanShader::TryToFindInCacheAndCompile()
 
             shaderData[stage] = std::vector<uint32_t>(module.cbegin(), module.cend());
 
-            File out(cachedPath.string(), File::Out | File::SkipMagic | File::SkipChecksum, "", File::VERSION(0, 0, 1));
-
-            //std::ofstream out(cachedPath, std::ios::out | std::ios::binary);
-            if (out.IsOpen())
+            //  File out(cachedPath.string(), File::Out | File::SkipMagic | File::SkipChecksum, "", File::VERSION(0, 0, 1));
+            if (file::File file = file::File(cachedPath.string(), file::Out, "", file::utils::VERSION(0, 0, 1)))
             {
+                //std::ofstream out(cachedPath, std::ios::out | std::ios::binary);
                 auto& data = shaderData[stage];
-                out.GetStream().write((char*)data.data(), data.size() * sizeof(std::uint32_t));
-                out.CloseFile();
+                file.GetInternalBuffer()->write((char*)data.data(), data.size() * sizeof(std::uint32_t));
             }
         }
 #else

@@ -13,6 +13,7 @@ namespace graph_editor
 #define STRING_VALUE_COLOR  { 0.3f, 0.8f, 0.60f, 1.f }
 #define INT_VALUE_COLOR FLOAT_VALUE_COLOR
 #define BONEMASK_VALUE_COLOR { 0.6f, 0.4f, 0.f, 1.f }
+#define VEC2_VALUE_COLOR { 0.8f, 0.8f, 0.5f, 1.f }
 
 #define STATE_NODE_COLOR STRING_VALUE_COLOR
 #define STATE_MACHINE_NODE_COLOR {0.f, 0.6f, 0.4f, 1.f}
@@ -32,7 +33,7 @@ namespace graph_editor
 		case shade::NodeValueType::String: return STRING_VALUE_COLOR;
 		case shade::NodeValueType::Pose: return POSE_VALUE_COLOR;
 		case shade::NodeValueType::BoneMask: return BONEMASK_VALUE_COLOR;
-		case shade::NodeValueType::Vector2:
+		case shade::NodeValueType::Vector2: return VEC2_VALUE_COLOR;
 		case shade::NodeValueType::Vector3:
 		case shade::NodeValueType::Vector4:
 		case shade::NodeValueType::Matrix3:
@@ -185,7 +186,7 @@ namespace graph_editor
 		 * @param pNode The current node to initialize.
 		 * @param nodes The map to populate with nodes and their prototypes.
 		 */
-		 void InitializeRecursively(graphs::BaseNode* pNode, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes);
+		 void InitializeRecursively(graphs::BaseNode* pNode, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, bool cursor = false);
 
 		/**
 		 * @brief Retrieves the prototyped node corresponding to the given base node.
@@ -245,7 +246,7 @@ namespace graph_editor
 		template<typename T>
 		SHADE_INLINE  void CreateNode(shade::graphs::BaseNode* pNode, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes)
 		{
-			nodes.insert({ std::size_t(pNode) ^ pNode->GetNodeIdentifier(), new T(pNode, this) });
+			nodes.emplace(std::size_t(pNode) ^ pNode->GetNodeIdentifier(), new T(pNode, this));	
 		}
 
 		// Root animation graph asset
@@ -493,153 +494,23 @@ namespace graph_editor
 		virtual ~BoolNodeDelegate() = default;
 		virtual void ProcessBodyContent(const InternalContext* context) override;
 	};
+
+	class BlendTree2DNodeDeligate : public GraphNodePrototype
+	{
+	public:
+		BlendTree2DNodeDeligate(graphs::BaseNode* pNode, GraphEditor* pEditor);
+		virtual ~BlendTree2DNodeDeligate() = default;
+		virtual void ProcessBodyContent(const InternalContext* context) override;
+		virtual void ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint) override;
+		virtual void ProcessSideBar(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, std::unordered_map<std::size_t, GraphNodePrototype*>& referNodes) override;
+	};
+
+	class Vec2FloatDNodeDeligate : public GraphNodePrototype
+	{
+	public:
+		Vec2FloatDNodeDeligate(graphs::BaseNode* pNode, GraphEditor* pEditor);
+		virtual ~Vec2FloatDNodeDeligate() = default;
+		virtual void ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint) override;
+		virtual void ProcessBodyContent(const InternalContext* context) override;
+	};
 }
-
-
-//#pragma once
-//#include <shade/core/animation/graphs/AnimationGraph.h>
-//#include <shade/core/layer/imgui/ImGuiGraph.h>
-//#include <shade/core/layer/imgui/ImGuiLayer.h>
-//
-//namespace editor_animation_graph
-//{
-//	using namespace shade;
-//	using namespace animation;
-//
-//	struct BaseNodeDeligate : public GraphNodePrototype<GraphNode::NodeIdentifier,
-//		GraphNode::EndpointIdentifier,
-//		SharedPointer<GraphNode>>
-//	{
-//		BaseNodeDeligate(GraphNode::NodeIdentifier id, SharedPointer<GraphNode> node) :
-//			GraphNodePrototype<GraphNode::NodeIdentifier,
-//			GraphNode::EndpointIdentifier,
-//			SharedPointer<GraphNode>>(id, node) {};
-//
-//		virtual ~BaseNodeDeligate() = default;
-//
-//		virtual ConnectionsPrototype<GraphNode::NodeIdentifier, GraphNode::EndpointIdentifier>  ReceiveConnections() const override
-//		{
-//			shade::ConnectionsPrototype<GraphNode::NodeIdentifier, GraphNode::EndpointIdentifier> connections;
-//
-//			for (const auto& conenction : GetNode()->__GET_CONNECTIONS())
-//				connections.emplace_back(conenction.InputNodeIdentifier, conenction.InputEndpoint, conenction.OutputNodeIdentifier, conenction.OutputEndpoint);
-//			return connections;
-//		}
-//
-//		virtual EndpointsPrototype<GraphNode::NodeIdentifier> ReceiveEndpoints() const override
-//		{
-//			EndpointsPrototype<GraphNode::NodeIdentifier> endpoints;
-//
-//			for (GraphNode::EndpointIdentifier index = 0; index < GetNode()->GetEndpoints()[GraphNode::Connection::Input].GetSize(); ++index)
-//				endpoints[EndpointPrototype::Input].emplace(index, EndpointPrototype(EndpointPrototype::Input));
-//			for (GraphNode::EndpointIdentifier index = 0; index < GetNode()->GetEndpoints()[GraphNode::Connection::Output].GetSize(); ++index)
-//				endpoints[EndpointPrototype::Output].emplace(index, EndpointPrototype(EndpointPrototype::Output));
-//
-//			return endpoints;
-//		}
-//
-//		virtual void ProcessBodyContent()																			override { ImGui::Text("Body Content"); }
-//		virtual void ProcessEndpoint(const GraphNode::EndpointIdentifier& endpointIdentifier, EndpointPrototype& endpoint) override { ImGui::Text("Endpoint");		}
-//	};
-//
-//	struct OutputPoseNodeDeligate : public BaseNodeDeligate
-//	{
-//		OutputPoseNodeDeligate(GraphNode::NodeIdentifier id, SharedPointer<GraphNode> node);
-//		virtual ~OutputPoseNodeDeligate() = default;
-//		virtual void ProcessEndpoint(const GraphNode::EndpointIdentifier& endpointIdentifier, EndpointPrototype& endpoint) override;
-//		virtual void ProcessBodyContent() override;
-//	};
-//
-//	struct PoseNodeDeligate : public BaseNodeDeligate
-//	{
-//		PoseNodeDeligate(GraphNode::NodeIdentifier id, SharedPointer<GraphNode> node);
-//		virtual ~PoseNodeDeligate() = default;
-//
-//		virtual void ProcessBodyContent() override;
-//		virtual void ProcessEndpoint(const GraphNode::EndpointIdentifier& endpointIdentifier, EndpointPrototype& endpoint) override;
-//		virtual void ProcessSideBar() override;
-//	private:
-//		std::string m_Search;
-//		bool m_IsAnimationPopupActive = false;
-//	};
-//
-//	struct BlendNodeDeligate : public BaseNodeDeligate
-//	{
-//		BlendNodeDeligate(GraphNode::NodeIdentifier id, SharedPointer<GraphNode> node);
-//		virtual ~BlendNodeDeligate() = default;
-//
-//		virtual void ProcessBodyContent() override;
-//		virtual void ProcessEndpoint(const GraphNode::EndpointIdentifier& endpointIdentifier, EndpointPrototype& endpoint) override;
-//	};
-//	
-//	struct BoneMaskNodeDeligate : public BaseNodeDeligate
-//	{
-//		BoneMaskNodeDeligate(GraphNode::NodeIdentifier id, SharedPointer<GraphNode> node);
-//		virtual ~BoneMaskNodeDeligate() = default;
-//
-//		virtual void ProcessBodyContent() override;
-//		virtual void ProcessEndpoint(const GraphNode::EndpointIdentifier& endpointIdentifier, EndpointPrototype& endpoint) override;
-//		virtual void ProcessSideBar() override;
-//	private:
-//		std::string m_Search;
-//	};
-//
-//	struct ValueNodeDeligate : public BaseNodeDeligate
-//	{
-//		ValueNodeDeligate(GraphNode::NodeIdentifier id, SharedPointer<GraphNode> node);
-//		virtual ~ValueNodeDeligate() = default;
-//
-//		virtual void ProcessBodyContent() override;
-//		virtual void ProcessEndpoint(const GraphNode::EndpointIdentifier& endpointIdentifier, EndpointPrototype& endpoint) override;
-//	};
-//
-//	struct GraphDeligate : public
-//		ImGuiGraphPrototype<Asset<AnimationGraph>,
-//		GraphNode::NodeIdentifier,
-//		GraphNode::EndpointIdentifier,
-//		SharedPointer<GraphNode>>
-//	{
-//		GraphDeligate(Asset<AnimationGraph> graph) : ImGuiGraphPrototype(graph) {}
-//		virtual ~GraphDeligate() = default;
-//
-//		virtual bool Connect(const ConnectionPrototype<GraphNode::NodeIdentifier, GraphNode::EndpointIdentifier>& connection) override
-//		{
-//			SHADE_CORE_TRACE("OutputNodeIdentifier = {0},OutputEndpointIdentifier = {1},InputNodeIdentifier = {2},InputEndpointIdentifier = {3}",
-//				connection.OutputNodeIdentifier, connection.OutputEndpointIdentifier, connection.InputNodeIdentifier, connection.InputEndpointIdentifier)
-//
-//				return GetGraph()->AddConnection(connection.InputNodeIdentifier, connection.InputEndpointIdentifier, connection.OutputNodeIdentifier, connection.OutputEndpointIdentifier);
-//		};
-//		virtual bool Disconnect(const ConnectionPrototype<GraphNode::NodeIdentifier, GraphNode::EndpointIdentifier>& coonection) override
-//		{
-//			return GetGraph()->RemoveConnection(coonection.InputNodeIdentifier, coonection.InputEndpointIdentifier);
-//		}
-//		virtual void  PopupMenu() override
-//		{
-//			if (ImGui::MenuItem("Blend"))
-//			{
-//				auto node = GetGraph()->CreateNode<animation::BlendNode2D>();
-//				this->EmplaceNode<BlendNodeDeligate>(node->GetNodeIndex(), node);
-//			}
-//			if (ImGui::MenuItem("Pose"))
-//			{
-//				auto node = GetGraph()->CreateNode<animation::PoseNode>();
-//				this->EmplaceNode<PoseNodeDeligate>(node->GetNodeIndex(), node);
-//			}
-//			if (ImGui::MenuItem("Float"))
-//			{
-//				auto node = GetGraph()->CreateNode<ValueNode>();
-//				this->EmplaceNode<ValueNodeDeligate>(node->GetNodeIndex(), node);
-//			}
-//			if (ImGui::MenuItem("Bone Mask"))
-//			{
-//				auto node = GetGraph()->CreateNode<animation::BoneMaskNode>();
-//				this->EmplaceNode<BoneMaskNodeDeligate>(node->GetNodeIndex(), node);
-//			}
-//		};
-//		virtual void ProcessSideBar() override;
-//	private:
-//		std::string  m_Search;
-//		bool m_IsSkeletonPopupActive = false;
-//	};
-//
-//}

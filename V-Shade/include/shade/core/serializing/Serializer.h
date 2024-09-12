@@ -6,601 +6,578 @@
 
 namespace shade
 {
-	bool IsAllowedCharacter(const char c);
-	std::string RemoveNotAllowedCharacters(const std::string& input);
+	bool IsAllowedCharacter(const char c); std::string RemoveNotAllowedCharacters(const std::string& input);
 	
-	class SHADE_API Serializer
+	namespace serialize
 	{
-	public:
-		// Serrialize object into stream.
-		template<typename T>
-		static std::size_t Serialize(std::ostream& stream, const T&, std::size_t count = 1);
-		// Deserialize object from stream.
-		template<typename T>
-		static std::size_t Deserialize(std::istream& stream, T&, std::size_t count = 1);
-	};
-	// Templated function to generate a checksum of content.
-	// This function is used to create a checksum of a given stringstream.
-	// @tparam T The type of the checksum value (either std::uint32_t or std::uint64_t).
-	// @param content The input string for which the checksum is generated.
-	// @return The generated checksum of type T.
-	template <typename T, typename = std::enable_if_t<std::is_same<T, std::uint32_t>::value || std::is_same<T, std::uint64_t>::value>>
-	T GenerateCheckSum(const std::stringstream& stream) { return static_cast<T>(std::hash<std::string>{}(stream.str())); }
-	// Templated function to generate a checksum of content.
-	// This function is used to create a checksum of a given string.
-	// @tparam T The type of the checksum value (either std::uint32_t or std::uint64_t).
-	// @param content The input string for which the checksum is generated.
-	// @return The generated checksum of type T.
-	template <typename T, typename = std::enable_if_t<std::is_same<T, std::uint32_t>::value || std::is_same<T, std::uint64_t>::value>>
-	T GenerateCheckSum(const std::string& stream) { return static_cast<T>(std::hash<std::string>{}(stream)); }
-
-	class SHADE_API File
-	{
-
-	#ifndef SHADE_META_FILE_PATH
-		#define SHADE_META_FILE_PATH "./data/META.bin"
-	#endif // !SHADE_META_FILE_PATH
-
-		using checksum_t	 = std::uint32_t;
-		using version_t		 = std::uint16_t;
-		using magic_t		 = std::string;
-		using content_size_t = checksum_t;
-
-	public:
-
-		using FileFlag = int;
-
-		static constexpr int In				= 0x01;
-		static constexpr int Out			= 0x02;
-		static constexpr int SkipMagic		= 0x04;
-		static constexpr int SkipVersion	= 0x08;
-		static constexpr int SkipSize		= 0x10;
-		static constexpr int SkipChecksum	= 0x20;
-
-		struct Header
+		/**
+		 * @brief Provides static methods for serializing and deserializing objects.
+		 *
+		 * The `Serializer` struct includes template methods for serializing and deserializing objects to and from streams.
+		 * It supports types that are trivially copyable and have a standard layout, excluding pointers.
+		 */
+		struct Serializer
 		{
-			magic_t          Magic;
-			version_t        Version  = 0u;
-			content_size_t   Size     = 0u;
-			checksum_t		 CheckSum = 0u;
+            /**
+            * @brief Serializes an object and writes it to the output stream.
+            *
+            * Serializes the given object and writes its binary representation to the provided output stream.
+            * This method is enabled only for types that are trivially copyable, have a standard layout,
+            * and are not pointers. If the type does not meet these criteria, a static assertion fails.
+            *
+            * @tparam T The type of the object to be serialized.
+            * @param stream The output stream where the object will be written.
+            * @param obj The object to be serialized.
+            */
+            template<typename T>
+            static void Serialize(std::ostream& stream, const T& obj)
+            {
+                if constexpr (std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T> && !std::is_pointer_v<T>)
+                {
+                    // Write the raw binary representation of the object to the stream
+                    stream.write(reinterpret_cast<const char*>(&obj), sizeof(T));
+                }
+                else
+                {
+                    // Static assertion to ensure the type is serializable
+                    static_assert(false, "You are trying to serialize a type that is not trivial or raw pointer and does not have a special Serialize specialization!");
+                }
+            }
+
+			/**
+			 * @brief Serializes an object and writes it to the output stream.
+			 *
+			 * Serializes the given object and writes its binary representation to the provided output stream.
+			 * This method is enabled only for types that are trivially copyable, have a standard layout,
+			 * and are not pointers. If the type does not meet these criteria, a static assertion fails.
+			 *
+			 * @tparam T The type of the object to be serialized.
+			 * @param stream The output stream where the object will be written.
+			 * @param obj The object to be serialized.
+			 */
+			template<typename T>
+			static void Serialize(std::ostream& stream, const T& obj, std::size_t count)
+			{
+				if constexpr (std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T> && !std::is_pointer_v<T>)
+				{
+					// Write the raw binary representation of the object to the stream
+					stream.write(reinterpret_cast<const char*>(&obj), sizeof(T) * count);
+				}
+				else
+				{
+					// Static assertion to ensure the type is serializable
+					static_assert(false, "You are trying to serialize a type that is not trivial or raw pointer and does not have a special Serialize specialization!");
+				}
+			}
+           
+            /**
+             * @brief Deserializes an object from the input stream.
+             *
+             * Reads the binary representation of an object from the provided input stream and deserializes it.
+             * This method is enabled only for types that are trivially copyable, have a standard layout,
+             * and are not pointers. If the type does not meet these criteria, a static assertion fails.
+             *
+             * @tparam T The type of the object to be deserialized.
+             * @param stream The input stream from which the object will be read.
+             * @param obj The object to be deserialized.
+             */
+            template<typename T>
+            static void Deserialize(std::istream& stream, T& obj)
+            {
+                if constexpr (std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T> && !std::is_pointer_v<T>)
+                {
+                    // Read the raw binary representation of the object from the stream
+                    stream.read(reinterpret_cast<char*>(&obj), sizeof(T));
+                }
+                else
+                {
+                    // Static assertion to ensure the type is deserializable
+                    static_assert(false, "You are trying to deserialize a type that is not trivial or raw pointer and does not have a special Deserialize specialization!");
+                }
+            }
+
+            /**
+             * @brief Deserializes an object from the input stream.
+             *
+             * Reads the binary representation of an object from the provided input stream and deserializes it.
+             * This method is enabled only for types that are trivially copyable, have a standard layout,
+             * and are not pointers. If the type does not meet these criteria, a static assertion fails.
+             *
+             * @tparam T The type of the object to be deserialized.
+             * @param stream The input stream from which the object will be read.
+             * @param obj The object to be deserialized.
+             */
+            template<typename T>
+            static void Deserialize(std::istream& stream, T& obj, std::size_t count)
+            {
+                if constexpr (std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T> && !std::is_pointer_v<T>)
+                {
+                    // Read the raw binary representation of the object from the stream
+                    stream.read(reinterpret_cast<char*>(&obj), sizeof(T) * count);
+                }
+                else
+                {
+                    // Static assertion to ensure the type is deserializable
+                    static_assert(false, "You are trying to deserialize a type that is not trivial or raw pointer and does not have a special Deserialize specialization!");
+                }
+            }
+
 		};
-
-		struct Specification
-		{
-			// Where format -> Current path
-			std::unordered_map<std::string, std::vector<std::string>> FormatPath;
-			// Where format -> Packet path
-			std::unordered_map<std::string, std::string> FormatPacketPath;
-			// Path to meta file
-			std::string MetaFilePath = SHADE_META_FILE_PATH;
-		};
-
-	public:
-		File() = default;
-		File(const std::string& filePath, FileFlag flag, const magic_t& magic = "@", version_t version = version_t(0));
-		virtual ~File();
-
-	public:
-		/**
-		* @brief Opens a file for reading or writing, depending on the flag.
-		*
-		* @param filePath  The path to the file.
-		* @param version   The expected file version.
-		* @param magic     The magic string to identify the file format.
-		* @param flag      The file open flag (ReadFile or WriteFile).
-		* @return True if the file was opened successfully; otherwise, false.
-		*/
-		bool OpenEngineFile(const std::string& filePath, FileFlag flag, const magic_t& magic = "@", version_t version = version_t(0));
-		/**
-		* @brief Opens a file for general use (not yet implemented).
-		*
-		* @param filePath  The path to the file.
-		* @return True if the file was opened successfully; otherwise, false.
-		*/
-		bool OpenFile(const std::string& filePath);
-		/**
-		* @brief Checks if the file is open.
-		*
-		* @return True if the file is open; otherwise, false.
-		*/
-		bool IsOpen() const;
-
-		operator bool() const { return IsOpen(); }
-		/**
-		 * @brief Return true if the end of the file has been reached.
-		 */
-		bool Eof();
-		/**
-		 * @brief Closes the file, updating the checksum if it was a write operation.
-		 */
-		void CloseFile();
-		/**
-		* @return File header.
-		*/
-		Header GetHeader() const;
-		/**
-		 * @brief Gets the size of the file.
-		 *
-		 * @return The size of the file in bytes.
-		 */
-		std::size_t _GetSize();
-		/**
-		 * @brief Gets the file stream.
-		 *
-		 * @return Return std::stringstream&.
-		 */
-		std::stringstream& GetStream();
-		/**
-		 * @return Current position within file stream.
-		 */
-		std::size_t TellPosition();
-		/**
-		 * @brief Generates a version number based on major, minor, and patch values.
-		 *
-		 * @param major Major version.
-		 * @param minor Minor version.
-		 * @param patch Patch version.
-		 * @return The generated version number.
-		 */
-		static version_t VERSION(version_t major, version_t minor, version_t patch);
-		/**
-		 * @brief Writes a value of a templated type to the file.
-		 *
-		 * @param value The value to be written to the file.
-		 * @return The number of bytes written.
-		 */
-		template<typename T>
-		std::size_t Write(const T& value, std::size_t count = 1);
-		/**
-		 * @brief Reads a value of a templated type from the file.
-		 *
-		 * @param value The value read from the file.
-		 * @return The number of bytes read.
-		 */
-		template<typename T>
-		std::size_t Read(T& value, std::size_t count = 1);
-		/**
-		 * @brief Trying to find all files recursively.
-		 * 
-		 * @param directory Directory for start skaning.
-		 * @param extensions Set of extensions for search.
-		 * @return The map where key is extension and value all files with given extension.
-		 */
-		static std::unordered_map<std::string, std::vector<std::string>> FindFilesWithExtension(const std::filesystem::path& directory, const std::vector<std::string>& extensions = std::vector<std::string>());
-		/**
-		 * @brief Trying to find all files recursively.
-		 *
-		 * @param directory Directory for start skaning.
-		 * @param extensions Set of extensions which has to be ignored.
-		 * @return The map where key is extension and value all files with given extension.
-		 */
-		static std::unordered_map<std::string, std::vector<std::string>> FindFilesWithExtensionExclude(const std::filesystem::path& directory, const std::vector<std::string>& excludeExtensions = std::vector<std::string>());
-		/**
-		 * @brief Pack files to packets.
-		 * @param specification Specification struct.
-		 */
-		static void PackFiles(const shade::File::Specification& specification);
-		/**
-		 * @brief Load meta file.
-		 * @param filepath.
-		 */
-		static void InitializeMetaFile(const std::string& filepath = SHADE_META_FILE_PATH);
-	private:
-		std::string m_Path;
-		FileFlag	m_Flag;
-		Header m_Header;
-		std::fstream m_File;
-		std::stringstream m_Stream;
-		std::size_t m_ContentPosition;
-		std::size_t m_VersionPosition;
-		std::size_t m_SizePosition;
-		std::size_t m_CheckSumPosition;
-	private:
-		/**
-		 * @brief Reads the file header and performs integrity checks.
-		 *
-		 * @param stream The input stream to read from.
-		 * @param version The expected file version.
-		 * @param magic The magic string to identify the file format.
-		 */
-		void ReadHeader(std::istream& stream, version_t version, const magic_t& magic, FileFlag flag, bool skipContent = false);
-		/**
-		 * @brief Writes the file header.
-		 *
-		 * @param stream The output stream to write to.
-		 * @param version The file version to write to the header.
-		 * @param magic The magic string to identify the file format.
-		 */
-		void WriteHeader(std::ostream& stream, version_t version, const magic_t& magic, FileFlag flag);
-		/**
-		* @brief Updates the checksum in the file.
-		*/
-		void UpdateChecksum();
-		/**
-		* @brief Updates the size in the file.
-		*/
-		void UpdateSize();
-		/**
-		 * @brief Calculates and returns the checksum of the file content.
-		 *
-		 * @return The calculated checksum.
-		 */
-		checksum_t GetChecksum();
-	private:
-		// Where string - > path, string - > path inside packet, uint32_t position in packet
-		static std::unordered_map<std::string, std::pair<std::string, std::uint32_t>> m_PathMap;
-	};
-	template<typename T>
-	inline std::size_t File::Write(const T& value, std::size_t count)
-	{
-		assert((m_Flag & shade::File::Out) && "Cannot write into file, 'Out' flag is not set !");
-		return Serializer::Serialize(m_Stream, value, count);
-	}
-	template<typename T>
-	inline std::size_t File::Read(T& value, std::size_t count)
-	{
-		assert((m_Flag & shade::File::In) && "Cannot read from file, 'In' flag is not set !");
-		return Serializer::Deserialize(m_Stream, value, count);
 	}
 }
 
 namespace shade
 {
-	template<typename T>
-	inline std::size_t Serializer::Deserialize(std::istream& stream, T& value, std::size_t count)
-	{
-		return stream.read(reinterpret_cast<char*>(&value), sizeof(T) * count).tellg();
-	}
-	template<typename T>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const T& value, std::size_t count)
-	{
-		return stream.write(reinterpret_cast<const char*>(&value), sizeof(T) * count).tellp();
-	}
-	/* Serrialize std::uint32_t.*/
-	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::uint32_t& value, std::size_t count)
-	{
-		return stream.write(reinterpret_cast<const char*>(&value), sizeof(std::uint32_t) * count).tellp();
-	}
-	/* Deserialize std::uint32_t.*/
-	template<>
-	inline std::size_t Serializer::Deserialize(std::istream& stream, std::uint32_t& value, std::size_t count)
-	{
-		return stream.read(reinterpret_cast<char*>(&value), sizeof(std::uint32_t) * count).tellg();
-	}
-	/////////////////////////////////////////////////////////////////////////////////////
-	/* Serrialize std::uint64_t.*/
-	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::uint64_t& value, std::size_t count)
-	{
-		return stream.write(reinterpret_cast<const char*>(&value), sizeof(std::uint64_t) * count).tellp();
-	}
-	/* Deserialize std::uint64_t.*/
-	template<>
-	inline std::size_t Serializer::Deserialize(std::istream& stream, std::uint64_t& value, std::size_t count)
-	{
-		return stream.read(reinterpret_cast<char*>(&value), sizeof(std::uint64_t) * count).tellg();
-	}
-	/////////////////////////////////////////////////////////////////////////////////////
-	/* Serrialize bool.*/
-	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const bool& value, std::size_t count)
-	{
-		return stream.write(reinterpret_cast<const char*>(&value), sizeof(bool)).tellp();
-	}
-	/* Deserialize bool.*/
-	template<>
-	inline std::size_t Serializer::Deserialize(std::istream& stream, bool& value, std::size_t count)
-	{
-		return stream.read(reinterpret_cast<char*>(&value), sizeof(bool) * count).tellg();
-	}
-	/////////////////////////////////////////////////////////////////////////////////////
-	/* Serrialize float.*/
-	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const float& value, std::size_t count)
-	{
-		return stream.write(reinterpret_cast<const char*>(&value), sizeof(float) * count).tellp();
-	}
-	/* Deserialize float.*/
-	template<>
-	inline std::size_t Serializer::Deserialize(std::istream& stream, float& value, std::size_t count)
-	{
-		return stream.read(reinterpret_cast<char*>(&value), sizeof(float) * count).tellg();
-	}
-	/////////////////////////////////////////////////////////////////////////////////////
-	/* Serrialize char.*/
-	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const char& value, std::size_t count)
-	{
-		return stream.write(&value, sizeof(char) * count).tellp();
-	}
-	/* Deserialize char.*/
-	template<>
-	inline std::size_t Serializer::Deserialize(std::istream& stream, char& value, std::size_t count)
-	{
-		return stream.read(&value, sizeof(char) * count).tellg();
-	}
-	/////////////////////////////////////////////////////////////////////////////////////
-	/* Serrialize std::string. String's size will be std::uin32_t.*/
-	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::string& string, std::size_t count)
-	{
-		std::uint32_t size = static_cast<std::uint32_t>(string.size());
-		if (size == UINT32_MAX)
-			throw std::out_of_range(std::format("Incorrect string size = {}", size));
+    namespace serialize
+    {
+        /**
+         * @brief Serialize a std::string to an output stream.
+         *
+         * Serializes a `std::string` by first writing its size (as `std::uint32_t`) followed by the string data.
+         * If the string size is `UINT32_MAX`, an exception is thrown.
+         *
+         * @param stream The output stream to write to.
+         * @param string The string to be serialized.
+         *
+         * @throw std::out_of_range if the string size exceeds UINT32_MAX.
+         */
+        template<>
+        inline void Serializer::Serialize(std::ostream& stream, const std::string& string)
+        {
+            std::uint32_t size = static_cast<std::uint32_t>(string.size());
+            if (size == UINT32_MAX)
+                throw std::out_of_range(std::format("Incorrect string size = {}", size));
 
-		// If size is more then 0 need to write data.
-		if (size)
-			return stream.write(string.data(), sizeof(char) * (string.size() + 1)).tellp();
-		else
-			return stream.write("\0", sizeof(char) * 1).tellp();
-	}
-	/* Deserialize std::string. String's size will be std::uin32_t.*/
-	template<>
-	inline std::size_t Serializer::Deserialize(std::istream& stream, std::string& string, std::size_t count)
-	{
-		const std::streampos begin = stream.tellg();
-		char symbol = ' ';
-		// Try to find null terminated character.
-		do { stream.read(&symbol, sizeof(char)); } while (symbol != '\0' && stream.good());
+            // Write the string data including the null terminator
+            if (size)
+                stream.write(string.data(), sizeof(char) * (string.size() + 1));
+            else
+                stream.write("\0", sizeof(char) * 1);
+        }
 
-		// Calculate string's size.
-		const std::streampos end = stream.tellg();
-		const std::uint32_t size = std::uint32_t((end - begin) - 1);
+        /**
+         * @brief Deserialize a std::string from an input stream.
+         *
+         * Reads a `std::string` from the input stream by first locating the null terminator.
+         * The size of the string is calculated based on the distance between the initial position and the position at the null terminator.
+         * If the size is incorrect or negative, an exception is thrown.
+         *
+         * @param stream The input stream to read from.
+         * @param string The string to be deserialized.
+         *
+         * @throw std::out_of_range if the calculated string size is incorrect.
+         */
+        template<>
+        inline void Serializer::Deserialize(std::istream& stream, std::string& string)
+        {
+            const std::streampos begin = stream.tellg();
+            char symbol = ' ';
+            // Locate the null terminator
+            do { stream.read(&symbol, sizeof(char)); } while (symbol != '\0' && stream.good());
 
-		if (size + 1 == UINT32_MAX || size < 0)
-			throw std::out_of_range(std::format("Incorrect string size = {}", size + 1));
+            // Calculate the size of the string
+            const std::streampos end = stream.tellg();
+            const std::uint32_t size = std::uint32_t((end - begin) - 1);
 
-		if (size)
-		{
-			string.resize(size); stream.seekg(begin); stream.read(string.data(), sizeof(char) * (string.size())); return stream.seekg(end).tellg();
-		}
-		return end;
-	}
-	/////////////////////////////////////////////////////////////////////////////////////
-	/* Serrialize std::vector<std::uint32_t>. Vector's size will be std::uin32_t.*/
-	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::vector<std::uint32_t>& array, std::size_t count)
-	{
-		std::uint32_t size = static_cast<std::uint32_t>(array.size());
-		if (size == UINT32_MAX)
-			throw std::out_of_range(std::format("Incorrect array size = {}", size));
+            if (size + 1 == UINT32_MAX || size < 0)
+                throw std::out_of_range(std::format("Incorrect string size = {}", size + 1));
 
-		// Write size first.
-		stream.write(reinterpret_cast<char*>(&size), sizeof(std::uint32_t));
-		// If size is more then 0 need to write data.
-		if (size)
-			return stream.write(reinterpret_cast<const char*>(array.data()), array.size() * sizeof(std::uint32_t)).tellp();
-		else
-			return stream.tellp();
-	}
-	/* Deserialize std::vector<std::uint32_t>. Vector's size will be std::uin32_t.*/
-	template<>
-	inline std::size_t Serializer::Deserialize(std::istream& stream, std::vector<std::uint32_t>& array, std::size_t count)
-	{
-		std::uint32_t size = 0;
-		// Read size first.
-		stream.read(reinterpret_cast<char*>(&size), sizeof(std::uint32_t));
-		if (size == UINT32_MAX)
-			throw std::out_of_range(std::format("Incorrect array size = {}", size));
+            if (size)
+            {
+                string.resize(size);
+                stream.seekg(begin);
+                stream.read(string.data(), sizeof(char) * (string.size()));
+                stream.seekg(end);
+            }
+        }
 
-		// If size is more then 0 need to read data.
-		if (size)
-		{
-			array.resize(size);
-			return stream.read(reinterpret_cast<char*>(array.data()), array.size() * sizeof(std::uint32_t)).tellg();
-		}
-		else
-			return stream.tellg();
-	}
-	/////////////////////////////////////////////////////////////////////////////////////
-	/* Serrialize std::vector<std::uint64_t>. Vector's size will be std::uin64_t.*/
-	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::vector<std::uint64_t>& array, std::size_t count)
-	{
-		std::uint64_t size = array.size();
-		if (size == UINT32_MAX)
-			throw std::out_of_range(std::format("Incorrect array size = {}", size));
+        /**
+         * @brief Serialize a std::vector<std::uint32_t> to an output stream.
+         *
+         * Serializes a `std::vector<std::uint32_t>` by first writing its size (as `std::uint32_t`),
+         * followed by the vector's data.
+         * If the vector size is `UINT32_MAX`, an exception is thrown.
+         *
+         * @param stream The output stream to write to.
+         * @param array The vector to be serialized.
+         *
+         * @throw std::out_of_range if the vector size exceeds UINT32_MAX.
+         */
+        template<>
+        inline void Serializer::Serialize(std::ostream& stream, const std::vector<std::uint32_t>& array)
+        {
+            std::uint32_t size = static_cast<std::uint32_t>(array.size());
+            if (size == UINT32_MAX)
+                throw std::out_of_range(std::format("Incorrect array size = {}", size));
 
-		// Write size first.
-		stream.write(reinterpret_cast<char*>(&size), sizeof(std::uint64_t));
-		// If size is more then 0 need to write data.
-		if (size)
-			return stream.write(reinterpret_cast<const char*>(array.data()), array.size() * sizeof(std::uint64_t)).tellp();
-		else
-			return stream.tellp();
-	}
-	/* Deserialize std::vector<std::uint64_t>. Vector's size will be std::uin64_t.*/
-	template<>
-	inline std::size_t Serializer::Deserialize(std::istream& stream, std::vector<std::uint64_t>& array, std::size_t count)
-	{
-		std::uint64_t size = 0;
-		// Read size first.
-		stream.read(reinterpret_cast<char*>(&size), sizeof(std::uint64_t));
-		if (size == UINT32_MAX)
-			throw std::out_of_range(std::format("Incorrect array size = {}", size));
+            // Write the size of the vector
+            stream.write(reinterpret_cast<char*>(&size), sizeof(std::uint32_t));
+            // Write the vector's data
+            if (size)
+                stream.write(reinterpret_cast<const char*>(array.data()), array.size() * sizeof(std::uint32_t));
+        }
 
-		// If size is more then 0 need to read data.
-		if (size)
-		{
-			array.resize(size);
-			return stream.read(reinterpret_cast<char*>(array.data()), array.size() * sizeof(std::uint64_t)).tellg();
-		}
-		else
-			return stream.tellg();
-	}
-	/////////////////////////////////////////////////////////////////////////////////////
-	/* Serrialize std::vector<float>. Vector's size will be std::uin32_t.*/
-	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::vector<float>& array, std::size_t count)
-	{
-		std::uint32_t size = static_cast<std::uint32_t>(array.size());
-		if (size == UINT32_MAX)
-			throw std::out_of_range(std::format("Incorrect array size = {}", size));
+        /**
+         * @brief Deserialize a std::vector<std::uint32_t> from an input stream.
+         *
+         * Reads a `std::vector<std::uint32_t>` from the input stream by first reading its size (as `std::uint32_t`),
+         * followed by the vector's data.
+         * If the size is `UINT32_MAX`, an exception is thrown.
+         *
+         * @param stream The input stream to read from.
+         * @param array The vector to be deserialized.
+         *
+         * @throw std::out_of_range if the vector size exceeds UINT32_MAX.
+         */
+        template<>
+        inline void Serializer::Deserialize(std::istream& stream, std::vector<std::uint32_t>& array)
+        {
+            std::uint32_t size = 0;
+            // Read the size of the vector
+            stream.read(reinterpret_cast<char*>(&size), sizeof(std::uint32_t));
+            if (size == UINT32_MAX)
+                throw std::out_of_range(std::format("Incorrect array size = {}", size));
 
-		// Write size first.
-		stream.write(reinterpret_cast<char*>(&size), sizeof(std::uint32_t));
-		// If size is more then 0 need to write data.
-		if (size)
-			return stream.write(reinterpret_cast<const char*>(array.data()), array.size() * sizeof(float)).tellp();
-		else
-			return stream.tellp();
-	}
-	/* Deserialize std::vector<std::float>. Vector's size will be std::uin32_t.*/
-	template<>
-	inline std::size_t Serializer::Deserialize(std::istream& stream, std::vector<float>& array, std::size_t count)
-	{
-		std::uint32_t size = 0;
-		// Read size first.
-		stream.read(reinterpret_cast<char*>(&size), sizeof(std::uint32_t));
-		if (size == UINT32_MAX)
-			throw std::out_of_range(std::format("Incorrect array size = {}", size));
+            // Read the vector's data
+            if (size)
+            {
+                array.resize(size);
+                stream.read(reinterpret_cast<char*>(array.data()), array.size() * sizeof(std::uint32_t));
+            }
+        }
 
-		// If size is more then 0 need to read data.
-		if (size)
-		{
-			array.resize(size);
-			return stream.read(reinterpret_cast<char*>(array.data()), array.size() * sizeof(float)).tellg();
-		}
-		else
-			return stream.tellg();
-	}
-	/////////////////////////////////////////////////////////////////////////////////////
-	/* Serrialize std::unordered_map<std::string, std::uint32_t>. Map's size will be std::uin32_t.*/
-	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::unordered_map<std::string, std::uint32_t>& map, std::size_t count)
-	{
-		std::uint32_t size = static_cast<std::uint32_t>(map.size());
-		if (size == UINT32_MAX)
-			throw std::out_of_range(std::format("Incorrect array size = {}", size));
+        /**
+         * @brief Serialize a std::vector<std::uint64_t> to an output stream.
+         *
+         * Serializes a `std::vector<std::uint64_t>` by first writing its size (as `std::uint64_t`),
+         * followed by the vector's data.
+         * If the vector size is `UINT64_MAX`, an exception is thrown.
+         *
+         * @param stream The output stream to write to.
+         * @param array The vector to be serialized.
+         *
+         * @throw std::out_of_range if the vector size exceeds UINT64_MAX.
+         */
+        template<>
+        inline void Serializer::Serialize(std::ostream& stream, const std::vector<std::uint64_t>& array)
+        {
+            std::uint64_t size = array.size();
+            if (size == UINT64_MAX)
+                throw std::out_of_range(std::format("Incorrect array size = {}", size));
 
-		// Write size first.
-		stream.write(reinterpret_cast<char*>(&size), sizeof(std::uint32_t));
-		if (size)
-		{
-			for (auto& [str, value] : map)
-			{
-				Serialize<std::string>(stream, str);
-				Serialize<std::uint32_t>(stream, value);
-			}
-		}
-		return stream.tellp();
-	}
-	/* Deserialize std::unordered_map<std::string, std::uint32_t>. Map's size will be std::uin32_t.*/
-	template<>
-	inline std::size_t Serializer::Deserialize(std::istream& stream, std::unordered_map<std::string, std::uint32_t>& map, std::size_t count)
-	{
-		std::uint32_t size = 0;
-		// Read size first.
-		stream.read(reinterpret_cast<char*>(&size), sizeof(std::uint32_t));
-		if (size == UINT32_MAX)
-			throw std::out_of_range(std::format("Incorrect array size = {}", size));
+            // Write the size of the vector
+            stream.write(reinterpret_cast<char*>(&size), sizeof(std::uint64_t));
+            // Write the vector's data
+            if (size)
+                stream.write(reinterpret_cast<const char*>(array.data()), array.size() * sizeof(std::uint64_t));
+        }
 
-		for (std::uint32_t i = 0; i < size; i++)
-		{
-			std::string key; std::uint32_t value;
+        /**
+         * @brief Deserialize a std::vector<std::uint64_t> from an input stream.
+         *
+         * Reads a `std::vector<std::uint64_t>` from the input stream by first reading its size (as `std::uint64_t`),
+         * followed by the vector's data.
+         * If the size is `UINT64_MAX`, an exception is thrown.
+         *
+         * @param stream The input stream to read from.
+         * @param array The vector to be deserialized.
+         *
+         * @throw std::out_of_range if the vector size exceeds UINT64_MAX.
+         */
+        template<>
+        inline void Serializer::Deserialize(std::istream& stream, std::vector<std::uint64_t>& array)
+        {
+            std::uint64_t size = 0;
+            // Read the size of the vector
+            stream.read(reinterpret_cast<char*>(&size), sizeof(std::uint64_t));
+            if (size == UINT64_MAX)
+                throw std::out_of_range(std::format("Incorrect array size = {}", size));
 
-			Deserialize<std::string>(stream, key);
-			Deserialize<std::uint32_t>(stream, value);
+            // Read the vector's data
+            if (size)
+            {
+                array.resize(size);
+                stream.read(reinterpret_cast<char*>(array.data()), array.size() * sizeof(std::uint64_t));
+            }
+        }
 
-			map.insert({ key, value });
-		}
-		return stream.tellg();
-	}
-	/////////////////////////////////////////////////////////////////////////////////////
-	/* Serrialize std::unordered_map<std::string, std::uint64_t>. Map's size will be std::uin64_t.*/
-	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::unordered_map<std::string, std::uint64_t>& map, std::size_t count)
-	{
-		std::uint64_t size = map.size();
-		if (size == UINT32_MAX)
-			throw std::out_of_range(std::format("Incorrect array size = {}", size));
+        /**
+         * @brief Serialize a std::vector<float> to an output stream.
+         *
+         * Serializes a `std::vector<float>` by first writing its size (as `std::uint32_t`),
+         * followed by the vector's data.
+         * If the vector size is `UINT32_MAX`, an exception is thrown.
+         *
+         * @param stream The output stream to write to.
+         * @param array The vector to be serialized.
+         *
+         * @throw std::out_of_range if the vector size exceeds UINT32_MAX.
+         */
+        template<>
+        inline void Serializer::Serialize(std::ostream& stream, const std::vector<float>& array)
+        {
+            std::uint32_t size = static_cast<std::uint32_t>(array.size());
+            if (size == UINT32_MAX)
+                throw std::out_of_range(std::format("Incorrect array size = {}", size));
 
-		// Write size first.
-		stream.write(reinterpret_cast<char*>(&size), sizeof(std::uint64_t));
-		if (size)
-		{
-			for (auto& [str, value] : map)
-			{
-				Serialize<std::string>(stream, str);
-				Serialize<std::uint64_t>(stream, value);
-			}
-		}
-		return stream.tellp();
-	}
-	/* Deserialize std::unordered_map<std::string, std::uint64_t>. Map's size will be std::uin64_t.*/
-	template<>
-	inline std::size_t Serializer::Deserialize(std::istream& stream, std::unordered_map<std::string, std::uint64_t>& map, std::size_t count)
-	{
-		std::uint64_t size = 0;
-		// Read size first.
-		stream.read(reinterpret_cast<char*>(&size), sizeof(std::uint64_t));
-		if (size == UINT32_MAX)
-			throw std::out_of_range(std::format("Incorrect array size = {}", size));
+            // Write the size of the vector
+            stream.write(reinterpret_cast<char*>(&size), sizeof(std::uint32_t));
+            // Write the vector's data
+            if (size)
+                stream.write(reinterpret_cast<const char*>(array.data()), array.size() * sizeof(float));
+        }
 
-		for (std::uint64_t i = 0; i < size; i++)
-		{
-			std::string key; std::uint64_t value;
+        /**
+         * @brief Deserialize a std::vector<float> from an input stream.
+         *
+         * Reads a `std::vector<float>` from the input stream by first reading its size (as `std::uint32_t`),
+         * followed by the vector's data.
+         * If the size is `UINT32_MAX`, an exception is thrown.
+         *
+         * @param stream The input stream to read from.
+         * @param array The vector to be deserialized.
+         *
+         * @throw std::out_of_range if the vector size exceeds UINT32_MAX.
+         */
+        template<>
+        inline void Serializer::Deserialize(std::istream& stream, std::vector<float>& array)
+        {
+            std::uint32_t size = 0;
+            // Read the size of the vector
+            stream.read(reinterpret_cast<char*>(&size), sizeof(std::uint32_t));
+            if (size == UINT32_MAX)
+                throw std::out_of_range(std::format("Incorrect array size = {}", size));
 
-			Deserialize<std::string>(stream, key);
-			Deserialize<std::uint64_t>(stream, value);
+            // Read the vector's data
+            if (size)
+            {
+                array.resize(size);
+                stream.read(reinterpret_cast<char*>(array.data()), array.size() * sizeof(float));
+            }
+        }
 
-			map.insert({ key, value });
-		}
-		return stream.tellg();
-	}
-	/////////////////////////////////////////////////////////////////////////////////////
-	/* Serrialize std::unordered_map<std::string, std::string>. Map's size will be std::uin32_t.*/
-	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const std::unordered_map<std::string, std::string>& map, std::size_t count)
-	{
-		std::uint32_t size = static_cast<std::uint32_t>(map.size());
-		if (size == UINT32_MAX)
-			throw std::out_of_range(std::format("Incorrect array size = {}", size));
+        /**
+         * @brief Serialize a std::unordered_map<std::string, std::uint32_t> to an output stream.
+         *
+         * Serializes a `std::unordered_map<std::string, std::uint32_t>` by first writing its size (as `std::uint32_t`),
+         * followed by the map's keys and values.
+         * If the map size is `UINT32_MAX`, an exception is thrown.
+         *
+         * @param stream The output stream to write to.
+         * @param map The map to be serialized.
+         *
+         * @throw std::out_of_range if the map size exceeds UINT32_MAX.
+         */
+        template<>
+        inline void Serializer::Serialize(std::ostream& stream, const std::unordered_map<std::string, std::uint32_t>& map)
+        {
+            std::uint32_t size = static_cast<std::uint32_t>(map.size());
+            if (size == UINT32_MAX)
+                throw std::out_of_range(std::format("Incorrect array size = {}", size));
 
-		// Write size first.
-		stream.write(reinterpret_cast<char*>(&size), sizeof(std::uint32_t));
-		if (size)
-		{
-			for (auto& [str, value] : map)
-			{
-				Serialize<std::string>(stream, str);
-				Serialize<std::string>(stream, value);
-			}
-		}
-		return stream.tellp();
-	}
-	/* Deserialize std::unordered_map<std::string, std::string>. Map's size will be std::uin32_t.*/
-	template<>
-	inline std::size_t Serializer::Deserialize(std::istream& stream, std::unordered_map<std::string, std::string>& map, std::size_t count)
-	{
-		std::uint32_t size = 0;
-		// Read size first.
-		stream.read(reinterpret_cast<char*>(&size), sizeof(std::uint32_t));
-		if (size == UINT32_MAX)
-			throw std::out_of_range(std::format("Incorrect array size = {}", size));
+            // Write the size of the map
+            stream.write(reinterpret_cast<char*>(&size), sizeof(std::uint32_t));
+            // Write each key-value pair
+            if (size)
+            {
+                for (auto& [str, value] : map)
+                {
+                    Serialize<std::string>(stream, str);
+                    Serialize<std::uint32_t>(stream, value);
+                }
+            }
+        }
 
-		for (std::uint32_t i = 0; i < size; i++)
-		{
-			std::string key; std::string value;
+        /**
+         * @brief Deserialize a std::unordered_map<std::string, std::uint32_t> from an input stream.
+         *
+         * Reads a `std::unordered_map<std::string, std::uint32_t>` from the input stream by first reading its size (as `std::uint32_t`),
+         * followed by each key-value pair.
+         * If the size is `UINT32_MAX`, an exception is thrown.
+         *
+         * @param stream The input stream to read from.
+         * @param map The map to be deserialized.
+         *
+         * @throw std::out_of_range if the map size exceeds UINT32_MAX.
+         */
+        template<>
+        inline void Serializer::Deserialize(std::istream& stream, std::unordered_map<std::string, std::uint32_t>& map)
+        {
+            std::uint32_t size = 0;
+            // Read the size of the map
+            stream.read(reinterpret_cast<char*>(&size), sizeof(std::uint32_t));
+            if (size == UINT32_MAX)
+                throw std::out_of_range(std::format("Incorrect array size = {}", size));
 
-			Deserialize<std::string>(stream, key);
-			Deserialize<std::string>(stream, value);
+            // Read each key-value pair
+            for (std::uint32_t i = 0; i < size; i++)
+            {
+                std::string key;
+                std::uint32_t value;
 
-			map.insert({ key, value });
-		}
-		return stream.tellg();
-	}
-	/* Serrialize glm::vec3.*/
-	template<>
-	inline std::size_t Serializer::Serialize(std::ostream& stream, const glm::vec3& value, std::size_t count)
-	{
-		return stream.write(reinterpret_cast<const char*>(glm::value_ptr(value)), sizeof(glm::vec3)).tellp();
-	}
-	/* Deserialize glm::vec3.*/
-	template<>
-	inline std::size_t Serializer::Deserialize(std::istream& stream, glm::vec3& value, std::size_t count)
-	{
-		return stream.read(reinterpret_cast<char*>(glm::value_ptr(value)), sizeof(glm::vec3)).tellg();
-	}
+                Deserialize<std::string>(stream, key);
+                Deserialize<std::uint32_t>(stream, value);
+
+                map.insert({ key, value });
+            }
+        }
+
+        /**
+         * @brief Serialize a std::unordered_map<std::string, std::uint64_t> to an output stream.
+         *
+         * Serializes a `std::unordered_map<std::string, std::uint64_t>` by first writing its size (as `std::uint64_t`),
+         * followed by the map's keys and values.
+         * If the map size is `UINT64_MAX`, an exception is thrown.
+         *
+         * @param stream The output stream to write to.
+         * @param map The map to be serialized.
+         *
+         * @throw std::out_of_range if the map size exceeds UINT64_MAX.
+         */
+        template<>
+        inline void Serializer::Serialize(std::ostream& stream, const std::unordered_map<std::string, std::uint64_t>& map)
+        {
+            std::uint64_t size = map.size();
+            if (size == UINT64_MAX)
+                throw std::out_of_range(std::format("Incorrect array size = {}", size));
+
+            // Write the size of the map
+            stream.write(reinterpret_cast<char*>(&size), sizeof(std::uint64_t));
+            // Write each key-value pair
+            if (size)
+            {
+                for (auto& [str, value] : map)
+                {
+                    Serialize<std::string>(stream, str);
+                    Serialize<std::uint64_t>(stream, value);
+                }
+            }
+        }
+
+        /**
+         * @brief Deserialize a std::unordered_map<std::string, std::uint64_t> from an input stream.
+         *
+         * Reads a `std::unordered_map<std::string, std::uint64_t>` from the input stream by first reading its size (as `std::uint64_t`),
+         * followed by each key-value pair.
+         * If the size is `UINT64_MAX`, an exception is thrown.
+         *
+         * @param stream The input stream to read from.
+         * @param map The map to be deserialized.
+         *
+         * @throw std::out_of_range if the map size exceeds UINT64_MAX.
+         */
+        template<>
+        inline void Serializer::Deserialize(std::istream& stream, std::unordered_map<std::string, std::uint64_t>& map)
+        {
+            std::uint64_t size = 0;
+            // Read the size of the map
+            stream.read(reinterpret_cast<char*>(&size), sizeof(std::uint64_t));
+            if (size == UINT64_MAX)
+                throw std::out_of_range(std::format("Incorrect array size = {}", size));
+
+            // Read each key-value pair
+            for (std::uint64_t i = 0; i < size; i++)
+            {
+                std::string key;
+                std::uint64_t value;
+
+                Deserialize<std::string>(stream, key); Deserialize<std::uint64_t>(stream, value);
+                map.emplace(key, value);
+            }
+        }
+
+        /**
+         * @brief Serialize a std::unordered_map<std::string, std::string> to an output stream.
+         *
+         * Serializes a `std::unordered_map<std::string, std::string>` by first writing its size (as `std::uint32_t`),
+         * followed by the map's keys and values.
+         * If the map size is `UINT32_MAX`, an exception is thrown.
+         *
+         * @param stream The output stream to write to.
+         * @param map The map to be serialized.
+         *
+         * @throw std::out_of_range if the map size exceeds UINT32_MAX.
+         */
+        template<>
+        inline void Serializer::Serialize(std::ostream& stream, const std::unordered_map<std::string, std::string>& map)
+        {
+            std::uint32_t size = static_cast<std::uint32_t>(map.size());
+            if (size == UINT32_MAX)
+                throw std::out_of_range(std::format("Incorrect array size = {}", size));
+
+            // Write the size of the map
+            stream.write(reinterpret_cast<char*>(&size), sizeof(std::uint32_t));
+            // Write each key-value pair
+            if (size)
+            {
+                for (auto& [str, value] : map)
+                {
+                    Serialize<std::string>(stream, str);
+                    Serialize<std::string>(stream, value);
+                }
+            }
+        }
+
+        /**
+         * @brief Deserialize a std::unordered_map<std::string, std::string> from an input stream.
+         *
+         * Reads a `std::unordered_map<std::string, std::string>` from the input stream by first reading its size (as `std::uint32_t`),
+         * followed by each key-value pair.
+         * If the size is `UINT32_MAX`, an exception is thrown.
+         *
+         * @param stream The input stream to read from.
+         * @param map The map to be deserialized.
+         *
+         * @throw std::out_of_range if the map size exceeds UINT32_MAX.
+         */
+        template<>
+        inline void Serializer::Deserialize(std::istream& stream, std::unordered_map<std::string, std::string>& map)
+        {
+            std::uint32_t size = 0;
+            // Read the size of the map
+            stream.read(reinterpret_cast<char*>(&size), sizeof(std::uint32_t));
+            if (size == UINT32_MAX)
+                throw std::out_of_range(std::format("Incorrect array size = {}", size));
+
+            // Read each key-value pair
+            for (std::uint32_t i = 0; i < size; i++)
+            {
+                std::string key;
+                std::string value;
+
+                Deserialize<std::string>(stream, key);
+                Deserialize<std::string>(stream, value);
+
+                map.insert({ key, value });
+            }
+        }
+
+        /**
+         * @brief Serialize a glm::vec3 to an output stream.
+         *
+         * Serializes a `glm::vec3` by writing its binary representation to the output stream.
+         *
+         * @param stream The output stream to write to.
+         * @param value The glm::vec3 to be serialized.
+         */
+        template<>
+        inline void Serializer::Serialize(std::ostream& stream, const glm::vec3& value)
+        {
+            stream.write(reinterpret_cast<const char*>(glm::value_ptr(value)), sizeof(glm::vec3));
+        }
+
+        /**
+         * @brief Deserialize a glm::vec3 from an input stream.
+         *
+         * Reads a `glm::vec3` from the input stream by reading its binary representation.
+         *
+         * @param stream The input stream to read from.
+         * @param value The glm::vec3 to be deserialized.
+         */
+        template<>
+        inline void Serializer::Deserialize(std::istream& stream, glm::vec3& value)
+        {
+            stream.read(reinterpret_cast<char*>(glm::value_ptr(value)), sizeof(glm::vec3));
+        }
+    }
 }

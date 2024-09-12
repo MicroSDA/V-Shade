@@ -85,7 +85,7 @@ void shade::render::Image::GenerateDiffuseTexture()
 		m_ImageData.Size = imageSize;
 
 		m_ImageData.Data = new std::uint8_t[m_ImageData.Size];
-		Serializer::Deserialize(stream, *m_ImageData.Data, m_ImageData.Size);
+		serialize::Serializer::Deserialize(stream, *m_ImageData.Data, m_ImageData.Size);
 	}
 	else
 	{
@@ -98,17 +98,16 @@ shade::render::Image::ImageData& shade::render::Image::GetImageData()
 	return m_ImageData;
 }
 
-std::size_t shade::render::Image::Serialize(std::ostream& stream) const
+void shade::render::Image::Serialize(std::ostream& stream) const
 {
-	return std::size_t();
 }
 
 void shade::render::Image::ReadHeader(std::istream& stream, Header& header)
 {
-	Serializer::Deserialize(stream, header);
+	serialize::Serializer::Deserialize(stream, header);
 }
 
-std::size_t shade::render::Image::Deserialize(std::istream& stream)
+void shade::render::Image::Deserialize(std::istream& stream)
 {
 	Header		header;
 	ImageData	data;
@@ -119,8 +118,11 @@ std::size_t shade::render::Image::Deserialize(std::istream& stream)
 		m_ImageData.Width = header.Width;
 		m_ImageData.Height = header.Height;
 
+		m_ImageData.HasAlpha	= (header.Flags & 0x00000001)  ? true  : false;
+		//m_ImageData.SRGB		= (header.Flags & 0x00000040)  ? false : true; // Doesnt work, dds doesnt have such flgas
+
 		/*If texture contains compressed RGB data; dwFourCC contains valid data.*/
-		if (header.Dspf.dwFlags == 0x4) // DDPF_FOURCC = 0x4 
+		if (header.Dspf.dwFlags == 0x00000004) // DDPF_FOURCC = 0x4 
 			m_ImageData.Compression = static_cast<ImageData::DXTCompression>(header.Dspf.dwFourCC);
 
 		m_ImageData.MipMapCount = header.MipMapCount;
@@ -136,13 +138,10 @@ std::size_t shade::render::Image::Deserialize(std::istream& stream)
 		m_ImageData.Data = new std::uint8_t[imageSize];
 		m_ImageData.Size = imageSize;
 		// Read buffer
-		Serializer::Deserialize(stream, *m_ImageData.Data, imageSize);
-		return imageSize;
+		serialize::Serializer::Deserialize(stream, *m_ImageData.Data, imageSize);
 	}
 	else
 	{
 		SHADE_CORE_WARNING("Wrong image header !: {0}", header.Magic);
 	}
-
-	return 0;
 }

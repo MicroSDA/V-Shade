@@ -56,11 +56,14 @@ namespace shade
 			};
 			struct ImageData
 			{
-				std::uint8_t* Data = nullptr;
+				std::uint8_t*  Data = nullptr;
 				std::uint16_t  Width = 0;
 				std::uint16_t  Height = 0;
 				std::uint8_t   MipMapCount = 1;
 				std::uint32_t  Size = 0;
+				bool		   HasAlpha = false;
+				bool		   SRGB = false;
+
 				enum class DXTCompression : std::uint32_t
 				{
 					Undefined = 0,
@@ -118,11 +121,11 @@ namespace shade
 		private:
 			ImageData m_ImageData;
 		private:
-			std::size_t Serialize(std::ostream& stream) const;
-			std::size_t Deserialize(std::istream& stream);
+			void Serialize(std::ostream& stream) const;
+			void Deserialize(std::istream& stream);
 			static void ReadHeader(std::istream& stream, Header& header);
 		private:
-			friend class Serializer;
+			friend class serialize::Serializer;
 		};
 		class SHADE_API Image2D
 		{
@@ -152,14 +155,14 @@ namespace shade
 
 	// This function serializes an image on a given output stream
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const render::Image& image, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const render::Image& image)
 	{
-		return image.Serialize(stream);
+		image.Serialize(stream);
 	}
 	// This function deserializes an image from a given input stream
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, render::Image& image, std::size_t)
+	inline void serialize::Serializer::Deserialize(std::istream& stream, render::Image& image)
 	{
-		return image.Deserialize(stream);
+		image.Deserialize(stream);
 	}
 }

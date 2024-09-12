@@ -34,9 +34,9 @@ namespace shade
 		private:
 			friend class shade::Scene;
 		private:
-			friend class Serializer;
-			std::size_t Serialize(std::ostream& stream) const;
-			std::size_t Desirialize(std::istream& stream);
+			friend class serialize::Serializer;
+			void Serialize(std::ostream& stream) const;
+			void Desirialize(std::istream& stream);
 		};
 		template<typename T>
 		inline void NativeScript::Bind()
@@ -55,14 +55,14 @@ namespace shade
 namespace shade
 {
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const ecs::NativeScript& script, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const ecs::NativeScript& script)
 	{
-		return script.Serialize(stream);
+		script.Serialize(stream);
 	}
 
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, ecs::NativeScript& script, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, ecs::NativeScript& script)
 	{
-		return script.Desirialize(stream);
+		script.Desirialize(stream);
 	}
 }

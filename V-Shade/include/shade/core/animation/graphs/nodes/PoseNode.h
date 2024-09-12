@@ -30,8 +30,8 @@ namespace shade
 			AnimationController::AnimationControlData& GetAnimationData();
 		private:
 			
-			virtual std::size_t SerializeBody(std::ostream& stream) const override;
-			virtual std::size_t DeserializeBody(std::istream& stream) override;
+			virtual void SerializeBody(std::ostream& stream) const override;
+			virtual void DeserializeBody(std::istream& stream) override;
 
 			AnimationController::AnimationControlData m_AnimationData;
 		};

@@ -55,22 +55,20 @@ std::vector<glm::vec<3, shade::physic::scalar_t>>& shade::physic::MeshShape::Get
 	return m_Vertices;
 }
 
-std::size_t shade::physic::MeshShape::Serialize(std::ostream& stream) const
+void shade::physic::MeshShape::Serialize(std::ostream& stream) const
 {
-	std::size_t size = Serializer::Serialize(stream, static_cast<std::uint32_t>(GetShape()));
-	size += Serializer::Serialize(stream, static_cast<std::uint32_t>(m_Vertices.size()));
+	serialize::Serializer::Serialize(stream, static_cast<std::uint32_t>(GetShape()));
+	serialize::Serializer::Serialize(stream, static_cast<std::uint32_t>(m_Vertices.size()));
 
 	for (const auto& vertex : m_Vertices)
 	{
-		size += Serializer::Serialize(stream, static_cast<float>(vertex.x));
-		size += Serializer::Serialize(stream, static_cast<float>(vertex.y));
-		size += Serializer::Serialize(stream, static_cast<float>(vertex.z));
+		serialize::Serializer::Serialize(stream, static_cast<float>(vertex.x));
+		serialize::Serializer::Serialize(stream, static_cast<float>(vertex.y));
+		serialize::Serializer::Serialize(stream, static_cast<float>(vertex.z));
 	}
-
-	return size;
 }
 
-std::size_t shade::physic::MeshShape::Deserialize(std::istream& stream)
+void shade::physic::MeshShape::Deserialize(std::istream& stream)
 {
-	return std::size_t();
+	
 }

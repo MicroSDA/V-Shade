@@ -175,6 +175,33 @@ bool shade::graphs::GraphContext::DisconnectNodes(BaseNode* pConnectedTo, Endpoi
 	return false;
 }
 
+bool shade::graphs::GraphContext::DisconnectEndpoint(BaseNode* pConnectedTo, EndpointIdentifier connectedToEndpoint)
+{
+	// Find the connection between the specified nodes and endpoints.
+	auto connection = FindConnection(pConnectedTo, connectedToEndpoint);
+
+	// Ensure the connection is valid and not to an invalid endpoint.
+	if (connection != nullptr && connection->ConnectedToEndpoint != INVALID_NODE_IDENTIFIER)
+	{
+		NodeValues::Value* connectedToValue		= pConnectedTo->__GET_ENDPOINT<Connection::Input>(connectedToEndpoint);
+		NodeValues::Value* connectedFromValue	= connection->PConnectedFrom->__GET_ENDPOINT<Connection::Output>(connection->ConnectedFromEndpoint);
+
+		// Ensure both input and output values are valid.
+		if (!connectedToValue || !connectedFromValue) return false;
+
+		// Remove the connection and notify the nodes of the disconnection.
+		if (RemoveConnection(pConnectedTo, connectedToEndpoint, connection->PConnectedFrom, connection->ConnectedFromEndpoint))
+		{
+			pConnectedTo->OnDisconnect(Connection::Type::Input, connectedToValue->get()->GetType(), connectedToEndpoint);
+			connection->PConnectedFrom->OnDisconnect(Connection::Type::Output, connectedFromValue->get()->GetType(), connection->ConnectedFromEndpoint);
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool shade::graphs::GraphContext::RemoveAllInputConnection(BaseNode* pConnectedTo)
 {
 	bool wasRemoved = false;
@@ -229,54 +256,50 @@ bool shade::graphs::GraphContext::RemoveAllOutputConnection(BaseNode* pConnected
 	return wasRemoved;
 }
 
-std::size_t shade::graphs::GraphContext::Serialize(std::ostream& stream) const
+void shade::graphs::GraphContext::Serialize(std::ostream& stream) const
 {
 	// Serialize count fo nodes
-	std::size_t size = Serializer::Serialize(stream, std::uint32_t(Nodes.size()));
+	serialize::Serializer::Serialize(stream, std::uint32_t(Nodes.size()));
 
 	for (const auto& [node, pack] : Nodes)
 	{
 		// Serialize connected to node identifier
-		size += Serializer::Serialize(stream, node->GetNodeIdentifier());
+		serialize::Serializer::Serialize(stream, node->GetNodeIdentifier());
 
 		// Serialize connections count
-		size += Serializer::Serialize(stream, std::uint32_t(pack.Connections.size()));
+		serialize::Serializer::Serialize(stream, std::uint32_t(pack.Connections.size()));
 
 		// Serialize node connection
 		for (const Connection& connection : pack.Connections)
 		{
-			size += Serializer::Serialize(stream, connection.ConnectedToEndpoint);
-			size += Serializer::Serialize(stream, connection.PConnectedFrom->GetNodeIdentifier());
-			size += Serializer::Serialize(stream, connection.ConnectedFromEndpoint);
+			serialize::Serializer::Serialize(stream, connection.ConnectedToEndpoint);
+			serialize::Serializer::Serialize(stream, connection.PConnectedFrom->GetNodeIdentifier());
+			serialize::Serializer::Serialize(stream, connection.ConnectedFromEndpoint);
 		}
 	}
-	
-	return size;
 }
 
-std::size_t shade::graphs::GraphContext::Deserialize(std::istream& stream)
+void shade::graphs::GraphContext::Deserialize(std::istream& stream)
 {
 	// Deserialize count fo nodes
-	std::uint32_t nodeCount; std::size_t size = Serializer::Deserialize(stream, nodeCount);
+	std::uint32_t nodeCount; serialize::Serializer::Deserialize(stream, nodeCount);
 	
 	for (std::size_t i = 0; i < nodeCount; ++i)
 	{
 		// Deserialize connected to node identifier
-		NodeIdentifier connectedToIdentifier;		size += Serializer::Deserialize(stream, connectedToIdentifier);
+		NodeIdentifier connectedToIdentifier; serialize::Serializer::Deserialize(stream, connectedToIdentifier);
 
-		std::uint32_t connectionCount; size += Serializer::Deserialize(stream, connectionCount);
+		std::uint32_t connectionCount; serialize::Serializer::Deserialize(stream, connectionCount);
 		
 		for (std::uint32_t i = 0; i < connectionCount; ++i)
 		{
 			// Deserialize node connection
-			EndpointIdentifier connectedToEndpoint;		size += Serializer::Deserialize(stream, connectedToEndpoint);
-			NodeIdentifier connectedFromIdentifier;		size += Serializer::Deserialize(stream, connectedFromIdentifier);
-			EndpointIdentifier connectedFromEndpoint;	size += Serializer::Deserialize(stream, connectedFromEndpoint);
+			EndpointIdentifier connectedToEndpoint;		serialize::Serializer::Deserialize(stream, connectedToEndpoint);
+			NodeIdentifier connectedFromIdentifier;		serialize::Serializer::Deserialize(stream, connectedFromIdentifier);
+			EndpointIdentifier connectedFromEndpoint;	serialize::Serializer::Deserialize(stream, connectedFromEndpoint);
 
 			// Connect nodes
 			ConnectNodes(FindNode(connectedToIdentifier), connectedToEndpoint, FindNode(connectedFromIdentifier), connectedFromEndpoint);
 		}
 	}
-
-	return size;
 }

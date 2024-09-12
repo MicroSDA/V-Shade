@@ -289,6 +289,22 @@ namespace shade
 				return m_Endpoints;
 			}
 
+			/*/// @brief Getter for all endpoints.
+			/// @return Reference to the array of endpoints.
+			template<typename Connection::Type ConnectionType>
+			SHADE_INLINE NodeValues& GetEndpoints()
+			{
+				return m_Endpoints[static_cast<std::size_t>(ConnectionType)];
+			}
+
+			/// @brief Getter for all endpoints.
+			/// @return Reference to the array of endpoints.
+			template<typename Connection::Type ConnectionType>
+			SHADE_INLINE const NodeValues& GetEndpoints() const
+			{
+				return m_Endpoints[static_cast<std::size_t>(ConnectionType)];
+			}*/
+
 			/// @brief Gets the count of all endpoints.
 			/// @return The number of endpoints.
 			SHADE_INLINE std::size_t GetEndpointCount() const
@@ -401,40 +417,40 @@ namespace shade
 			/// @brief Serializes the base node to the given output stream.
 			/// @param stream The output stream to serialize to.
 			/// @return The number of bytes written.
-			virtual std::size_t Serialize(std::ostream& stream) const;
+			virtual void Serialize(std::ostream& stream) const;
 
 			/// @brief Deserializes the base node from the given input stream.
 			/// @param stream The input stream to deserialize from.
 			/// @return The number of bytes read.
-			virtual std::size_t Deserialize(std::istream& stream);
+			virtual void Deserialize(std::istream& stream);
 
 			/// @brief Serializes the body of base node to the given output stream.
 			/// @param stream The output stream to serialize to.
 			/// @return The number of bytes written.
-			virtual std::size_t SerializeBody(std::ostream& stream) const;
+			virtual void SerializeBody(std::ostream& stream) const;
 
 			/// @brief Deserializes the body of base node to the given output stream.
 			/// @param stream The output stream to deserialize from.
 			/// @return The number of bytes written.
-			virtual std::size_t DeserializeBody(std::istream& stream);
+			virtual void DeserializeBody(std::istream& stream);
 
 		
 			BaseNode* CreateNodeByType(NodeType type);
 
-			friend class Serializer;
+			friend class serialize::Serializer;
 		};
 	}
 
 	// Serialize AnimationGraph
 	template<>
-	SHADE_INLINE std::size_t shade::Serializer::Serialize(std::ostream& stream, const shade::graphs::BaseNode& node, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const shade::graphs::BaseNode& node)
 	{
 		return node.Serialize(stream);
 	}
 
 	// Deserialize AnimationGraph
 	template<>
-	SHADE_INLINE std::size_t shade::Serializer::Deserialize(std::istream& stream, shade::graphs::BaseNode& node, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, shade::graphs::BaseNode& node)
 	{
 		return node.Deserialize(stream);
 	}

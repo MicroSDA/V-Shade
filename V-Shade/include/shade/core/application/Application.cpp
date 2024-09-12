@@ -30,7 +30,7 @@ shade::UniquePointer<shade::Window>& shade::Application::GetWindow()
 
 void shade::Application::Initialize()
 {
-	File::InitializeMetaFile();
+	file::FileManager::Initialize("./");
 	AssetManager::Initialize();
 
 	// Create dummy scene.

@@ -72,6 +72,12 @@ namespace shade
 			IncrementSize();
 		}
 		template<typename... Args>
+		void Emplace(Args&&... args)
+		{
+			m_Array[GetSize()] = T(std::forward<Args>(args)...);
+			IncrementSize();
+		}
+		template<typename... Args>
 		void EmplaceBack(Args&&... args)
 		{
 			for (std::size_t i = 0u; i < m_Array.size() - 1u; ++i)

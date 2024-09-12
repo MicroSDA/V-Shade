@@ -7,6 +7,7 @@
 #include <shade/utils/Logger.h>
 #include <shade/core/render/drawable/Material.h>
 #include <shade/core/animation/Skeleton.h>
+#include <shade/core/serializing/File.h>
 
 namespace shade
 {
@@ -18,34 +19,34 @@ namespace shade
 		virtual ~Mesh() = default;
 	private:
 		Mesh(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
-		std::size_t Serialize(std::ostream& stream) const;
-		std::size_t Deserialize(std::istream& stream);
+		void Serialize(std::ostream& stream) const;
+		void Deserialize(std::istream& stream);
 	private:
-		friend class Serializer;
+		friend class serialize::Serializer;
 	};
 
 	/* Serialize Mesh.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Mesh& mesh, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const Mesh& mesh)
 	{
-		return mesh.Serialize(stream);
+		mesh.Serialize(stream);
 	}
 	/* Deserialize Mesh.*/
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, Mesh& mesh, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, Mesh& mesh)
 	{
-		return mesh.Deserialize(stream);
+		mesh.Deserialize(stream);
 	}
 	/* Serialize Asset<Mesh>.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Asset<Mesh>& mesh, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const Asset<Mesh>& mesh)
 	{
-		return mesh->Serialize(stream);
+		mesh->Serialize(stream);
 	}
 	/* Deserialize Asset<Mesh>.*/
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, Asset<Mesh>& mesh, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, Asset<Mesh>& mesh)
 	{
-		return mesh->Deserialize(stream);
+		mesh->Deserialize(stream);
 	}
 }

@@ -86,8 +86,8 @@ namespace shade
 		std::unordered_map<std::string, std::string>& GetAttributes();
 
 	private:
-		std::size_t Serialize(std::ostream& stream) const;
-		std::size_t Deserialize(std::istream& stream);
+		void Serialize(std::ostream& stream) const;
+		void Deserialize(std::istream& stream);
 	private:
 		// MAKE DEFAULT CONSTRUCTOR !
 		AssetMeta::Category m_Category;
@@ -98,7 +98,7 @@ namespace shade
 		std::vector<SharedPointer<AssetData>> m_Dependencies;
 		SharedPointer<AssetData> m_SecondaryReference; // In case that primary asset linked to some secondary asset.
 
-		friend class Serializer;
+		friend class serialize::Serializer;
 		friend class AssetManager;
 	};
 	/* Get attribute as string.*/
@@ -334,22 +334,23 @@ namespace shade
 			friend class SharedPointer<atype>;\
 			friend class Asset<atype>;
 
+	
 	/* Serialize AssetData.*/
 	template<>
-	SHADE_INLINE std::size_t shade::Serializer::Serialize(std::ostream& stream, const SharedPointer<AssetData>& assetData, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const SharedPointer<AssetData>& assetData)
 	{
-		return assetData->Serialize(stream);
+		assetData->Serialize(stream);
 	}
 	/* Deserialize AssetData.*/
 	template<>
-	SHADE_INLINE std::size_t shade::Serializer::Deserialize(std::istream& stream, SharedPointer<AssetData>& assetData, std::size_t count)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, SharedPointer<AssetData>& assetData)
 	{
-		return assetData->Deserialize(stream);
+		assetData->Deserialize(stream);
 	}
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/* Serialize std::vector<AssetData>.*/
 	template<>
-	SHADE_INLINE std::size_t shade::Serializer::Serialize(std::ostream& stream, const std::vector<SharedPointer<AssetData>>& array, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const std::vector<SharedPointer<AssetData>>& array)
 	{
 		std::uint32_t size = static_cast<std::uint32_t>(array.size());
 		if (size == UINT32_MAX)
@@ -365,11 +366,10 @@ namespace shade
 				Serializer::Serialize(stream, asset);
 			}
 		}
-		return stream.tellp();
 	}
 	/* Deserialize std::vector<AssetData>.*/
 	template<>
-	SHADE_INLINE std::size_t shade::Serializer::Deserialize(std::istream& stream, std::vector<SharedPointer<AssetData>>& array, std::size_t count)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, std::vector<SharedPointer<AssetData>>& array)
 	{
 		std::uint32_t size = 0;
 		// Read size first.
@@ -387,7 +387,6 @@ namespace shade
 				Serializer::Deserialize(stream, asset);
 			}
 		}
-		return stream.tellg();
 	}
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 }

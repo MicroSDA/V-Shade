@@ -267,3 +267,89 @@ bool shade::CurveEditor(const char* lable, float v, float bMin, float bMax, floa
 
 	return false;
 }
+
+bool shade::GradientBand2DSpace(const char* label, const ImVec2& size, const std::vector<float>& weights, const std::vector<glm::vec2>& points, const glm::vec2& sample_point)
+{
+	// Проверка на правильность входных данных
+	if (points.empty() || weights.empty() || points.size() != weights.size())
+		return false;
+
+	// Создаем окно ChildNode
+	ImGui::BeginChild(label, size, false);
+
+	// Получаем текущий ImDrawList для рисования
+	ImDrawList* draw_list = ImGui::GetWindowDrawList();
+	ImVec2 p0 = ImGui::GetCursorScreenPos(); // верхний левый угол окна
+
+	// Определяем максимальные значения координат по модулю
+	float x_max_abs = 0.0f, y_max_abs = 0.0f;
+
+	for (const auto& point : points)
+	{
+		x_max_abs = std::max(x_max_abs, std::abs(point.x));
+		y_max_abs = std::max(y_max_abs, std::abs(point.y));
+	}
+
+	// Добавляем офсет к границам для визуального отступа
+	float offset = 0.5f; // произвольное значение офсета
+	float x_range = x_max_abs + offset;
+	float y_range = y_max_abs + offset;
+
+	// Определяем размеры окна
+	float width = size.x;
+	float height = size.y;
+
+	// Рассчитываем максимальный радиус
+	float max_radius = std::min(width, height) / 3.0f;
+
+	// Рисуем сетку
+	const int num_lines = 9; // Количество линий сетки
+	float step_x = width / (1 * num_lines); // Шаг для X
+	float step_y = height / (1 * num_lines); // Шаг для Y
+
+	// Рисуем вертикальные и горизонтальные линии
+	for (int i = -num_lines; i <= num_lines; ++i)
+	{
+		float x = p0.x + width / 2 + i * step_x;
+		draw_list->AddLine(ImVec2(x, p0.y), ImVec2(x, p0.y + height), IM_COL32(150, 150, 150, 50));
+
+		float y = p0.y + height / 2 + i * step_y;
+		draw_list->AddLine(ImVec2(p0.x, y), ImVec2(p0.x + width, y), IM_COL32(150, 150, 150, 50));
+	}
+
+	draw_list->AddRect(p0, p0 + size, IM_COL32(150, 150, 150, 50), 2.f, 0, 2.f);
+
+	// Рисуем координатную сетку и точки
+	for (size_t i = 0; i < points.size(); ++i)
+	{
+		const auto& point = points[i];
+		float weight = weights[i];
+
+		// Нормализация координат для отрисовки в пределах окна
+		float normalized_x = (point.x / x_range) * (width / 2) + p0.x + width / 2;
+		float normalized_y = (1.0f - (point.y / y_range)) * (height / 2) + p0.y;
+
+		// Квадратичная интерполяция радиуса в зависимости от веса
+		float radius = 1.0f + weight * weight * (max_radius - 1.0f);
+
+		// Рисуем точку
+		draw_list->AddCircle(ImVec2(normalized_x, normalized_y), radius, ImGui::ColorConvertFloat4ToU32({ 0.0f, 0.857f, 0.420f, 0.500f }), 0.f, 5.f);
+		draw_list->AddCircleFilled(ImVec2(normalized_x, normalized_y), 5.f, ImGui::ColorConvertFloat4ToU32({ 0.0f, 0.857f, 0.420f, 0.500f }));
+		draw_list->AddCircleFilled(ImVec2(normalized_x, normalized_y), radius, ImGui::ColorConvertFloat4ToU32({ 0.0f, 0.857f, 0.420f, 0.500f }));
+
+		ImGui::SetCursorScreenPos(ImVec2(normalized_x, normalized_y));
+		ImGui::Text(std::to_string(weight).c_str());
+	}
+
+	// Рисуем sample_point как отдельный объект
+	float normalized_sample_x = (sample_point.x / x_range) * (width / 2) + p0.x + width / 2;
+	float normalized_sample_y = (1.0f - (sample_point.y / y_range)) * (height / 2) + p0.y;
+	
+	draw_list->AddCircleFilled(ImVec2(normalized_sample_x, normalized_sample_y),	3.0f, ImGui::ColorConvertFloat4ToU32({ 1.0f, 1.0f, 0.2f, 0.8f }));
+	draw_list->AddCircle(ImVec2(normalized_sample_x, normalized_sample_y),			9.0f, ImGui::ColorConvertFloat4ToU32({ 1.0f, 1.0f, 0.2f, 0.8f }),0, 3.f);
+
+	ImGui::EndChild();
+
+	return true;
+
+}

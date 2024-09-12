@@ -157,36 +157,33 @@ shade::physic::CollisionShapes::CollisionShapes(SharedPointer<AssetData> assetDa
 {
 	auto filePath = assetData->GetAttribute<std::string>("Path");
 
-	shade::File file(filePath, shade::File::In, "@s_c_shape", shade::File::VERSION(0, 0, 1));
-
-	if (!file.IsOpen())
-		SHADE_CORE_WARNING("Failed to read file, wrong path = {0}", filePath)
-	else
+	if (file::File file = file::FileManager::LoadFile(filePath, "@s_c_shape"))
 	{
 		file.Read(*this);
 	}
-	file.CloseFile();
+	else
+	{
+		SHADE_CORE_WARNING("Failed to read file, wrong path = {0}", filePath)
+	}
 }
 
-std::size_t shade::physic::CollisionShapes::Serialize(std::ostream& stream) const
+void shade::physic::CollisionShapes::Serialize(std::ostream& stream) const
 {
-	std::size_t size = Serializer::Serialize(stream, static_cast<std::uint32_t>(m_Colliders.size()));
+	serialize::Serializer::Serialize(stream, static_cast<std::uint32_t>(m_Colliders.size()));
 
 	for (const auto& collider : m_Colliders)
 	{
-		size += Serializer::Serialize(stream, static_cast<float>(collider->GetMinHalfExt().x));	Serializer::Serialize(stream, static_cast<float>(collider->GetMinHalfExt().y)); Serializer::Serialize(stream, static_cast<float>(collider->GetMinHalfExt().z));
-		size += Serializer::Serialize(stream, static_cast<float>(collider->GetMaxHalfExt().x));	Serializer::Serialize(stream, static_cast<float>(collider->GetMaxHalfExt().y)); Serializer::Serialize(stream, static_cast<float>(collider->GetMaxHalfExt().z));
+		serialize::Serializer::Serialize(stream, static_cast<float>(collider->GetMinHalfExt().x));	serialize::Serializer::Serialize(stream, static_cast<float>(collider->GetMinHalfExt().y)); serialize::Serializer::Serialize(stream, static_cast<float>(collider->GetMinHalfExt().z));
+		serialize::Serializer::Serialize(stream, static_cast<float>(collider->GetMaxHalfExt().x));	serialize::Serializer::Serialize(stream, static_cast<float>(collider->GetMaxHalfExt().y)); serialize::Serializer::Serialize(stream, static_cast<float>(collider->GetMaxHalfExt().z));
 
-		size += Serializer::Serialize(stream, collider);
+		serialize::Serializer::Serialize(stream, collider);
 	}
-
-	return size;
 }
 
-std::size_t shade::physic::CollisionShapes::Deserialize(std::istream& stream)
+void shade::physic::CollisionShapes::Deserialize(std::istream& stream)
 {
 	std::uint32_t collidersCount = 0;
-	std::size_t size = Serializer::Deserialize(stream, collidersCount);
+	serialize::Serializer::Deserialize(stream, collidersCount);
 
 	if (collidersCount <= 0 || collidersCount >= UINT32_MAX)
 		throw std::exception("Invalide lods count!");
@@ -194,11 +191,11 @@ std::size_t shade::physic::CollisionShapes::Deserialize(std::istream& stream)
 	for (std::size_t i = 0; i < collidersCount; i++)
 	{
 		glm::vec3 minHalf, maxHalf;
-		Serializer::Deserialize(stream, minHalf.x);	Serializer::Deserialize(stream, minHalf.y); Serializer::Deserialize(stream, minHalf.z);
-		Serializer::Deserialize(stream, maxHalf.x);	Serializer::Deserialize(stream, maxHalf.y); Serializer::Deserialize(stream, maxHalf.z);
+		serialize::Serializer::Deserialize(stream, minHalf.x);	serialize::Serializer::Deserialize(stream, minHalf.y); serialize::Serializer::Deserialize(stream, minHalf.z);
+		serialize::Serializer::Deserialize(stream, maxHalf.x);	serialize::Serializer::Deserialize(stream, maxHalf.y); serialize::Serializer::Deserialize(stream, maxHalf.z);
 
 		std::uint32_t type;
-		size += Serializer::Deserialize(stream, type);
+		serialize::Serializer::Deserialize(stream, type);
 
 		switch (type)
 		{
@@ -208,7 +205,7 @@ std::size_t shade::physic::CollisionShapes::Deserialize(std::istream& stream)
 			collider->SetMinMaxHalfExt(minHalf, maxHalf);
 
 			std::uint32_t verticesCount = 0;
-			size += Serializer::Deserialize(stream, verticesCount);
+			serialize::Serializer::Deserialize(stream, verticesCount);
 
 			if (verticesCount <= 0 || verticesCount >= UINT32_MAX)
 				throw std::exception("Invalide lods count!");
@@ -217,9 +214,9 @@ std::size_t shade::physic::CollisionShapes::Deserialize(std::istream& stream)
 			{
 				glm::vec3 point;
 
-				size += Serializer::Deserialize(stream, point.x);
-				size += Serializer::Deserialize(stream, point.y);
-				size += Serializer::Deserialize(stream, point.z);
+				serialize::Serializer::Deserialize(stream, point.x);
+				serialize::Serializer::Deserialize(stream, point.y);
+				serialize::Serializer::Deserialize(stream, point.z);
 
 				collider->AddVertex(point);
 			}
@@ -230,8 +227,6 @@ std::size_t shade::physic::CollisionShapes::Deserialize(std::istream& stream)
 		}
 
 	}
-
-	return size;
 }
 
 const std::vector<shade::SharedPointer<shade::physic::CollisionShape>>& shade::physic::CollisionShapes::GetColliders() const

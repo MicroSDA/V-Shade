@@ -83,16 +83,14 @@ void shade::graphs::BaseNode::ProcessBranch(const FrameTimer& deltaTime)
 	Evaluate(deltaTime);
 }
 
-std::size_t shade::graphs::BaseNode::SerializeBody(std::ostream& stream) const
+void shade::graphs::BaseNode::SerializeBody(std::ostream& stream) const
 {
-	SHADE_CORE_INFO("Serialize '{0}' body section...", GetName());
-	return 0u;
+	SHADE_CORE_INFO("Serialize node '{0}' body section...", GetName());
 }
 
-std::size_t shade::graphs::BaseNode::DeserializeBody(std::istream& stream)
+void shade::graphs::BaseNode::DeserializeBody(std::istream& stream)
 {
-	SHADE_CORE_INFO("Deserialize '{0}' body section...", GetName());
-	return 0u;
+	SHADE_CORE_INFO("Deserialize node '{0}' body section...", GetName());
 }
 
 shade::graphs::BaseNode* shade::graphs::BaseNode::CreateNodeByType(NodeType type)
@@ -107,12 +105,14 @@ shade::graphs::BaseNode* shade::graphs::BaseNode::CreateNodeByType(NodeType type
 		case shade::graphs::GetNodeTypeId<shade::graphs::FloatNode>() : return CreateNode<shade::graphs::FloatNode>();
 		case shade::graphs::GetNodeTypeId<shade::graphs::IntEqualsNode>() : return CreateNode<shade::graphs::IntEqualsNode>();
 		case shade::graphs::GetNodeTypeId<shade::graphs::IntNode>() : return CreateNode<shade::graphs::IntNode>();
+		case shade::graphs::GetNodeTypeId<shade::graphs::Vec2FloatNode>() : return CreateNode<shade::graphs::Vec2FloatNode>();
 		case shade::graphs::GetNodeTypeId<shade::graphs::StringNode>() : return CreateNode<shade::graphs::StringNode>();
 
 		case shade::graphs::GetNodeTypeId<shade::animation::BlendNode2D>() : return CreateNode<shade::animation::BlendNode2D>();
 		case shade::graphs::GetNodeTypeId<shade::animation::BoneMaskNode>() : return CreateNode<shade::animation::BoneMaskNode>();
 		case shade::graphs::GetNodeTypeId<shade::animation::OutputPoseNode>() : return &GetRootNode()->As<shade::animation::OutputPoseNode>();
 		case shade::graphs::GetNodeTypeId<shade::animation::PoseNode>() : return CreateNode<shade::animation::PoseNode>();
+		case shade::graphs::GetNodeTypeId<shade::animation::BlendTree2D>() : return CreateNode<shade::animation::BlendTree2D>();
 
 		case shade::graphs::GetNodeTypeId<shade::animation::state_machine::OutputTransitionNode>() : return &GetRootNode()->As<shade::animation::state_machine::OutputTransitionNode>();
 		case shade::graphs::GetNodeTypeId<shade::animation::state_machine::TransitionNode>() : return CreateNode<shade::animation::state_machine::TransitionNode>();
@@ -124,22 +124,22 @@ shade::graphs::BaseNode* shade::graphs::BaseNode::CreateNodeByType(NodeType type
 	}
 }
 
-std::size_t shade::graphs::BaseNode::Serialize(std::ostream& stream) const
+void shade::graphs::BaseNode::Serialize(std::ostream& stream) const
 {
 	// Serialzie Identifier
-	std::size_t size = shade::Serializer::Serialize(stream, GetNodeIdentifier());
+	serialize::Serializer::Serialize(stream, GetNodeIdentifier());
 	// Serialzie Name
-	size += shade::Serializer::Serialize(stream, GetName());
+	serialize::Serializer::Serialize(stream, GetName());
 
 	// Serialzie screen position
-	size += shade::Serializer::Serialize(stream, GetScreenPosition());
+	serialize::Serializer::Serialize(stream, GetScreenPosition());
 	// Serialzie count of internal nodes
-	size += shade::Serializer::Serialize(stream, std::uint32_t(GetInternalNodes().size()));
+	serialize::Serializer::Serialize(stream, std::uint32_t(GetInternalNodes().size()));
 
 	//------------------------------------------------------------------------
 	// Body section
 	//------------------------------------------------------------------------
-	size += SerializeBody(stream);
+	SerializeBody(stream);
 	//------------------------------------------------------------------------
 	// !Body section
 	//------------------------------------------------------------------------
@@ -151,16 +151,16 @@ std::size_t shade::graphs::BaseNode::Serialize(std::ostream& stream) const
 	// Endpoints section
 	//------------------------------------------------------------------------
 
-	size += shade::Serializer::Serialize(stream, std::uint32_t(inputs.GetSize()));
+	serialize::Serializer::Serialize(stream, std::uint32_t(inputs.GetSize()));
 	for (const auto& [i, d] : inputs)
 	{
-		size += shade::Serializer::Serialize(stream, d); // d means default value
+		serialize::Serializer::Serialize(stream, d); // d means default value
 	}
 
-	size += shade::Serializer::Serialize(stream, std::uint32_t(outputs.GetSize()));
+	serialize::Serializer::Serialize(stream, std::uint32_t(outputs.GetSize()));
 	for (const auto& [i, d] : outputs)
 	{
-		size += shade::Serializer::Serialize(stream, d); // d means default value
+		serialize::Serializer::Serialize(stream, d); // d means default value
 	}
 
 	//------------------------------------------------------------------------
@@ -170,33 +170,30 @@ std::size_t shade::graphs::BaseNode::Serialize(std::ostream& stream) const
 	// Serialize internal nodes
 	for (const BaseNode* pNode : GetInternalNodes())
 	{
-		size += shade::Serializer::Serialize(stream, pNode->GetNodeType());
-		size += Serializer::Serialize(stream, *pNode);
-		
+		serialize::Serializer::Serialize(stream, pNode->GetNodeType());
+		serialize::Serializer::Serialize(stream, *pNode);
 	}
 
 	// Serialize root node id 
-	size += shade::Serializer::Serialize(stream, (GetRootNode()) ? GetRootNode()->GetNodeIdentifier() : shade::graphs::INVALID_NODE_IDENTIFIER);
-
-	return size;
+	serialize::Serializer::Serialize(stream, (GetRootNode()) ? GetRootNode()->GetNodeIdentifier() : shade::graphs::INVALID_NODE_IDENTIFIER);
 }
 
-std::size_t shade::graphs::BaseNode::Deserialize(std::istream& stream)
+void shade::graphs::BaseNode::Deserialize(std::istream& stream)
 {
 	// Deserialize Identifier
-	graphs::NodeIdentifier id; std::size_t size = shade::Serializer::Deserialize(stream, id);
+	graphs::NodeIdentifier id;			serialize::Serializer::Deserialize(stream, id);
 	// Deserialize Name
-	std::string name; 					size += shade::Serializer::Deserialize(stream, name);
+	std::string name; 					serialize::Serializer::Deserialize(stream, name);
 
 	// Deserialize Screen position
-	glm::vec2 screenPosition;			size += shade::Serializer::Deserialize(stream, screenPosition);
+	glm::vec2 screenPosition;			serialize::Serializer::Deserialize(stream, screenPosition);
 	// Deserialize count of internal nodes
-	std::uint32_t internalNodesCount;	size += shade::Serializer::Deserialize(stream, internalNodesCount);
+	std::uint32_t internalNodesCount;	serialize::Serializer::Deserialize(stream, internalNodesCount);
 
 	//------------------------------------------------------------------------
 	// Body section
 	//------------------------------------------------------------------------
-	size += DeserializeBody(stream); SetName(name); SetNodeIdentifier(id); GetScreenPosition() = screenPosition;
+	DeserializeBody(stream); SetName(name); SetNodeIdentifier(id); GetScreenPosition() = screenPosition;
 	//------------------------------------------------------------------------
 	// !Body section
 	//------------------------------------------------------------------------
@@ -208,18 +205,18 @@ std::size_t shade::graphs::BaseNode::Deserialize(std::istream& stream)
 	// Endpoints section
 	//------------------------------------------------------------------------
 
-	std::uint32_t inputEndpointsCount;	size += shade::Serializer::Deserialize(stream, inputEndpointsCount);
+	std::uint32_t inputEndpointsCount;	serialize::Serializer::Deserialize(stream, inputEndpointsCount);
 
 	for (std::uint32_t i = 0; i < inputEndpointsCount; ++i)
 	{
-		size += shade::Serializer::Deserialize(stream, inputs.At(i)); // d means default value
+		serialize::Serializer::Deserialize(stream, inputs.At(i)); // d means default value
 	}
 
-	std::uint32_t outputEndpointsCount;  size += shade::Serializer::Deserialize(stream, outputEndpointsCount); // Не правельно вытягивает количстов оутупотов
+	std::uint32_t outputEndpointsCount;  serialize::Serializer::Deserialize(stream, outputEndpointsCount); // Не правельно вытягивает количстов оутупотов
 
 	for (std::uint32_t i = 0; i < outputEndpointsCount; ++i)
 	{
-		size += shade::Serializer::Deserialize(stream, outputs.At(i)); // d means default value
+		serialize::Serializer::Deserialize(stream, outputs.At(i)); // d means default value
 	}
 
 	//------------------------------------------------------------------------
@@ -228,17 +225,15 @@ std::size_t shade::graphs::BaseNode::Deserialize(std::istream& stream)
 
 	for (std::size_t i = 0; i < internalNodesCount; ++i)
 	{
-		NodeType type;	size += shade::Serializer::Deserialize(stream, type);
+		NodeType type;	serialize::Serializer::Deserialize(stream, type);
 		BaseNode*		pNode = CreateNodeByType(type);
 
-		size += Serializer::Deserialize(stream, *pNode);
+		serialize::Serializer::Deserialize(stream, *pNode);
 	}
 
 	// Deserialize root node id  
-	shade::graphs::NodeIdentifier rootId;	  size += shade::Serializer::Deserialize(stream, rootId);
+	shade::graphs::NodeIdentifier rootId;	  serialize::Serializer::Deserialize(stream, rootId);
 
 	if (rootId != shade::graphs::INVALID_NODE_IDENTIFIER)
 		SetRootNode(GetGraphContext()->FindInternalNode(this, rootId));
-
-	return size;
 }

@@ -133,30 +133,29 @@ glm::mat4 shade::Scene::ComputePCTransform(ecs::Entity& entity)
 		return transform;
 }
 
-std::size_t shade::Scene::Serialize(std::ostream& stream) const
+void shade::Scene::Serialize(std::ostream& stream) const
 {
 	SHADE_CORE_INFO("******************************************************************");
 	SHADE_CORE_INFO("Start to serialize scene ->: {}", m_Name);
 	SHADE_CORE_INFO("******************************************************************");
 	SHADE_CORE_INFO("Entities count : {}", EntitiesCount());
-	Serializer::Serialize(stream, m_Name);
-	Serializer::Serialize(stream, static_cast<std::uint32_t>(EntitiesCount()));
+	serialize::Serializer::Serialize(stream, m_Name);
+	serialize::Serializer::Serialize(stream, static_cast<std::uint32_t>(EntitiesCount()));
 	// See Components.h
 	for (const auto& entity : *this)
 	{
 		SerrializeEntity(stream, ecs::Entity(entity, this));
 	}
-	return std::size_t();
 }
 
-std::size_t shade::Scene::Deserialize(std::istream& stream)
+void shade::Scene::Deserialize(std::istream& stream)
 {
-	std::size_t size = Serializer::Deserialize(stream, m_Name);
+	serialize::Serializer::Deserialize(stream, m_Name);
 	SHADE_CORE_INFO("******************************************************************");
 	SHADE_CORE_INFO("Start to deserialize scene ->: {}", m_Name);
 	SHADE_CORE_INFO("******************************************************************");
 
-	std::uint32_t entitiesCount = 0u; size += Serializer::Deserialize(stream, entitiesCount);
+	std::uint32_t entitiesCount = 0u; serialize::Serializer::Deserialize(stream, entitiesCount);
 
 	SHADE_CORE_INFO("Entities count : {}", entitiesCount);
 	for (std::uint32_t entIndex = 0u; entIndex < entitiesCount; entIndex++)
@@ -165,7 +164,6 @@ std::size_t shade::Scene::Deserialize(std::istream& stream)
 		DeserrializeEntity(stream, entity, entIndex);
 	}
 
-	return std::size_t();
 }
 
 void shade::Scene::SerrializeEntity(std::ostream& stream, ecs::Entity entity, bool isParentCall) const
@@ -190,8 +188,8 @@ void shade::Scene::SerrializeEntity(std::ostream& stream, ecs::Entity entity, bo
 	std::size_t componentsCountPosition = stream.tellp();      // Store the position to overwrite component count later
 
 	// Write the initial counts of components and children to the stream
-	Serializer::Serialize(stream, componentsCount);  // Placeholder count for components (to be updated later)
-	Serializer::Serialize(stream, childrenCount);    // Write the number of children
+	serialize::Serializer::Serialize(stream, componentsCount);  // Placeholder count for components (to be updated later)
+	serialize::Serializer::Serialize(stream, childrenCount);    // Write the number of children
 	SHADE_CORE_INFO("       Childs count: {}", childrenCount);
 
 	//------------------------------------------------------------------------
@@ -200,81 +198,81 @@ void shade::Scene::SerrializeEntity(std::ostream& stream, ecs::Entity entity, bo
 	// Serialize each component using a lambda function to handle the specific serialization logic
 
 	// Serialize TagComponent if present
-	if (std::size_t size = entity.SerializeComponent<TagComponent>(stream, [](std::ostream& stream, const TagComponent& tag)
+	if (bool is = entity.SerializeComponent<TagComponent>(stream, [](std::ostream& stream, const TagComponent& tag)
 		{
-			return Serializer::Serialize(stream, tag);
+			return serialize::Serializer::Serialize(stream, tag);
 		}))
 	{
 		componentsCount++;  // Increment components count if serialization was successful
 	}
 
 	// Serialize CameraComponent if present
-	if (std::size_t size = entity.SerializeComponent<CameraComponent>(stream, [](std::ostream& stream, const CameraComponent& camera)
+	if (bool is = entity.SerializeComponent<CameraComponent>(stream, [](std::ostream& stream, const CameraComponent& camera)
 		{
-			return Serializer::Serialize(stream, camera);
+			serialize::Serializer::Serialize(stream, camera);
 		}))
 	{
 		componentsCount++;
 	}
 
 	// Serialize TransformComponent if present
-	if (std::size_t size = entity.SerializeComponent<TransformComponent>(stream, [](std::ostream& stream, const TransformComponent& transform)
+	if (bool is = entity.SerializeComponent<TransformComponent>(stream, [](std::ostream& stream, const TransformComponent& transform)
 		{
-			return Serializer::Serialize(stream, transform);
+			serialize::Serializer::Serialize(stream, transform);
 		}))
 	{
 		componentsCount++;
 	}
 
 	// Serialize ModelComponent if present, using the model's ID if available
-	if (std::size_t size = entity.SerializeComponent<ModelComponent>(stream, [](std::ostream& stream, const ModelComponent& model)
+	if (bool is = entity.SerializeComponent<ModelComponent>(stream, [](std::ostream& stream, const ModelComponent& model)
 		{
-			return shade::Serializer::Serialize(stream, (model && model->GetAssetData()) ? model->GetAssetData()->GetId() : "");
+			serialize::Serializer::Serialize(stream, (model && model->GetAssetData()) ? model->GetAssetData()->GetId() : "");
 		}))
 	{
 		componentsCount++;
 	}
 
 	// Serialize GlobalLightComponent if present
-	if (std::size_t size = entity.SerializeComponent<GlobalLightComponent>(stream, [](std::ostream& stream, const GlobalLightComponent& light)
+	if (bool is = entity.SerializeComponent<GlobalLightComponent>(stream, [](std::ostream& stream, const GlobalLightComponent& light)
 		{
-			return shade::Serializer::Serialize(stream, light);
+			serialize::Serializer::Serialize(stream, light);
 		}))
 	{
 		componentsCount++;
 	}
 
 	// Serialize SpotLightComponent if present
-	if (std::size_t size = entity.SerializeComponent<SpotLightComponent>(stream, [](std::ostream& stream, const SpotLightComponent& light)
+	if (bool is = entity.SerializeComponent<SpotLightComponent>(stream, [](std::ostream& stream, const SpotLightComponent& light)
 		{
-			return shade::Serializer::Serialize(stream, light);
+			serialize::Serializer::Serialize(stream, light);
 		}))
 	{
 		componentsCount++;
 	}
 
 	// Serialize PointLightComponent if present
-	if (std::size_t size = entity.SerializeComponent<PointLightComponent>(stream, [](std::ostream& stream, const PointLightComponent& light)
+	if (bool is = entity.SerializeComponent<PointLightComponent>(stream, [](std::ostream& stream, const PointLightComponent& light)
 		{
-			return shade::Serializer::Serialize(stream, light);
+			serialize::Serializer::Serialize(stream, light);
 		}))
 	{
 		componentsCount++;
 	}
 
 	// Serialize NativeScriptComponent if present
-	if (std::size_t size = entity.SerializeComponent<NativeScriptComponent>(stream, [](std::ostream& stream, const NativeScriptComponent& script)
+	if (bool is = entity.SerializeComponent<NativeScriptComponent>(stream, [](std::ostream& stream, const NativeScriptComponent& script)
 		{
-			return shade::Serializer::Serialize(stream, script);
+			serialize::Serializer::Serialize(stream, script);
 		}))
 	{
 		componentsCount++;
 	}
 
 	// Serialize AnimationGraphComponent if present, using the graph's ID if available
-	if (std::size_t size = entity.SerializeComponent<AnimationGraphComponent>(stream, [](std::ostream& stream, const AnimationGraphComponent& graph)
+	if (bool is = entity.SerializeComponent<AnimationGraphComponent>(stream, [](std::ostream& stream, const AnimationGraphComponent& graph)
 		{
-			return shade::Serializer::Serialize(stream, (graph.AnimationGraph && graph.AnimationGraph->GetAssetData()) ? graph.AnimationGraph->GetAssetData()->GetId() : "");
+			serialize::Serializer::Serialize(stream, (graph.AnimationGraph && graph.AnimationGraph->GetAssetData()) ? graph.AnimationGraph->GetAssetData()->GetId() : "");
 		}))
 	{
 		componentsCount++;
@@ -287,7 +285,7 @@ void shade::Scene::SerrializeEntity(std::ostream& stream, ecs::Entity entity, bo
 	// Move back to the position where the component count was initially written
 	std::size_t endPosition = stream.tellp();         // Save the current stream position
 	stream.seekp(componentsCountPosition);            // Go back to where the component count was written
-	Serializer::Serialize(stream, componentsCount);   // Update the component count with the actual value
+	serialize::Serializer::Serialize(stream, componentsCount);   // Update the component count with the actual value
 	stream.seekp(endPosition);                        // Return to the end of the stream for further writing
 
 	SHADE_CORE_INFO("------------------------------------------------------------------");
@@ -311,7 +309,7 @@ void shade::Scene::DeserrializeEntity(std::istream& stream, ecs::Entity entity, 
 
 	// Read the number of components and children associated with the entity
 	std::uint32_t componentsCount = 0u, childrenCount = 0u;
-	std::size_t size = Serializer::Deserialize(stream, componentsCount); size += Serializer::Deserialize(stream, childrenCount);
+	serialize::Serializer::Deserialize(stream, componentsCount); serialize::Serializer::Deserialize(stream, childrenCount);
 	SHADE_CORE_INFO("       Childs count: {}", childrenCount);
 
 	//------------------------------------------------------------------------
@@ -320,76 +318,72 @@ void shade::Scene::DeserrializeEntity(std::istream& stream, ecs::Entity entity, 
 
 	for (std::uint32_t compIndex = 0u; compIndex < componentsCount; compIndex++)
 	{
-		std::size_t cSize = 0u; std::uint32_t compTypeHash; size += shade::Serializer::Deserialize(stream, compTypeHash);
+		std::uint32_t cSize = false; std::uint32_t compTypeHash; serialize::Serializer::Deserialize(stream, compTypeHash);
 
 		// Deserialize TagComponent
 		cSize += entity.DeserializeComponent<TagComponent>(stream, compTypeHash, [](std::istream& stream, TagComponent& tag)
 			{
-				return Serializer::Deserialize(stream, tag);
+				serialize::Serializer::Deserialize(stream, tag);
 			});
 
 		// Deserialize CameraComponent
 		cSize += entity.DeserializeComponent<CameraComponent>(stream, compTypeHash, [](std::istream& stream, CameraComponent& camera)
 			{
 				camera = CameraComponent::Create();
-				return Serializer::Deserialize(stream, camera);
+				serialize::Serializer::Deserialize(stream, camera);
 			});
 
 		// Deserialize TransformComponent
 		cSize += entity.DeserializeComponent<TransformComponent>(stream, compTypeHash, [](std::istream& stream, TransformComponent& transform)
 			{
-				return Serializer::Deserialize(stream, transform);
+				serialize::Serializer::Deserialize(stream, transform);
 			});
 
 		// Deserialize ModelComponent
 		cSize += entity.DeserializeComponent<ModelComponent>(stream, compTypeHash, [](std::istream& stream, ModelComponent& model)
 			{
 				std::string assetId;
-				std::size_t size = Serializer::Deserialize(stream, assetId);
+				serialize::Serializer::Deserialize(stream, assetId);
 				AssetManager::GetAsset<Model>(assetId, AssetMeta::Category::Primary, BaseAsset::LifeTime::KeepAlive, [&](auto& asset) mutable { model = asset; });
-				return size;
 			});
 
 		// Deserialize GlobalLightComponent
 		cSize += entity.DeserializeComponent<GlobalLightComponent>(stream, compTypeHash, [](std::istream& stream, GlobalLightComponent& light)
 			{
 				light = GlobalLightComponent::Create();
-				return Serializer::Deserialize(stream, light);
+				serialize::Serializer::Deserialize(stream, light);
 			});
 
 		// Deserialize SpotLightComponent
 		cSize += entity.DeserializeComponent<SpotLightComponent>(stream, compTypeHash, [](std::istream& stream, SpotLightComponent& light)
 			{
 				light = SpotLightComponent::Create();
-				return Serializer::Deserialize(stream, light);
+				serialize::Serializer::Deserialize(stream, light);
 			});
 
 		// Deserialize PointLightComponent
 		cSize += entity.DeserializeComponent<PointLightComponent>(stream, compTypeHash, [](std::istream& stream, PointLightComponent& light)
 			{
 				light = PointLightComponent::Create();
-				return Serializer::Deserialize(stream, light);
+				serialize::Serializer::Deserialize(stream, light);
 			});
 
 		// Deserialize NativeScriptComponent
 		cSize += entity.DeserializeComponent<NativeScriptComponent>(stream, compTypeHash, [](std::istream& stream, NativeScriptComponent& script)
 			{
-				return Serializer::Deserialize(stream, script);
+				serialize::Serializer::Deserialize(stream, script);
 			});
 
 		// Deserialize AnimationGraphComponent
 		cSize += entity.DeserializeComponent<AnimationGraphComponent>(stream, compTypeHash, [](std::istream& stream, AnimationGraphComponent& graph)
 			{
-				std::string assetId; std::size_t size = Serializer::Deserialize(stream, assetId);
+				std::string assetId; serialize::Serializer::Deserialize(stream, assetId);
 				graph.GraphContext.Controller = shade::animation::AnimationController::Create();
 				AssetManager::GetAsset<animation::AnimationGraph, BaseAsset::InstantiationBehaviour::Aynchronous>(assetId, AssetMeta::Category::Secondary, BaseAsset::LifeTime::KeepAlive, 
 					[&](auto& asset) mutable { 
 						graph.AnimationGraph = asset;
 					}, &graph.GraphContext);
-				return size;
 			});
-
-		size += cSize;
 
 		if (!cSize)
 		{

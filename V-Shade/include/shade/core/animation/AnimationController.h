@@ -43,14 +43,14 @@ namespace shade
 				/// @brief Serializes the animation graph to the given output stream.
 				/// @param stream The output stream to serialize to.
 				/// @return The number of bytes written.
-				std::size_t Serialize(std::ostream& stream) const;
+				void Serialize(std::ostream& stream) const;
 
 				/// @brief Deserializes the animation graph from the given input stream.
 				/// @param stream The input stream to deserialize from.
 				/// @return The number of bytes read.
-				std::size_t Deserialize(std::istream& stream);
+				void Deserialize(std::istream& stream);
 
-				friend class Serializer;
+				friend class serialize::Serializer;
 			};
 			template<typename T, typename Data>
 			struct Task
@@ -75,6 +75,7 @@ namespace shade
 
 			animation::Pose* ProcessPose(const Asset<Skeleton>& skeleton, AnimationControlData& animationData, const FrameTimer& deltaTime, float timeMultiplier = 1.f);
 			animation::Pose* Blend(const Asset<Skeleton>& skeleton, const animation::Pose* first, const animation::Pose* second, float blendFactor, const animation::BoneMask& boneMask);
+			animation::Pose* BlendTriangular(const Asset<Skeleton>& skeleton, const animation::Pose* first, const animation::Pose* second, const animation::Pose* third, float blendFactor1, float blendFactor2, float blendFactor3, const animation::BoneMask& boneMask);
 			std::pair<float, float> GetTimeMultiplier(float firstDuration, float secondDuration, float blendFactor) const;
 
 		private:
@@ -115,14 +116,14 @@ namespace shade
 
 	// Serialize AnimationGraph
 	template<>
-	SHADE_INLINE std::size_t shade::Serializer::Serialize(std::ostream& stream, const animation::AnimationController::AnimationControlData& data, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const animation::AnimationController::AnimationControlData& data)
 	{
 		return data.Serialize(stream);
 	}
 
 	// Deserialize AnimationGraph
 	template<>
-	SHADE_INLINE std::size_t shade::Serializer::Deserialize(std::istream& stream, animation::AnimationController::AnimationControlData& data, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, animation::AnimationController::AnimationControlData& data)
 	{
 		return data.Deserialize(stream);
 	}

@@ -41,54 +41,48 @@ shade::Material::Material(SharedPointer<AssetData> assetData, LifeTime lifeTime,
 	{
 		auto filePath = material->GetAttribute<std::string>("Path");
 
-		File file(filePath, File::In, "@s_mat", File::VERSION(0, 0, 1));
-
-		if (!file.IsOpen())
-			SHADE_CORE_WARNING("Failed to read file, wrong path = {0}", filePath)
-		else
+		if (file::File file = file::FileManager::LoadFile(filePath, "@s_mat"))
+		{
 			file.Read(*this);
-
-		file.CloseFile();
+		}
+		else
+		{
+			SHADE_CORE_WARNING("Failed to read file, wrong path = {0}", filePath)
+		}
 	}
 	else
 	{
 		SHADE_CORE_WARNING("Material '{0}' dosen't have secondary reference!", assetData->GetId());
 	}
-		
 }
 
-std::size_t shade::Material::Serialize(std::ostream& stream) const
+void shade::Material::Serialize(std::ostream& stream) const
 {
-	std::size_t size = Serializer::Serialize(stream, ColorAmbient);
-	
-	size += Serializer::Serialize(stream, ColorDiffuse);
-	size += Serializer::Serialize(stream, ColorSpecular);
-	size += Serializer::Serialize(stream, ColorTransparent);
-	size += Serializer::Serialize(stream, Emmisive);
-	size += Serializer::Serialize(stream, Opacity);
-	size += Serializer::Serialize(stream, Shininess);
-	size += Serializer::Serialize(stream, ShininessStrength);
-	size += Serializer::Serialize(stream, Refracti);
-	size += Serializer::Serialize(stream, NormalMapEnabled);
-	size += Serializer::Serialize(stream, BumpMapEnabled);
-
-	return size;
+	serialize::Serializer::Serialize(stream, ColorAmbient);
+	serialize::Serializer::Serialize(stream, ColorDiffuse);
+	serialize::Serializer::Serialize(stream, ColorSpecular);
+	serialize::Serializer::Serialize(stream, ColorTransparent);
+	serialize::Serializer::Serialize(stream, Emmisive);
+	serialize::Serializer::Serialize(stream, Opacity);
+	serialize::Serializer::Serialize(stream, Shininess);
+	serialize::Serializer::Serialize(stream, ShininessStrength);
+	serialize::Serializer::Serialize(stream, Refracti);
+	serialize::Serializer::Serialize(stream, NormalMapEnabled);
+	serialize::Serializer::Serialize(stream, BumpMapEnabled);
 }
 
-std::size_t shade::Material::Deserialize(std::istream& stream)
+void shade::Material::Deserialize(std::istream& stream)
 {
-	std::size_t size = Serializer::Deserialize(stream, ColorAmbient);
-	size += Serializer::Deserialize(stream, ColorDiffuse);
-	size += Serializer::Deserialize(stream, ColorSpecular);
-	size += Serializer::Deserialize(stream, ColorTransparent);
-	size += Serializer::Deserialize(stream, Emmisive);
-	size += Serializer::Deserialize(stream, Opacity);
-	size += Serializer::Deserialize(stream, Shininess);
-	size += Serializer::Deserialize(stream, ShininessStrength);
-	size += Serializer::Deserialize(stream, Refracti);
-	size += Serializer::Deserialize(stream, Shading);
-	size += Serializer::Deserialize(stream, NormalMapEnabled);
-	size += Serializer::Deserialize(stream, BumpMapEnabled);
-
-	return size;
+	serialize::Serializer::Deserialize(stream, ColorAmbient);
+	serialize::Serializer::Deserialize(stream, ColorDiffuse);
+	serialize::Serializer::Deserialize(stream, ColorSpecular);
+	serialize::Serializer::Deserialize(stream, ColorTransparent);
+	serialize::Serializer::Deserialize(stream, Emmisive);
+	serialize::Serializer::Deserialize(stream, Opacity);
+	serialize::Serializer::Deserialize(stream, Shininess);
+	serialize::Serializer::Deserialize(stream, ShininessStrength);
+	serialize::Serializer::Deserialize(stream, Refracti);
+	serialize::Serializer::Deserialize(stream, Shading);
+	serialize::Serializer::Deserialize(stream, NormalMapEnabled);
+	serialize::Serializer::Deserialize(stream, BumpMapEnabled);
 }

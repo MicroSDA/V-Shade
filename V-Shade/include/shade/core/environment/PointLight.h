@@ -37,9 +37,9 @@ namespace shade
 		static std::uint32_t m_sTotalCount;
 		ShadowCascade    GetPointLightCascade(float fov, const glm::vec3& position, const glm::vec3& direction, const glm::vec3& up, float zNear, float zFar) const;
 	private:
-		friend class Serializer;
-		std::size_t Serialize(std::ostream& stream) const;
-		std::size_t Deserialize(std::istream& stream);
+		friend class serialize::Serializer;
+		void Serialize(std::ostream& stream) const;
+		void Deserialize(std::istream& stream);
 	};
 #ifndef POINT_LIGHT_DATA_SIZE
 	#define POINT_LIGHT_DATA_SIZE (sizeof(PointLight::RenderData))
@@ -53,26 +53,26 @@ namespace shade
 namespace shade
 {
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const PointLight& light, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const PointLight& light)
 	{
-		return light.Serialize(stream);
+		light.Serialize(stream);
 	}
 
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const SharedPointer<PointLight>& light, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const SharedPointer<PointLight>& light)
 	{
-		return light->Serialize(stream);
+		light->Serialize(stream);
 	}
 
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, PointLight& light, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, PointLight& light)
 	{
-		return light.Deserialize(stream);
+		light.Deserialize(stream);
 	}
 
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, SharedPointer<PointLight>& light, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, SharedPointer<PointLight>& light)
 	{
-		return light->Deserialize(stream);
+		light->Deserialize(stream);
 	}
 }

@@ -126,23 +126,21 @@ shade::PointLight::ShadowCascade shade::PointLight::GetPointLightCascade(float f
     return ShadowCascade();
 }
 
-std::size_t shade::PointLight::Serialize(std::ostream& stream) const
+void shade::PointLight::Serialize(std::ostream& stream) const
 {
 	
-	std::uint32_t size = Serializer::Serialize(stream, DiffuseColor);
-	size += Serializer::Serialize(stream, SpecularColor);
-	size += Serializer::Serialize(stream, Intensity);
-	size += Serializer::Serialize(stream, Distance);
-	size += Serializer::Serialize(stream, Falloff);
-	return size;
+	serialize::Serializer::Serialize(stream, DiffuseColor);
+	serialize::Serializer::Serialize(stream, SpecularColor);
+	serialize::Serializer::Serialize(stream, Intensity);
+	serialize::Serializer::Serialize(stream, Distance);
+	serialize::Serializer::Serialize(stream, Falloff);
 }
 
-std::size_t shade::PointLight::Deserialize(std::istream& stream)
+void shade::PointLight::Deserialize(std::istream& stream)
 {
-	std::uint32_t size = Serializer::Deserialize(stream, DiffuseColor);
-	size += Serializer::Deserialize(stream, SpecularColor);
-	size += Serializer::Deserialize(stream, Intensity);
-	size += Serializer::Deserialize(stream, Distance);
-	size += Serializer::Deserialize(stream, Falloff);
-	return size;
+	serialize::Serializer::Deserialize(stream, DiffuseColor);
+	serialize::Serializer::Deserialize(stream, SpecularColor);
+	serialize::Serializer::Deserialize(stream, Intensity);
+	serialize::Serializer::Deserialize(stream, Distance);
+	serialize::Serializer::Deserialize(stream, Falloff);
 }

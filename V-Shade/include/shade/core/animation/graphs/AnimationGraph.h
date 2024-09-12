@@ -5,6 +5,7 @@
 #include <shade/core/animation/graphs/nodes/PoseNode.h>
 #include <shade/core/animation/graphs/nodes/OutputPoseNode.h>
 #include <shade/core/animation/graphs/nodes/BoneMaskNode.h>
+#include <shade/core/animation/graphs/nodes/BlendTree2D.h>
 #include <shade/core/animation/graphs/AnimationGraphContext.h>
 #include <shade/core/animation/graphs/nodes/StateMachineNode.h>
 
@@ -188,42 +189,42 @@ namespace shade
 			/// @brief Serializes the animation graph to the given output stream.
 			/// @param stream The output stream to serialize to.
 			/// @return The number of bytes written.
-			virtual std::size_t Serialize(std::ostream& stream) const override;
+			virtual void Serialize(std::ostream& stream) const override;
 
 			/// @brief Deserializes the animation graph from the given input stream.
 			/// @param stream The input stream to deserialize from.
 			/// @return The number of bytes read.
-			virtual std::size_t Deserialize(std::istream& stream) override;
+			virtual void Deserialize(std::istream& stream) override;
 
 		private:
-			friend class Serializer;
+			friend class serialize::Serializer;
 		};
 	}
 
 	// Serialize AnimationGraph
 	template<>
-	SHADE_INLINE std::size_t shade::Serializer::Serialize(std::ostream& stream, const animation::AnimationGraph& graph, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const animation::AnimationGraph& graph)
 	{
 		return graph.Serialize(stream);
 	}
 
 	// Deserialize AnimationGraph
 	template<>
-	SHADE_INLINE std::size_t shade::Serializer::Deserialize(std::istream& stream, animation::AnimationGraph& graph, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, animation::AnimationGraph& graph)
 	{
 		return graph.Deserialize(stream);
 	}
 
 	// Serialize Asset<AnimationGraph>
 	template<>
-	SHADE_INLINE std::size_t shade::Serializer::Serialize(std::ostream& stream, const Asset<animation::AnimationGraph>& graph, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const Asset<animation::AnimationGraph>& graph)
 	{
 		return graph->Serialize(stream);
 	}
 
 	// Deserialize Asset<AnimationGraph>
 	template<>
-	SHADE_INLINE std::size_t shade::Serializer::Deserialize(std::istream& stream, Asset<animation::AnimationGraph>& graph, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, Asset<animation::AnimationGraph>& graph)
 	{
 		return graph->Deserialize(stream);
 	}

@@ -40,7 +40,7 @@ void shade::animation::PoseNode::Evaluate(const FrameTimer& deltaTime)
 					case state_machine::SyncStyle::KeyFrameSync: break;
 
 					default:
-						m_AnimationData.State = Animation::State::Play;
+						//m_AnimationData.State = Animation::State::Play;
 						GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, controller->ProcessPose(skeleton, m_AnimationData, deltaTime, syncData.TimeMultiplier));
 						break;
 					}
@@ -93,16 +93,15 @@ shade::animation::AnimationController::AnimationControlData& shade::animation::P
 	return m_AnimationData;
 }
 
-std::size_t shade::animation::PoseNode::SerializeBody(std::ostream& stream) const
+void shade::animation::PoseNode::SerializeBody(std::ostream& stream) const
 {
 	SHADE_CORE_INFO("Serialize '{0}' body section...", GetName());
-	return shade::Serializer::Serialize(stream, m_AnimationData);
+	serialize::Serializer::Serialize(stream, m_AnimationData);
 }
 
-std::size_t shade::animation::PoseNode::DeserializeBody(std::istream& stream)
+void shade::animation::PoseNode::DeserializeBody(std::istream& stream)
 {
 	SHADE_CORE_INFO("Deserialize '{0}' body section...", GetName());
 	AnimationController::AnimationControlData animationData;
-	std::size_t size =  shade::Serializer::Deserialize(stream, animationData); ResetAnimationData(animationData);
-	return size;
+	serialize::Serializer::Deserialize(stream, animationData); ResetAnimationData(animationData);
 }

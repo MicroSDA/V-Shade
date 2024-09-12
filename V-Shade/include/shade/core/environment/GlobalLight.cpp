@@ -127,20 +127,18 @@ std::uint32_t shade::GlobalLight::GetTotalCount()
 	return m_sTotalCount;
 }
 
-std::size_t shade::GlobalLight::Serialize(std::ostream& stream) const
+void shade::GlobalLight::Serialize(std::ostream& stream) const
 {
-	std::uint32_t size = Serializer::Serialize(stream, DiffuseColor);
-	size += Serializer::Serialize(stream, SpecularColor);
-	size += Serializer::Serialize(stream, Intensity);
-	return size;
+	serialize::Serializer::Serialize(stream, DiffuseColor);
+	serialize::Serializer::Serialize(stream, SpecularColor);
+	serialize::Serializer::Serialize(stream, Intensity);
 }
 
-std::size_t shade::GlobalLight::Deserialize(std::istream& stream)
+void shade::GlobalLight::Deserialize(std::istream& stream)
 {
-	std::uint32_t size = Serializer::Deserialize(stream, DiffuseColor);
-	size += Serializer::Deserialize(stream, SpecularColor);
-	size += Serializer::Deserialize(stream, Intensity);
-	return size;
+	serialize::Serializer::Deserialize(stream, DiffuseColor);
+	serialize::Serializer::Deserialize(stream, SpecularColor);
+	serialize::Serializer::Deserialize(stream, Intensity);
 }
 
 

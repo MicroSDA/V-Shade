@@ -84,30 +84,26 @@ void shade::Camera::Resize(float aspect)
 	}	
 }
 
-std::size_t shade::Camera::Serialize(std::ostream& stream) const
+void shade::Camera::Serialize(std::ostream& stream) const
 {
-	std::size_t size = Serializer::Serialize(stream, m_Fov);
-	size += Serializer::Serialize(stream, m_Aspect);
-	size += Serializer::Serialize(stream, m_zNear);
-	size += Serializer::Serialize(stream, m_zFar);
-	size += Serializer::Serialize(stream, m_Position);
-	size += Serializer::Serialize(stream, m_Forward);
-	size += Serializer::Serialize(stream, m_Up);
-	size += Serializer::Serialize(stream, m_IsPrimary);
-
-	return size;
+	serialize::Serializer::Serialize(stream, m_Fov);
+	serialize::Serializer::Serialize(stream, m_Aspect);
+	serialize::Serializer::Serialize(stream, m_zNear);
+	serialize::Serializer::Serialize(stream, m_zFar);
+	serialize::Serializer::Serialize(stream, m_Position);
+	serialize::Serializer::Serialize(stream, m_Forward);
+	serialize::Serializer::Serialize(stream, m_Up);
+	serialize::Serializer::Serialize(stream, m_IsPrimary);
 }
 
-std::size_t shade::Camera::Deserialize(std::istream& stream)
+void shade::Camera::Deserialize(std::istream& stream)
 {
-	std::size_t size = Serializer::Deserialize(stream, m_Fov);
-	size += Serializer::Deserialize(stream, m_Aspect);
-	size += Serializer::Deserialize(stream, m_zNear);
-	size += Serializer::Deserialize(stream, m_zFar);
-	size += Serializer::Deserialize(stream, m_Position);
-	size += Serializer::Deserialize(stream, m_Forward);
-	size += Serializer::Deserialize(stream, m_Up);
-	size += Serializer::Deserialize(stream, m_IsPrimary);
-
-	return size;
+	serialize::Serializer::Deserialize(stream, m_Fov);
+	serialize::Serializer::Deserialize(stream, m_Aspect);
+	serialize::Serializer::Deserialize(stream, m_zNear);
+	serialize::Serializer::Deserialize(stream, m_zFar);
+	serialize::Serializer::Deserialize(stream, m_Position);
+	serialize::Serializer::Deserialize(stream, m_Forward);
+	serialize::Serializer::Deserialize(stream, m_Up);
+	serialize::Serializer::Deserialize(stream, m_IsPrimary);
 }

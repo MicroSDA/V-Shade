@@ -49,7 +49,7 @@ shade::Texture2D::Texture2D(SharedPointer<AssetData> assetData, LifeTime lifeTim
 	else
 	{
 		render::Image image;
-		Serializer::Deserialize(file, image);
+		serialize::Serializer::Deserialize(file, image);
 		m_Image = render::Image2D::Create(image);
 	}
 	file.close();

@@ -1,17 +1,17 @@
 #include "shade_pch.h"
 #include "Animation.h"
-
+#include <shade/core/serializing/File.h>
 shade::Animation::Animation(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour) : BaseAsset(assetData, lifeTime, behaviour)
 {
 	const std::string filePath = assetData->GetAttribute<std::string>("Path");
 
-	shade::File file(filePath, shade::File::In, "@s_anim", shade::File::VERSION(0, 0, 1));
-	if (!file.IsOpen())
-		SHADE_CORE_WARNING("Failed to read file, wrong path = {0}", filePath)
-	else
+	if (file::File file = file::FileManager::LoadFile(filePath, "@s_anim"))
 	{
 		file.Read(*this);
-		file.CloseFile();
+	}
+	else
+	{
+		SHADE_CORE_WARNING("Failed to read file, wrong path = {0}", filePath);
 	}
 }
 
@@ -119,19 +119,16 @@ void shade::Animation::SetDuration(float duration)
 	m_Duration = duration;
 }
 
-std::size_t shade::Animation::Serialize(std::ostream& stream) const
+void shade::Animation::Serialize(std::ostream& stream) const
 {
-	std::size_t size = Serializer::Serialize(stream, m_Duration);
-	size += Serializer::Serialize(stream, m_TicksPerSecond);
-	size += Serializer::Serialize(stream, m_AnimationChannels);
-
-	return size;
+	serialize::Serializer::Serialize(stream, m_Duration);
+	serialize::Serializer::Serialize(stream, m_TicksPerSecond);
+	serialize::Serializer::Serialize(stream, m_AnimationChannels);
 }
 
-std::size_t shade::Animation::Deserialize(std::istream& stream)
+void shade::Animation::Deserialize(std::istream& stream)
 {
-	std::size_t size = Serializer::Deserialize(stream, m_Duration);
-	size += Serializer::Deserialize(stream, m_TicksPerSecond);
-	size += Serializer::Deserialize(stream, m_AnimationChannels);
-	return size;
+	serialize::Serializer::Deserialize(stream, m_Duration);
+	serialize::Serializer::Deserialize(stream, m_TicksPerSecond);
+	serialize::Serializer::Deserialize(stream, m_AnimationChannels);
 }

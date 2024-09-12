@@ -5,6 +5,7 @@
 #include <shade/utils/Logger.h>
 #include <shade/core/asset/Asset.h>
 #include <shade/core/serializing/Serializer.h>
+#include <shade/core/serializing/File.h>
 
 namespace shade
 {

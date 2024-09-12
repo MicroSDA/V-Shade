@@ -4,6 +4,7 @@
 #include <shade/core/physics/Common.h>
 #include <shade/core/physics/algo/Simplex.h>
 #include <shade/core/asset/Asset.h>
+#include <shade/core/serializing/File.h>
 
 namespace shade
 {
@@ -108,10 +109,10 @@ namespace shade
 
 			//std::array<glm::vec<3, scalar_t>, 8> m_Corners;
 		protected:
-			virtual std::size_t Serialize(std::ostream& stream) const = 0;
-			virtual std::size_t Deserialize(std::istream& stream) = 0;
+			virtual void Serialize(std::ostream& stream) const = 0;
+			virtual void Deserialize(std::istream& stream) = 0;
 		private:
-			friend class Serializer;
+			friend class serialize::Serializer;
 		};
 
 		class SHADE_API CollisionShapes : ASSET_INHERITANCE(CollisionShapes)
@@ -129,61 +130,61 @@ namespace shade
 		private:
 			CollisionShapes(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
 		private:
-			std::size_t Serialize(std::ostream& stream) const;
-			std::size_t Deserialize(std::istream& stream);
+			void Serialize(std::ostream& stream) const;
+			void Deserialize(std::istream& stream);
 		private:
 			std::vector<SharedPointer<CollisionShape>> m_Colliders;
-			friend class Serializer;
+			friend class serialize::Serializer;
 		};
 	}
 
 	/* Serialize CollisionShapes.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const physic::CollisionShapes& shapes, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const physic::CollisionShapes& shapes)
 	{
-		return shapes.Serialize(stream);
+		shapes.Serialize(stream);
 	}
 	/* Deserialize CollisionShapes.*/
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, physic::CollisionShapes& shapes, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, physic::CollisionShapes& shapes)
 	{
-		return shapes.Deserialize(stream);
+		shapes.Deserialize(stream);
 	}
 	/* Serialize Asset<CollisionShapes>.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Asset<physic::CollisionShapes>& shapes, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const Asset<physic::CollisionShapes>& shapes)
 	{
-		return shapes->Serialize(stream);
+		shapes->Serialize(stream);
 	}
 	/* Deserialize Asset<CollisionShapes>.*/
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, Asset<physic::CollisionShapes>& shapes, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, Asset<physic::CollisionShapes>& shapes)
 	{
-		return shapes->Deserialize(stream);
+		shapes->Deserialize(stream);
 	}
 
 	/* Serialize CollisionShape.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const physic::CollisionShape& shape, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const physic::CollisionShape& shape)
 	{
-		return shape.Serialize(stream);
+		shape.Serialize(stream);
 	}
 	/* Deserialize CollisionShape.*/
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, physic::CollisionShape& shape, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, physic::CollisionShape& shape)
 	{
-		return shape.Deserialize(stream);
+		shape.Deserialize(stream);
 	}
 	/* Serialize SharedPointer<CollisionShape>.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const SharedPointer<physic::CollisionShape>& shape, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const SharedPointer<physic::CollisionShape>& shape)
 	{
-		return shape->Serialize(stream);
+		shape->Serialize(stream);
 	}
 	/* Deserialize SharedPointer<CollisionShape>.*/
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, SharedPointer<physic::CollisionShape>& shape, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, SharedPointer<physic::CollisionShape>& shape)
 	{
-		return shape->Deserialize(stream);
+		shape->Deserialize(stream);
 	}
 }

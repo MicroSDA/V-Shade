@@ -109,6 +109,8 @@ namespace shade
 		// Set camera as primary.
 		void SetPrimary(bool isPrimary);
 
+		float GetYaw() const { return glm::atan(m_Forward.x, m_Forward.z); }
+
 		CameraFrustum GetCameraFrustum() const;
 	private:
 		const glm::vec3 UP = glm::vec3(0.0f, 1.0f, 0.0f); // Y is up
@@ -118,11 +120,11 @@ namespace shade
 		// TODO: make it like component
 		bool	m_IsPrimary = false;
 	private:
-		friend class Serializer;
-		std::size_t Serialize(std::ostream& stream) const;
-		std::size_t Deserialize(std::istream& stream);
+		friend class serialize::Serializer;
+		void Serialize(std::ostream& stream) const;
+		void Deserialize(std::istream& stream);
 	};
-
+	// TODO: FIX THIS INLINE SHIT ASAP
 	inline Camera::RenderData shade::Camera::GetRenderData() const { return { GetViewProjection(), GetView(), GetProjection(), GetPosition(), GetForwardDirection(), /*-m_Perpective[3][2], m_Perpective[2][2]*/  GetNear(), GetFar() }; }
 	inline glm::mat4 Camera::GetView() const { return glm::lookAt(m_Position, m_Position + m_Forward, m_Up); }
 	inline glm::mat4 Camera::GetView() { return glm::lookAt(m_Position, m_Position + m_Forward, m_Up); }
@@ -173,25 +175,25 @@ namespace shade
 {
 	
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Camera& camera, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const Camera& camera)
 	{
 		return camera.Serialize(stream);
 	}
 
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const SharedPointer<Camera>& camera, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const SharedPointer<Camera>& camera)
 	{
 		return camera->Serialize(stream);
 	}
 
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, Camera& camera, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, Camera& camera)
 	{
 		return camera.Deserialize(stream);
 	}
 
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, SharedPointer<Camera>& camera, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, SharedPointer<Camera>& camera)
 	{
 		return camera->Deserialize(stream);
 	}

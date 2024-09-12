@@ -6,17 +6,17 @@ std::string shade::AssetMeta::GetTypeAsString(AssetMeta::Type type)
 {
 	switch (type)
 	{
-		case AssetMeta::Type::Asset: return "Asset";
-		case AssetMeta::Type::Model: return "Model";
-		case AssetMeta::Type::Mesh: return "Mesh";
-		case AssetMeta::Type::Material: return "Material";
-		case AssetMeta::Type::Texture: return "Texture";
-		case AssetMeta::Type::Animation: return "Animation";
-		case AssetMeta::Type::Skeleton: return "Skeleton";
-		case AssetMeta::Type::CollisionShapes: return "CollisionShapes";
-		case AssetMeta::Type::Sound: return "Sound";
-		case AssetMeta::Type::Other: return "Other";
-		default: return "Undefined";
+	case AssetMeta::Type::Asset: return "Asset";
+	case AssetMeta::Type::Model: return "Model";
+	case AssetMeta::Type::Mesh: return "Mesh";
+	case AssetMeta::Type::Material: return "Material";
+	case AssetMeta::Type::Texture: return "Texture";
+	case AssetMeta::Type::Animation: return "Animation";
+	case AssetMeta::Type::Skeleton: return "Skeleton";
+	case AssetMeta::Type::CollisionShapes: return "CollisionShapes";
+	case AssetMeta::Type::Sound: return "Sound";
+	case AssetMeta::Type::Other: return "Other";
+	default: return "Undefined";
 	}
 }
 
@@ -154,35 +154,34 @@ std::unordered_map<std::string, std::string>& shade::AssetData::GetAttributes()
 	return m_Attributes;
 }
 
-std::size_t shade::AssetData::Serialize(std::ostream& stream) const
+void shade::AssetData::Serialize(std::ostream& stream) const
 {
-	std::size_t result = 0;
-	result += Serializer::Serialize(stream, m_Id);
-	result += Serializer::Serialize(stream, std::uint32_t(m_Category));
-	result += Serializer::Serialize(stream, std::uint32_t(m_Type));
+
+	serialize::Serializer::Serialize(stream, m_Id);
+	serialize::Serializer::Serialize(stream, std::uint32_t(m_Category));
+	serialize::Serializer::Serialize(stream, std::uint32_t(m_Type));
 	if (m_SecondaryReference)
-		result += Serializer::Serialize(stream, m_SecondaryReference->GetId());
+		serialize::Serializer::Serialize(stream, m_SecondaryReference->GetId());
 	else
-		result += Serializer::Serialize(stream, m_SecondaryReferenceId);
-	result += Serializer::Serialize(stream, m_Attributes);
-	result += Serializer::Serialize(stream, m_Dependencies);
-	return result;
+		serialize::Serializer::Serialize(stream, m_SecondaryReferenceId);
+	serialize::Serializer::Serialize(stream, m_Attributes);
+	serialize::Serializer::Serialize(stream, m_Dependencies);
+
 }
 
-std::size_t shade::AssetData::Deserialize(std::istream& stream)
+void shade::AssetData::Deserialize(std::istream& stream)
 {
-	std::size_t result = 0;
-	result += Serializer::Deserialize(stream, m_Id);
-	result += Serializer::Deserialize(stream, (std::uint32_t&)m_Category);
-	result += Serializer::Deserialize(stream, (std::uint32_t&)m_Type);
-	result += Serializer::Deserialize(stream, m_SecondaryReferenceId);
-	result += Serializer::Deserialize(stream, m_Attributes);
-	result += Serializer::Deserialize(stream, m_Dependencies);
-	return result;
+	serialize::Serializer::Deserialize(stream, m_Id);
+	serialize::Serializer::Deserialize(stream, (std::uint32_t&)m_Category);
+	serialize::Serializer::Deserialize(stream, (std::uint32_t&)m_Type);
+	serialize::Serializer::Deserialize(stream, m_SecondaryReferenceId);
+	serialize::Serializer::Deserialize(stream, m_Attributes);
+	serialize::Serializer::Deserialize(stream, m_Dependencies);
+
 }
 
 shade::BaseAsset::BaseAsset(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour) :
-	m_AssetData(assetData),m_LifeTime(lifeTime), m_Behaviour(behaviour)
+	m_AssetData(assetData), m_LifeTime(lifeTime), m_Behaviour(behaviour)
 {
 }
 

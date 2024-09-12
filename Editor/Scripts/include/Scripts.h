@@ -32,8 +32,9 @@ private:
 		Jump = 4
 
 	} m_State = State::Idle;
-	float m_MovementSpeed = 1.0f;
-	glm::mat4 m_RootMotion;
+
+	glm::vec2 m_Velocity			= glm::vec2(0.f);
+	glm::vec3 m_CameraSensativity	= glm::vec3(0.5f);
 };
 
 extern "C"

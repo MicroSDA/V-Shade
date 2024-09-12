@@ -42,10 +42,10 @@ namespace shade
 		static SharedPointer<Scene> m_sActiveScene;
 		static std::unordered_map<std::string, SharedPointer<Scene>> m_sScenes;
 	private:
-		friend class Serializer;
+		friend class serialize::Serializer;
 
-		std::size_t Serialize(std::ostream& stream) const;
-		std::size_t Deserialize(std::istream& stream);
+		void Serialize(std::ostream& stream) const;
+		void Deserialize(std::istream& stream);
 
 		void SerrializeEntity(std::ostream& stream, ecs::Entity entity, bool isParentCall = false) const;
 		void DeserrializeEntity(std::istream& stream, ecs::Entity entity, std::uint32_t& index);
@@ -53,26 +53,26 @@ namespace shade
 
 	/* Serialize Scene.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const Scene& scene, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const Scene& scene)
 	{
-		return scene.Serialize(stream);
+		scene.Serialize(stream);
 	}
 	/* Deserialize Scene.*/
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, Scene& scene, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, Scene& scene)
 	{
-		return scene.Deserialize(stream);
+		scene.Deserialize(stream);
 	}
 	/* Serialize SharedPointer<Scene>.*/
 	template<>
-	inline std::size_t shade::Serializer::Serialize(std::ostream& stream, const SharedPointer<Scene>& scene, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const SharedPointer<Scene>& scene)
 	{
-		return scene->Serialize(stream);
+		scene->Serialize(stream);
 	}
 	/* Deserialize SharedPointer<Scene>.*/
 	template<>
-	inline std::size_t shade::Serializer::Deserialize(std::istream& stream, SharedPointer<Scene>& scene, std::size_t)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, SharedPointer<Scene>& scene)
 	{
-		return scene->Deserialize(stream);
+		scene->Deserialize(stream);
 	}
 }

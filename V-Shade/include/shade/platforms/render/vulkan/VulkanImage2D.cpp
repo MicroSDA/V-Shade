@@ -272,16 +272,22 @@ void shade::VulkanImage2D::Invalidate(render::Image& image)
 	switch (m_ImageData.Compression)
 	{
 	case render::Image::ImageData::DXTCompression::DXT1:
-		m_ImageFormat = VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
+		if (m_ImageData.HasAlpha)
+		{
+			m_ImageFormat = (m_ImageData.SRGB) ? VK_FORMAT_BC1_RGBA_SRGB_BLOCK : VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
+		}
+		else
+		{
+			m_ImageFormat = (m_ImageData.SRGB) ? VK_FORMAT_BC1_RGB_SRGB_BLOCK : VK_FORMAT_BC1_RGB_UNORM_BLOCK;
+		}
 		blockSize = 8;
 		break;
 	case render::Image::ImageData::DXTCompression::DXT3:
-		m_ImageFormat = VK_FORMAT_BC2_UNORM_BLOCK;
+		m_ImageFormat = (m_ImageData.SRGB) ? VK_FORMAT_BC2_SRGB_BLOCK : VK_FORMAT_BC2_UNORM_BLOCK;
 		blockSize = 16;
 		break;
-		// Only DXT5 Can be as SRGB !
 	case render::Image::ImageData::DXTCompression::DXT5:
-		m_ImageFormat = VK_FORMAT_BC3_SRGB_BLOCK;
+		m_ImageFormat = (m_ImageData.SRGB) ? VK_FORMAT_BC3_SRGB_BLOCK : VK_FORMAT_BC3_UNORM_BLOCK;
 		blockSize = 16;
 		break;
 		// TODO: Need test this
@@ -417,7 +423,7 @@ void shade::VulkanImage2D::Invalidate(render::Image& image)
 			};
 			bufferCopyRegions.push_back(copyRegion);
 			// Calculate the buffer offset for the next mip level
-			bufferOffset += ((mipWidth + 3) / 4) * ((mipHeight + 3) / 4) * blockSize; // Assuming RGBA8 format
+			bufferOffset += size; // Assuming RGBA8 format
 			// Calculate the dimensions for the next mip level
 			mipWidth = std::max(1u, mipWidth / 2);
 			mipHeight = std::max(1u, mipHeight / 2);
