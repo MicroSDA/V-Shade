@@ -108,7 +108,7 @@ shade::graphs::BaseNode* shade::graphs::BaseNode::CreateNodeByType(NodeType type
 		case shade::graphs::GetNodeTypeId<shade::graphs::Vec2FloatNode>() : return CreateNode<shade::graphs::Vec2FloatNode>();
 		case shade::graphs::GetNodeTypeId<shade::graphs::StringNode>() : return CreateNode<shade::graphs::StringNode>();
 
-		case shade::graphs::GetNodeTypeId<shade::animation::BlendNode2D>() : return CreateNode<shade::animation::BlendNode2D>();
+		case shade::graphs::GetNodeTypeId<shade::animation::BlendNode>() : return CreateNode<shade::animation::BlendNode>();
 		case shade::graphs::GetNodeTypeId<shade::animation::BoneMaskNode>() : return CreateNode<shade::animation::BoneMaskNode>();
 		case shade::graphs::GetNodeTypeId<shade::animation::OutputPoseNode>() : return &GetRootNode()->As<shade::animation::OutputPoseNode>();
 		case shade::graphs::GetNodeTypeId<shade::animation::PoseNode>() : return CreateNode<shade::animation::PoseNode>();

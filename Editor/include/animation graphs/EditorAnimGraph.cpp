@@ -25,9 +25,9 @@ void graph_editor::GraphNodePrototype::ProcessPopup(const InternalContext* conte
 
 	if (ImGui::BeginMenu("+ Blend"))
 	{
-		if (ImGui::MenuItem("Blend 2D"))
+		if (ImGui::MenuItem("Blend"))
 		{
-			auto node = GetNode()->CreateNode<animation::BlendNode2D>();
+			auto node = GetNode()->CreateNode<animation::BlendNode>();
 			GetEditor()->InitializeRecursively(node, GetEditor()->GetNodes());
 		}
 		if (ImGui::MenuItem("Blend Tree 2D"))
@@ -50,6 +50,11 @@ void graph_editor::GraphNodePrototype::ProcessPopup(const InternalContext* conte
 	if (ImGui::Selectable("+ Pose"))
 	{
 		auto node = GetNode()->CreateNode<animation::PoseNode>();
+		GetEditor()->InitializeRecursively(node, GetEditor()->GetNodes());
+	}
+	if (ImGui::Selectable("+ Additive pose"))
+	{
+		auto node = GetNode()->CreateNode<animation::AdditivePose>();
 		GetEditor()->InitializeRecursively(node, GetEditor()->GetNodes());
 	}
 
@@ -634,11 +639,11 @@ void graph_editor::GraphEditor::InitializeRecursively(graphs::BaseNode* pNode, s
 
 			CreateNode<OutputPoseNodeDelegate>(pNode, nodes);
 		}
-		if (dynamic_cast<shade::animation::BlendNode2D*>(pNode))
+		if (dynamic_cast<shade::animation::BlendNode*>(pNode))
 		{
-			shade::animation::BlendNode2D* value = reinterpret_cast<shade::animation::BlendNode2D*>(pNode);
+			shade::animation::BlendNode* value = reinterpret_cast<shade::animation::BlendNode*>(pNode);
 
-			CreateNode<BlendNode2DNodeDelegate>(pNode, nodes);
+			CreateNode<BlendNodeDelegate>(pNode, nodes);
 		}
 		if (dynamic_cast<shade::animation::state_machine::OutputTransitionNode*>(pNode))
 		{
@@ -1856,7 +1861,6 @@ graph_editor::OutputPoseNodeDelegate::OutputPoseNodeDelegate(graphs::BaseNode* p
 
 void graph_editor::OutputPoseNodeDelegate::ProcessBodyContent(const InternalContext* context)
 {
-
 	auto pose = GetNode()->GET_ENDPOINT<graphs::Connection::Input, NodeValueType::Pose>(0);
 	std::size_t hash = (pose) ? pose->GetAnimationHash() : 0;
 	ImGuiLayer::HelpMarker("#", std::format("{:x}", hash).c_str());
@@ -1867,13 +1871,13 @@ void graph_editor::OutputPoseNodeDelegate::ProcessEndpoint(graphs::EndpointIdent
 	ImGui::Text("Income pose");
 }
 
-graph_editor::BlendNode2DNodeDelegate::BlendNode2DNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
+graph_editor::BlendNodeDelegate::BlendNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
 {
 	Style.HeaderColor = POSE_VALUE_COLOR;
 	Style.Title = "Blend";
 }
 
-void graph_editor::BlendNode2DNodeDelegate::ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint)
+void graph_editor::BlendNodeDelegate::ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint)
 {
 	switch (endpoint.GetType())
 	{
@@ -2004,6 +2008,9 @@ graph_editor::PoseNodeDelegate::PoseNodeDelegate(graphs::BaseNode* pNode, GraphE
 void graph_editor::PoseNodeDelegate::ProcessBodyContent(const InternalContext* context)
 {
 	PoseNode& node = GetNode()->As<animation::PoseNode>();
+
+	
+
 	float& start = node.GetAnimationData().Start;
 	float& end = node.GetAnimationData().End;
 	float& duration = node.GetAnimationData().Duration;

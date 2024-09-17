@@ -417,11 +417,11 @@ namespace graph_editor
 		virtual void ProcessSideBar(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, std::unordered_map<std::size_t, GraphNodePrototype*>& referNodes) override;
 	};
 
-	class BlendNode2DNodeDelegate : public GraphNodePrototype
+	class BlendNodeDelegate : public GraphNodePrototype
 	{
 	public:
-		BlendNode2DNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor);
-		virtual ~BlendNode2DNodeDelegate() = default;
+		BlendNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor);
+		virtual ~BlendNodeDelegate() = default;
 		virtual void ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint) override;
 	};
 

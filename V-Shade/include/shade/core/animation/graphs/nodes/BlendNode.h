@@ -6,7 +6,7 @@ namespace shade
 {
 	namespace animation
 	{
-		class SHADE_API BlendNode2D : public graphs::BaseNode
+		class SHADE_API BlendNode : public graphs::BaseNode
 		{
 		public:
 			enum class SyncStyle : std::uint8_t
@@ -23,15 +23,15 @@ namespace shade
 				// Sync by keyframes
 				KeyFrameSync
 			};
-			NODE_STATIC_TYPE_HELPER(BlendNode2D)
+			NODE_STATIC_TYPE_HELPER(BlendNode)
 
 		public:
-			BlendNode2D(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode) :
-				BaseNode(context, identifier, pParentNode, "Blend2D"), DefaultWeightValue(0.0f), Mask(BoneMask{nullptr})
+			BlendNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode) :
+				BaseNode(context, identifier, pParentNode, "Blend"), Mask(BoneMask{nullptr})
 			{
 				m_CanBeOpen = false;
 
-				REGISTER_ENDPOINT<graphs::Connection::Input,  NodeValueType::Float>(DefaultWeightValue);
+				REGISTER_ENDPOINT<graphs::Connection::Input,  NodeValueType::Float>(0.f);
 				REGISTER_ENDPOINT<graphs::Connection::Input,  NodeValueType::BoneMask>(GetGraphContext()->As<AnimationGraphContext>().Skeleton);
 
 				REGISTER_ENDPOINT<graphs::Connection::Input,  NodeValueType::Pose>(nullptr);
@@ -39,12 +39,10 @@ namespace shade
 
 				REGISTER_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(nullptr);
 			}
-			virtual ~BlendNode2D() = default;
+			virtual ~BlendNode() = default;
 			virtual void Evaluate(const FrameTimer& delatTime) override;
 			virtual void OnConnect(graphs::Connection::Type connectionType, NodeValueType type, graphs::NodeIdentifier endpoint) override {};
 		private:
-			float DefaultWeightValue;
-			////////Internal/////////
 			BoneMask Mask;
 			SyncStyle m_Sync;
 		};

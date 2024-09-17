@@ -1,7 +1,7 @@
 #include "shade_pch.h"
-#include "BlendNode2D.h"
+#include "BlendNode.h"
 
-void shade::animation::BlendNode2D::Evaluate(const FrameTimer& deltaTime)
+void shade::animation::BlendNode::Evaluate(const FrameTimer& deltaTime)
 {
 	auto& controller = GetGraphContext()->As<AnimationGraphContext>().Controller;
 	auto& skeleton   = GetGraphContext()->As<AnimationGraphContext>().Skeleton;
@@ -15,13 +15,5 @@ void shade::animation::BlendNode2D::Evaluate(const FrameTimer& deltaTime)
 			controller->Blend(skeleton, source, destination,
 				GET_ENDPOINT<graphs::Connection::Input, NodeValueType::Float>(0),
 				GET_ENDPOINT<graphs::Connection::Input, NodeValueType::BoneMask>(1)));
-	}
-	else if (source)
-	{
-		GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, source);
-	}
-	else if (destination)
-	{
-		GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, destination);
 	}
 }

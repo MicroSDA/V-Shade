@@ -33,7 +33,8 @@ namespace shade
 		// Set scene as active.
 		void SetAsActiveScene();
 
-		glm::mat4 ComputePCTransform(ecs::Entity& entity);
+		std::pair<glm::mat4, glm::mat4> ComputePCTransform(ecs::Entity& entity);
+		glm::mat4 ComputePCTransformWithoutRootMotion(ecs::Entity& entity);
 
 	private:
 		std::string m_Name;

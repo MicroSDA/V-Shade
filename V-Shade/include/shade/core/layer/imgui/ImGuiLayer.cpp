@@ -547,6 +547,7 @@ bool shade::ImGuiLayer::DrawImGuizmo(glm::mat4& transform, const SharedPointer<C
 	// Flip Y back !
 	cameraProjection[1][1] *= -1.0;
 
+	//ImGuizmo::AllowAxisFlip();
 	ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), operation, ImGuizmo::WORLD, glm::value_ptr(transform), nullptr);
 
 	if (ImGuizmo::IsUsing())

@@ -288,12 +288,12 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 
 		scene->View<GlobalLightComponent, TransformComponent>().Each([&](ecs::Entity& entity, GlobalLightComponent& light, TransformComponent& transform)
 			{
-				Renderer::SubmitLight(light, scene->ComputePCTransform(entity), m_Camera);
+				Renderer::SubmitLight(light, scene->ComputePCTransform(entity).first, m_Camera);
 			});
 		scene->View<PointLightComponent, TransformComponent>().Each([&](ecs::Entity& entity, PointLightComponent& light, TransformComponent& transform)
 			{
 				// Check if point light within camera frustum 
-				glm::mat4 pcTransform = scene->ComputePCTransform(entity);
+				glm::mat4 pcTransform = scene->ComputePCTransform(entity).first;
 
 				if (frustum.IsInFrustum({ pcTransform[3].x, pcTransform[3].y, pcTransform[3].z }, light->Distance))
 				{
@@ -309,7 +309,7 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 			});
 		scene->View<SpotLightComponent, TransformComponent>().Each([&](ecs::Entity& entity, SpotLightComponent& light, TransformComponent& transform)
 			{
-				glm::mat4 pcTransform = scene->ComputePCTransform(entity);
+				glm::mat4 pcTransform = scene->ComputePCTransform(entity).first;
 			
 				float radius = light->Distance * glm::acos(glm::radians(light->MaxAngle));
 	
@@ -327,11 +327,17 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 
 		scene->View<Asset<Model>, TransformComponent>().Each([&](ecs::Entity& entity, Asset<Model>& model, TransformComponent& transform)
 			{
-				auto pcTransform = scene->ComputePCTransform(entity);
+				auto pcTransform = scene->ComputePCTransform(entity).first;
+
 
 				Asset<animation::AnimationGraph> animationGraph = (entity.HasComponent<AnimationGraphComponent>()) ? entity.GetComponent<AnimationGraphComponent>().AnimationGraph : nullptr;
 				const animation::Pose* finalPose = (animationGraph) ? animationGraph->GetOutputPose() : nullptr;
 
+			/*	if (finalPose)
+				{
+					pcTransform = glm::translate(pcTransform, -finalPose->GetRootMotionTranslation());
+					pcTransform = glm::mat4_cast(finalPose->GetRootMotionRotation()) * pcTransform;
+				}*/
 
 				bool isModelInFrustrum = false;
 				

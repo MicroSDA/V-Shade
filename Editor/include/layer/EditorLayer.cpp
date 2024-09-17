@@ -7,7 +7,7 @@
 
 EditorLayer::EditorCamera::EditorCamera()
 {
-	SetDirection(glm::vec3(-0.011512465, -0.33462766, 0.94228005));
+	SetForwardDirection(glm::vec3(-0.011512465, -0.33462766, 0.94228005));
 	SetPosition(glm::vec3(0, 10, -20));
 }
 
@@ -28,9 +28,9 @@ void EditorLayer::EditorCamera::OnUpdate(const shade::FrameTimer& deltaTime)
 				MoveRight(m_MovementSpeed * deltaTime);
 
 			if (shade::Input::IsKeyPressed(shade::Key::Q))
-				RotateZ(m_RotationSpeed / 100.f * deltaTime);
+				RotateRoll(m_RotationSpeed / 100.f * deltaTime);
 			if (shade::Input::IsKeyPressed(shade::Key::E))
-				RotateZ(-m_RotationSpeed / 100.f * deltaTime);
+				RotateRoll(-m_RotationSpeed / 100.f * deltaTime);
 
 		}
 		{
@@ -746,8 +746,8 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 		if (m_SelectedEntity && m_SelectedEntity.HasComponent<shade::TransformComponent>())
 		{
 			auto& transform = m_SelectedEntity.GetComponent<shade::TransformComponent>();
-			auto pcTransform = scene->ComputePCTransform(m_SelectedEntity);
-
+			auto pcTransform = scene->ComputePCTransformWithoutRootMotion(m_SelectedEntity);
+			
 			if (m_SelectedEntity.HasComponent<shade::GlobalLightComponent>())
 				m_ImGuizmoAllowedOperation = ImGuizmo::ROTATE | ImGuizmo::BOUNDS;
 			else if (m_SelectedEntity.HasComponent<shade::PointLightComponent>())
@@ -759,12 +759,17 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 
 			if (!(m_ImGuizmoAllowedOperation & m_ImGuizmoOperation)) m_ImGuizmoOperation = ImGuizmo::BOUNDS;
 
-			if (DrawImGuizmo(pcTransform, m_SceneRenderer->GetActiveCamera(), static_cast<ImGuizmo::OPERATION>(m_ImGuizmoAllowedOperation & m_ImGuizmoOperation), { ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, ImGui::GetWindowSize().x, ImGui::GetWindowSize().y }))
+			//{ ImGui::GetWindowViewport()->WorkPos.x, ImGui::GetWindowViewport()->WorkPos.y }
+
+
+			if (DrawImGuizmo(pcTransform, m_SceneRenderer->GetActiveCamera(), static_cast<ImGuizmo::OPERATION>(m_ImGuizmoAllowedOperation & m_ImGuizmoOperation), 
+				{ ImGui::GetWindowPos().x, ImGui::GetWindowPos().y,
+				ImGui::GetWindowSize().x, ImGui::GetWindowSize().y }))
 			{
 				if (m_SelectedEntity.HasParent())
 				{
 					auto parenEntity = m_SelectedEntity.GetParent();
-					auto parentTransform = scene->ComputePCTransform(parenEntity);
+					auto parentTransform = scene->ComputePCTransformWithoutRootMotion(parenEntity);
 					pcTransform = glm::inverse(parentTransform) * pcTransform;
 				}
 
@@ -2512,14 +2517,33 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 
 void EditorLayer::NativeScriptComponent(shade::ecs::Entity& entity)
 {
+	shade::Input::ShowMouseCursor(true);
+	ImGui::ShowDemoWindow();
+
 	auto& script = entity.GetComponent<shade::NativeScriptComponent>();
 
 	static std::string moduleName = (script.GetIsntace()) ? script.GetIsntace()->GetModuleName() : "", functionName = (script.GetIsntace()) ? script.GetIsntace()->GetName() : "",
 		moduleSearch, functionSearch;
 
+	if (ImGui::BeginTable("asd", 2, ImGuiTableFlags_SizingStretchSame))
+	{
+		ImGui::TableNextRow();
+		
+		ImGui::TableNextColumn();
+		{
+			ImGuiLayer::InputTextCol("Modules:", moduleSearch);
+			ImGui::Separator();
+		}
+		ImGui::TableNextColumn();
+		{
+			ImGuiLayer::InputTextCol("Functions:", functionSearch);
+			ImGui::Separator();
+		}
+		ImGui::EndTable();
+	}
+	
+
 	ImGui::BeginChild("##ScriptModuels", ImGui::GetContentRegionAvail() / 2.f, true);
-	ImGuiLayer::InputTextCol("Modules:", moduleSearch);
-	ImGui::Separator();
 
 	for (auto& [name, lib] : shade::scripts::ScriptManager::GetLibraries())
 	{
@@ -2534,8 +2558,6 @@ void EditorLayer::NativeScriptComponent(shade::ecs::Entity& entity)
 
 	ImGui::BeginGroup();
 	ImGui::BeginChild("##ScriptFunctions", { 0.f, ImGui::GetContentRegionAvail().y / 2.f }, true);
-	ImGuiLayer::InputTextCol("Functions:", functionSearch);
-	ImGui::Separator();
 	if (shade::scripts::ScriptManager::GetLibraries().find(moduleName) != shade::scripts::ScriptManager::GetLibraries().end())
 	{
 		for (auto& [name, function] : shade::scripts::ScriptManager::GetLibraries().at(moduleName)->GetExportedFunctions())

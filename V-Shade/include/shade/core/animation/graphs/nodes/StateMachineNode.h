@@ -5,8 +5,9 @@
 #include <shade/core/graphs/nodes/IntEqualsNode.h>
 #include <shade/core/graphs/nodes/BoolNode.h>
 #include <shade/core/animation/graphs/nodes/OutputPoseNode.h>
-#include <shade/core/animation/graphs/nodes/BlendNode2D.h>
+#include <shade/core/animation/graphs/nodes/BlendNode.h>
 #include <shade/core/animation/graphs/nodes/PoseNode.h>
+#include <shade/core/animation/graphs/nodes/AdditivePose.h>
 #include <shade/core/graphs/nodes/FloatScaleRange.h>
 #include <shade/core/graphs/nodes/Vec2FloatNode.h>
 

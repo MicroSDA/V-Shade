@@ -264,7 +264,7 @@ namespace shade
 		SHADE_INLINE float GetPitch() const
 		{
 			// Calculate the pitch angle in radians
-			return glm::asin(glm::clamp(2.0f * (m_RotationQuat.w * m_RotationQuat.x - m_RotationQuat.y * m_RotationQuat.z), -1.0f, 1.0f));
+			return glm::pitch(m_RotationQuat);
 		}
 
 		/**
@@ -274,9 +274,7 @@ namespace shade
 		SHADE_INLINE float GetYaw() const
 		{
 			// Calculate the roll angle in radians
-			return atan2(2.0f * (m_RotationQuat.w * m_RotationQuat.y + m_RotationQuat.z * m_RotationQuat.x),
-				m_RotationQuat.w * m_RotationQuat.w - m_RotationQuat.x * m_RotationQuat.x -
-				m_RotationQuat.y * m_RotationQuat.y + m_RotationQuat.z * m_RotationQuat.z);
+			return glm::yaw(m_RotationQuat);
 		}
 		/**
 		 * @brief Calculates the roll angle (rotation around the Z-axis) from the current quaternion rotation.
@@ -285,9 +283,7 @@ namespace shade
 		SHADE_INLINE float GetRoll() const
 		{
 			// Calculate the yaw angle in radians
-			return atan2(2.0f * (m_RotationQuat.w * m_RotationQuat.z + m_RotationQuat.x * m_RotationQuat.y),
-				m_RotationQuat.w * m_RotationQuat.w + m_RotationQuat.x * m_RotationQuat.x -
-				m_RotationQuat.y * m_RotationQuat.y - m_RotationQuat.z * m_RotationQuat.z);
+			return glm::roll(m_RotationQuat);
 		}
 
 		/**

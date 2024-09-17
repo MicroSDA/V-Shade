@@ -76,6 +76,9 @@ namespace shade
 			animation::Pose* ProcessPose(const Asset<Skeleton>& skeleton, AnimationControlData& animationData, const FrameTimer& deltaTime, float timeMultiplier = 1.f);
 			animation::Pose* Blend(const Asset<Skeleton>& skeleton, const animation::Pose* first, const animation::Pose* second, float blendFactor, const animation::BoneMask& boneMask);
 			animation::Pose* BlendTriangular(const Asset<Skeleton>& skeleton, const animation::Pose* first, const animation::Pose* second, const animation::Pose* third, float blendFactor1, float blendFactor2, float blendFactor3, const animation::BoneMask& boneMask);
+			animation::Pose* GetZeroPose(const Asset<Skeleton>& skeleton);
+			animation::Pose* GenerateAdditivePose(const Asset<Skeleton>& skeleton, const animation::Pose* referencePose, const animation::Pose* basePose);
+
 			std::pair<float, float> GetTimeMultiplier(float firstDuration, float secondDuration, float blendFactor) const;
 
 		private:
@@ -84,16 +87,15 @@ namespace shade
 			
 			friend class SharedPointer<AnimationController>;
 		private:
-			animation::Pose* CreatePose(const Asset<Skeleton>& skeleton, std::size_t hash);
+			animation::Pose* CreatePose(const Asset<Skeleton>& skeleton, Pose::Type type, std::size_t hash);
 			animation::Pose* CalculatePose(animation::Pose* targetPose, AnimationControlData& animationData, const FrameTimer& deltaTime, float timeMultiplier = 1.f);
-			animation::Pose* ReceiveAnimationPose(const Asset<Skeleton>& skeleton, std::size_t hash);
+			animation::Pose* ReceiveAnimationPose(const Asset<Skeleton>& skeleton, Pose::Type type, std::size_t hash);
 		
-
 			template<typename... Args>
-			inline animation::Pose* ReceiveAnimationPose(const Asset<Skeleton>& skeleton, Args&&... args)
+			inline animation::Pose* ReceiveAnimationPose(const Asset<Skeleton>& skeleton, Pose::Type type, Args&&... args)
 			{
-				(CreatePose(skeleton, animation::PointerHashCombine(args)), ...);
-				return CreatePose(skeleton, animation::PointerHashCombine(std::forward<Args>(args)...));
+				(CreatePose(skeleton, type, animation::PointerHashCombine(type, args)), ...);
+				return CreatePose(skeleton, type, animation::PointerHashCombine(type, std::forward<Args>(args)...));
 			}
 		
 			void CalculateBoneTransforms(
@@ -110,6 +112,15 @@ namespace shade
 				const animation::Pose* second,
 				const glm::mat4& parrentTransform,
 				float blendFactor, 
+				const animation::BoneMask& boneMask);
+
+			void CalculateBoneTransformsAdditive(
+				const shade::Skeleton::BoneNode* bone,
+				animation::Pose* targetPose,
+				const animation::Pose* referencePose,
+				const animation::Pose* additive,
+				const glm::mat4& parrentTransform,
+				float blendFactor,
 				const animation::BoneMask& boneMask);
 		};
 	}

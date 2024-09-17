@@ -3,6 +3,7 @@
 #include <shade/core/memory/Memory.h>
 #include <shade/core/animation/Skeleton.h>
 
+
 namespace shade
 {
 	namespace animation
@@ -10,22 +11,14 @@ namespace shade
 		class SHADE_API Pose
 		{
 		public:
-			enum class Type
+			enum class Type : std::size_t // Copied from Esoterica
 			{
-				DontKnow1,
-				DontKnow2,
-			};
-			enum class State // Copied from Esoterica
-			{
-				Unset = 0,
-				Pose,
-				ReferencePose,
-				ZeroPose,
-				AdditivePose
+				ZeroPose		= 0,
+				Pose			= 1,
+				AdditivePose	= 2
 			};
 		public:
-			Pose(const Asset<Skeleton>& skeleton, std::size_t animationHash = 0, Type initianType = Type::DontKnow1);
-			Pose(Type initianType = Type::DontKnow1);
+			Pose(const Asset<Skeleton>& skeleton, std::size_t animationHash = static_cast<std::size_t>(Type::ZeroPose), Type initianState = Type::ZeroPose);
 			virtual ~Pose() = default;
 		public:
 			void Reset();
@@ -40,7 +33,7 @@ namespace shade
 			SHADE_INLINE const	glm::mat4& GetBoneLocalTransform(std::size_t index)						const	{ assert(index < m_LocalTransforms->size()); return m_LocalTransforms.Get()[index]; }
 			SHADE_INLINE		glm::mat4& GetBoneLocalTransform(std::size_t index)								{ assert(index < m_LocalTransforms->size()); return m_LocalTransforms.Get()[index]; }
 
-			SHADE_INLINE		State GetState()														const	{ return m_State; }
+			SHADE_INLINE		Type GetType()															const	{ return m_Type; }
 			SHADE_INLINE const	Asset<Skeleton>& GetSkeleton()											const	{ return m_Skeleton; }
 			SHADE_INLINE		std::size_t GetAnimationHash()											const	{ return m_AnimationCombinationHash; }
 
@@ -50,19 +43,27 @@ namespace shade
 			SHADE_INLINE 		float GetDuration()														const   { return m_Duration; }
 			SHADE_INLINE 		float GetCurrentPlayTime()												const   { return m_CurrentPlayTime; }
 
-			// Methods for root motion
-			void UpdatePreviousRootTransform();
-			glm::mat4 ComputeRootMotion() const;
+
+			void UpdateRootMotion(float tickPerSecond);
+
+			glm::vec3 GetRootMotionTranslationDifference() const;
+			glm::vec3 GetRootMotionTranslation() const;
+			glm::quat GetRootMotionRotationDifference() const;
+			glm::quat GetRootMotionRotation() const;
+
+
 		private:
 			Asset<Skeleton>							m_Skeleton;
 			std::size_t								m_AnimationCombinationHash;
 			SharedPointer<std::vector<glm::mat4>>	m_GlobalTransforms, m_LocalTransforms;
-			State									m_State;
+			Type									m_Type;
 			float									m_Duration;
 			float									m_CurrentPlayTime;
-			//////////////////////////////////////////////////////////
-			glm::mat4 m_CurrentRootTransform  = glm::identity<glm::mat4>();
-			glm::mat4 m_PreviousRootTransform = glm::identity<glm::mat4>();
+		public:
+			glm::vec3								m_RootMotionTranslation = glm::vec3(0.f);
+			glm::vec3								m_RootMotionTranslationDelta = glm::vec3(0.f);
+			glm::quat								m_RootMotionRotation = glm::identity<glm::quat>();
+			glm::quat								m_RootMotionRotationDelta = glm::identity<glm::quat>();
 		};
 	}
 }

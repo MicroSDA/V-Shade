@@ -35,6 +35,8 @@ private:
 
 	glm::vec2 m_Velocity			= glm::vec2(0.f);
 	glm::vec3 m_CameraSensativity	= glm::vec3(0.5f);
+	glm::vec3 m_Motion				= glm::vec3(0.0f);
+	glm::quat m_Rotation			= glm::quat();
 };
 
 extern "C"

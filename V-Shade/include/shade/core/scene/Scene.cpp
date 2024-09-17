@@ -113,24 +113,72 @@ void shade::Scene::SetAsActiveScene()
 {
 	SetActiveScene(m_Name);
 }
-
-glm::mat4 shade::Scene::ComputePCTransform(ecs::Entity& entity)
+std::pair<glm::mat4, glm::mat4> shade::Scene::ComputePCTransform(ecs::Entity& entity)
 {
-	glm::mat4 transform(1.0f);
+	// Композиция парент и чайлд трансформаций (с компенсацией и без)
+	std::pair<glm::mat4, glm::mat4> tComplMat = { glm::identity<glm::mat4>(), glm::identity<glm::mat4>() };
+
+	// Если у сущности есть родитель
+	if (entity.HasParent())
+	{
+		ecs::Entity parent = entity.GetParent();
+		// Рекурсивно вычисляем трансформацию родителя
+		tComplMat = ComputePCTransform(parent);
+	}
+
+	// Если у сущности есть компонент TransformComponent
+	if (entity.HasComponent<shade::TransformComponent>())
+	{
+		auto& transform = entity.GetComponent<shade::TransformComponent>();
+		glm::mat4 tMat = transform.GetModelMatrix();  // Локальная матрица трансформации
+
+		glm::mat4 tMatWithRootMotion = tMat;  // Матрица с компенсацией root motion
+
+		// Если у сущности есть компонент AnimationGraphComponent, проверяем анимацию
+		if (entity.HasComponent<shade::AnimationGraphComponent>())
+		{
+			if (const animation::Pose* pose = entity.GetComponent<shade::AnimationGraphComponent>().AnimationGraph->GetOutputPose())
+			{
+				// Получаем трансляцию root motion и создаем матрицу для компенсации
+				glm::mat4 dif = glm::inverse(glm::toMat4(pose->GetRootMotionRotation())) * glm::translate(glm::mat4(1.f), -pose->GetRootMotionTranslation());
+
+				//glm::mat4 dif = glm::translate(glm::mat4(1.f), -pose->GetRootMotionTranslation());
+
+				// Применяем компенсацию root motion **только к текущей матрице**
+				tMatWithRootMotion = tMat * dif;
+			}
+		}
+
+		// Итоговое умножение:
+		// - Родительская матрица без root motion применяется к текущей матрице **с компенсацией root motion**
+		// - Для передачи родительской трансформации вниз по иерархии используется исходная матрица без компенсации
+		return { tComplMat.second * tMatWithRootMotion, tComplMat.second * tMat };
+	}
+	else
+	{
+		// Если нет компонента TransformComponent, возвращаем исходные матрицы без изменений
+		return tComplMat;
+	}
+}
+
+glm::mat4 shade::Scene::ComputePCTransformWithoutRootMotion(ecs::Entity& entity)
+{
+	glm::mat4 tComplMat = glm::identity<glm::mat4>();
 
 	if (entity.HasParent())
 	{
 		ecs::Entity parent = entity.GetParent();
-		transform = ComputePCTransform(parent);
+		tComplMat = ComputePCTransformWithoutRootMotion(parent);
 	}
 
 	if (entity.HasComponent<shade::TransformComponent>())
 	{
-		// Not user do we need to use * with transform ?
-		return transform * entity.GetComponent<shade::TransformComponent>().GetModelMatrix();
+		return tComplMat * entity.GetComponent<shade::TransformComponent>().GetModelMatrix();
 	}
 	else
-		return transform;
+	{
+		return tComplMat;
+	}
 }
 
 void shade::Scene::Serialize(std::ostream& stream) const

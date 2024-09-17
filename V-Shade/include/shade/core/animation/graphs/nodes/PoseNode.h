@@ -28,6 +28,7 @@ namespace shade
 
 			const AnimationController::AnimationControlData& GetAnimationData() const;
 			AnimationController::AnimationControlData& GetAnimationData();
+			bool m_IsAddative = false;
 		private:
 			
 			virtual void SerializeBody(std::ostream& stream) const override;
