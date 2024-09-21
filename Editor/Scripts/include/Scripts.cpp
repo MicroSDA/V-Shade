@@ -12,53 +12,7 @@
 //	}
 //}
 
-void FreeCamera::OnCreate()
-{
 
-}
-
-void FreeCamera::OnDestroy()
-{
-
-}
-
-void FreeCamera::OnUpdate(const shade::FrameTimer& deltaTime)
-{
-	auto camera = GetComponent<shade::CameraComponent>();
-	{
-		// Movment
-		if (shade::Input::IsKeyPressed(shade::Key::W))
-			camera->MoveForward(m_MovementSpeed * deltaTime);
-		if (shade::Input::IsKeyPressed(shade::Key::S))
-			camera->MoveBackward(m_MovementSpeed * deltaTime);
-
-		if (shade::Input::IsKeyPressed(shade::Key::A))
-			camera->MoveLeft(m_MovementSpeed * deltaTime);
-		if (shade::Input::IsKeyPressed(shade::Key::D))
-			camera->MoveRight(m_MovementSpeed * deltaTime);
-
-		if (shade::Input::IsKeyPressed(shade::Key::Q))
-			camera->RotatePitch(m_RotationSpeed / 100.f * deltaTime);
-		if (shade::Input::IsKeyPressed(shade::Key::E))
-			camera->RotatePitch(-m_RotationSpeed / 100.f * deltaTime);
-
-	}
-	{
-		if (shade::Input::IsMouseButtonPressed(shade::Mouse::ButtonRight))
-		{
-			shade::Input::ShowMouseCursor(false);
-			glm::vec2 screenCenter(shade::Application::GetWindow()->GetWidth() / 2, shade::Application::GetWindow()->GetHeight() / 2);
-			glm::vec2 mousePosition(shade::Input::GetMousePosition() - screenCenter);
-
-			camera->Rotate(glm::vec3(mousePosition, 0.0f) * m_RotationSpeed / 1000.f);
-
-			shade::Input::SetMousePosition(screenCenter.x, screenCenter.y);
-		}
-		else
-			shade::Input::ShowMouseCursor(true);
-
-	}
-}
 
 void PlayerScript::OnCreate()
 {
@@ -78,7 +32,7 @@ float NormalizeAngle(float angle)
 
 void PlayerScript::OnUpdate(const shade::FrameTimer& deltaTime)
 {
-	if (HasComponent<shade::AnimationGraphComponent>() && GetComponent<shade::AnimationGraphComponent>().AnimationGraph) 
+	if (HasComponent<shade::AnimationGraphComponent>()) 
 	{
 		auto& graph = GetComponent<shade::AnimationGraphComponent>();
 
@@ -98,13 +52,20 @@ void PlayerScript::OnUpdate(const shade::FrameTimer& deltaTime)
 			rState = State::Jump;
 		}
 
-		graph.AnimationGraph->SetInputValue("State", static_cast<int>(rState));
-		graph.AnimationGraph->SetInputValue("Direction", m_Velocity);
+		if (graph.AnimationGraph)
+		{
+			graph.AnimationGraph->SetInputValue("State", static_cast<int>(rState));
+			graph.AnimationGraph->SetInputValue("Direction", m_Velocity);
 
-		m_Motion = graph.AnimationGraph->GetOutputPose()->GetRootMotionTranslationDifference();
-		m_Rotation = graph.AnimationGraph->GetOutputPose()->GetRootMotionRotationDifference();
-
-		SHADE_CORE_INFO("Translation {0},{1},{2}", m_Motion.x, m_Motion.y, m_Motion.z);
+			if (const shade::animation::Pose* finalPose = graph.AnimationGraph->GetOutputPose())
+			{				
+				if (auto motion = finalPose->GetRootMotion())
+				{
+					m_RootMotion = *motion;
+				}
+			}
+		}
+		
 	}
 
 	if (HasComponent<shade::TransformComponent>())
@@ -130,10 +91,22 @@ void PlayerScript::OnUpdate(const shade::FrameTimer& deltaTime)
 			// Update camera position based on character's position and direction
 
 			//transform.Move(glm::vec3{ 0, 0.f, -m_Motion.x });
-			transform.Move(glm::vec3{ m_Motion.x, m_Motion.y, m_Motion.z });  
-			transform.Rotate(m_Rotation);
+			transform.Move(m_RootMotion.GetTranlsationDifference()); 
+
+			float v = glm::length(m_RootMotion.Rotation.Current);
+			float v2 = glm::length(m_RootMotion.Rotation.Delta);
+			//transform.SetRotation(m_RootMotion.Rotation.Current);
+			transform.Rotate(m_RootMotion.GetRotationDifference());  
+
+			//std::cout << (glm::angle(m_RootMotion.GetRotationDifference())) << std::endl;
+			//std::cout << (glm::angle(m_RootMotion.GetRotationDifference())) << std::endl;
+
 			//camera->SetForwardDirection(transform.GetForwardDirection());
-			
+			/*SHADE_CORE_INFO("Dif {0},{1},{2}",
+				m_RootMotion.GetTranlsationDifference().x,
+				m_RootMotion.GetTranlsationDifference().y,
+				m_RootMotion.GetTranlsationDifference().z);*/
+
 			glm::vec3 cameraOffset = { 0.0f, 1.0f, 5.0f }; // Offset the camera behind and above the character
 			//glm::vec3 cameraPosition = transform.GetPosition() - camera->GetForwardDirection() * cameraOffset.z + glm::vec3(0, cameraOffset.y, 0);
 
@@ -158,11 +131,6 @@ void PlayerScript::OnUpdate(const shade::FrameTimer& deltaTime)
 		//	m_Velocity.x += (-angularDifference * deltaTime.GetInMilliseconds<float>() - m_Velocity.x) * smoothingFactor;
 		//}
 	}
-}
-
-SHADE_SCRIPT_API shade::ecs::ScriptableEntity* Camera()
-{
-	return new FreeCamera();
 }
 
 SHADE_SCRIPT_API shade::ecs::ScriptableEntity* Player()

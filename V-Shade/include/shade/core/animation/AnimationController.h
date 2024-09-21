@@ -23,7 +23,7 @@ namespace shade
 		class SHADE_API AnimationController
 		{			
 		public:
-			struct AnimationControlData
+			struct SHADE_API AnimationControlData
 			{
 				AnimationControlData() = default;
 				AnimationControlData(const Asset<Animation>& animation) :
@@ -33,12 +33,19 @@ namespace shade
 					Duration(animation->GetDuration()),
 					CurrentPlayTime(0.f),
 					TicksPerSecond(animation->GetTiksPerSecond())
-				{}
+				{
+					
+				}
 
 				Asset<Animation>		Animation;
 				Animation::State		State  = Animation::State::Play;
+				Pose::RootMotion		RootMotion;
 				float					Start  = 0.f, End = 0.f, Duration = 0.f, CurrentPlayTime = 0.f, TicksPerSecond = 0.f;
 				bool					IsLoop = true;
+				bool					HasRootMotion = false;
+
+				void UpdateRootMotion(Pose* pose, bool newFrame = false);
+			
 			private:
 				/// @brief Serializes the animation graph to the given output stream.
 				/// @param stream The output stream to serialize to.

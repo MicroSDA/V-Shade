@@ -1,13 +1,13 @@
 #include "shade_pch.h"
 #include "Pose.h"
 #include <shade/core/render/RenderAPI.h>
-
+#include <glm/glm/gtx/common.hpp>
 
 shade::animation::Pose::Pose(const Asset<Skeleton>& skeleton, std::size_t animationHash, Type type) :
 	m_Skeleton(skeleton),
 	m_AnimationCombinationHash(animationHash),
 	m_GlobalTransforms(SharedPointer<std::vector<glm::mat4>>::Create()),
-	m_LocalTransforms(SharedPointer<std::vector<glm::mat4>>::Create()),
+	m_LocalTransforms(SharedPointer<std::vector<LocalTransform>>::Create()),
 	m_Type(type)
 {
 	Reset();
@@ -19,34 +19,34 @@ void shade::animation::Pose::Reset()
 	m_GlobalTransforms->resize(RenderAPI::MAX_BONES_PER_INSTANCE, glm::identity<glm::mat4>());
 
 	//m_LocalTransforms->clear();
-	m_LocalTransforms->resize(RenderAPI::MAX_BONES_PER_INSTANCE, glm::identity<glm::mat4>());
+	m_LocalTransforms->resize(RenderAPI::MAX_BONES_PER_INSTANCE);
 }
 
-void shade::animation::Pose::UpdateRootMotion(float tickPerSecond)
+glm::vec3 shade::animation::Pose::RootMotion::GetTranlsationDifference() const
 {
-	m_RootMotionTranslationDelta	= m_RootMotionTranslation;
-	m_RootMotionRotationDelta		= m_RootMotionRotation;
-
-	glm::vec3 s;
-	math::DecomposeMatrix(m_LocalTransforms->at(0), m_RootMotionTranslation, m_RootMotionRotation, s);
+	// Try to keep delta difference
+	// and multiply current diff by curmagnitude / delta magnitude
+	// return = Translation.Current - Translation.Delta * (glm::length(DeltaDifference) / glm::length(Translation.Current - Translation.Delta));
+	return Translation.Current - Translation.Delta;
 }
 
-glm::vec3 shade::animation::Pose::GetRootMotionTranslationDifference() const
+void shade::animation::Pose::RootMotion::FinalizeRootMotion(const Asset<Skeleton>& skeleton, const Asset<Animation>& aniamtion, float start, float end)
 {
-	return m_RootMotionTranslation - m_RootMotionTranslationDelta;
-}
+	if (const Animation::Channel* channel = aniamtion->GetAnimationCahnnel(skeleton->GetBone(RootBone)->Name))
+	{
+		//// Возможно нужно будет использовать парент мультипликацию 
 
-glm::vec3 shade::animation::Pose::GetRootMotionTranslation() const
-{
-	return m_RootMotionTranslation; 
-}
+		Translation.Start = aniamtion->InterpolatePosition(*channel, start);
+		Translation.End = aniamtion->InterpolatePosition(*channel, end);
 
-glm::quat shade::animation::Pose::GetRootMotionRotationDifference() const
-{
-	return glm::inverse(m_RootMotionRotationDelta) * m_RootMotionRotation;
-}
+		Rotation.Start = aniamtion->InterpolateRotation(*channel, start);
+		Rotation.End = aniamtion->InterpolateRotation(*channel, end);
 
-glm::quat shade::animation::Pose::GetRootMotionRotation() const
-{
-	return m_RootMotionRotation;
+		Scale.Start = aniamtion->InterpolateScale(*channel, start);
+		Scale.End = aniamtion->InterpolateScale(*channel, end);
+	}
+	else
+	{
+		// We couldnt find bone 
+	}
 }

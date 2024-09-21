@@ -409,7 +409,7 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 					{
 						/* In case we want to use aabb box during instance rendering we need reuse deafult box min and max ext and apply changes only to transform matrix.*/
 						// Translate the cpTransform matrix to the center of the mesh
-						glm::mat4 permeshTransform = glm::translate(pcTransform, (mesh->GetMinHalfExt() + mesh->GetMaxHalfExt()) / 2.f);
+						glm::mat4 permeshTransform = glm::translate(scene->ComputePCTransform(entity).second, (mesh->GetMinHalfExt() + mesh->GetMaxHalfExt()) / 2.f);
 						// Scale the cpTransform matrix using the ratio of the half extents of the mesh and the bounding box
 						permeshTransform = glm::scale(permeshTransform, (mesh->GetMaxHalfExt() - mesh->GetMinHalfExt()) / (m_OBB->GetMaxHalfExt() - m_OBB->GetMinHalfExt()));
 						// Submit aabb for rendering 

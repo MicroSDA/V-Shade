@@ -15,14 +15,17 @@ namespace shade
 	 */
 	class SHADE_API Skeleton : ASSET_INHERITANCE(Skeleton)
 	{
-
 		ASSET_DEFINITION_HELPER(Skeleton)
 
 	public:
+		// The value of BONE_BONE_ID is the bitwise complement of 0.
+		using BoneID = std::uint32_t;
+		static constexpr BoneID BONE_NULL_ID = ~0;
+
 		struct BoneNode
 		{
 			// ID of the bone node
-			std::uint32_t ID = Skeleton::BONE_NULL_ID;
+			BoneID ID = Skeleton::BONE_NULL_ID;
 			// Name of the bone node
 			std::string Name;
 			// Translation of the bone node
@@ -44,8 +47,7 @@ namespace shade
 
 		using BoneNodes = std::unordered_map<std::string, BoneNode>;
 	public:
-		// The value of BONE_BONE_ID is the bitwise complement of 0.
-		static constexpr std::uint32_t BONE_NULL_ID = ~0;
+		
 	public:
 		// Destructor
 		virtual ~Skeleton() = default;

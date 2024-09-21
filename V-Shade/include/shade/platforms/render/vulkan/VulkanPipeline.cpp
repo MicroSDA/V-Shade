@@ -290,7 +290,8 @@ void shade::VulkanPipeline::Invalidate()
 			.pNext = VK_NULL_HANDLE,
 			.flags = 0,
 			.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
-			.sampleShadingEnable = VK_FALSE,
+			.sampleShadingEnable = VK_TRUE,
+			.minSampleShading = 1.0f,
 			// Skip evereting else becouse we are not use them rigt now
 		};
 		/*	A vertex binding describes at which rate to load data from memory throughout the vertices.

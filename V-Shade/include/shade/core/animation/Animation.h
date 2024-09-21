@@ -29,8 +29,6 @@ namespace shade
 		
 		struct Channel
 		{
-			// The ID of the channel
-			std::uint32_t ID = Skeleton::BONE_NULL_ID; 
 			// The position animation keys
 			std::vector<AnimationKey<glm::vec3>> PositionKeys;
 			// The rotation animation keys
@@ -46,11 +44,11 @@ namespace shade
 		// Add a channel to the animation
 		void AddChannel(const std::string& name, const Channel& channel);
 		// Interpolate the position of the channel at the given time
-		glm::mat4 InterpolatePosition(const Channel& chanel, float time) const;
+		glm::vec3 InterpolatePosition(const Channel& chanel, float time) const;
 		// Interpolate the rotation of the channel at the given time
-		glm::mat4 InterpolateRotation(const Channel& chanel, float time) const;
+		glm::quat InterpolateRotation(const Channel& chanel, float time) const;
 		// Interpolate the scale of the channel at the given time
-		glm::mat4 InterpolateScale(const Channel& chanel, float time) const;
+		glm::vec3 InterpolateScale(const Channel& chanel, float time) const;
 		// Get the keyframe index of the position at the given time
 		std::size_t GetPositionKeyFrame(const Channel& chanel, float time) const;
 		// Get the keyframe index of the rotation at the given time
@@ -61,6 +59,7 @@ namespace shade
 		float GetTimeFactor(float currentTime, float nextTime, float time) const;
 		// Get the animation channels
 		const AnimationChannels& GetAnimationCahnnels() const; 
+		const Channel* GetAnimationCahnnel(const std::string& name) const;
 		// Get the ticks per second of the animation
 		float GetTiksPerSecond() const; 
 		// Get the duration of the animation
@@ -69,6 +68,7 @@ namespace shade
 		void SetTicksPerSecond(float count); 
 		// Set the duration of the animation
 		void SetDuration(float duration);
+
 	private:
 		Animation(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
 		void Serialize(std::ostream& stream) const;
@@ -76,9 +76,9 @@ namespace shade
 	private:
 		friend class serialize::Serializer;
 	private:
-		AnimationChannels m_AnimationChannels;
-		float m_TicksPerSecond = 0.f;
-		float m_Duration = 0.f;
+		AnimationChannels	m_AnimationChannels;
+		float				m_TicksPerSecond = 0.f;
+		float				m_Duration = 0.f;
 	};
 
 	template<>
@@ -140,7 +140,6 @@ namespace shade
 	template<>
 	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const Animation::Channel& channel)
 	{
-		serialize::Serializer::Serialize<std::uint32_t>(stream, channel.ID);
 		serialize::Serializer::Serialize<std::vector<Animation::AnimationKey<glm::vec3>>>(stream, channel.PositionKeys);
 		serialize::Serializer::Serialize<std::vector<Animation::AnimationKey<glm::quat>>>(stream, channel.RotationKeys);
 		serialize::Serializer::Serialize<std::vector<Animation::AnimationKey<glm::vec3>>>(stream, channel.ScaleKeys);
@@ -148,7 +147,6 @@ namespace shade
 	template<>
 	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, Animation::Channel& channel)
 	{
-		serialize::Serializer::Deserialize<std::uint32_t>(stream, channel.ID);
 		serialize::Serializer::Deserialize<std::vector<Animation::AnimationKey<glm::vec3>>>(stream, channel.PositionKeys);
 		serialize::Serializer::Deserialize<std::vector<Animation::AnimationKey<glm::quat>>>(stream, channel.RotationKeys);
 		serialize::Serializer::Deserialize<std::vector<Animation::AnimationKey<glm::vec3>>>(stream, channel.ScaleKeys);

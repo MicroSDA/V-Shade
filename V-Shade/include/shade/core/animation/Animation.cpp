@@ -1,6 +1,7 @@
 #include "shade_pch.h"
 #include "Animation.h"
 #include <shade/core/serializing/File.h>
+
 shade::Animation::Animation(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour) : BaseAsset(assetData, lifeTime, behaviour)
 {
 	const std::string filePath = assetData->GetAttribute<std::string>("Path");
@@ -23,19 +24,19 @@ void shade::Animation::AddChannel(const std::string& name, const Channel& channe
 	m_AnimationChannels.emplace(name, channel);
 }
 
-glm::mat4 shade::Animation::InterpolatePosition(const Channel& channel, float time) const
+glm::vec3 shade::Animation::InterpolatePosition(const Channel& channel, float time) const
 {
 	if (channel.PositionKeys.size() == 1)
-		return glm::translate(glm::mat4(1.0f), channel.PositionKeys[0].Key);
+		return channel.PositionKeys[0].Key;
 	
 	std::uint32_t firstKeyFrame = GetPositionKeyFrame(channel, time), secondKeyFrame = firstKeyFrame++;
 
 	float timeFactor = GetTimeFactor(channel.PositionKeys[firstKeyFrame].TimeStamp, channel.PositionKeys[secondKeyFrame].TimeStamp, time);
 
-	return glm::translate(glm::mat4(1.0f), glm::mix(channel.PositionKeys[firstKeyFrame].Key, channel.PositionKeys[secondKeyFrame].Key, timeFactor));
+	return glm::mix(channel.PositionKeys[firstKeyFrame].Key, channel.PositionKeys[secondKeyFrame].Key, timeFactor);
 }
 
-glm::mat4 shade::Animation::InterpolateRotation(const Channel& channel, float time) const
+glm::quat shade::Animation::InterpolateRotation(const Channel& channel, float time) const
 {
 	if (channel.RotationKeys.size() == 1)
 		return glm::toMat4(glm::normalize(channel.RotationKeys[0].Key));
@@ -44,19 +45,19 @@ glm::mat4 shade::Animation::InterpolateRotation(const Channel& channel, float ti
 
 	float timeFactor = GetTimeFactor(channel.RotationKeys[firstKeyFrame].TimeStamp, channel.RotationKeys[secondKeyFrame].TimeStamp, time);
 
-	return glm::toMat4(glm::normalize(glm::slerp(channel.RotationKeys[firstKeyFrame].Key, channel.RotationKeys[secondKeyFrame].Key, timeFactor)));
+	return glm::normalize(glm::slerp(channel.RotationKeys[firstKeyFrame].Key, channel.RotationKeys[secondKeyFrame].Key, timeFactor));
 }
 
-glm::mat4 shade::Animation::InterpolateScale(const Channel& channel, float time) const
+glm::vec3 shade::Animation::InterpolateScale(const Channel& channel, float time) const
 {
 	if (channel.ScaleKeys.size() == 1)
-		return glm::scale(glm::mat4(1.f), channel.ScaleKeys[0].Key);
+		return channel.ScaleKeys[0].Key;
 
 	std::uint32_t firstKeyFrame = GetScaleKeyFrame(channel, time), secondKeyFrame = firstKeyFrame++;
 
 	float timeFactor = GetTimeFactor(channel.ScaleKeys[firstKeyFrame].TimeStamp, channel.ScaleKeys[secondKeyFrame].TimeStamp, time);
 
-	return glm::scale(glm::mat4(1.0f), glm::mix(channel.ScaleKeys[firstKeyFrame].Key, channel.ScaleKeys[secondKeyFrame].Key, timeFactor));
+	return glm::mix(channel.ScaleKeys[firstKeyFrame].Key, channel.ScaleKeys[secondKeyFrame].Key, timeFactor);
 }
 
 std::size_t shade::Animation::GetPositionKeyFrame(const Channel& chanel, float time) const
@@ -99,6 +100,17 @@ const shade::Animation::AnimationChannels& shade::Animation::GetAnimationCahnnel
 	return m_AnimationChannels;
 }
 
+const shade::Animation::Channel* shade::Animation::GetAnimationCahnnel(const std::string& name) const
+{
+	const auto it = m_AnimationChannels.find(name);
+	if (it != m_AnimationChannels.end())
+	{
+		return &it->second;
+	}
+	
+	return nullptr;
+}
+
 float shade::Animation::GetTiksPerSecond() const // TODO: Rename Tics
 {
 	return m_TicksPerSecond;
@@ -128,6 +140,7 @@ void shade::Animation::Serialize(std::ostream& stream) const
 
 void shade::Animation::Deserialize(std::istream& stream)
 {
+
 	serialize::Serializer::Deserialize(stream, m_Duration);
 	serialize::Serializer::Deserialize(stream, m_TicksPerSecond);
 	serialize::Serializer::Deserialize(stream, m_AnimationChannels);

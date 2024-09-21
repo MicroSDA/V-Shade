@@ -64,6 +64,7 @@ void shade::animation::PoseNode::Evaluate(const FrameTimer& deltaTime)
 void shade::animation::PoseNode::ResetAnimationData(const Asset<Animation>& animation)
 {
 	m_AnimationData = AnimationController::AnimationControlData(animation);
+	m_AnimationData.RootMotion.FinalizeRootMotion(GetGraphContext()->As<AnimationGraphContext>().Skeleton, animation, m_AnimationData.Start, m_AnimationData.End);
 	
 	/*auto oldState = m_AnimationData.State;
 
@@ -75,7 +76,7 @@ void shade::animation::PoseNode::ResetAnimationData(const Asset<Animation>& anim
 void shade::animation::PoseNode::ResetAnimationData(const AnimationController::AnimationControlData& data)
 {
 	m_AnimationData = data;
-
+	m_AnimationData.RootMotion.FinalizeRootMotion(GetGraphContext()->As<AnimationGraphContext>().Skeleton, m_AnimationData.Animation, m_AnimationData.Start, m_AnimationData.End);
 	/*auto oldState = m_AnimationData.State;
 
 	m_AnimationData.State = Animation::State::Play;

@@ -5,10 +5,10 @@
 namespace utils
 {
 	template<typename G, typename A>
-	static G FromAssimToToGLM(const A& value);
+	static G FromAssimpToToGLM(const A& value);
 
 	template<>
-	inline glm::mat4 FromAssimToToGLM(const aiMatrix4x4& aMatrix)
+	inline glm::mat4 FromAssimpToToGLM(const aiMatrix4x4& aMatrix)
 	{
 		glm::mat4 matrix;
 		//the a,b,c,d in assimp is the row ; the 1,2,3,4 is the column
@@ -26,12 +26,12 @@ namespace utils
 		return matrix;
 	}
 	template<>
-	inline glm::vec3 FromAssimToToGLM(const aiVector3D& aVector)
+	inline glm::vec3 FromAssimpToToGLM(const aiVector3D& aVector)
 	{
 		return { aVector.x, aVector.y, aVector.z };
 	}
 	template<>
-	inline glm::quat FromAssimToToGLM(const aiQuaternion& aQuat)
+	inline glm::quat FromAssimpToToGLM(const aiQuaternion& aQuat)
 	{
 		return { aQuat.w, aQuat.x, aQuat.y, aQuat.z };
 	}
@@ -251,7 +251,7 @@ void ISkeleton::ProcessBone(const aiScene* pScene, const aiNode* pNode, shade::S
 		for (uint32_t boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex)
 		{
 			//SHADE_INFO("-- Add Armature --");
-			skeleton->AddArmature(utils::FromAssimToToGLM<glm::mat4>(mesh->mBones[boneIndex]->mArmature->mTransformation));
+			skeleton->AddArmature(utils::FromAssimpToToGLM<glm::mat4>(mesh->mBones[boneIndex]->mArmature->mTransformation));
 
 			if (pNode == mesh->mBones[boneIndex]->mNode)
 			{
@@ -265,7 +265,7 @@ void ISkeleton::ProcessBone(const aiScene* pScene, const aiNode* pNode, shade::S
 	if (pBone)
 	{
 		SHADE_INFO("-- Add new bone : {} --", pNode->mName.C_Str());
-		auto& bone = skeleton->AddBone(pNode->mName.C_Str(), utils::FromAssimToToGLM<glm::mat4>(pNode->mTransformation), utils::FromAssimToToGLM<glm::mat4>(pBone->mOffsetMatrix));
+		auto& bone = skeleton->AddBone(pNode->mName.C_Str(), utils::FromAssimpToToGLM<glm::mat4>(pNode->mTransformation), utils::FromAssimpToToGLM<glm::mat4>(pBone->mOffsetMatrix));
 
 		if (parent != nullptr)
 			parent->Children.push_back(&bone);
@@ -308,7 +308,7 @@ std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> IAnimati
 		for (std::uint32_t channelIndex = 0; channelIndex < pAnimation->mNumChannels; ++channelIndex)
 		{
 			const aiNodeAnim* pChannel = pAnimation->mChannels[channelIndex];
-			shade::Animation::Channel channel{ channelIndex };
+			shade::Animation::Channel channel;
 
 			if (skeleton)
 			{
@@ -326,7 +326,7 @@ std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> IAnimati
 			{
 				channel.PositionKeys.emplace_back
 				(
-					utils::FromAssimToToGLM<glm::vec3>(pChannel->mPositionKeys[positionIndex].mValue),
+					utils::FromAssimpToToGLM<glm::vec3>(pChannel->mPositionKeys[positionIndex].mValue),
 					pChannel->mPositionKeys[positionIndex].mTime
 				);
 			}
@@ -334,7 +334,7 @@ std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> IAnimati
 			{
 				channel.RotationKeys.emplace_back
 				(
-					utils::FromAssimToToGLM<glm::quat>(pChannel->mRotationKeys[rotationIndex].mValue),
+					utils::FromAssimpToToGLM<glm::quat>(pChannel->mRotationKeys[rotationIndex].mValue),
 					pChannel->mRotationKeys[rotationIndex].mTime
 				);
 			}
@@ -342,11 +342,11 @@ std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> IAnimati
 			{
 				channel.ScaleKeys.emplace_back
 				(
-					utils::FromAssimToToGLM<glm::vec3>(pChannel->mScalingKeys[scaleIndex].mValue),
+					utils::FromAssimpToToGLM<glm::vec3>(pChannel->mScalingKeys[scaleIndex].mValue),
 					pChannel->mScalingKeys[scaleIndex].mTime
 				);
 			}
-
+			
 			animation->AddChannel(pChannel->mNodeName.C_Str(), channel);
 		}
 

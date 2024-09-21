@@ -2013,15 +2013,14 @@ void graph_editor::PoseNodeDelegate::ProcessBodyContent(const InternalContext* c
 
 	float& start = node.GetAnimationData().Start;
 	float& end = node.GetAnimationData().End;
-	float& duration = node.GetAnimationData().Duration;
 	float& currentTime = node.GetAnimationData().CurrentPlayTime;
+	auto& rootMotion = node.GetAnimationData().HasRootMotion;
 
 	auto pose = GetNode()->GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0);
 	std::size_t hash = (pose) ? pose->GetAnimationHash() : 0;
 
-	ImGuiLayer::HelpMarker("#", std::format("{:x}", hash).c_str()); ImGui::SameLine();
+	shade::ImGuiLayer::DrawFontIcon(u8"\xf21d", 1, 0.5f); ImGui::SameLine(); ImGuiLayer::HelpMarker("#", std::format("{:x}", hash).c_str()); ImGui::SameLine();
 
-	//ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
 	{
 		// Calculate the normalized value between 0 and 1
 		float result = (currentTime - start) / (end - start);
@@ -2029,19 +2028,8 @@ void graph_editor::PoseNodeDelegate::ProcessBodyContent(const InternalContext* c
 		result = glm::clamp(result, 0.0f, 1.0f);
 
 		ImGui::SetCursorScreenPos(ImGui::GetCursorScreenPos() + ImVec2{ 0, ImGui::GetFrameHeight() / 4.f });
-		//ImGui::ProgressBar(result, ImVec2(0.f, 3.f), std::format("{:.1f}", currentTime).c_str());
-		ImGui::ProgressBar(result, ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() / 7.f), "");
+		ImGui::ProgressBar(result, ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() / 7.f), ""); 
 	}
-	//ImGui::PopItemWidth();
-
-	//ImGui::Spacing();
-	//ImGui::Spacing();
-
-	/*std::string animation = (!node.GetAnimationData().Animation || !node.GetAnimationData().Animation->GetAssetData()) ? "  Not select" : node.GetAnimationData().Animation->GetAssetData()->GetId();
-	shade::ImGuiLayer::DrawFontIcon(u8"\xe823", 1, 0.5f);
-	ImGui::SameLine(); ImGui::Text(animation.c_str());*/
-
-
 
 }
 
@@ -2055,6 +2043,7 @@ void graph_editor::PoseNodeDelegate::ProcessSideBar(const InternalContext* conte
 	float& ticksPerSecond = node.GetAnimationData().TicksPerSecond;
 	bool& isloop = node.GetAnimationData().IsLoop;
 	auto& state = node.GetAnimationData().State;
+	auto& rootMotion = node.GetAnimationData().HasRootMotion;
 
 	if (ImGui::BeginChildEx("Node: Pose", std::size_t(&node), ImGui::GetContentRegionAvail(), true, 0))
 	{
@@ -2226,6 +2215,14 @@ void graph_editor::PoseNodeDelegate::ProcessSideBar(const InternalContext* conte
 
 							});
 					}
+				}
+				ImGui::TableNextRow();
+				{
+					ImGui::TableNextColumn();
+					{
+						shade::ImGuiLayer::ToggleButtonIcon("RootMotion", &rootMotion, u8"\xf21d", 1, 0.7f);
+					}
+					ImGui::TableNextColumn();
 				}
 			}
 

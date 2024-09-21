@@ -55,6 +55,7 @@ void EditorLayer::EditorCamera::OnUpdate(const shade::FrameTimer& deltaTime)
 EditorLayer::EditorLayer() : ImGuiLayer()
 {
 	ImGui::SetCurrentContext(GetImGuiContext());
+	//shade::ImGuiThemeEditor::SetColors(0x202020FF, 0xedf2f4FF, 0xd90429FF, 0xe63946FF, 0xef233cFF);
 	shade::ImGuiThemeEditor::SetColors(0x202020FF, 0xFAFFFDFF, 0x505050FF, 0x9C1938CC, 0xFFC307B1);
 	shade::ImGuiThemeEditor::ApplyTheme();
 }
@@ -107,6 +108,7 @@ void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shad
 		ImGui::PushItemFlag(ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse, true);
 
 		ShowWindowBar("Scene", NULL, &EditorLayer::Scene, this, scene);
+		ImGui::ShowDemoWindow();
 
 		ImGui::PopItemFlag();
 		ImGui::PopStyleColor();
@@ -658,26 +660,24 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 		m_EditorCamera->SetUpdate(false);
 	}
 
-	if (m_SceneViewPort.ViewPort.z != ImGui::GetContentRegionAvail().x || m_SceneViewPort.ViewPort.w != ImGui::GetContentRegionAvail().y)
+	const ImVec2 screenPosition = ImGui::GetCursorScreenPos();
+
+	m_SceneViewPort.ViewPort.x = screenPosition.x;
+	m_SceneViewPort.ViewPort.y = screenPosition.y;
+
+	m_SceneViewPort.ViewPort.z = ImGui::GetContentRegionAvail().x;
+	m_SceneViewPort.ViewPort.w = ImGui::GetContentRegionAvail().y;
+
+	if ( m_SceneRenderer->GetMainTargetFrameBuffer()[frameIndex]->GetWidth()  != m_SceneViewPort.ViewPort.z ||
+		 m_SceneRenderer->GetMainTargetFrameBuffer()[frameIndex]->GetHeight() != m_SceneViewPort.ViewPort.w)
 	{
-		m_SceneViewPort.ViewPort.z = ImGui::GetContentRegionAvail().x;
-		m_SceneViewPort.ViewPort.w = ImGui::GetContentRegionAvail().y;
-
-		/*	auto camera = scene->GetPrimaryCamera();
-			if (camera.IsValid())
-				camera.GetComponent<shade::CameraComponent>()->Resize((float)m_SceneViewPort.ViewPort.z / (float)m_SceneViewPort.ViewPort.w);*/
-
 		if (m_SceneViewPort.ViewPort.z && m_SceneViewPort.ViewPort.w)
 			m_SceneRenderer->GetMainTargetFrameBuffer()[frameIndex]->Resize(m_SceneViewPort.ViewPort.z, m_SceneViewPort.ViewPort.w);
 	}
-
-	m_SceneViewPort.ViewPort.y = ImGui::GetWindowPos().x + ImGui::GetCursorPos().x; // With tab size
-	m_SceneViewPort.ViewPort.x = ImGui::GetWindowPos().y + ImGui::GetCursorPos().y; // With tab size
-
-	const ImVec2 screenPos = ImGui::GetCursorScreenPos();
+	
 	DrawImage(m_SceneRenderer->GetMainTargetFrameBuffer()[frameIndex]->GetTextureAttachment(0), { m_SceneViewPort.ViewPort.z, m_SceneViewPort.ViewPort.w }, focusColor);
 
-	BeginWindowOverlay("Scene overlay", ImGui::GetWindowViewport(), 0, ImVec2{ m_SceneViewPort.ViewPort.z - 8.f, 0 }, screenPos + ImVec2{5.f, 5.f}, 0.9f, [&]()
+	BeginWindowOverlay("Scene overlay", ImGui::GetWindowViewport(), 0, ImVec2{ m_SceneViewPort.ViewPort.z - 8.f, 0 }, screenPosition + ImVec2{5.f, 5.f}, 0.9f, [&]()
 		{
 			if (ImGui::BeginTable("##OverlayTable", 2, ImGuiTableFlags_SizingStretchProp))
 			{
@@ -759,12 +759,9 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 
 			if (!(m_ImGuizmoAllowedOperation & m_ImGuizmoOperation)) m_ImGuizmoOperation = ImGuizmo::BOUNDS;
 
-			//{ ImGui::GetWindowViewport()->WorkPos.x, ImGui::GetWindowViewport()->WorkPos.y }
-
-
 			if (DrawImGuizmo(pcTransform, m_SceneRenderer->GetActiveCamera(), static_cast<ImGuizmo::OPERATION>(m_ImGuizmoAllowedOperation & m_ImGuizmoOperation), 
-				{ ImGui::GetWindowPos().x, ImGui::GetWindowPos().y,
-				ImGui::GetWindowSize().x, ImGui::GetWindowSize().y }))
+				{ m_SceneViewPort.ViewPort.x, m_SceneViewPort.ViewPort.y,
+				  m_SceneViewPort.ViewPort.z, m_SceneViewPort.ViewPort.w }))
 			{
 				if (m_SelectedEntity.HasParent())
 				{
@@ -2517,9 +2514,6 @@ void EditorLayer::AnimationGraphComponent(shade::ecs::Entity& entity)
 
 void EditorLayer::NativeScriptComponent(shade::ecs::Entity& entity)
 {
-	shade::Input::ShowMouseCursor(true);
-	ImGui::ShowDemoWindow();
-
 	auto& script = entity.GetComponent<shade::NativeScriptComponent>();
 
 	static std::string moduleName = (script.GetIsntace()) ? script.GetIsntace()->GetModuleName() : "", functionName = (script.GetIsntace()) ? script.GetIsntace()->GetName() : "",
