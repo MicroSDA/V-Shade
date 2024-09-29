@@ -31,7 +31,7 @@ namespace shade
 			// Translation of the bone node
 			glm::vec3 Translation = glm::vec3(1.f);
 			// Rotation of the bone node
-			glm::quat Rotation = glm::vec3(1.f);
+			glm::quat Rotation = glm::identity<glm::quat>();
 			// Scale of the bone node
 			glm::vec3 Scale = glm::vec3(1.f);
 			// Inverse bind pose matrix of the bone node
@@ -41,10 +41,14 @@ namespace shade
 		};
 		struct BoneArmature
 		{
-			// Initialize a transformation matrix with identity matrix
-			glm::mat4 Transform = glm::identity<glm::mat4>();
+			std::string Name;
+			// Translation of the bone node
+			glm::vec3 Translation = glm::vec3(1.f);
+			// Rotation of the bone node
+			glm::quat Rotation = glm::identity<glm::quat>();
+			// Scale of the bone node
+			glm::vec3 Scale = glm::vec3(1.f);
 		};
-
 		using BoneNodes = std::unordered_map<std::string, BoneNode>;
 	public:
 		
@@ -59,17 +63,11 @@ namespace shade
 		// - inverseBindPose: the inverse bind pose matrix of the bone
 		// Return:
 		// - a reference to the added bone
-		shade::Skeleton::BoneNode& AddBone(const std::string& name, const glm::mat4& transform, const glm::mat4& inverseBindPose);
+		shade::Skeleton::BoneNode* AddBone(const std::string& name, const glm::mat4& transform, const glm::mat4& inverseBindPose);
 		// Add a BoneNode to the Skeleton
 		// Parameters:
 		// - node: a shared pointer to the BoneNode to add
-		shade::Skeleton::BoneNode& AddNode(const shade::Skeleton::BoneNode& node);
-		// Add an Armature to the Skeleton
-		// Parameters:
-		// - transform: the transformation matrix of the armature
-		// Return:
-		// - a reference to the added armature
-		shade::Skeleton::BoneArmature& AddArmature(const glm::mat4& transform);
+		shade::Skeleton::BoneNode* AddNode(const shade::Skeleton::BoneNode& node);
 		// Get a Bone from the Skeleton by name
 		// Parameters:
 		// - name: the name of the bone to retrieve
@@ -82,14 +80,24 @@ namespace shade
 		// Return:
 		// - a const reference to the BoneNode with the specified id
 		const shade::Skeleton::BoneNode* GetBone(std::size_t id) const;
+
+		shade::Skeleton::BoneArmature* AddArmature(const std::string& name, const glm::mat4& transform);
 		// Get the Armature from the Skeleton
 		// Return:
 		// - a const reference to the BoneArmature in the Skeleton
-		const shade::Skeleton::BoneArmature& GetArmature() const;
+		const shade::Skeleton::BoneArmature* GetArmature() const;
+		// Get the Armature from the Skeleton
+		// Return:
+		// - a reference to the BoneArmature in the Skeleton
+		shade::Skeleton::BoneArmature* GetArmature();
 		// Get the root BoneNode of the Skeleton
 		// Return:
 		// - a const reference to the root BoneNode of the Skeleton
 		const shade::Skeleton::BoneNode* GetRootNode() const;
+		// Get the root BoneNode of the Skeleton
+		// Return:
+		// - a reference to the root BoneNode of the Skeleton
+		shade::Skeleton::BoneNode* GetRootNode();
 		// Get a map of all the Bones in the Skeleton
 		// Return:
 		// - a const reference to the map of bone nodes in the Skeleton
@@ -104,9 +112,9 @@ namespace shade
 	private:
 		friend class serialize::Serializer;
 	private:
-		BoneNodes m_BoneNodes;
-		BoneNode* m_RootNode = nullptr;
-		BoneArmature m_Armature;
+		BoneNodes		m_BoneNodes;
+		BoneNode*		m_RootNode = nullptr;
+		BoneArmature	m_Armature;
 	};
 
 	template<>

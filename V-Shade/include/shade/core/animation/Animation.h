@@ -68,7 +68,8 @@ namespace shade
 		void SetTicksPerSecond(float count); 
 		// Set the duration of the animation
 		void SetDuration(float duration);
-
+		// Set the fps of the animation
+		float GetFps() const;
 	private:
 		Animation(SharedPointer<AssetData> assetData, LifeTime lifeTime, InstantiationBehaviour behaviour);
 		void Serialize(std::ostream& stream) const;

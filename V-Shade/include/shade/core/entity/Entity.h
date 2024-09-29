@@ -155,6 +155,7 @@ namespace shade
 			Entity GetParent() const;
 			/* Return childrens count */
 			std::size_t GetChildrensCount() const;
+			EntityManager& GetManager() { return *m_Manager; }
 
 			template<typename ComponentType, typename Callback, typename ...Args>
 			bool SerializeComponent(std::ostream& stream, Callback callback, Args&& ...args) const

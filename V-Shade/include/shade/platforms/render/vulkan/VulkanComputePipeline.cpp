@@ -3,7 +3,7 @@
 #include <shade/platforms/render/vulkan/VulkanRenderAPI.h>
 #include <shade/core/render/Renderer.h>
 
-shade::VulkanComputePipeline::VulkanComputePipeline(const VkDevice& device, const VulkanContext::VulkanInstance& instance, const ComputePipeline::Specification& specification):
+shade::VulkanComputePipeline::VulkanComputePipeline(const VkDevice& device, const VulkanContext::VulkanInstance& instance, const Pipeline::Specification& specification):
 	m_VkDevice(device), m_VkInstance(instance)
 {
 	m_Specification = specification;

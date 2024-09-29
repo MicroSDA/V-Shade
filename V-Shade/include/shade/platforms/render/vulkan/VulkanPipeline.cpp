@@ -6,7 +6,7 @@
 #include <shade/platforms/render/vulkan/descriptors/VulkanDescriptor.h>
 #include <glm/glm/gtx/hash.hpp>
 
-shade::VulkanPipeline::VulkanPipeline(const RenderPipeline::Specification& specification)
+shade::VulkanPipeline::VulkanPipeline(const Pipeline::Specification& specification)
 {
 	m_Specification = specification;
 	Invalidate();

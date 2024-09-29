@@ -32,6 +32,8 @@ namespace shade
 			virtual void OnCreate()											{}
 			virtual void OnUpdate(const shade::FrameTimer& deltaTime)		{}
 			virtual void OnDesctory()										{}
+
+			Entity& GetEntity() { return m_Entity; }
 		private:
 			Entity		m_Entity;
 			bool		m_IsUpdate = true;

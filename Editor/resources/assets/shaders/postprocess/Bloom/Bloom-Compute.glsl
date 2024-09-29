@@ -31,8 +31,8 @@ ivec2 FitToBorders(ivec2 Position, ivec2 ImageSize)
 
     if(PixelCoords.x < 0) PixelCoords.x = 0;
     if(PixelCoords.y < 0) PixelCoords.y = 0;
-    if(PixelCoords.x >= ImageSize.x) PixelCoords.x = ImageSize.x - 1;
-    if(PixelCoords.y >= ImageSize.y) PixelCoords.y = ImageSize.y - 1;
+    if(PixelCoords.x >= ImageSize.x) PixelCoords.x = ImageSize.x;
+    if(PixelCoords.y >= ImageSize.y) PixelCoords.y = ImageSize.y;
 
     return PixelCoords;
 }
@@ -50,23 +50,32 @@ void HDR(ivec2 ImagePosition)
 
 void Downsample(int Mip, ivec2 ImagePosition)
 {
+   //ImagePosition  = ivec2(clamp(vec2(ImagePosition), vec2(0.0,0.0), vec2(imageSize(u_AboveImage))));
+   //ImagePosition = FitToBorders(ImagePosition, ivec2(imageSize(u_AboveImage)));
    vec2  ImageSize      = vec2(imageSize(u_AboveImage));
    vec2  TextureCoords  = vec2(ImagePosition) / ImageSize; 
    vec2  TexelSize      = 1.0 / vec2(textureSize(u_Sampler, 0));
 
    TextureCoords        += (1.0 / ImageSize) * 0.5;
+   //TextureCoords 		= clamp(TextureCoords, -0.5, 0.5);
    
    vec4 Color = DownsampleBox13(u_Sampler, TextureCoords, TexelSize, 0);
+   
    imageStore(u_BelowImage, ImagePosition, Color);
 }
 
 void Upsample(int Mip, ivec2 ImagePosition)
 {
+	//ImagePosition  = ivec2(clamp(vec2(ImagePosition), vec2(0.0,0.0), vec2(imageSize(u_AboveImage))));
+	//ImagePosition = FitToBorders(ImagePosition, ivec2(imageSize(u_AboveImage)));
     vec2  ImageSize      = vec2(imageSize(u_AboveImage));
+
     vec2  TextureCoords  = vec2(ImagePosition) / ImageSize;
     vec2  TexelSize      = 1.0 / vec2(textureSize(u_Sampler, 0));
 
     TextureCoords        += (1.0 / ImageSize) * 0.5;
+	
+	//TextureCoords 		= clamp(TextureCoords, 0.0, 1.0);
     
     vec4  Above          = imageLoad(u_AboveImage, ImagePosition);
     vec4  Current        = UpsampleTent(u_Sampler, TextureCoords, TexelSize, 0);

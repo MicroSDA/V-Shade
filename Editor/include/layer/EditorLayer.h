@@ -58,7 +58,7 @@ private:
 	bool m_ImportModelModal = false;
 	bool m_PackFilesModal = false;
 	bool m_IsAddSkeletalAnimationModal = false;
-
+	bool m_IsSceneFullScreen = false;
 	// TEST !
 	bool m_IsScenePlaying = false;
 

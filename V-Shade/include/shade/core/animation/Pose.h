@@ -32,34 +32,19 @@ namespace shade
 					T End;
 					T Current;
 					T Delta;
+					T Difference;
 				};
 
 				Skeleton::BoneID  RootBone		= 0u;
-				Motion<glm::vec3> Translation	= { glm::vec3(0.f), glm::vec3(0.f), glm::vec3(0.f), glm::vec3(0.f) };
-				Motion<glm::quat> Rotation		= { glm::identity<glm::quat>(), glm::identity<glm::quat>(), glm::identity<glm::quat>(), glm::identity<glm::quat>() };
-				Motion<glm::vec3> Scale			= { glm::vec3(1.f), glm::vec3(1.f), glm::vec3(1.f), glm::vec3(1.f) };
+				Motion<glm::vec3> Translation	= { glm::vec3(0.f), glm::vec3(0.f), glm::vec3(0.f), glm::vec3(0.f), glm::vec3(0.f) };
+				Motion<glm::quat> Rotation		= { glm::identity<glm::quat>(), glm::identity<glm::quat>(), glm::identity<glm::quat>(), glm::identity<glm::quat>(), glm::identity<glm::quat>() };
 			
-				glm::vec3 GetTranlsationDifference() const;
-
-				
-				
-				SHADE_INLINE glm::quat GetRotationDifference() const
-				{
-					//return glm::inverse(Rotation.Delta) * Rotation.Current;
-					return glm::conjugate(Rotation.Delta) * Rotation.Current;
-				}
-
-				SHADE_INLINE glm::vec3 GetScaleDifference() const
-				{
-					return Scale.Current - Scale.Delta;
-				}
-
-				SHADE_INLINE void Reset()
+				SHADE_INLINE void Drop()
 				{
 					*this = RootMotion{};
 				}
 
-				void FinalizeRootMotion(const Asset<Skeleton>& skeleton, const Asset<Animation>& aniamtion, float start, float end);
+				void Initialize(const Asset<Skeleton>& skeleton, const Asset<Animation>& aniamtion, float start, float end);
 			};
 
 			enum class Type : std::size_t 
@@ -85,6 +70,7 @@ namespace shade
 			SHADE_INLINE		LocalTransform& GetBoneLocalTransform(std::size_t index)								{ assert(index < m_LocalTransforms->size()); return m_LocalTransforms.Get()[index]; }
 
 			SHADE_INLINE		Type GetType()															const	{ return m_Type; }
+			SHADE_INLINE		void SetType(Type type)															{ m_Type = type; }
 			SHADE_INLINE const	Asset<Skeleton>& GetSkeleton()											const	{ return m_Skeleton; }
 			SHADE_INLINE		std::size_t GetAnimationHash()											const	{ return m_AnimationCombinationHash; }
 
@@ -94,36 +80,46 @@ namespace shade
 			SHADE_INLINE 		float GetDuration()														const   { return m_Duration; }
 			SHADE_INLINE 		float GetCurrentPlayTime()												const   { return m_CurrentPlayTime; }
 
-			SHADE_INLINE RootMotion* GetRootMotion()
+			SHADE_INLINE		const LocalTransform& GetArmatureTransform() const { return m_ArmatureTransform; }
+			SHADE_INLINE		LocalTransform& GetArmatureTransform() { return m_ArmatureTransform; }
+
+			SHADE_INLINE RootMotion& GetRootMotion()
 			{
 				return m_RootMotion;
 			}
 
-			SHADE_INLINE const RootMotion* GetRootMotion() const
+			SHADE_INLINE const RootMotion& GetRootMotion() const
 			{
 				return m_RootMotion;
 			}
 
-			SHADE_INLINE void SetRootMotion(RootMotion* motion)
+			SHADE_INLINE void SetRootMotion()
 			{
-				m_RootMotion = motion;
+				m_HasRootMotion = true;
+			}
+
+			SHADE_INLINE void UnsetRootMotion()
+			{
+				m_RootMotion.Drop(); m_HasRootMotion = false;
 			}
 
 			SHADE_INLINE bool HasRootMotion() const
 			{
-				return (m_RootMotion != nullptr);
+				return m_HasRootMotion;
 			}
+
 		private:
 			Asset<Skeleton>								m_Skeleton;
 			std::size_t									m_AnimationCombinationHash;
 			SharedPointer<std::vector<GlobalTransform>>	m_GlobalTransforms;
 			SharedPointer<std::vector<LocalTransform>>	m_LocalTransforms;
+			LocalTransform								m_ArmatureTransform;
 
 			Type										m_Type;
 			float										m_Duration;
 			float										m_CurrentPlayTime;
 			bool										m_HasRootMotion = false;
-			RootMotion*									m_RootMotion = nullptr;
+			RootMotion									m_RootMotion;
 		};
 	}
 }

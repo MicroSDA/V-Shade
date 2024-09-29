@@ -55,8 +55,9 @@ void EditorLayer::EditorCamera::OnUpdate(const shade::FrameTimer& deltaTime)
 EditorLayer::EditorLayer() : ImGuiLayer()
 {
 	ImGui::SetCurrentContext(GetImGuiContext());
-	//shade::ImGuiThemeEditor::SetColors(0x202020FF, 0xedf2f4FF, 0xd90429FF, 0xe63946FF, 0xef233cFF);
 	shade::ImGuiThemeEditor::SetColors(0x202020FF, 0xFAFFFDFF, 0x505050FF, 0x9C1938CC, 0xFFC307B1);
+	//shade::ImGuiThemeEditor::SetColors(0x20252AFF, 0xFAFFFDFF, 0x3A3448FF, 0x323845FF, 0xFFC307B1);
+	
 	shade::ImGuiThemeEditor::ApplyTheme();
 }
 
@@ -95,21 +96,23 @@ void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shad
 			ImGui::DockSpace(dockspaceId, ImVec2(0.f, 0.f), m_DockSpaceFlags);
 		}
 
-
-		MainMenu(scene);
-		ShowWindowBar("Entities", NULL, &EditorLayer::Entities, this, scene);
-		ShowWindowBar("Creator", NULL, &EditorLayer::Creator, this);
-		ShowWindowBar("Assets", NULL, &EditorLayer::AssetsExplorer, this);
-		ShowWindowBar("Inspector", NULL, &EditorLayer::EntityInspector, this, m_SelectedEntity);
-		ShowWindowBar("Material", NULL, &EditorLayer::MaterialEdit, this, (m_SelectedMaterial != nullptr) ? *m_SelectedMaterial : *shade::Renderer::GetDefaultMaterial());
-		ShowWindowBar("Render settings", NULL, &EditorLayer::RenderSettings, this, m_SceneRenderer);
+		if (!m_IsSceneFullScreen)
+		{
+			MainMenu(scene);
+			ShowWindowBar("Entities", NULL, &EditorLayer::Entities, this, scene);
+			ShowWindowBar("Components", NULL, &EditorLayer::EntityInspector, this, m_SelectedEntity);
+		}
+		
+		//ShowWindowBar("Material", NULL, &EditorLayer::MaterialEdit, this, (m_SelectedMaterial != nullptr) ? *m_SelectedMaterial : *shade::Renderer::GetDefaultMaterial());
+		//ShowWindowBar("Render settings", NULL, &EditorLayer::RenderSettings, this, m_SceneRenderer);
 
 		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 1));
 		ImGui::PushItemFlag(ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse, true);
 
+		ShowWindowBar("Creator", NULL, &EditorLayer::Creator, this);
+		ShowWindowBar("Assets", NULL, &EditorLayer::AssetsExplorer, this);
 		ShowWindowBar("Scene", NULL, &EditorLayer::Scene, this, scene);
-		ImGui::ShowDemoWindow();
-
+	
 		ImGui::PopItemFlag();
 		ImGui::PopStyleColor();
 		
@@ -216,6 +219,8 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 				genSmoothNormals = true,
 				useScale = false;
 
+			static float scale = 1.f;
+
 			//if (!m_ImportedModel)
 			{
 
@@ -266,7 +271,13 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 						{
 							ImGui::TableNextRow();
 							ImGui::TableNextColumn(); { ImGui::Text("Global scale"); }
-							ImGui::TableNextColumn(); { ImGui::Checkbox("##GlobalScale", &useScale); HelpMarker("(?)", "This step will perform a global scale of the model."); }
+							ImGui::TableNextColumn(); {
+								ImGui::Checkbox("##GlobalScale", &useScale); ImGui::SameLine();
+								(!useScale) ? ImGui::BeginDisabled() : void();
+								ImGui::DragFloat("##Scale", &scale, 0.001f, 0.f, FLT_MAX);
+								(!useScale) ? ImGui::EndDisabled() : void();
+								HelpMarker("(?)", "This step will perform a global scale of the model.");
+							}
 
 							ImGui::TableNextRow();
 							ImGui::TableNextColumn(); { ImGui::Text("Triangulate"); }
@@ -319,7 +330,7 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 					{
 						if (ImGui::Button("...##From"))
 						{
-							auto selectedPath = shade::FileDialog::OpenFile("Supported formats(*.obj, *.fbx, *.dae) \0*.obj;*.fbx;*.dae\0");
+							auto selectedPath = shade::FileDialog::OpenFile("Supported formats(*.obj, *.fbx, *.dae, *.glb) \0*.obj;*.fbx;*.dae;*.glb\0");
 							if (!selectedPath.empty())
 							{
 								IImportFlag importFlags =
@@ -339,7 +350,7 @@ void EditorLayer::MainMenu(shade::SharedPointer<shade::Scene>& scene)
 									((calcTangents) ? IImportFlags::CalcTangentSpace : 0) |
 									((useScale) ? IImportFlags::UseScale : 0);
 
-								auto [model, animation] = IModel::Import(selectedPath.string(), importFlags);
+								auto [model, animation] = IModel::Import(selectedPath.string(), importFlags, scale);
 
 								m_ImportedModel = model;
 								m_ImportedAnimations = animation;
@@ -677,67 +688,91 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 	
 	DrawImage(m_SceneRenderer->GetMainTargetFrameBuffer()[frameIndex]->GetTextureAttachment(0), { m_SceneViewPort.ViewPort.z, m_SceneViewPort.ViewPort.w }, focusColor);
 
-	BeginWindowOverlay("Scene overlay", ImGui::GetWindowViewport(), 0, ImVec2{ m_SceneViewPort.ViewPort.z - 8.f, 0 }, screenPosition + ImVec2{5.f, 5.f}, 0.9f, [&]()
+	BeginWindowOverlay("Scene overlay", ImGui::GetWindowViewport(), 0, ImVec2{ m_SceneViewPort.ViewPort.z - 8.f, 0 }, screenPosition + ImVec2{ 5.f, 5.f }, 0.9f, [&]()
 		{
-			if (ImGui::BeginTable("##OverlayTable", 2, ImGuiTableFlags_SizingStretchProp))
+			ImVec2 screenPoss = ImGui::GetCursorScreenPos();
+
+			if (ImGui::BeginTable("##GuizmoEditMode", 4, ImGuiTableFlags_SizingFixedFit))
 			{
-				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
 				{
-					ImGui::TableNextColumn();
-					{
-						if (ImGui::BeginTable("##GuizmoEditMode", 4, ImGuiTableFlags_SizingFixedFit))
-						{
-							ImGui::TableNextColumn();
-							{
-								DrawGizmoOperationButton("##Select", u8"\xe9d9", ImGuizmo::BOUNDS, m_ImGuizmoOperation, m_ImGuizmoAllowedOperation);
-							}
-							ImGui::TableNextColumn();
-							{
-								// Translate
-								DrawGizmoOperationButton("##Translate", u8"\xea93", ImGuizmo::TRANSLATE, m_ImGuizmoOperation, m_ImGuizmoAllowedOperation);
-							}
-							ImGui::TableNextColumn();
-							{
-								// Rotation
-								DrawGizmoOperationButton("##Rotate", u8"\xea98", ImGuizmo::ROTATE, m_ImGuizmoOperation, m_ImGuizmoAllowedOperation);
-							}
-							ImGui::TableNextColumn();
-							{
-								// Scale
-								DrawGizmoOperationButton("##Scale", u8"\xea91", ImGuizmo::SCALE, m_ImGuizmoOperation, m_ImGuizmoAllowedOperation);
-							}
-
-							ImGui::EndTable();
-						}
-
-						ImGui::Dummy({ m_SceneViewPort.ViewPort.z / 4.f, 0.f });
-
-					}
-					// Play, Puse, Stop scene
-					ImGui::TableNextColumn();
-					{
-						ImGui::PushStyleColor(ImGuiCol_Button, m_IsScenePlaying ? ImGui::ColorConvertFloat4ToU32({0.8f,0.8f, 0.1f, 1.f}) : ImGui::ColorConvertFloat4ToU32({ 0.1f, 0.8f, 0.1f, 1.f }));
-						if (ImGuiLayer::IconButton("##PlayButton", m_IsScenePlaying ? u8"\xe88e" : u8"\xe88b", 1, 1.3f))
-						{
-							m_IsScenePlaying = !m_IsScenePlaying;
-						}
-						if (m_IsScenePlaying && shade::Input::IsKeyPressed(shade::Key::Escape))
-						{
-							m_IsScenePlaying = false;
-						}
-						ImGui::PopStyleColor();
-
-
-						ImGuiIO& io = ImGui::GetIO();
-						ImGui::SameLine(ImGui::GetContentRegionAvail().x / 8.f);
-						ImGui::Text("Application average %.1f ms/frame (%.0f FPS)", 1000.0f / io.Framerate, io.Framerate);
-
-					}
-					
+					DrawGizmoOperationButton("##Select", u8"\xe9d9", ImGuizmo::BOUNDS, m_ImGuizmoOperation, m_ImGuizmoAllowedOperation);
+				}
+				ImGui::TableNextColumn();
+				{
+					// Translate
+					DrawGizmoOperationButton("##Translate", u8"\xea93", ImGuizmo::TRANSLATE, m_ImGuizmoOperation, m_ImGuizmoAllowedOperation);
+				}
+				ImGui::TableNextColumn();
+				{
+					// Rotation
+					DrawGizmoOperationButton("##Rotate", u8"\xea98", ImGuizmo::ROTATE, m_ImGuizmoOperation, m_ImGuizmoAllowedOperation);
+				}
+				ImGui::TableNextColumn();
+				{
+					// Scale
+					DrawGizmoOperationButton("##Scale", u8"\xea91", ImGuizmo::SCALE, m_ImGuizmoOperation, m_ImGuizmoAllowedOperation);
 				}
 
 				ImGui::EndTable();
 			}
+
+			ImGui::SetCursorScreenPos({screenPoss.x + m_SceneViewPort.ViewPort.z / 2.f, screenPoss.y});
+			{
+				ImGui::PushStyleColor(ImGuiCol_Button, m_IsScenePlaying ? ImGui::ColorConvertFloat4ToU32({ 0.8f,0.8f, 0.1f, 1.f }) : ImGui::ColorConvertFloat4ToU32({ 0.1f, 0.8f, 0.1f, 1.f }));
+				if (ImGuiLayer::IconButton("##PlayButton", m_IsScenePlaying ? u8"\xe88e" : u8"\xe88b", 1, 1.3f))
+				{
+					m_IsScenePlaying = !m_IsScenePlaying;
+				}
+				if (m_IsScenePlaying && shade::Input::IsKeyPressed(shade::Key::Escape))
+				{
+					m_IsScenePlaying = false;
+				}
+				ImGui::PopStyleColor();
+
+
+				ImGuiIO& io = ImGui::GetIO();
+			}
+			{
+				static bool menu = false;
+
+
+				ImGui::SameLine();  
+				
+
+				ImGui::SetCursorScreenPos({ screenPoss.x + m_SceneViewPort.ViewPort.z - 75.f, screenPoss.y + 3.f });
+				if (IconButton("##SceneFullScreen", u8"\xf0b2", 1, 1.f))
+				{
+					m_IsSceneFullScreen = !m_IsSceneFullScreen;
+				}
+				ImGui::SetCursorScreenPos({ screenPoss.x + m_SceneViewPort.ViewPort.z - 50.f, screenPoss.y + 3.f });
+
+				if (ImGui::ArrowButton("##RenderSettings", ImGuiDir_Down))
+					menu = !menu;
+
+				ImGui::SameLine();
+
+				if (menu)
+				{
+					ImGuiLayer::BeginWindowOverlay("##MenuOverlay",
+						ImGui::GetWindowViewport(),
+						std::size_t(this),
+						{
+							400.f, 400.f
+						}, // Size
+								{
+									ImGui::GetCursorScreenPos().x - 400.f, ImGui::GetCursorScreenPos().y + 35.f  // Position
+								},
+						0.5f, // Alpha
+						[&]() mutable
+						{
+							RenderSettings(m_SceneRenderer);
+						});
+
+				}
+			}
+			/*ImGui::SameLine(ImGui::GetContentRegionAvail().x);
+			ImGui::Text("Frame %.1f ms/frame (%.0f FPS)", 1000.0f / io.Framerate, io.Framerate);*/
 		});
 
 	// Geometry
@@ -1559,15 +1594,64 @@ void EditorLayer::RenderSettings(shade::SharedPointer<shade::SceneRenderer>& ren
 		}
 		ImGui::Checkbox("Light culling", &renderer->GetSettings().RenderSettings.LightCulling);
 
+		ImGui::TreePop();
+	}
 
-		if (ImGui::TreeNodeEx("Debug", ImGuiTreeNodeFlags_Framed))
+
+	
+
+	if (ImGui::TreeNodeEx("Pipelines", ImGuiTreeNodeFlags_Framed))
+	{
+		if (ImGui::BeginTable("asd", 3, ImGuiTableFlags_SizingStretchProp))
 		{
-			ImGui::Checkbox("Show Light complexity", &renderer->GetSettings().RenderSettings.ShowLightComplexity);
-			ImGui::Checkbox("Show Grid", &renderer->GetSettings().IsGridShow);
-			ImGui::Checkbox("Show AABB&OBB", &renderer->GetSettings().IsAABB_OBBShow);
-			ImGui::Checkbox("Show Point Light", &renderer->GetSettings().IsPointLightShow);
-			ImGui::Checkbox("Show Spot Light", &renderer->GetSettings().IsSpotLightShow);
-			ImGui::Checkbox("Show Global light shadow's cascades", &renderer->GetSettings().RenderSettings.ShowShadowCascades);
+			ImGui::TableNextRow();
+
+			ImGui::TableNextColumn();
+			{
+				ImGui::Text("Light culling pre depth pass");
+			}
+			ImGui::TableNextColumn();
+			{
+				ImGui::Text("%0.3f ms", m_SceneRenderer->GetStatistic().LightCullingPreDepth);
+			}
+			ImGui::TableNextColumn();
+			{
+				ImGui::Button("Recompile");
+			}
+
+			ImGui::EndTable();
+		}
+
+
+		if (ImGui::Button("Recompile all pipelines"))
+			m_SceneRenderer->RecompileAllPipelines();
+
+
+		if (ImGui::TreeNodeEx("Statistic", ImGuiTreeNodeFlags_Framed))
+		{
+			ImGui::Text("Submited instances %d", m_SceneRenderer->GetStatistic().SubmitedInstances);
+			ImGui::Separator();
+			ImGui::Text("Submited point lights %d", m_SceneRenderer->GetStatistic().SubmitedPointLights);
+			ImGui::Separator();
+			ImGui::Text("Submited spot lights %d", m_SceneRenderer->GetStatistic().SubmitedSpotLights);
+			ImGui::Separator();
+
+			ImGui::Text("Light culling pre depth pass %0.3f ms", m_SceneRenderer->GetStatistic().LightCullingPreDepth);
+			ImGui::Separator();
+			ImGui::Text("Light culling compute pass %0.3f ms", m_SceneRenderer->GetStatistic().LightCullingCompute);
+			ImGui::Separator();
+			ImGui::Text("Instanced geometry pass %0.3f ms", m_SceneRenderer->GetStatistic().InstanceGeometry);
+			ImGui::Separator();
+			ImGui::Text("Global light shadow pre depth pass %0.3f ms", m_SceneRenderer->GetStatistic().GlobalLightPreDepth);
+			ImGui::Separator();
+			ImGui::Text("Spot light shadow pre depth pass %0.3f ms", m_SceneRenderer->GetStatistic().SpotLightPreDepth);
+			ImGui::Separator();
+			ImGui::Text("Point light shadow pre depth pass %0.3f ms", m_SceneRenderer->GetStatistic().PointLightPreDepth);
+			ImGui::Separator();
+			ImGui::Text("Bloom pass %0.3f ms", m_SceneRenderer->GetStatistic().Bloom);
+			ImGui::Separator();
+			ImGui::Text("Color correction pass %0.3f ms", m_SceneRenderer->GetStatistic().ColorCorrection);
+			ImGui::Separator();
 
 			ImGui::TreePop();
 		}
@@ -1575,43 +1659,24 @@ void EditorLayer::RenderSettings(shade::SharedPointer<shade::SceneRenderer>& ren
 		ImGui::TreePop();
 	}
 
-
-	if (ImGui::TreeNodeEx("Statistic", ImGuiTreeNodeFlags_Framed))
+	static bool showDemoWindow = false;
+	if (ImGui::TreeNodeEx("Debug", ImGuiTreeNodeFlags_Framed))
 	{
-		ImGui::Text("Submited instances %d", m_SceneRenderer->GetStatistic().SubmitedInstances);
-		ImGui::Separator();
-		ImGui::Text("Submited point lights %d", m_SceneRenderer->GetStatistic().SubmitedPointLights);
-		ImGui::Separator();
-		ImGui::Text("Submited spot lights %d", m_SceneRenderer->GetStatistic().SubmitedSpotLights);
-		ImGui::Separator();
+		ImGui::Checkbox("Show demo window", &showDemoWindow);
+		
 
-		ImGui::Text("Light culling pre depth pass %0.3f ms", m_SceneRenderer->GetStatistic().LightCullingPreDepth);
-		ImGui::Separator();
-		ImGui::Text("Light culling compute pass %0.3f ms", m_SceneRenderer->GetStatistic().LightCullingCompute);
-		ImGui::Separator();
-		ImGui::Text("Instanced geometry pass %0.3f ms", m_SceneRenderer->GetStatistic().InstanceGeometry);
-		ImGui::Separator();
-		ImGui::Text("Global light shadow pre depth pass %0.3f ms", m_SceneRenderer->GetStatistic().GlobalLightPreDepth);
-		ImGui::Separator();
-		ImGui::Text("Spot light shadow pre depth pass %0.3f ms", m_SceneRenderer->GetStatistic().SpotLightPreDepth);
-		ImGui::Separator();
-		ImGui::Text("Point light shadow pre depth pass %0.3f ms", m_SceneRenderer->GetStatistic().PointLightPreDepth);
-		ImGui::Separator();
-		ImGui::Text("Bloom pass %0.3f ms", m_SceneRenderer->GetStatistic().Bloom);
-		ImGui::Separator();
-		ImGui::Text("Color correction pass %0.3f ms", m_SceneRenderer->GetStatistic().ColorCorrection);
-		ImGui::Separator();
+		ImGui::Checkbox("Show Light complexity", &renderer->GetSettings().RenderSettings.ShowLightComplexity);
+		ImGui::Checkbox("Show Grid", &renderer->GetSettings().IsGridShow);
+		ImGui::Checkbox("Show AABB&OBB", &renderer->GetSettings().IsAABB_OBBShow);
+		ImGui::Checkbox("Show Point Light", &renderer->GetSettings().IsPointLightShow);
+		ImGui::Checkbox("Show Spot Light", &renderer->GetSettings().IsSpotLightShow);
+		ImGui::Checkbox("Show Global light shadow's cascades", &renderer->GetSettings().RenderSettings.ShowShadowCascades);
 
 		ImGui::TreePop();
 	}
 
-	if (ImGui::TreeNodeEx("Pipelines", ImGuiTreeNodeFlags_Framed))
-	{
-		if (ImGui::Button("Recompile all pipelines"))
-			m_SceneRenderer->RecompileAllPipelines();
-
-		ImGui::TreePop();
-	}
+	if (showDemoWindow) ImGui::ShowDemoWindow();
+	//MaterialEdit(shade::Renderer::GetDefaultMaterial().Get());
 }
 
 void EditorLayer::EntityInspector(shade::ecs::Entity& entity)
@@ -1939,7 +2004,8 @@ void EditorLayer::ModelComponent(shade::ecs::Entity& entity)
 		{
 			auto& mesh = *it;
 			auto& material = mesh->GetMaterial();
-			material = !material ? shade::Material::CreateEXP() : material;
+			//material = !material ? shade::Material::CreateEXP() : material;
+			material = !material ? shade::Renderer::GetDefaultMaterial() : material;
 
 			bool isOpen = false;
 
@@ -2537,7 +2603,7 @@ void EditorLayer::NativeScriptComponent(shade::ecs::Entity& entity)
 	}
 	
 
-	ImGui::BeginChild("##ScriptModuels", ImGui::GetContentRegionAvail() / 2.f, true);
+	ImGui::BeginChild("##ScriptModuels", { ImGui::GetContentRegionAvail().x / 2.f, 0.f }, true);
 
 	for (auto& [name, lib] : shade::scripts::ScriptManager::GetLibraries())
 	{
@@ -2551,7 +2617,7 @@ void EditorLayer::NativeScriptComponent(shade::ecs::Entity& entity)
 	ImGui::SameLine();
 
 	ImGui::BeginGroup();
-	ImGui::BeginChild("##ScriptFunctions", { 0.f, ImGui::GetContentRegionAvail().y / 2.f }, true);
+	ImGui::BeginChild("##ScriptFunctions", { 0.f, 0.f }, true);
 	if (shade::scripts::ScriptManager::GetLibraries().find(moduleName) != shade::scripts::ScriptManager::GetLibraries().end())
 	{
 		for (auto& [name, function] : shade::scripts::ScriptManager::GetLibraries().at(moduleName)->GetExportedFunctions())
@@ -2577,6 +2643,24 @@ void EditorLayer::NativeScriptComponent(shade::ecs::Entity& entity)
 void EditorLayer::MaterialEdit(shade::Material& material)
 {
 	static std::string path;
+	
+	if (ImGui::Button("OpenImage"))
+	{
+		auto paths = shade::FileDialog::OpenFile("Texture (*.dds) \0*.dds\0");
+		if (!paths.empty())
+		{
+			if (std::ifstream file = std::ifstream(paths, std::ios::binary))
+			{
+				shade::render::Image image; shade::serialize::Serializer::Deserialize(file, image);
+				material.TextureDiffuse = shade::Texture2D::CreateEXP(shade::render::Image2D::Create(image));
+			}
+		}
+		else
+		{
+			SHADE_CORE_WARNING("Couldn't open texture file, path ={0}", paths);
+		}
+	}
+	
 
 	if (ImGui::BeginTable("##SomeTable", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp))
 	{

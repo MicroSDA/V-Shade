@@ -51,7 +51,7 @@ namespace shade
 		static void SubmitStaticMeshDynamicLOD(const SharedPointer<RenderPipeline>& pipeline, const Asset<Drawable>& drawable, const Asset<Material>& material, const Asset<Model>& model, const glm::mat4& transform, std::uint32_t splitOffset = 0);
 		static void SubmitStaticMeshDynamicLOD(const SharedPointer<RenderPipeline>& pipeline, const SharedPointer<Drawable>& drawable, const Asset<Material>& material, const SharedPointer<Model>& model, const glm::mat4& transform, std::uint32_t splitOffset = 0);
 
-		static bool ExecuteSubmitedRenderPipeline(SharedPointer<RenderPipeline>& pipeline, std::uint32_t frameIndex, bool isForceClear = false);
+		static bool ExecuteSubmitedRenderPipeline(SharedPointer<RenderPipeline> pipeline, std::uint32_t frameIndex, bool isForceClear = false);
 		static bool ExecuteComputePipeline(SharedPointer<ComputePipeline>& pipeline, std::uint32_t frameIndex);
 
 		static void SubmitLight(const SharedPointer<GlobalLight>& light, const glm::mat4& transform, const SharedPointer<Camera>& camera);

@@ -134,9 +134,9 @@ std::pair<glm::mat4, glm::mat4> shade::Scene::ComputePCTransform(ecs::Entity& en
 		{
 			if (const animation::Pose* pose = entity.GetComponent<shade::AnimationGraphComponent>().AnimationGraph->GetOutputPose())
 			{
-				if (const animation::Pose::RootMotion* motion = pose->GetRootMotion())
+				if (pose->HasRootMotion())
 				{
-					glm::mat4 dif = glm::toMat4(glm::conjugate(motion->Rotation.Current)) * glm::translate(glm::identity<glm::mat4>(), -motion->Translation.Current);
+					glm::mat4 dif = glm::toMat4(glm::conjugate(pose->GetRootMotion().Rotation.Current)) * glm::translate(glm::identity<glm::mat4>(), -pose->GetRootMotion().Translation.Current);
 					tMatWithRootMotion = tMat * dif;
 				}
 			}

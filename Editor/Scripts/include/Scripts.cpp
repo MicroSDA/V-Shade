@@ -54,15 +54,12 @@ void PlayerScript::OnUpdate(const shade::FrameTimer& deltaTime)
 
 		if (graph.AnimationGraph)
 		{
-			graph.AnimationGraph->SetInputValue("State", static_cast<int>(rState));
-			graph.AnimationGraph->SetInputValue("Direction", m_Velocity);
+			graph.AnimationGraph->SetInputValue("State", static_cast<int>(rState)); 
+			graph.AnimationGraph->SetInputValue("Direction", m_Velocity);  
 
 			if (const shade::animation::Pose* finalPose = graph.AnimationGraph->GetOutputPose())
 			{				
-				if (auto motion = finalPose->GetRootMotion())
-				{
-					m_RootMotion = *motion;
-				}
+				m_RootMotion = finalPose->GetRootMotion();
 			}
 		}
 		
@@ -72,7 +69,7 @@ void PlayerScript::OnUpdate(const shade::FrameTimer& deltaTime)
 	{
 		//auto& camera		= GetComponent<shade::CameraComponent>();
 		auto& transform		= GetComponent<shade::TransformComponent>();
-
+		
 		//----------------------------------------------------------------------------------
 		// Camera section
 		//----------------------------------------------------------------------------------
@@ -90,23 +87,26 @@ void PlayerScript::OnUpdate(const shade::FrameTimer& deltaTime)
 
 			// Update camera position based on character's position and direction
 
-			//transform.Move(glm::vec3{ 0, 0.f, -m_Motion.x });
-			transform.Move(m_RootMotion.GetTranlsationDifference()); 
+			transform.Rotate(m_RootMotion.Rotation.Difference); 
+			//transform.SetRotation(m_RootMotion.Rotation.Current); 
 
-			float v = glm::length(m_RootMotion.Rotation.Current);
-			float v2 = glm::length(m_RootMotion.Rotation.Delta);
-			//transform.SetRotation(m_RootMotion.Rotation.Current);
-			transform.Rotate(m_RootMotion.GetRotationDifference());  
+			transform.GetForwardDirection();
 
-			//std::cout << (glm::angle(m_RootMotion.GetRotationDifference())) << std::endl;
-			//std::cout << (glm::angle(m_RootMotion.GetRotationDifference())) << std::endl;
+			transform.Move(m_RootMotion.Translation.Difference);
 
-			//camera->SetForwardDirection(transform.GetForwardDirection());
-			/*SHADE_CORE_INFO("Dif {0},{1},{2}",
-				m_RootMotion.GetTranlsationDifference().x,
-				m_RootMotion.GetTranlsationDifference().y,
-				m_RootMotion.GetTranlsationDifference().z);*/
-
+			//GetEntity().GetManager().View<shade::TransformComponent>().Each([&](shade::ecs::Entity& entity, shade::TransformComponent& tr)
+			//	{
+			//		if (!entity.HasComponent<shade::AnimationGraphComponent>())
+			//		{
+			//			//entity.GetComponent<shade::TransformComponent>().SetDirection(transform.GetRotationQuaternion() * glm::vec3(0, 0, -1));
+			//		}
+			//	});
+			
+			
+			/*for (auto& Endity : *this)
+			{
+				
+			}*/
 			glm::vec3 cameraOffset = { 0.0f, 1.0f, 5.0f }; // Offset the camera behind and above the character
 			//glm::vec3 cameraPosition = transform.GetPosition() - camera->GetForwardDirection() * cameraOffset.z + glm::vec3(0, cameraOffset.y, 0);
 

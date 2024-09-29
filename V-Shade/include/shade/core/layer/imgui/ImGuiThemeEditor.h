@@ -67,7 +67,7 @@ namespace shade
 			colors[ImGuiCol_TitleBg] = GetColor(BackGroundColor, Alpha80);
 			colors[ImGuiCol_TitleBgActive] = GetColor(BackGroundColor, Alpha80);
 			colors[ImGuiCol_TitleBgCollapsed] = Collapsed(colors[ImGuiCol_TitleBg]);
-			colors[ImGuiCol_MenuBarBg] = Darken(GetColor(BackGroundColor), 0.2f);
+			colors[ImGuiCol_MenuBarBg] = GetColor(BackGroundColor);
 			colors[ImGuiCol_ScrollbarBg] = Lighten(GetColor(BackGroundColor, Alpha50), 0.4f);
 			colors[ImGuiCol_ScrollbarGrab] = Lighten(GetColor(BackGroundColor), 0.3f);
 			colors[ImGuiCol_ScrollbarGrabHovered] = Hovered(colors[ImGuiCol_ScrollbarGrab]);

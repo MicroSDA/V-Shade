@@ -4,7 +4,7 @@
 #include <shade/platforms/render/vulkan/VulkanPipeline.h>
 #include <shade/platforms/render/vulkan/VulkanComputePipeline.h>
 
-shade::SharedPointer<shade::RenderPipeline> shade::RenderPipeline::Create(const RenderPipeline::Specification& specification)
+shade::SharedPointer<shade::RenderPipeline> shade::RenderPipeline::Create(const Pipeline::Specification& specification)
 {
 	switch (RenderAPI::GetCurrentAPI())
 	{
@@ -14,17 +14,7 @@ shade::SharedPointer<shade::RenderPipeline> shade::RenderPipeline::Create(const 
 	}
 }
 
-shade::RenderPipeline::Specification& shade::RenderPipeline::GetSpecification()
-{
-	return const_cast<RenderPipeline::Specification&>(const_cast<const RenderPipeline*>(this)->GetSpecification());
-}
-
-const shade::RenderPipeline::Specification& shade::RenderPipeline::GetSpecification() const
-{
-	return m_Specification;
-}
-
-shade::SharedPointer<shade::ComputePipeline> shade::ComputePipeline::Create(const ComputePipeline::Specification& specification)
+shade::SharedPointer<shade::ComputePipeline> shade::ComputePipeline::Create(const Pipeline::Specification& specification)
 {
 	switch (RenderAPI::GetCurrentAPI())
 	{
@@ -34,3 +24,12 @@ shade::SharedPointer<shade::ComputePipeline> shade::ComputePipeline::Create(cons
 	}
 }
 
+shade::Pipeline::Specification& shade::Pipeline::GetSpecification()
+{
+	return m_Specification;
+}
+
+const shade::Pipeline::Specification& shade::Pipeline::GetSpecification() const
+{
+	return m_Specification;
+}

@@ -39,7 +39,7 @@ namespace shade
 
 				Asset<Animation>		Animation;
 				Animation::State		State  = Animation::State::Play;
-				Pose::RootMotion		RootMotion;
+				Pose::RootMotion*		RootMotion = nullptr;
 				float					Start  = 0.f, End = 0.f, Duration = 0.f, CurrentPlayTime = 0.f, TicksPerSecond = 0.f;
 				bool					IsLoop = true;
 				bool					HasRootMotion = false;
@@ -104,31 +104,6 @@ namespace shade
 				(CreatePose(skeleton, type, animation::PointerHashCombine(type, args)), ...);
 				return CreatePose(skeleton, type, animation::PointerHashCombine(type, std::forward<Args>(args)...));
 			}
-		
-			void CalculateBoneTransforms(
-				animation::Pose* pose,
-				const AnimationControlData& animationData,
-				const Skeleton::BoneNode* bone,
-				const glm::mat4& parentTransform,
-				const Skeleton::BoneArmature& armature);
-
-			void CalculateBoneTransformsBlend(
-				const shade::Skeleton::BoneNode* bone,
-				animation::Pose* targetPose,
-				const animation::Pose* first,
-				const animation::Pose* second,
-				const glm::mat4& parrentTransform,
-				float blendFactor, 
-				const animation::BoneMask& boneMask);
-
-			void CalculateBoneTransformsAdditive(
-				const shade::Skeleton::BoneNode* bone,
-				animation::Pose* targetPose,
-				const animation::Pose* referencePose,
-				const animation::Pose* additive,
-				const glm::mat4& parrentTransform,
-				float blendFactor,
-				const animation::BoneMask& boneMask);
 		};
 	}
 

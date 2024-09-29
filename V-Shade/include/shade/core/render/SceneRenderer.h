@@ -175,13 +175,16 @@ namespace shade
 
 		SharedPointer<Camera>& GetActiveCamera();
 
+		SharedPointer<Pipeline>& RegisterNewPipeline(const SharedPointer<Pipeline>& pipeline);
+		SharedPointer<Pipeline>  GetPipeline(const std::string& name);
+
 		void RecompileAllPipelines();
 	private:
 
 		SharedPointer<RenderCommandBuffer> m_MainCommandBuffer;
 
 		std::vector<SharedPointer<FrameBuffer>>	m_MainTargetFrameBuffer;
-		SharedPointer<RenderPipeline>	m_MainGeometryPipelineStatic;
+		//SharedPointer<RenderPipeline>	m_MainGeometryPipelineStatic;
 		SharedPointer<RenderPipeline>	m_MainGeometryPipelineAnimated;
 
 		SharedPointer<FrameBuffer>		m_LightCullingPreDepthFrameBuffer;
@@ -205,6 +208,7 @@ namespace shade
 
 		SharedPointer<RenderPipeline>	m_PointLightVisualizationPipeline;
 		SharedPointer<RenderPipeline>	m_SpotLightVisualizationPipeline;
+		SharedPointer<RenderPipeline>	m_SkeletonVisualizationPipeline;
 
 		SharedPointer<ComputePipeline>	m_ColorCorrectionPipeline;
 
@@ -232,6 +236,8 @@ namespace shade
 		SharedPointer<Box>		m_OBB;
 		SharedPointer<Sphere>	m_Sphere;
 		SharedPointer<Cone>		m_Cone;
+
+		std::unordered_map<std::string, SharedPointer<Pipeline>> m_Pipelines;
 	private:
 
 		void GlobalLightShadowPreDepthPass(SharedPointer<RenderPipeline>& pipeline, const render::SubmitedInstances& instances, const render::SubmitedSceneRenderData& data, std::uint32_t frameIndex, bool isForceClear = false);
@@ -241,6 +247,7 @@ namespace shade
 		void LightCullingPreDepthPass(SharedPointer<RenderPipeline>& pipeline, const render::SubmitedInstances& instances, const render::SubmitedSceneRenderData& data, std::uint32_t frameIndex, bool isForceClear = false);
 		void GridPass(SharedPointer<RenderPipeline>& pipeline, const render::SubmitedInstances& instances, const render::SubmitedSceneRenderData& data, std::uint32_t frameIndex, bool isForceClear = false);
 		void LightVisualizationPass(SharedPointer<RenderPipeline>& pipeline, const render::SubmitedInstances& instances, const render::SubmitedSceneRenderData& data, std::uint32_t frameIndex, bool isForceClear = false);
+		void SkeletonVisualizationPass(SharedPointer<RenderPipeline>& pipeline, const render::SubmitedInstances& instances, const render::SubmitedSceneRenderData& data, std::uint32_t frameIndex, bool isForceClear = false);
 
 		void FlatPipeline(SharedPointer<RenderPipeline>& pipeline, const render::SubmitedInstances& instances, const render::SubmitedSceneRenderData& data, std::uint32_t frameIndex, bool isForceClear = false);
 

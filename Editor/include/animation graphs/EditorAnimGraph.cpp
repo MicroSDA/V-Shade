@@ -2019,7 +2019,11 @@ void graph_editor::PoseNodeDelegate::ProcessBodyContent(const InternalContext* c
 	auto pose = GetNode()->GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0);
 	std::size_t hash = (pose) ? pose->GetAnimationHash() : 0;
 
-	shade::ImGuiLayer::DrawFontIcon(u8"\xf21d", 1, 0.5f); ImGui::SameLine(); ImGuiLayer::HelpMarker("#", std::format("{:x}", hash).c_str()); ImGui::SameLine();
+	(!rootMotion) ? ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled)) : void();
+	shade::ImGuiLayer::DrawFontIcon(u8"\xf21d", 1, 0.5f);
+	(!rootMotion) ? ImGui::PopStyleColor() : void();
+	
+	ImGui::SameLine(); ImGuiLayer::HelpMarker("#", std::format("{:x}", hash).c_str()); ImGui::SameLine();
 
 	{
 		// Calculate the normalized value between 0 and 1
@@ -2044,22 +2048,38 @@ void graph_editor::PoseNodeDelegate::ProcessSideBar(const InternalContext* conte
 	bool& isloop = node.GetAnimationData().IsLoop;
 	auto& state = node.GetAnimationData().State;
 	auto& rootMotion = node.GetAnimationData().HasRootMotion;
-
+	const float FPS = (node.GetAnimationData().Animation) ? node.GetAnimationData().Animation->GetFps() : 0.f;
 	if (ImGui::BeginChildEx("Node: Pose", std::size_t(&node), ImGui::GetContentRegionAvail(), true, 0))
 	{
 		const ImVec2 windowPosition = ImGui::GetWindowPos();
 		const ImVec2 windowSize = ImGui::GetWindowSize();
 
-		if (ImGui::BeginTable("PlayPauseStop", 3, ImGuiTableFlags_SizingFixedSame))
+		ImGui::Dummy({ (ImGui::GetContentRegionAvail().x - 30.f) / 2.f ,0 }); ImGui::SameLine();
+		if (state == Animation::State::Play)
 		{
-			ImGui::TableNextColumn();
-			ImGui::TableNextColumn();
-			if (ImGuiLayer::IconButton("Play", u8"\xe88b", 1, 1.0f)) state = Animation::State::Play;  ImGui::SameLine(); ImGui::Dummy({ 10.f, 0 }); ImGui::SameLine();
-			if (ImGuiLayer::IconButton("Pause", u8"\xe88e", 1, 1.0f)) state = Animation::State::Pause; ImGui::SameLine(); ImGui::Dummy({ 10.f, 0 }); ImGui::SameLine();
-			if (ImGuiLayer::IconButton("Stop", u8"\xe88d", 1, 1.0f)) state = Animation::State::Stop;
-			ImGui::TableNextColumn();
-			ImGui::EndTable();
+			ImGui::PushStyleColor(ImGuiCol_Button, ImGui::ColorConvertFloat4ToU32({ 0.7f, 0.7f, 0.2f, 1.f }));
+			if (ImGuiLayer::IconButton("##Pause", u8"\xf28c", 1, 1.1f))
+			{
+				state = Animation::State::Pause;
+			}
+			ImGui::PopStyleColor();
 		}
+		else if (state == Animation::State::Pause || state == Animation::State::Stop)
+		{
+			ImGui::PushStyleColor(ImGuiCol_Button, ImGui::ColorConvertFloat4ToU32({ 0.2f, 0.7f, 0.2f, 1.f }));
+			if (ImGuiLayer::IconButton("##Pause", u8"\xe88c", 1, 1.1f))
+			{
+				state = Animation::State::Play;
+			}
+			ImGui::PopStyleColor();
+		}
+		ImGui::SameLine();
+		ImGui::PushStyleColor(ImGuiCol_Button, ImGui::ColorConvertFloat4ToU32({ 0.7f, 0.2f, 0.2f, 1.f }));
+		if (ImGuiLayer::IconButton("##Stop", u8"\xf28e", 1, 1.1f))
+		{
+			state = Animation::State::Stop;
+		}
+		ImGui::PopStyleColor();
 
 		ImGui::Separator();
 
@@ -2078,10 +2098,10 @@ void graph_editor::PoseNodeDelegate::ProcessSideBar(const InternalContext* conte
 					{
 						ImGui::TableNextColumn();
 						ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
-						ImGui::SliderFloat("##Timeline", &node.GetAnimationData().CurrentPlayTime, 0.f, duration);
+						ImGui::SliderFloat("##Timeline", &node.GetAnimationData().CurrentPlayTime, 0.f, end);
 						ImGui::PopItemWidth();
 						ImGui::TableNextColumn();
-						ImGuiLayer::ToggleButtonIcon("##IsLoopButton", &isloop, u8"\xe889", 1, 0.6f);
+						ImGuiLayer::ToggleButtonIcon("##IsLoopButton", &isloop, u8"\xea9b", 1, 0.7f);
 
 						ImGui::EndTable();
 					}
@@ -2101,18 +2121,18 @@ void graph_editor::PoseNodeDelegate::ProcessSideBar(const InternalContext* conte
 					{
 						ImGui::TableNextColumn();
 						{
-							ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - 15.f);
+							ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - 20.f);
 							ImGui::DragFloat("##Start", &start, 0.01f, 0.0f, end); ImGui::SameLine();
 							ImGui::PopItemWidth();
 
-							if (ImGuiLayer::IconButton("Reset", u8"\xe888", 1, 0.6f)) { start = 0.f; }
+							if (ImGuiLayer::IconButton("Reset", u8"\xe888", 1, 0.9f)) { start = 0.f; }
 						}
 						ImGui::TableNextColumn();
 						{
-							ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - 25.f);
+							ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - 30.f);
 							ImGui::DragFloat("##End", &end, 0.01f, start, duration); ImGui::SameLine();
 							ImGui::PopItemWidth();
-							if (ImGuiLayer::IconButton("Reset", u8"\xe888", 1, 0.6f)) { end = duration; }
+							if (ImGuiLayer::IconButton("Reset", u8"\xe888", 1, 0.9f)) { end = duration; }
 						}
 
 
@@ -2125,13 +2145,14 @@ void graph_editor::PoseNodeDelegate::ProcessSideBar(const InternalContext* conte
 			{
 				ImGui::TableNextColumn();
 				{
-					shade::ImGuiLayer::DrawFontIcon(u8"\xea8b", 1, 0.5f);
+					shade::ImGuiLayer::DrawFontIcon(u8"\xe988", 1, 0.7f); 
+					ImGuiLayer::HelpMarker("#", std::format("FPS: {:.2f}", FPS).c_str());
 				}
 				ImGui::TableNextColumn();
 				{
 					ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
 					ImGui::DragFloat("##Tiks", &ticksPerSecond, 0.01f, 0.0f, FLT_MAX);
-					ImGui::PopItemWidth();
+					ImGui::PopItemWidth(); 
 				}
 			}
 			(!node.GetAnimationData().Animation) ? ImGui::EndDisabled() : void();
@@ -2220,7 +2241,15 @@ void graph_editor::PoseNodeDelegate::ProcessSideBar(const InternalContext* conte
 				{
 					ImGui::TableNextColumn();
 					{
-						shade::ImGuiLayer::ToggleButtonIcon("RootMotion", &rootMotion, u8"\xf21d", 1, 0.7f);
+						(!rootMotion) ? ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled)) : void();
+						shade::ImGuiLayer::DrawFontIcon(u8"\xf21d", 1, 0.7f);
+						(!rootMotion) ? ImGui::PopStyleColor() : void();
+
+						ImGui::SameLine(); 
+						if (shade::ImGuiLayer::ToggleButton("RootMotion", &rootMotion)) 
+						{
+							node.ResetAnimationData(node.GetAnimationData());
+						}
 					}
 					ImGui::TableNextColumn();
 				}

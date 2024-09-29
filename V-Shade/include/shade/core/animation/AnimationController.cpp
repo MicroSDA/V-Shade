@@ -28,7 +28,7 @@ namespace shade
 			};
 
 			template<typename BlendF>
-			void BasePoseBlend(const Skeleton::BoneNode* bone, Pose* p0, const Pose* p1, const Pose* p2, const glm::mat4& parrentTransform, float blendFactor, const BoneMask& boneMask)
+			void BasePoseBlendRecursevly(Pose* p0, const Pose* p1, const Pose* p2, const Skeleton::BoneNode* bone, const glm::mat4& parrentTransform, float blendFactor, const BoneMask& boneMask)
 			{
 				const float blendFactorWithBoneMask = blendFactor * boneMask.GetWeight(bone->ID);
 
@@ -39,16 +39,32 @@ namespace shade
 
 
 				localP0.Translation = BlendF::Translation(localP1.Translation, localP2.Translation, blendFactorWithBoneMask);
-				localP0.Rotation = BlendF::Rotation(localP1.Rotation, localP2.Rotation, blendFactorWithBoneMask);
-				localP0.Scale = BlendF::Scale(localP1.Scale, localP2.Scale, blendFactorWithBoneMask);
-
+				localP0.Rotation	= BlendF::Rotation(localP1.Rotation, localP2.Rotation, blendFactorWithBoneMask);
+				localP0.Scale		= BlendF::Scale(localP1.Scale, localP2.Scale, blendFactorWithBoneMask);
 
 				const glm::mat4 globalMatrix = parrentTransform * glm::translate(glm::identity<glm::mat4>(), localP0.Translation) * glm::toMat4(localP0.Rotation) * glm::scale(glm::identity<glm::mat4>(), localP0.Scale);
 
-				p0->GetBoneGlobalTransform(bone->ID) = globalMatrix * bone->InverseBindPose * p0->GetSkeleton()->GetArmature().Transform;
+				p0->GetBoneGlobalTransform(bone->ID) = globalMatrix * bone->InverseBindPose;
 
 				for (const auto& child : bone->Children)
-					BasePoseBlend<BlendF>(child, p0, p1, p2, globalMatrix, blendFactor, boneMask);
+					BasePoseBlendRecursevly<BlendF>(p0, p1, p2, child, globalMatrix, blendFactor, boneMask);
+			}
+			template<typename BlendF>
+			void BasePoseBlend(Pose* p0, const Pose* p1, const Pose* p2, const Asset<Skeleton>& skeleton, float blendFactor, const BoneMask& boneMask)
+			{
+				const float blendFactorWithBoneMask = blendFactor; // TODO : Armature blend weight
+
+				Pose::LocalTransform& localP0		= p0->GetArmatureTransform();
+
+				const Pose::LocalTransform& localP1 = p1->GetArmatureTransform();
+				const Pose::LocalTransform& localP2 = p2->GetArmatureTransform();
+
+				localP0.Translation = BlendF::Translation(localP1.Translation, localP2.Translation, blendFactorWithBoneMask);
+				localP0.Rotation = BlendF::Rotation(localP1.Rotation, localP2.Rotation, blendFactorWithBoneMask);
+				localP0.Scale = BlendF::Scale(localP1.Scale, localP2.Scale, blendFactorWithBoneMask);
+
+				BasePoseBlendRecursevly<BlendF>(p0, p1, p2, skeleton->GetRootNode(), glm::translate(glm::identity<glm::mat4>(), localP0.Translation) * glm::toMat4(localP0.Rotation) * glm::scale(glm::identity<glm::mat4>(), localP0.Scale), 
+					blendFactorWithBoneMask, boneMask);
 			}
 
 			template<typename BlendF>
@@ -59,14 +75,76 @@ namespace shade
 				// lerp + then scale the lerped result so that it's magnitude is the velocity you want
 				// (this will only have a small effect compared to getting the foot phase sync sorted out)
 
+				/*r0->Translation.Delta = BlendF::Translation(r1->Translation.Delta, r2->Translation.Delta, weight);
+				r0->Translation.Current = BlendF::Translation(r1->Translation.Current, r2->Translation.Current, weight);
+				r0->Translation.Difference = BlendF::Translation(r1->Translation.Difference, r2->Translation.Difference, weight);*/
+
 				r0->Translation.Delta		= BlendF::Translation(r1->Translation.Delta, r2->Translation.Delta, weight);
 				r0->Translation.Current		= BlendF::Translation(r1->Translation.Current, r2->Translation.Current, weight);
+				r0->Translation.Difference	= BlendF::Translation(r1->Translation.Difference, r2->Translation.Difference, weight);
 
 				r0->Rotation.Delta			= r0->Rotation.Current;
 				r0->Rotation.Current		= BlendF::Rotation(r1->Rotation.Current, r2->Rotation.Current, weight);
 
+				r0->Rotation.Difference		= glm::normalize(glm::conjugate(r0->Rotation.Delta) * r0->Rotation.Current);
+
 				/*r0->Scale.Current			= BlendF::Scale(r1->Scale.Current, r2->Scale.Current, weight);
 				r0->Scale.Delta				= BlendF::Scale(r1->Scale.Delta, r2->Scale.Delta, weight);*/
+			}
+
+
+			void ComputePoseRecursevly(animation::Pose* pose, const AnimationController::AnimationControlData& animationData, const Skeleton::BoneNode* bone, const glm::mat4& parentTransform)
+			{
+				glm::mat4 globalMatrix = parentTransform;
+
+				if (const Animation::Channel* channel = animationData.Animation->GetAnimationCahnnel(bone->Name))
+				{
+					Pose::LocalTransform& local = pose->GetBoneLocalTransform(bone->ID);
+					
+					local.Translation = animationData.Animation->InterpolatePosition(*channel, animationData.CurrentPlayTime);
+					local.Rotation = animationData.Animation->InterpolateRotation(*channel, animationData.CurrentPlayTime);
+					local.Scale = animationData.Animation->InterpolateScale(*channel, animationData.CurrentPlayTime);
+					
+					globalMatrix *= glm::translate(glm::identity<glm::mat4>(), local.Translation) * glm::toMat4(local.Rotation) * glm::scale(glm::identity<glm::mat4>(), local.Scale);
+
+					pose->GetBoneGlobalTransform(bone->ID) = globalMatrix * bone->InverseBindPose;
+				}
+				else
+				{
+					globalMatrix *= glm::translate(glm::identity<glm::mat4>(), bone->Translation) * glm::toMat4(bone->Rotation) * glm::scale(glm::identity<glm::mat4>(), bone->Scale);
+
+					pose->GetBoneGlobalTransform(bone->ID) = globalMatrix * bone->InverseBindPose;	
+				}
+
+				for (const auto& child : bone->Children)
+					ComputePoseRecursevly(pose, animationData, child, globalMatrix);
+			}
+
+			void ComputePose(animation::Pose* pose, const AnimationController::AnimationControlData& animationData, const Asset<Skeleton>& skeleton)
+			{
+				glm::mat4 armatureMatrix = glm::identity<glm::mat4>();
+
+				Pose::LocalTransform& local = pose->GetArmatureTransform();
+
+				if (const Animation::Channel* channel = animationData.Animation->GetAnimationCahnnel(skeleton->GetArmature()->Name))
+				{
+					local.Translation = animationData.Animation->InterpolatePosition(*channel, animationData.CurrentPlayTime);
+					local.Rotation = animationData.Animation->InterpolateRotation(*channel, animationData.CurrentPlayTime);
+					local.Scale = animationData.Animation->InterpolateScale(*channel, animationData.CurrentPlayTime);
+
+					armatureMatrix = glm::translate(glm::identity<glm::mat4>(), local.Translation) * glm::toMat4(local.Rotation) * glm::scale(glm::identity<glm::mat4>(), local.Scale);
+				}
+				else
+				{
+					local.Translation	= skeleton->GetArmature()->Translation;
+					local.Rotation		= skeleton->GetArmature()->Rotation;
+					local.Scale			= skeleton->GetArmature()->Scale;
+
+					armatureMatrix = glm::translate(glm::identity<glm::mat4>(), local.Translation) * glm::toMat4(local.Rotation) * glm::scale(glm::identity<glm::mat4>(), local.Scale);
+				}
+
+			
+				ComputePoseRecursevly(pose, animationData, skeleton->GetRootNode(), armatureMatrix);
 			}
 		}
 	}
@@ -75,104 +153,6 @@ namespace shade
 shade::animation::Pose* shade::animation::AnimationController::ReceiveAnimationPose(const Asset<Skeleton>& skeleton, Pose::Type type, std::size_t hash)
 {
 	return CreatePose(skeleton, type, hash);
-}
-
-void shade::animation::AnimationController::CalculateBoneTransforms(
-	animation::Pose* pose,
-	const  AnimationControlData& animationData,
-	const Skeleton::BoneNode* bone,
-	const glm::mat4& parentTransform,
-	const Skeleton::BoneArmature& armature)
-{
-	glm::mat4 globalMatrix = parentTransform;
-
-	if (const Animation::Channel* channel = animationData.Animation->GetAnimationCahnnel(bone->Name))
-	{
-		const Pose::LocalTransform local
-		{
-			.Translation = animationData.Animation->InterpolatePosition(*channel, animationData.CurrentPlayTime),
-			.Rotation = animationData.Animation->InterpolateRotation(*channel, animationData.CurrentPlayTime),
-			.Scale = animationData.Animation->InterpolateScale(*channel, animationData.CurrentPlayTime)
-		};
-
-		pose->GetBoneLocalTransform(bone->ID) = local;
-
-		glm::mat4 interpolatedTransform = glm::translate(glm::identity<glm::mat4>(), local.Translation) * glm::toMat4(local.Rotation) * glm::scale(glm::identity<glm::mat4>(), local.Scale);
-
-		globalMatrix *= interpolatedTransform;
-
-		pose->GetBoneGlobalTransform(bone->ID) = globalMatrix * bone->InverseBindPose * armature.Transform;
-	}
-	else
-	{
-		globalMatrix *= parentTransform * glm::translate(glm::identity<glm::mat4>(), bone->Translation) * glm::toMat4(bone->Rotation) * glm::scale(glm::identity<glm::mat4>(), bone->Scale);
-	}
-
-	for (const auto& child : bone->Children)
-		CalculateBoneTransforms(pose, animationData, child, globalMatrix, armature);
-}
-
-void shade::animation::AnimationController::CalculateBoneTransformsBlend(
-	const shade::Skeleton::BoneNode* bone,
-	animation::Pose* targetPose,
-	const animation::Pose* first,
-	const animation::Pose* second,
-	const glm::mat4& parrentTransform,
-	float blendFactor,
-	const animation::BoneMask& boneMask)
-{
-	glm::mat4 globalMatrix = parrentTransform;
-
-	const Pose::LocalTransform& firstPose = first->GetBoneLocalTransform(bone->ID);
-	const Pose::LocalTransform& secondPose = second->GetBoneLocalTransform(bone->ID);
-
-	const float blendFactorWithBoneMask = blendFactor * boneMask.GetWeight(bone->ID);
-
-	const Pose::LocalTransform combined
-	{
-		.Translation = utils::BaseBlend::Translation(firstPose.Translation, secondPose.Translation, blendFactorWithBoneMask),
-		.Rotation = glm::slerp(firstPose.Rotation, secondPose.Rotation, blendFactorWithBoneMask),
-		.Scale = glm::mix(firstPose.Scale, secondPose.Scale, blendFactorWithBoneMask)
-	};
-
-	globalMatrix *= glm::translate(glm::identity<glm::mat4>(), combined.Translation) * glm::toMat4(combined.Rotation) * glm::scale(glm::identity<glm::mat4>(), combined.Scale);
-
-	targetPose->GetBoneLocalTransform(bone->ID) = combined;
-	targetPose->GetBoneGlobalTransform(bone->ID) = globalMatrix * bone->InverseBindPose * targetPose->GetSkeleton()->GetArmature().Transform;
-
-	for (const auto& child : bone->Children)
-		CalculateBoneTransformsBlend(child, targetPose, first, second, globalMatrix, blendFactor, boneMask);
-}
-
-void shade::animation::AnimationController::CalculateBoneTransformsAdditive(const shade::Skeleton::BoneNode* bone, animation::Pose* targetPose, const animation::Pose* referencePose, const animation::Pose* additivePose, const glm::mat4& parrentTransform, float blendFactor, const animation::BoneMask& boneMask)
-{
-	// DOESN'T WORK
-	//const glm::mat4& rMat	= referencePose->GetBoneLocalTransform(bone->ID);
-	//const glm::mat4& aMat	= additivePose->GetBoneLocalTransform(bone->ID);
-
-	//glm::quat baseRotation, additiveRotation, combinedRotation;
-	//glm::vec3 baseTranslation, additiveTranslation, combinedTranslation;
-	//glm::vec3 baseScale, additiveScale, combinedScale;
-
-	//math::DecomposeMatrix(rMat, baseTranslation, baseRotation, baseScale);
-	//math::DecomposeMatrix(aMat, additiveTranslation, additiveRotation, additiveScale);
-
-	//combinedTranslation = baseTranslation + blendFactor * additiveTranslation;
-	//combinedRotation = baseRotation * glm::slerp(glm::identity<glm::quat>(), additiveRotation, blendFactor) ;
-	//
-	//combinedScale = baseScale + blendFactor * (additiveScale - glm::one<glm::vec3>());
-
-	//
-	////glm::mat4 combinedLocal = aMat;
-	//glm::mat4 combinedLocal = glm::translate(glm::mat4(1.f), combinedTranslation) * glm::toMat4(combinedRotation) * glm::scale(glm::mat4(1.f), combinedScale);
-
-	//glm::mat4 globalMatrix = parrentTransform * combinedLocal;
-
-	//targetPose->GetBoneLocalTransform(bone->ID) = combinedLocal;
-	//targetPose->GetBoneGlobalTransform(bone->ID) = globalMatrix * bone->InverseBindPose * targetPose->GetSkeleton()->GetArmature().Transform;
-
-	//for (const auto& child : bone->Children)
-	//	CalculateBoneTransformsAdditive(child, targetPose, referencePose, additivePose, globalMatrix, blendFactor, boneMask);
 }
 
 std::pair<float, float> shade::animation::AnimationController::GetTimeMultiplier(float firstDuration, float secondDuration, float blendFactor) const
@@ -197,54 +177,55 @@ shade::animation::Pose* shade::animation::AnimationController::ProcessPose(const
 
 	if (animationData.HasRootMotion)
 	{
-		animationData.RootMotion.FinalizeRootMotion(skeleton, animationData.Animation, animationData.Start, animationData.End);
-		pose->SetRootMotion(&animationData.RootMotion);
+		(pose->GetType() == Pose::Type::ZeroPose || animationData.RootMotion != &pose->GetRootMotion()) ? pose->GetRootMotion().Initialize(skeleton, animationData.Animation, animationData.Start, animationData.End) : void();
 
+		animationData.RootMotion = &pose->GetRootMotion();
+		pose->SetRootMotion(); // MBY rename to mark as use root motion or set use root motion
 	}
 	else
 	{
-		pose->SetRootMotion(nullptr);
+		animationData.RootMotion = nullptr;
+		pose->UnsetRootMotion();
 	}
 
 	return (skeleton) ? CalculatePose(pose, animationData, deltaTime, timeMultiplier) : nullptr;
 }
 
-shade::animation::Pose* shade::animation::AnimationController::Blend(const Asset<Skeleton>& skeleton, const animation::Pose* first, const animation::Pose* second, float blendFactor, const animation::BoneMask& boneMask)
+shade::animation::Pose* shade::animation::AnimationController::Blend(const Asset<Skeleton>& skeleton, const animation::Pose* p1, const animation::Pose* p2, float blendFactor, const animation::BoneMask& boneMask)
 {
-	auto targetPose = ReceiveAnimationPose(skeleton, Pose::Type::Pose, first->GetAnimationHash(), second->GetAnimationHash());
+	Pose* p0 = ReceiveAnimationPose(skeleton, Pose::Type::Pose, p1->GetAnimationHash(), p2->GetAnimationHash());
 
-	if (first->GetType() == Pose::Type::AdditivePose)
+	if (p1->GetType() == Pose::Type::AdditivePose)
 	{
-		CalculateBoneTransformsAdditive(skeleton->GetRootNode(), targetPose, second, first, glm::identity<glm::mat4>(), blendFactor, boneMask);
+		
 	}
-	else if (second->GetType() == Pose::Type::AdditivePose)
+	else if (p2->GetType() == Pose::Type::AdditivePose)
 	{
-		CalculateBoneTransformsAdditive(skeleton->GetRootNode(), targetPose, first, second, glm::identity<glm::mat4>(), blendFactor, boneMask);
+		
 	}
 	else
 	{
-		utils::BasePoseBlend<utils::BaseBlend>(targetPose->GetSkeleton()->GetRootNode(), targetPose, first, second, glm::identity<glm::mat4>(), blendFactor, boneMask);
+		utils::BasePoseBlend<utils::BaseBlend>(p0, p1, p2, skeleton, blendFactor, boneMask);
 	}
 
-	static Pose::RootMotion motion;
+	if (p1->HasRootMotion() && p2->HasRootMotion())
+	{
+		utils::RootMotionBlend<utils::BaseBlend>(&p0->GetRootMotion(), &p1->GetRootMotion(), &p2->GetRootMotion(), blendFactor);
+		p0->SetRootMotion();
+	}
 
-	utils::RootMotionBlend<utils::BaseBlend>(&motion, first->GetRootMotion(), second->GetRootMotion(), blendFactor);
-
-	targetPose->SetRootMotion(&motion);
-
-	return targetPose;
+	return p0;
 }
 
 shade::animation::Pose* shade::animation::AnimationController::BlendTriangular(const Asset<Skeleton>& skeleton, const animation::Pose* aPose, const animation::Pose* bPose, const animation::Pose* cPose, float aBlend, float bBlend, float cBlend, const animation::BoneMask& boneMask)
 {
-	Pose* AB = ReceiveAnimationPose(skeleton, Pose::Type::Pose, aPose->GetAnimationHash(), bPose->GetAnimationHash());
-	CalculateBoneTransformsBlend(skeleton->GetRootNode(), AB, aPose, bPose, glm::identity<glm::mat4>(), aBlend, boneMask);
-
-	Pose* BC = ReceiveAnimationPose(skeleton, Pose::Type::Pose, bPose->GetAnimationHash(), cPose->GetAnimationHash());
-	CalculateBoneTransformsBlend(skeleton->GetRootNode(), BC, bPose, cPose, glm::identity<glm::mat4>(), bBlend, boneMask);
-
+	Pose* AB	= ReceiveAnimationPose(skeleton, Pose::Type::Pose, aPose->GetAnimationHash(), bPose->GetAnimationHash());
+	Pose* BC	= ReceiveAnimationPose(skeleton, Pose::Type::Pose, bPose->GetAnimationHash(), cPose->GetAnimationHash());
 	Pose* AB_BC = ReceiveAnimationPose(skeleton, Pose::Type::Pose, AB->GetAnimationHash(), BC->GetAnimationHash());
-	CalculateBoneTransformsBlend(skeleton->GetRootNode(), AB_BC, AB, BC, glm::identity<glm::mat4>(), cBlend, boneMask);
+
+	utils::BasePoseBlend<utils::BaseBlend>(AB, aPose, bPose, skeleton, aBlend, boneMask);
+	utils::BasePoseBlend<utils::BaseBlend>(BC, bPose, cPose, skeleton, bBlend, boneMask);
+	utils::BasePoseBlend<utils::BaseBlend>(AB_BC, AB, BC, skeleton, cBlend, boneMask);
 
 	return AB_BC;
 }
@@ -270,7 +251,7 @@ shade::animation::Pose* shade::animation::AnimationController::GenerateAdditiveP
 
 shade::animation::Pose* shade::animation::AnimationController::CreatePose(const Asset<Skeleton>& skeleton, Pose::Type type, std::size_t hash)
 {
-	if (m_Poses.find(hash) == m_Poses.end()) m_Poses.emplace(std::piecewise_construct, std::forward_as_tuple(hash), std::forward_as_tuple(skeleton, hash, type));
+	if (m_Poses.find(hash) == m_Poses.end()) m_Poses.emplace(std::piecewise_construct, std::forward_as_tuple(hash), std::forward_as_tuple(skeleton, hash));
 	return &m_Poses.at(hash);
 }
 
@@ -282,12 +263,13 @@ shade::animation::Pose* shade::animation::AnimationController::CalculatePose(ani
 	switch (animationData.State)
 	{
 	case Animation::State::Play:
-		if (animationData.CurrentPlayTime == animationData.End && !animationData.IsLoop)
+		if (animationData.CurrentPlayTime >= animationData.End && !animationData.IsLoop)
 		{
 			animationData.CurrentPlayTime = animationData.Start;
 		}
 
 		animationData.CurrentPlayTime += animationData.TicksPerSecond * deltaTime.GetInSeconds<float>() * timeMultiplier;
+		//animationData.CurrentPlayTime += animationData.TicksPerSecond / 1000.f * deltaTime.GetInMilliseconds<float>() * timeMultiplier;
 
 		// TODO: Add reverse animation plying !!
 		newFrame = animationData.CurrentPlayTime >= animationData.End;
@@ -353,48 +335,68 @@ shade::animation::Pose* shade::animation::AnimationController::CalculatePose(ani
 
 #endif // 0
 
-	CalculateBoneTransforms(targetPose, animationData, targetPose->GetSkeleton()->GetRootNode(), glm::identity<glm::mat4>(), targetPose->GetSkeleton()->GetArmature());
+
+	utils::ComputePose(targetPose, animationData, targetPose->GetSkeleton());
 
 	targetPose->SetDuration(animationData.Duration); targetPose->SetCurrentPlayTime(animationData.CurrentPlayTime);
 
-	if (animationData.HasRootMotion) animationData.UpdateRootMotion(targetPose, newFrame);
+	(animationData.HasRootMotion) ? animationData.UpdateRootMotion(targetPose, newFrame) : void();
 
-
-	//if(animationData.IsUseRootMotion && animationData.State == Animation::State::Play || animationData.State == Animation::State::Pause) targetPose->UpdateRootMotion(isNextFrameNewLoop);
-
-	return targetPose;
+	targetPose->SetType(Pose::Type::Pose); return targetPose;
 }
 
 void shade::animation::AnimationController::AnimationControlData::UpdateRootMotion(Pose* pose, bool newFrame)
 {
-	const Pose::LocalTransform& local = pose->GetBoneLocalTransform(RootMotion.RootBone);
+	// Ќачинать анимацию не со страта а со нул€ !!!!!, пр присваевании ее
 
-	if (State == Animation::State::Play)
+	const Pose::LocalTransform& local = pose->GetArmatureTransform(); // ƒа, нужно добавить арматуру в позу !!
+
+	if (State == Animation::State::Play || State == Animation::State::Pause) 
 	{
+
+		RootMotion->Translation.Delta	= RootMotion->Translation.Current;
+		RootMotion->Rotation.Delta		= RootMotion->Rotation.Current;
+
+		RootMotion->Translation.Current = local.Translation;
+		RootMotion->Rotation.Current	= local.Rotation;
+
+		//std::swap(RootMotion->Rotation.Current.y, RootMotion->Rotation.Current.x);
+
 		if (newFrame)
 		{
-			//RootMotion.Translation.Delta = RootMotion.Translation.Start;
-			RootMotion.Translation.Delta	= (RootMotion.Translation.Current - RootMotion.Translation.End + RootMotion.Translation.Start);
-			RootMotion.Rotation.Delta		= glm::conjugate(RootMotion.Rotation.End) * RootMotion.Rotation.Current * glm::conjugate(RootMotion.Rotation.Start);
+			RootMotion->Translation.Difference	= RootMotion->Translation.Current - (RootMotion->Translation.Delta - RootMotion->Translation.End + RootMotion->Translation.Start); // Not Sure if we need to + start
+			//RootMotion->Rotation.Difference		= glm::normalize(glm::conjugate(RootMotion->Rotation.Delta) * RootMotion->Rotation.Current * glm::conjugate(RootMotion->Rotation.End) * RootMotion->Rotation.Start);
+			RootMotion->Rotation.Difference		= glm::normalize(glm::conjugate(RootMotion->Rotation.Delta) * RootMotion->Rotation.Current * glm::conjugate(RootMotion->Rotation.End) * RootMotion->Rotation.Start);
 
-			
-			//RootMotion.Scale.Delta = RootMotion.Scale.Start;
+
+			// Another wariant
+			//RootMotion->Rotation.Difference		= glm::conjugate(RootMotion->Rotation.Delta) * (RootMotion->Rotation.End * glm::conjugate(RootMotion->Rotation.Current) * RootMotion->Rotation.Start);
 		}
 		else
 		{
-			RootMotion.Translation.Delta = RootMotion.Translation.Current;
-			RootMotion.Rotation.Delta = RootMotion.Rotation.Current;
-			RootMotion.Scale.Delta = RootMotion.Scale.Current;
+			RootMotion->Translation.Difference = RootMotion->Translation.Current - RootMotion->Translation.Delta;
+			RootMotion->Rotation.Difference = glm::normalize(glm::conjugate(RootMotion->Rotation.Delta) * RootMotion->Rotation.Current);
 		}
 
-		RootMotion.Translation.Current = local.Translation;
-		RootMotion.Rotation.Current = local.Rotation;
-		RootMotion.Scale.Current = local.Scale;
+
+		
+		//// Try to keep delta difference
+		//// and multiply current diff by curmagnitude / delta magnitude
+		//// Translation.Current - Translation.Delta * (glm::length(DeltaDifference) / glm::length(Translation.Current - Translation.Delta));
+		//RootMotion->Translation.Difference	= RootMotion->Translation.Current - RootMotion->Translation.Delta;
+		//RootMotion->Rotation.Difference		= glm::conjugate(RootMotion->Rotation.Delta) * RootMotion->Rotation.Current;
 
 	}
 	else if (State == Animation::State::Stop)
 	{
-		RootMotion.Reset();
+		RootMotion->Translation.Current		= RootMotion->Translation.Start; // Should be zero if we will use normal root bone, not pelvis
+		RootMotion->Translation.Delta		= glm::vec3(0.f);
+
+		RootMotion->Rotation.Current		= RootMotion->Rotation.Start;
+		RootMotion->Rotation.Delta			= glm::identity<glm::quat>();
+
+		RootMotion->Translation.Difference	= glm::vec3(0.f);
+		RootMotion->Rotation.Difference		= glm::identity<glm::quat>();
 	}
 }
 

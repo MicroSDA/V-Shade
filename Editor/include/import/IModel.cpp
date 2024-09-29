@@ -5,10 +5,10 @@
 namespace utils
 {
 	template<typename G, typename A>
-	static G FromAssimpToToGLM(const A& value);
+	static G FromAssimpToGLM(const A& value);
 
 	template<>
-	inline glm::mat4 FromAssimpToToGLM(const aiMatrix4x4& aMatrix)
+	inline glm::mat4 FromAssimpToGLM(const aiMatrix4x4& aMatrix)
 	{
 		glm::mat4 matrix;
 		//the a,b,c,d in assimp is the row ; the 1,2,3,4 is the column
@@ -26,24 +26,26 @@ namespace utils
 		return matrix;
 	}
 	template<>
-	inline glm::vec3 FromAssimpToToGLM(const aiVector3D& aVector)
+	inline glm::vec3 FromAssimpToGLM(const aiVector3D& aVector)
 	{
 		return { aVector.x, aVector.y, aVector.z };
 	}
 	template<>
-	inline glm::quat FromAssimpToToGLM(const aiQuaternion& aQuat)
+	inline glm::quat FromAssimpToGLM(const aiQuaternion& aQuat)
 	{
 		return { aQuat.w, aQuat.x, aQuat.y, aQuat.z };
 	}
 }
-std::pair<shade::SharedPointer<shade::Model>, std::unordered_map<std::string, shade::SharedPointer<shade::Animation>>> IModel::Import(const std::string& filePath, IImportFlag flags)
+std::pair<shade::SharedPointer<shade::Model>, std::unordered_map<std::string, shade::SharedPointer<shade::Animation>>> IModel::Import(const std::string& filePath, IImportFlag flags, float scale)
 {
 	Assimp::Importer importer;
 	importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false); // false
-	importer.SetPropertyBool(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 1.f); // Add as settings
+	importer.SetPropertyBool(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, false); // Add as settings
 	importer.SetPropertyBool(AI_CONFIG_FBX_CONVERT_TO_M, false);
+	//importer.SetPropertyBool(AI_GLTF, false);
+
 	
-	unsigned int ImportFagls =
+	unsigned int ImportFagls = 
 		aiProcess_OptimizeGraph |
 		aiProcess_ValidateDataStructure |
 		aiProcess_PopulateArmatureData |
@@ -60,7 +62,6 @@ std::pair<shade::SharedPointer<shade::Model>, std::unordered_map<std::string, sh
 		((flags & GenSmoothNormals) ? aiProcess_GenSmoothNormals : 0) |
 		((flags & UseScale) ? aiProcess_GlobalScale : 0);
 
-	//const aiScene* pScene = importer.ReadFile(filePath, ImportFagls);
 	const aiScene* pScene = importer.ReadFile(filePath, ImportFagls);
 
 	if (!pScene)
@@ -133,7 +134,9 @@ void IModel::ProcessModelNode(shade::SharedPointer<shade::Model>& model, const c
 
 void IModel::ProcessMeshNode(shade::SharedPointer<shade::Model>& model, shade::SharedPointer<shade::Mesh>& mesh, const char* filePath, aiMesh* aMesh, const aiNode* node, IImportFlag flags)
 {
-	SHADE_INFO("-- Process new mesh : {} --", aMesh->mName.C_Str());
+	//node->mTransformation;
+
+	SHADE_INFO("-- Process new mesh {0} in {1} node --", aMesh->mName.C_Str(), node->mName.C_Str());
 
 	mesh->SetAssetData(shade::SharedPointer<shade::AssetData>::Create(aMesh->mName.C_Str(), shade::AssetMeta::Category::Primary, shade::AssetMeta::Type::Mesh));
 
@@ -141,12 +144,15 @@ void IModel::ProcessMeshNode(shade::SharedPointer<shade::Model>& model, shade::S
 
 	for (std::size_t v = 0; v < aMesh->mNumVertices; v++)
 	{
+		
 		shade::Vertex vertex{ .Position = { aMesh->mVertices[v].x, aMesh->mVertices[v].y, aMesh->mVertices[v].z} };
+		//shade::Vertex vertex{ .Position = utils::FromAssimpToGLM<glm::mat4>(node->mTransformation) * glm::vec4{ aMesh->mVertices[v].x, aMesh->mVertices[v].y, aMesh->mVertices[v].z, 1.f } };
 
 		if (aMesh->HasNormals())
 		{
 			vertex.Normal = { aMesh->mNormals[v].x ,aMesh->mNormals[v].y, aMesh->mNormals[v].z };
-
+			//vertex.Normal = { utils::FromAssimpToGLM<glm::mat4>(node->mTransformation) * glm::vec4{ aMesh->mNormals[v].x, aMesh->mNormals[v].y, aMesh->mNormals[v].z, 1.f } };
+			
 			if (aMesh->HasTangentsAndBitangents())
 			{
 				vertex.Tangent = { aMesh->mTangents[v].x, aMesh->mTangents[v].y, aMesh->mTangents[v].z };
@@ -168,7 +174,7 @@ void IModel::ProcessMeshNode(shade::SharedPointer<shade::Model>& model, shade::S
 		for (std::size_t j = 0; j < face.mNumIndices; j++)
 			mesh->AddIndex(face.mIndices[j]);
 	}
-
+	
 	if (aMesh->HasBones() && (flags & BakeBoneIdsWeightsIntoMesh))
 		ProcessBones(mesh, filePath, aMesh, node);
 
@@ -177,7 +183,7 @@ void IModel::ProcessMeshNode(shade::SharedPointer<shade::Model>& model, shade::S
 		// TODO: 
 	}
 
-	mesh->RecalculateAllLods(shade::Drawable::MAX_LEVEL_OF_DETAIL, mesh->GetLod(0).Indices.size() / 3, 200, 0.1);
+	//mesh->RecalculateAllLods(shade::Drawable::MAX_LEVEL_OF_DETAIL, mesh->GetLod(0).Indices.size() / 3, 200, 0.1);
 	mesh->GenerateHalfExt();
 }
 
@@ -237,12 +243,24 @@ shade::SharedPointer<shade::Skeleton> ISkeleton::ExtractSkeleton(const aiScene* 
 
 	skeleton->SetAssetData(shade::SharedPointer<shade::AssetData>::Create(pScene->mName.C_Str(), shade::AssetMeta::Category::Secondary, shade::AssetMeta::Type::Skeleton));
 	ProcessBone(pScene, pScene->mRootNode, skeleton, nullptr);
-
+	
 	return (skeleton->GetBones().size()) ? skeleton : nullptr;
 }
 
+void PrintMatrix(const glm::mat4& matrix) {
+	for (int i = 0; i < 4; ++i) { // По строкам
+		for (int j = 0; j < 4; ++j) { // По столбцам
+			std::cout << matrix[i][j] << "\t"; // Вывод элемента матрицы
+		}
+		std::cout << std::endl; // Перевод строки для новой строки матрицы
+	}
+}
 void ISkeleton::ProcessBone(const aiScene* pScene, const aiNode* pNode, shade::SharedPointer<shade::Skeleton>& skeleton, shade::Skeleton::BoneNode* parent)
 {
+	
+	std::cout << pNode->mName.C_Str() << std::endl;
+	PrintMatrix(utils::FromAssimpToGLM<glm::mat4>(pNode->mTransformation));
+
 	aiBone* pBone = nullptr;
 
 	for (uint32_t meshIndex = 0; meshIndex < pScene->mNumMeshes; ++meshIndex)
@@ -251,8 +269,7 @@ void ISkeleton::ProcessBone(const aiScene* pScene, const aiNode* pNode, shade::S
 		for (uint32_t boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex)
 		{
 			//SHADE_INFO("-- Add Armature --");
-			skeleton->AddArmature(utils::FromAssimpToToGLM<glm::mat4>(mesh->mBones[boneIndex]->mArmature->mTransformation));
-
+			skeleton->AddArmature(mesh->mBones[boneIndex]->mArmature->mName.C_Str(), utils::FromAssimpToGLM<glm::mat4>(mesh->mBones[boneIndex]->mArmature->mTransformation));
 			if (pNode == mesh->mBones[boneIndex]->mNode)
 			{
 				pBone = mesh->mBones[boneIndex]; break;
@@ -265,13 +282,14 @@ void ISkeleton::ProcessBone(const aiScene* pScene, const aiNode* pNode, shade::S
 	if (pBone)
 	{
 		SHADE_INFO("-- Add new bone : {} --", pNode->mName.C_Str());
-		auto& bone = skeleton->AddBone(pNode->mName.C_Str(), utils::FromAssimpToToGLM<glm::mat4>(pNode->mTransformation), utils::FromAssimpToToGLM<glm::mat4>(pBone->mOffsetMatrix));
+
+		shade::Skeleton::BoneNode* bone = skeleton->AddBone(pNode->mName.C_Str(), utils::FromAssimpToGLM<glm::mat4>(pNode->mTransformation), utils::FromAssimpToGLM<glm::mat4>(pBone->mOffsetMatrix));
 
 		if (parent != nullptr)
-			parent->Children.push_back(&bone);
+			parent->Children.push_back(bone);
 
 		for (std::uint32_t nodeIndex = 0; nodeIndex < pNode->mNumChildren; ++nodeIndex)
-			ProcessBone(pScene, pNode->mChildren[nodeIndex], skeleton, &bone);
+			ProcessBone(pScene, pNode->mChildren[nodeIndex], skeleton, bone);
 	}
 	else
 	{
@@ -312,7 +330,7 @@ std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> IAnimati
 
 			if (skeleton)
 			{
-				if (!skeleton->GetBone(pChannel->mNodeName.C_Str()))
+				if (!skeleton->GetBone(pChannel->mNodeName.C_Str()) && skeleton->GetArmature()->Name != pChannel->mNodeName.C_Str())
 				{
 					SHADE_WARNING("Rudenant animation channel '{0}' for '{1}' animation, skipping...", pChannel->mNodeName.C_Str(), pAnimation->mName.C_Str());
 					continue;
@@ -326,7 +344,7 @@ std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> IAnimati
 			{
 				channel.PositionKeys.emplace_back
 				(
-					utils::FromAssimpToToGLM<glm::vec3>(pChannel->mPositionKeys[positionIndex].mValue),
+					utils::FromAssimpToGLM<glm::vec3>(pChannel->mPositionKeys[positionIndex].mValue),
 					pChannel->mPositionKeys[positionIndex].mTime
 				);
 			}
@@ -334,7 +352,7 @@ std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> IAnimati
 			{
 				channel.RotationKeys.emplace_back
 				(
-					utils::FromAssimpToToGLM<glm::quat>(pChannel->mRotationKeys[rotationIndex].mValue),
+					utils::FromAssimpToGLM<glm::quat>(pChannel->mRotationKeys[rotationIndex].mValue),
 					pChannel->mRotationKeys[rotationIndex].mTime
 				);
 			}
@@ -342,11 +360,11 @@ std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> IAnimati
 			{
 				channel.ScaleKeys.emplace_back
 				(
-					utils::FromAssimpToToGLM<glm::vec3>(pChannel->mScalingKeys[scaleIndex].mValue),
+					utils::FromAssimpToGLM<glm::vec3>(pChannel->mScalingKeys[scaleIndex].mValue),
 					pChannel->mScalingKeys[scaleIndex].mTime
 				);
 			}
-			
+
 			animation->AddChannel(pChannel->mNodeName.C_Str(), channel);
 		}
 

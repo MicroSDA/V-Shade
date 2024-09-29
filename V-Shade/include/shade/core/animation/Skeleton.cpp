@@ -15,25 +15,30 @@ shade::Skeleton::Skeleton(SharedPointer<AssetData> assetData, LifeTime lifeTime,
 	}
 }
 
-shade::Skeleton::BoneNode& shade::Skeleton::AddBone(const std::string& name, const glm::mat4& transform, const glm::mat4& inverseBindPose)
+shade::Skeleton::BoneNode* shade::Skeleton::AddBone(const std::string& name, const glm::mat4& transform, const glm::mat4& inverseBindPose)
 {
+	if (m_BoneNodes.find(name) != m_BoneNodes.end())
+		return &m_BoneNodes.at(name);
+
 	auto& bone = m_BoneNodes.emplace(name, std::move(Skeleton::BoneNode(m_BoneNodes.size(), name))).first->second;
 
 	bone.InverseBindPose = inverseBindPose;
 
-	if (m_BoneNodes.size() == 1) m_RootNode = &bone;
+	if (m_BoneNodes.size() == 1 && !m_RootNode)
+		m_RootNode = &bone;
 
 	math::DecomposeMatrix(transform, bone.Translation, bone.Rotation, bone.Scale);
-	return bone;
+	return &bone;
 }
 
-shade::Skeleton::BoneNode& shade::Skeleton::AddNode(const shade::Skeleton::BoneNode& node)
+shade::Skeleton::BoneNode* shade::Skeleton::AddNode(const shade::Skeleton::BoneNode& node)
 {
 	auto& _node = m_BoneNodes.emplace(node.Name, node).first->second;
+
 	if (m_BoneNodes.size() == 1)
 		m_RootNode = &_node;
 
-	return _node;
+	return &_node;
 }
 
 const shade::Skeleton::BoneNode* shade::Skeleton::GetBone(const std::string& name) const
@@ -54,18 +59,38 @@ const shade::Skeleton::BoneNode* shade::Skeleton::GetBone(std::size_t id) const
 	return nullptr;
 }
 
-shade::Skeleton::BoneArmature& shade::Skeleton::AddArmature(const glm::mat4& transform)
+shade::Skeleton::BoneArmature* shade::Skeleton::AddArmature(const std::string& name, const glm::mat4& transform)
 {
-	m_Armature = BoneArmature(transform);
-	return m_Armature;
+	m_Armature.Name = name;
+	math::DecomposeMatrix(transform, m_Armature.Translation, m_Armature.Rotation, m_Armature.Scale);
+
+	/*std::cout << "========================\n";
+	SHADE_CORE_DEBUG("Name Translation {0}, x{1}, y{2}, z{3}", name,
+		m_Armature.Translation.x, m_Armature.Translation.y, m_Armature.Translation.z);
+	SHADE_CORE_DEBUG("Rotation x{0}, y{1}, z{2}, w{3}", m_Armature.Rotation.x, m_Armature.Rotation.y, m_Armature.Rotation.z, m_Armature.Rotation.w);
+	SHADE_CORE_DEBUG("Scale    x{0}, y{1}, z{2}", m_Armature.Scale.x, m_Armature.Scale.y, m_Armature.Scale.z);
+
+	std::cout << "========================\n";*/
+
+
+	return &m_Armature;
 }
 
-const shade::Skeleton::BoneArmature& shade::Skeleton::GetArmature() const
+const shade::Skeleton::BoneArmature* shade::Skeleton::GetArmature() const
 {
-	return m_Armature;
+	return &m_Armature;
+}
+
+shade::Skeleton::BoneArmature* shade::Skeleton::GetArmature()
+{
+	return &m_Armature;
 }
 
 const shade::Skeleton::BoneNode* shade::Skeleton::GetRootNode() const
+{
+	return m_RootNode;
+}
+shade::Skeleton::BoneNode* shade::Skeleton::GetRootNode()
 {
 	return m_RootNode;
 }
@@ -79,6 +104,21 @@ void DeserializeChildren(std::istream& stream, shade::Skeleton& skeleton, std::v
 
 void SerializeNode(std::ostream& stream, const shade::Skeleton& skeleton, const shade::Skeleton::BoneNode& node);
 void SerializeChildren(std::ostream& stream, const shade::Skeleton& skeleton, const std::vector<shade::Skeleton::BoneNode*>& children);
+
+void SerializeArmature(std::ostream& stream, const shade::Skeleton::BoneArmature& armature)
+{
+	shade::serialize::Serializer::Serialize<std::string>(stream, armature.Name);
+	shade::serialize::Serializer::Serialize<glm::vec3>(stream, armature.Translation);
+	shade::serialize::Serializer::Serialize<glm::quat>(stream, armature.Rotation);
+	shade::serialize::Serializer::Serialize<glm::vec3>(stream, armature.Scale);
+}
+void DeserializeArmature(std::istream& stream, shade::Skeleton::BoneArmature& armature)
+{
+	shade::serialize::Serializer::Deserialize<std::string>(stream, armature.Name);
+	shade::serialize::Serializer::Deserialize<glm::vec3>(stream, armature.Translation);
+	shade::serialize::Serializer::Deserialize<glm::quat>(stream, armature.Rotation);
+	shade::serialize::Serializer::Deserialize<glm::vec3>(stream, armature.Scale);
+}
 
 // TIP: Not tested 
 void SerializeNode(std::ostream& stream, const shade::Skeleton& skeleton, const shade::Skeleton::BoneNode& node)
@@ -130,21 +170,21 @@ void DeserializeNode(std::istream& stream, shade::Skeleton& skeleton, shade::Ske
 	shade::serialize::Serializer::Deserialize<glm::vec3>(stream, _node.Scale);
 	shade::serialize::Serializer::Deserialize<glm::mat4>(stream, _node.InverseBindPose);
 
-	auto& node = skeleton.AddNode(_node);
+	auto node = skeleton.AddNode(_node);
 
-	if (child) *child = &node;
+	if (child) *child = node;
 
-	DeserializeChildren(stream, skeleton, node.Children);
+	DeserializeChildren(stream, skeleton, node->Children);
 }
 
 void shade::Skeleton::Deserialize(std::istream& stream)
 {
-	serialize::Serializer::Deserialize<glm::mat4>(stream, m_Armature.Transform);
+	DeserializeArmature(stream, m_Armature);
 	DeserializeNode(stream, *this);
 }
 
 void shade::Skeleton::Serialize(std::ostream& stream) const
 {
-	serialize::Serializer::Serialize<glm::mat4>(stream, m_Armature.Transform);
+	SerializeArmature(stream, m_Armature);
 	SerializeNode(stream, *this, *m_RootNode);
 }

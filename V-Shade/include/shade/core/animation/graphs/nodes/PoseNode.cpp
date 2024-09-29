@@ -63,9 +63,9 @@ void shade::animation::PoseNode::Evaluate(const FrameTimer& deltaTime)
 // TODO: При добавлении анимации нужно хотябы раз ее процеснуть на 0 делта времени что бы поза генерировалась 
 void shade::animation::PoseNode::ResetAnimationData(const Asset<Animation>& animation)
 {
+	bool has = m_AnimationData.HasRootMotion;
 	m_AnimationData = AnimationController::AnimationControlData(animation);
-	m_AnimationData.RootMotion.FinalizeRootMotion(GetGraphContext()->As<AnimationGraphContext>().Skeleton, animation, m_AnimationData.Start, m_AnimationData.End);
-	
+	m_AnimationData.HasRootMotion = has;
 	/*auto oldState = m_AnimationData.State;
 
 	m_AnimationData.State = Animation::State::Play;
@@ -76,7 +76,6 @@ void shade::animation::PoseNode::ResetAnimationData(const Asset<Animation>& anim
 void shade::animation::PoseNode::ResetAnimationData(const AnimationController::AnimationControlData& data)
 {
 	m_AnimationData = data;
-	m_AnimationData.RootMotion.FinalizeRootMotion(GetGraphContext()->As<AnimationGraphContext>().Skeleton, m_AnimationData.Animation, m_AnimationData.Start, m_AnimationData.End);
 	/*auto oldState = m_AnimationData.State;
 
 	m_AnimationData.State = Animation::State::Play;

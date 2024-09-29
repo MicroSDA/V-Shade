@@ -16,7 +16,7 @@ namespace shade
 	class VulkanPipeline : public RenderPipeline
 	{
 	public:
-		VulkanPipeline(const RenderPipeline::Specification& specification);
+		VulkanPipeline(const Pipeline::Specification& specification);
 		void Invalidate();
 		virtual ~VulkanPipeline();
 

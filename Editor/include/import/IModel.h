@@ -46,7 +46,7 @@ public:
 	IModel() = default;
 	virtual ~IModel() = default;
 public:
-	static std::pair<shade::SharedPointer<shade::Model>, std::unordered_map<std::string, shade::SharedPointer<shade::Animation>>> Import(const std::string& filePath, IImportFlag flags);
+	static std::pair<shade::SharedPointer<shade::Model>, std::unordered_map<std::string, shade::SharedPointer<shade::Animation>>> Import(const std::string& filePath, IImportFlag flags, float scale = 1.f);
 private:
 	static void ProcessModelNode(shade::SharedPointer<shade::Model>& model, const char* filePath, const aiNode* node, const aiScene* scene, IImportFlag flags);
 	static void ProcessMeshNode(shade::SharedPointer<shade::Model>& model, shade::SharedPointer<shade::Mesh>& mesh, const char* filePath, aiMesh* amesh, const aiNode* node, IImportFlag flags);

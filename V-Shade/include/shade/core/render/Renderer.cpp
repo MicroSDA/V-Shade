@@ -480,7 +480,7 @@ void shade::Renderer::SubmitStaticMeshDynamicLOD(const SharedPointer<RenderPipel
 	}
 }
 
-bool shade::Renderer::ExecuteSubmitedRenderPipeline(SharedPointer<RenderPipeline>& pipeline, std::uint32_t frameIndex, bool isForceClear)
+bool shade::Renderer::ExecuteSubmitedRenderPipeline(SharedPointer<RenderPipeline> pipeline, std::uint32_t frameIndex, bool isForceClear)
 {
 	// Search for the submitted pipelines map
 	auto search = m_sRenderAPI->m_sSubmitedPipelines.find(pipeline);

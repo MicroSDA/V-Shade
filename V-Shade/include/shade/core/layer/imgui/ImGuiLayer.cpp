@@ -88,7 +88,7 @@ void shade::ImGuiLayer::DrawImage(Asset<Texture2D>& texture, const ImVec2& size,
 }
 void shade::ImGuiLayer::HelpMarker(const char* marker, const char* desc)
 {
-	//ImGui::SameLine();
+	ImGui::SameLine();
 	ImGui::TextDisabled(marker);
 	if (ImGui::IsItemHovered())
 	{
@@ -254,8 +254,10 @@ void shade::ImGuiLayer::ToggleButtonIcon(const char* str_id, bool* v, const char
 	ImGui::PopStyleColor();
 }
 
-void shade::ImGuiLayer::ToggleButton(const char* str_id, bool* v)
+bool shade::ImGuiLayer::ToggleButton(const char* str_id, bool* v, const char8_t* c)
 {
+	bool isClicked = false;
+
 	ImVec2 p = ImGui::GetCursorScreenPos();
 	ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
@@ -265,7 +267,11 @@ void shade::ImGuiLayer::ToggleButton(const char* str_id, bool* v)
 
 	ImGui::InvisibleButton(str_id, ImVec2(width, height));
 	if (ImGui::IsItemClicked())
+	{
 		*v = !*v;
+		isClicked = true;
+	}
+		
 
 	float t = *v ? 1.0f : 0.0f;
 
@@ -284,7 +290,18 @@ void shade::ImGuiLayer::ToggleButton(const char* str_id, bool* v)
 		col_bg = ImGui::GetColorU32(ImLerp(ImVec4(0.85f, 0.85f, 0.85f, 1.0f), ImVec4(0.56f, 0.83f, 0.26f, 1.0f), t));
 
 	draw_list->AddRectFilled(p, ImVec2(p.x + width, p.y + height), col_bg, height * 0.5f);
-	draw_list->AddCircleFilled(ImVec2(p.x + radius + t * (width - radius * 2.0f), p.y + radius), radius - 1.5f, IM_COL32(255, 255, 255, 255));
+
+	if (c)
+	{/*
+		ImGui::SetCursorScreenPos(ImVec2(p.x + radius + t * (width - radius * 2.0f), p.y + radius));
+		DrawFontIcon(c, 1, 1);*/
+	}
+	else
+	{
+		draw_list->AddCircleFilled(ImVec2(p.x + radius + t * (width - radius * 2.0f), p.y + radius), radius - 1.5f, IM_COL32(255, 255, 255, 255));
+	}
+
+	return isClicked;
 }
 
 bool shade::ImGuiLayer::DragFloatR(const char* id, float* v, float reset, float min, float max, float step, float length)

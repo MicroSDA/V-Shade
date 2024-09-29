@@ -12,16 +12,19 @@ namespace shade
 {
 #ifndef BIND_PIPELINE_PROCESS_FUNCTION
 #define BIND_PIPELINE_PROCESS_FUNCTION(pipeline, class_name, function_name, instance) \
-    pipeline->Process = std::bind(std::mem_fn(&class_name::function_name), instance, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5)
+    pipeline.Process = std::bind(std::mem_fn(&class_name::function_name), instance, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5)
 #endif
 #ifndef BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION
 	#define BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION(pipeline, class_name, function_name, instance) \
-    pipeline->Process = std::bind(std::mem_fn(&class_name::function_name), instance, std::placeholders::_1, std::placeholders::_2)
+    pipeline.Process = std::bind(std::mem_fn(&class_name::function_name), instance, std::placeholders::_1, std::placeholders::_2)
 #endif
 
 	class SHADE_API Pipeline
 	{
 	public:
+
+		SHADE_CAST_HELPER(Pipeline)
+
 		enum class Set : std::uint32_t
 		{
 			Global = 0,
@@ -98,38 +101,39 @@ namespace shade
 			Always = 7
 		};
 
-		virtual void Recompile() = 0;
-	};
-
-	class SHADE_API RenderPipeline : public Pipeline
-	{
-
-		SHADE_CAST_HELPER(RenderPipeline)
-
-	public:
-		
 		struct Specification
 		{
+			std::string					Name;
 			SharedPointer<Shader>		Shader;
 			SharedPointer<FrameBuffer>	FrameBuffer;
 			VertexBuffer::Layout		VertexLayout;
-			PrimitiveTopology			Topology		 = PrimitiveTopology::Triangle;
-			PrimitivePolygonMode		PolygonMode		 = PrimitivePolygonMode::Fill;
-			DepthTestFunction			DepthTest		 = DepthTestFunction::LessOrEqual;
-			bool						BackFalceCull	 = true;
-			bool						DepthClamp		 = false;
+			PrimitiveTopology			Topology = PrimitiveTopology::Triangle;
+			PrimitivePolygonMode		PolygonMode = PrimitivePolygonMode::Fill;
+			DepthTestFunction			DepthTest = DepthTestFunction::LessOrEqual;
+			bool						BackFalceCull = true;
+			bool						DepthClamp = false;
 			bool						DepthTestEnabled = true;
 			float						DepsBiasConstantFactor = 0.f;
 			float						DepthBiasClamp = 0.f;
 			float						DepthBiasSlopeFactor = 0.f;
 			float						LineWidth = 2.f;
 		};
-	public:
-		static SharedPointer<RenderPipeline> Create(const RenderPipeline::Specification& specification);
-		virtual ~RenderPipeline() = default;
 
-		RenderPipeline::Specification& GetSpecification();
-		const RenderPipeline::Specification& GetSpecification() const;
+		virtual void Recompile() = 0;
+
+		Specification& GetSpecification();
+		const Specification& GetSpecification() const;
+
+	protected:
+		Specification m_Specification;
+	};
+
+	class SHADE_API RenderPipeline : public Pipeline
+	{
+		SHADE_CAST_HELPER(RenderPipeline)
+	public:
+		static SharedPointer<RenderPipeline> Create(const Pipeline::Specification& specification);
+		virtual ~RenderPipeline() = default;
 
 		virtual void Bind(SharedPointer<RenderCommandBuffer>& commandBuffer, std::uint32_t frameIndex) = 0;
 
@@ -149,15 +153,11 @@ namespace shade
 		virtual void SetMaterial(SharedPointer<StorageBuffer> buffer, std::uint32_t bufferoffset, const SharedPointer<Material>& material, std::uint32_t frameIndex) = 0;
 		virtual void SetUniform(SharedPointer<RenderCommandBuffer>& commandBuffer, std::size_t size, const void* data, std::uint32_t frameIndex, Shader::TypeFlags shaderStage, std::uint32_t offset = 0) = 0;
 
-
-
 		virtual void UpdateResources(SharedPointer<RenderCommandBuffer>& commandBuffer, std::uint32_t frameIndex) = 0;
 
 		virtual void SetBarrier(SharedPointer<RenderCommandBuffer>& commandBuffer, Stage srcStage, Stage dstStage, Access srcAccess, Access dstAccces, std::uint32_t frameIndex) = 0;
 		
 		std::function<void(SharedPointer<RenderPipeline>&, const render::SubmitedInstances&, const render::SubmitedSceneRenderData&, std::uint32_t, bool)> Process;
-	protected:
-		RenderPipeline::Specification m_Specification;
 	};
 	
 	class SHADE_API ComputePipeline : public Pipeline
@@ -166,11 +166,7 @@ namespace shade
 		SHADE_CAST_HELPER(ComputePipeline)
 
 	public:
-		struct Specification
-		{
-			SharedPointer<Shader>		Shader;
-		};
-		static SharedPointer<ComputePipeline> Create(const ComputePipeline::Specification& specification);
+		static SharedPointer<ComputePipeline> Create(const Pipeline::Specification& specification);
 		virtual ~ComputePipeline() = default;
 
 		virtual void Begin(SharedPointer<RenderCommandBuffer>& commandBuffer, std::uint32_t frameIndex) = 0;
@@ -198,7 +194,5 @@ namespace shade
 		virtual void UpdateResources(SharedPointer<RenderCommandBuffer>& commandBuffer, std::uint32_t frameIndex) = 0;
 
 		std::function<void(SharedPointer<ComputePipeline>& pipeline, std::uint32_t)> Process;
-	protected:
-		ComputePipeline::Specification m_Specification;
 	};
 }

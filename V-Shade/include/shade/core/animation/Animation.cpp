@@ -131,6 +131,14 @@ void shade::Animation::SetDuration(float duration)
 	m_Duration = duration;
 }
 
+float shade::Animation::GetFps() const
+{
+	float fps = 0;
+	for (auto [name, channel] : m_AnimationChannels)
+		fps = std::max(fps, std::max(float(channel.PositionKeys.size()), std::max(float(channel.RotationKeys.size()), float(channel.ScaleKeys.size()))));
+	return fps * m_TicksPerSecond / m_Duration;
+}
+
 void shade::Animation::Serialize(std::ostream& stream) const
 {
 	serialize::Serializer::Serialize(stream, m_Duration);
@@ -140,7 +148,6 @@ void shade::Animation::Serialize(std::ostream& stream) const
 
 void shade::Animation::Deserialize(std::istream& stream)
 {
-
 	serialize::Serializer::Deserialize(stream, m_Duration);
 	serialize::Serializer::Deserialize(stream, m_TicksPerSecond);
 	serialize::Serializer::Deserialize(stream, m_AnimationChannels);

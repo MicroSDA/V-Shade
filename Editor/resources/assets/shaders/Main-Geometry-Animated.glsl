@@ -30,7 +30,7 @@ layout (std140, set = GLOBAL_SET, binding = CAMERA_BUFFER_BINDING) uniform UCame
 {
     Camera u_Camera;
 };
-//Storage buffer containing the direct light data
+//Storage buffer containing the bones data
 layout (std430, set = PER_INSTANCE_SET, binding = BONE_TRANSFORMS_BINDING) restrict readonly buffer SBoneTransform
 {
 	mat4 s_BoneTransform[];

@@ -193,7 +193,7 @@ namespace shade
 		static bool DrawCombo(const char* id, std::string& selected, std::vector<std::string>& elements, ImGuiSelectableFlags selectedFlags, ImGuiComboFlags comboFlags);
 		static bool DrawComboWithIndex(const char* id, std::uint32_t& selected, std::vector<std::string>& elements, ImGuiSelectableFlags selectedFlags, ImGuiComboFlags comboFlags);
 
-		static void ToggleButton(const char* str_id, bool* v);
+		static bool ToggleButton(const char* str_id, bool* v, const char8_t* c = nullptr);
 		static void ToggleButtonIcon(const char* str_id, bool* v, const char8_t* c, std::size_t fontIndex, float scale);
 
 

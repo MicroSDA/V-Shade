@@ -9,7 +9,7 @@ namespace shade
 	class VulkanComputePipeline : public ComputePipeline
 	{
 	public:
-		VulkanComputePipeline(const VkDevice& device, const VulkanContext::VulkanInstance& instance, const ComputePipeline::Specification& specification);
+		VulkanComputePipeline(const VkDevice& device, const VulkanContext::VulkanInstance& instance, const Pipeline::Specification& specification);
 		virtual ~VulkanComputePipeline();
 
 		virtual void Begin(SharedPointer<RenderCommandBuffer>& commandBuffer, std::uint32_t frameIndex) override;

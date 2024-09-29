@@ -22,28 +22,29 @@ void shade::animation::Pose::Reset()
 	m_LocalTransforms->resize(RenderAPI::MAX_BONES_PER_INSTANCE);
 }
 
-glm::vec3 shade::animation::Pose::RootMotion::GetTranlsationDifference() const
+void shade::animation::Pose::RootMotion::Initialize(const Asset<Skeleton>& skeleton, const Asset<Animation>& aniamtion, float start, float end)
 {
-	// Try to keep delta difference
-	// and multiply current diff by curmagnitude / delta magnitude
-	// return = Translation.Current - Translation.Delta * (glm::length(DeltaDifference) / glm::length(Translation.Current - Translation.Delta));
-	return Translation.Current - Translation.Delta;
-}
-
-void shade::animation::Pose::RootMotion::FinalizeRootMotion(const Asset<Skeleton>& skeleton, const Asset<Animation>& aniamtion, float start, float end)
-{
-	if (const Animation::Channel* channel = aniamtion->GetAnimationCahnnel(skeleton->GetBone(RootBone)->Name))
+	if (const Animation::Channel* channel = aniamtion->GetAnimationCahnnel(skeleton->GetArmature()->Name))
 	{
 		//// Возможно нужно будет использовать парент мультипликацию 
 
 		Translation.Start = aniamtion->InterpolatePosition(*channel, start);
 		Translation.End = aniamtion->InterpolatePosition(*channel, end);
 
+		Translation.Current = Translation.Start;
+		Translation.Delta	= glm::vec3(0.f);
+
 		Rotation.Start = aniamtion->InterpolateRotation(*channel, start);
 		Rotation.End = aniamtion->InterpolateRotation(*channel, end);
 
-		Scale.Start = aniamtion->InterpolateScale(*channel, start);
-		Scale.End = aniamtion->InterpolateScale(*channel, end);
+		// Начинать анимацию не со страта а со нуля !!!!!, возможно только для ротейшена, попробуй !!
+
+	/*	Rotation.Current	= glm::identity<glm::quat>();
+		Rotation.Delta		= glm::identity<glm::quat>();*/
+
+		Rotation.Current	= Rotation.Start;
+		Rotation.Delta		= glm::identity<glm::quat>();
+
 	}
 	else
 	{

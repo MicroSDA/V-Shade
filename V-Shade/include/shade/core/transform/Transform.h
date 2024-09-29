@@ -251,10 +251,10 @@ namespace shade
 		 * @param forwardDirection The reference forward direction, default is (0, 0, 1, 1).
 		 * @return The current forward direction as a glm::vec3.
 		 */
-		SHADE_INLINE glm::vec3 GetForwardDirection(const glm::vec4& worldForwardDirection = glm::vec4(0.f, 0.f, 1.f, 1.f)) const
+		SHADE_INLINE glm::vec3 GetForwardDirection(const glm::vec4& worldForwardDirection = glm::vec4(0.f, 0.f, -1.f, 1.f)) const
 		{
 			// TIP: Not sure if there should be normilize !
-			return GetModelMatrix() * worldForwardDirection;
+			return glm::normalize(GetRotationQuaternion() * worldForwardDirection);
 		}
 
 		/**
