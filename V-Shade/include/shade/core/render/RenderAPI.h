@@ -73,6 +73,18 @@ namespace shade
 			const std::uint32_t GetSpotLightCount()   { return SpotLightCount; }
 		};
 
+		struct VramUsage
+		{
+			struct Heap
+			{
+				std::size_t UsedMemoryBytes = 0;
+				std::size_t TotalMemoryBytes = 0;
+				std::size_t AvailableMemory = 0;
+			};
+
+			std::vector<Heap> Heaps;
+		};
+
 		struct RenderSettings
 		{
 			RenderSettings() {
@@ -139,6 +151,7 @@ namespace shade
 
 		virtual void BeginTimestamp(SharedPointer<RenderCommandBuffer>& commandBuffer, const std::string& name) = 0;
 		virtual float EndTimestamp(SharedPointer<RenderCommandBuffer>& commandBuffer, const std::string& name) = 0;
+		virtual VramUsage GetVramMemoryUsage() = 0;
 
 		// Return current frame index which set by BeginFrame in SwapChain 
 		static std::uint32_t GetCurrentFrameIndex();

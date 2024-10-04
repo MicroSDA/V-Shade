@@ -68,7 +68,8 @@ namespace shade
 				Generate		= 0,
 				BlurHorizontal	= 1,
 				BlurVertical	= 2,
-				Combine			= 3
+				Zoom			= 3,
+				Combine			= 4
 			};
 			static constexpr std::uint32_t		MAX_SAMPLES = 64;
 			std::uint32_t						SamplesCount = MAX_SAMPLES;
@@ -141,16 +142,6 @@ namespace shade
 		};
 		struct Statistic
 		{
-			// Timing
-			float InstanceGeometry = 0;
-			float GlobalLightPreDepth = 0;
-			float SpotLightPreDepth = 0;
-			float PointLightPreDepth = 0;
-			float Bloom = 0;
-			float ColorCorrection = 0;
-			float LightCullingPreDepth = 0;
-			float LightCullingCompute = 0;
-			// Others
 			std::uint32_t SubmitedInstances   = 0;
 			std::uint32_t SubmitedPointLights = 0;
 			std::uint32_t SubmitedSpotLights  = 0;
@@ -178,41 +169,41 @@ namespace shade
 		SharedPointer<Pipeline>& RegisterNewPipeline(const SharedPointer<Pipeline>& pipeline);
 		SharedPointer<Pipeline>  GetPipeline(const std::string& name);
 
-		void RecompileAllPipelines();
+		std::unordered_map<std::string, SharedPointer<Pipeline>>& GetPipelines();
 	private:
 
 		SharedPointer<RenderCommandBuffer> m_MainCommandBuffer;
 
 		std::vector<SharedPointer<FrameBuffer>>	m_MainTargetFrameBuffer;
 		//SharedPointer<RenderPipeline>	m_MainGeometryPipelineStatic;
-		SharedPointer<RenderPipeline>	m_MainGeometryPipelineAnimated;
+		//SharedPointer<RenderPipeline>	m_MainGeometryPipelineAnimated;
 
 		SharedPointer<FrameBuffer>		m_LightCullingPreDepthFrameBuffer;
-		SharedPointer<RenderPipeline>	m_LightCullingPreDepthPipeline;
-		SharedPointer<ComputePipeline>	m_LightCullingPipeline;
+		//SharedPointer<RenderPipeline>	m_LightCullingPreDepthPipeline;
+		//SharedPointer<ComputePipeline>	m_LightCullingPipeline;
 
 		SharedPointer<FrameBuffer>		m_GlobalLightShadowFrameBuffer;
-		SharedPointer<RenderPipeline>	m_GlobalLightShadowDepthPipeline;
+		//SharedPointer<RenderPipeline>	m_GlobalLightShadowDepthPipeline;
 
 		SharedPointer<FrameBuffer>		m_SpotLightShadowFrameBuffer;
-		SharedPointer<RenderPipeline>	m_SpotLightShadowDepthPipeline;
+		//SharedPointer<RenderPipeline>	m_SpotLightShadowDepthPipeline;
 
 		SharedPointer<FrameBuffer>		m_PointLightShadowFrameBuffer;
-		SharedPointer<RenderPipeline>	m_PointLightShadowDepthPipeline;
+		//SharedPointer<RenderPipeline>	m_PointLightShadowDepthPipeline;
 
 		SharedPointer<Texture2D>		m_BloomTarget;
-		SharedPointer<ComputePipeline>	m_BloomPipeline;
+		//SharedPointer<ComputePipeline>	m_BloomPipeline;
 
-		SharedPointer<RenderPipeline>	m_GridPipeline;
-		SharedPointer<RenderPipeline>	m_AABB_OBB_Pipeline;
+		//SharedPointer<RenderPipeline>	m_GridPipeline;
+		//<RenderPipeline>	m_AABB_OBB_Pipeline;
 
-		SharedPointer<RenderPipeline>	m_PointLightVisualizationPipeline;
-		SharedPointer<RenderPipeline>	m_SpotLightVisualizationPipeline;
-		SharedPointer<RenderPipeline>	m_SkeletonVisualizationPipeline;
+		//SharedPointer<RenderPipeline>	m_PointLightVisualizationPipeline;
+		//SharedPointer<RenderPipeline>	m_SpotLightVisualizationPipeline;
+		//SharedPointer<RenderPipeline>	m_SkeletonVisualizationPipeline;
 
-		SharedPointer<ComputePipeline>	m_ColorCorrectionPipeline;
+		//SharedPointer<ComputePipeline>	m_ColorCorrectionPipeline;
 
-		SharedPointer<ComputePipeline>	m_ScreenSpaceAmbientOcclusionPipeline;
+		//SharedPointer<ComputePipeline>	m_ScreenSpaceAmbientOcclusionPipeline;
 		SharedPointer<Texture2D>		m_ScreenSpaceAmbientOcclusionTarget;
 
 		SharedPointer<StorageBuffer>	m_VisiblePointLightIndicesBuffer;

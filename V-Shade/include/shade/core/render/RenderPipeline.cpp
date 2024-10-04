@@ -33,3 +33,23 @@ const shade::Pipeline::Specification& shade::Pipeline::GetSpecification() const
 {
 	return m_Specification;
 }
+
+float shade::Pipeline::GetTimeQuery() const
+{
+	return m_TimeQuery;
+}
+
+void shade::Pipeline::SetTimeQuery(float time)
+{
+	m_TimeQuery = time;
+}
+
+bool shade::Pipeline::IsActive() const
+{
+	return m_IsActive;
+}
+
+void shade::Pipeline::SetActive(bool is)
+{
+	m_IsActive = is;
+}

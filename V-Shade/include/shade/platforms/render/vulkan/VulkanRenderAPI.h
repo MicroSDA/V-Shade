@@ -48,7 +48,9 @@ namespace shade
 
 		virtual void BeginTimestamp(SharedPointer<RenderCommandBuffer>& commandBuffer, const std::string& name) override;
 		virtual float EndTimestamp(SharedPointer<RenderCommandBuffer>& commandBuffer, const std::string& name) override;
-		
+		virtual VramUsage GetVramMemoryUsage() override;
+
+
 		static void UpdateMaterial(std::uint32_t frameIndex, std::uint32_t offset);
 		// Return global descriptor set
 		static const UniquePointer<VulkanDescriptorSetLayout>& GetGlobalDescriptorSetLayout();

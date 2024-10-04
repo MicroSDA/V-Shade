@@ -28,6 +28,7 @@ shade::Skeleton::BoneNode* shade::Skeleton::AddBone(const std::string& name, con
 		m_RootNode = &bone;
 
 	math::DecomposeMatrix(transform, bone.Translation, bone.Rotation, bone.Scale);
+
 	return &bone;
 }
 

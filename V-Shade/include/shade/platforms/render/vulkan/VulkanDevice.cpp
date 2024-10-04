@@ -152,6 +152,7 @@ bool shade::VulkanPhysicalDevice::DeviceMeetsRequirements(const SystemsRequireme
 	m_RequiredExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 	m_RequiredExtensions.push_back(VK_KHR_MAINTENANCE_4_EXTENSION_NAME);
 	m_RequiredExtensions.push_back(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME);
+	m_RequiredExtensions.push_back(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
 	
 
 	bool isNotFound = false;

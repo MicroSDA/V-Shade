@@ -119,13 +119,19 @@ namespace shade
 			float						LineWidth = 2.f;
 		};
 
-		virtual void Recompile() = 0;
+		virtual void Recompile(bool clearCache = false) = 0;
 
 		Specification& GetSpecification();
 		const Specification& GetSpecification() const;
 
+		float GetTimeQuery() const;
+		void  SetTimeQuery(float time);
+		bool  IsActive() const;
+		void  SetActive(bool is);
 	protected:
 		Specification m_Specification;
+		float m_TimeQuery = 0.f;
+		bool m_IsActive = true;
 	};
 
 	class SHADE_API RenderPipeline : public Pipeline

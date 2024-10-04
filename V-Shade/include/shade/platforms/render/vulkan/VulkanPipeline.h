@@ -44,7 +44,7 @@ namespace shade
 
 		virtual void SetBarrier(SharedPointer<RenderCommandBuffer>& commandBuffer, Stage srcStage, Stage dstStage, Access srcAccess, Access dstAccces, std::uint32_t frameIndex) override;
 
-		virtual void Recompile() override;
+		virtual void Recompile(bool clearCache = false) override;
 	private:
 		VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
 		// Dynamic rendering 

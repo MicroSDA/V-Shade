@@ -37,7 +37,7 @@ namespace shade
 		virtual void SetBarrier(SharedPointer<RenderCommandBuffer>& commandBuffer, SharedPointer<Texture2D> texture, Stage srcStage, Stage dstStage, Access srcAccess, Access dstAccces, std::uint32_t frameIndex, std::uint32_t mip) override;
 		virtual void SetBarrier(SharedPointer<RenderCommandBuffer>& commandBuffer, Stage srcStage, Stage dstStage, Access srcAccess, Access dstAccces, std::uint32_t frameIndex) override;
 
-		virtual void Recompile() override;
+		virtual void Recompile(bool clearCache = false) override;
 
 		void BindDescriptorsSets(SharedPointer<RenderCommandBuffer>& commandBuffer, std::uint32_t frameIndex);
 

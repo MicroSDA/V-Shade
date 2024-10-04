@@ -97,6 +97,10 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 	m_PointLightShadowFrameBuffer		= FrameBuffer::Create({ 1000, 1000, {0.0f, 0.0f, 0.0f, 1.f}, 1.f, { { render::Image::Format::Depth, render::Image::Usage::Attachment, 1,  RenderAPI::MAX_POINT_SHADOW_CASTERS * 6, 1, 1, true}} });
 	m_BloomTarget						= Texture2D::CreateEXP({ render::Image::Format::RGBA32F, render::Image::Usage::Storage, m_Settings.BloomSettings.Samples, 1, 200, 200 });
 	m_ScreenSpaceAmbientOcclusionTarget	= Texture2D::CreateEXP({ render::Image::Format::RED8UN, render::Image::Usage::Storage, 1, 1, 200, 200 });
+	// TODO: Should it be like some internal part of renderer ?
+	m_VisibleSpotLightIndicesBuffer		= StorageBuffer::Create(StorageBuffer::Usage::GPU, RenderAPI::SPOT_LIGHT_INDINCES_BINDING, sizeof(std::uint32_t) * RenderAPI::MAX_SPOT_LIGHTS_COUNT, Renderer::GetFramesCount(), 20);
+	m_VisiblePointLightIndicesBuffer	= StorageBuffer::Create(StorageBuffer::Usage::GPU, RenderAPI::POINT_LIGHT_INDINCES_BINDING, sizeof(std::uint32_t) * RenderAPI::MAX_POINT_LIGHTS_COUNT, Renderer::GetFramesCount(), 20);
+	m_SSAOSamplesBuffer					= UniformBuffer::Create(UniformBuffer::Usage::CPU_GPU, 4, sizeof(SSAO::RenderBuffer), Renderer::GetFramesCount(), 0);
 
 	RegisterNewPipeline(shade::RenderPipeline::Create(
 		{
@@ -105,144 +109,128 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 			.FrameBuffer	= m_MainTargetFrameBuffer[0],
 			.VertexLayout	= mainGeometryVertexlayoutStatic,
 		}));
+
 	RegisterNewPipeline(shade::RenderPipeline::Create(
 		{
-			.Name = "Main-Geometry-Static",
-			.Shader = ShaderLibrary::Create("Main-Geometry-Static", "./resources/assets/shaders/Main-Geometry-Static.glsl"),
-			.FrameBuffer = m_MainTargetFrameBuffer[0],
-			.VertexLayout = mainGeometryVertexlayoutStatic,
-		}));
-	//m_MainGeometryPipelineStatic = shade::RenderPipeline::Create(
-	//	{
-	//		.Shader = ShaderLibrary::Create("Main", "./resources/assets/shaders/Main-Geometry-Static.glsl"),
-	//		.FrameBuffer = m_MainTargetFrameBuffer[0],
-	//		.VertexLayout = mainGeometryVertexlayoutStatic,
-	//	});
-
-	m_MainGeometryPipelineAnimated = shade::RenderPipeline::Create(
-		{
-			.Shader = ShaderLibrary::Create("MainAnimated", "./resources/assets/shaders/Main-Geometry-Animated.glsl"),
+			.Name = "Main-Geometry-Animated",
+			.Shader = ShaderLibrary::Create("Main-Geometry-Aniamted", "./resources/assets/shaders/Main-Geometry-Animated.glsl"),
 			.FrameBuffer = m_MainTargetFrameBuffer[0],
 			.VertexLayout = mainGeometryVertexlayoutAnimated,
-		});
-
-	m_LightCullingPreDepthPipeline = shade::RenderPipeline::Create(
+		}));
+	RegisterNewPipeline(shade::RenderPipeline::Create(
 		{
-			.Shader = ShaderLibrary::Create("PreDepth", "./resources/assets/shaders/preprocess/Tiled-Forward-Pre-Depth.glsl"),
+			.Name = "Light-Culling-Pre-Depth",
+			.Shader = ShaderLibrary::Create("Light-Culling-Pre-Depth", "./resources/assets/shaders/preprocess/Tiled-Forward-Pre-Depth.glsl"),
 			.FrameBuffer = m_LightCullingPreDepthFrameBuffer,
 			.VertexLayout = mainGeometryVertexlayoutStatic
-		});
-	m_LightCullingPipeline = shade::ComputePipeline::Create(
+		}));
+
+	RegisterNewPipeline(shade::RenderPipeline::Create(
 		{
-			.Shader = ShaderLibrary::Create("LightCulling", "./resources/assets/shaders/preprocess/Tiled-Forward-Light-Culling.glsl"),
-		});
-	// TODO: Should it be like some internal part of renderer ?
-	m_VisibleSpotLightIndicesBuffer  = StorageBuffer::Create(StorageBuffer::Usage::GPU, RenderAPI::SPOT_LIGHT_INDINCES_BINDING, sizeof(std::uint32_t) * RenderAPI::MAX_SPOT_LIGHTS_COUNT, Renderer::GetFramesCount(), 20);
-	m_VisiblePointLightIndicesBuffer = StorageBuffer::Create(StorageBuffer::Usage::GPU, RenderAPI::POINT_LIGHT_INDINCES_BINDING, sizeof(std::uint32_t) * RenderAPI::MAX_POINT_LIGHTS_COUNT, Renderer::GetFramesCount(), 20);
-	m_GlobalLightShadowDepthPipeline = shade::RenderPipeline::Create(
-		{
-			.Shader = ShaderLibrary::Create("GlobalShadowPreDepth", "./resources/assets/shaders/preprocess/Global-Light-Shadow-Pre-Depth.glsl"),
+			.Name = "Global-Light-Shadow-Pre-Depth",
+			.Shader = ShaderLibrary::Create("Global-Light-Shadow-Pre-Depth", "./resources/assets/shaders/preprocess/Global-Light-Shadow-Pre-Depth.glsl"),
 			.FrameBuffer = m_GlobalLightShadowFrameBuffer,
 			.VertexLayout = mainGeometryVertexlayoutStatic,
 			.BackFalceCull = false,
 			.DepsBiasConstantFactor = 4.0f,
 			.DepthBiasSlopeFactor = 8.0f,
-		});
-	m_SpotLightShadowDepthPipeline = shade::RenderPipeline::Create(
+		}));
+	RegisterNewPipeline(shade::RenderPipeline::Create(
 		{
-			.Shader = ShaderLibrary::Create("SpotShadowPreDepth", "./resources/assets/shaders/preprocess/Spot-Light-Shadow-Pre-Depth.glsl"),
+			.Name = "Spot-Light-Shadow-Pre-Depth",
+			.Shader = ShaderLibrary::Create("Spot-Light-Shadow-Pre-Depth", "./resources/assets/shaders/preprocess/Spot-Light-Shadow-Pre-Depth.glsl"),
 			.FrameBuffer = m_SpotLightShadowFrameBuffer,
 			.VertexLayout = mainGeometryVertexlayoutStatic,
 			.BackFalceCull = false,
 			.DepsBiasConstantFactor = 4.0f,
 			.DepthBiasSlopeFactor = 8.0f,
-		});
-	m_PointLightShadowDepthPipeline = shade::RenderPipeline::Create(
+		}));
+	RegisterNewPipeline(shade::RenderPipeline::Create(
 		{
-			.Shader = ShaderLibrary::Create("PointShadowPreDepth", "./resources/assets/shaders/preprocess/Point-Light-Shadow-Pre-Depth.glsl"),
+			.Name = "Point-Light-Shadow-Pre-Depth",
+			.Shader = ShaderLibrary::Create("Point-Light-Shadow-Pre-Depth", "./resources/assets/shaders/preprocess/Point-Light-Shadow-Pre-Depth.glsl"),
 			.FrameBuffer = m_PointLightShadowFrameBuffer,
 			.VertexLayout = mainGeometryVertexlayoutStatic,
 			.BackFalceCull = false,
 			/*.DepsBiasConstantFactor = 4.0f,
 			.DepthBiasSlopeFactor = 8.0f,*/
-		});
-	m_PointLightVisualizationPipeline = shade::RenderPipeline::Create(
+		}));
+	RegisterNewPipeline(shade::RenderPipeline::Create(
 		{
-			.Shader = ShaderLibrary::Create("LightsVisualizing", "./resources/assets/shaders/utils/LightsVisualizing.glsl"),
+			.Name = "Point-Lights-Visualizing",
+			.Shader = ShaderLibrary::Create("Lights-Visualizing", "./resources/assets/shaders/utils/LightsVisualizing.glsl"),
 			.FrameBuffer = m_MainTargetFrameBuffer[0],
 			.VertexLayout = mainGeometryVertexlayoutStatic,
 			.Topology = Pipeline::PrimitiveTopology::Line,
 			.BackFalceCull = false
-		});
-	m_SpotLightVisualizationPipeline = shade::RenderPipeline::Create(
+		}));
+	RegisterNewPipeline(shade::RenderPipeline::Create(
 		{
-			.Shader = ShaderLibrary::Get("LightsVisualizing"),
+			.Name = "Spot-Lights-Visualizing",
+			.Shader = ShaderLibrary::Get("Lights-Visualizing"),
 			.FrameBuffer = m_MainTargetFrameBuffer[0],
 			.VertexLayout = mainGeometryVertexlayoutStatic,
 			.Topology = Pipeline::PrimitiveTopology::LineStrip,
 			.BackFalceCull = false
-		});
-
-	/*m_SkeletonVisualizationPipeline = shade::RenderPipeline::Create(
+		}));
+	RegisterNewPipeline(shade::RenderPipeline::Create(
 		{
-			.Shader = ShaderLibrary::Create("Skeleton", "./resources/assets/shaders/utils/SkeletonVisualizing.glsl"),
-			.FrameBuffer = m_MainTargetFrameBuffer[0],
-			.VertexLayout = mainGeometryVertexlayoutAnimated,
-			.Topology = Pipeline::PrimitiveTopology::LineStrip,
-			.BackFalceCull = false
-		});*/
-	m_GridPipeline = shade::RenderPipeline::Create(
-		{
+			.Name = "Grid",
 			.Shader = ShaderLibrary::Create("Grid", "./resources/assets/shaders/utils/Grid.glsl"),
 			.FrameBuffer = m_MainTargetFrameBuffer[0],
 			.VertexLayout = gridVertexlayout,
 			.Topology = Pipeline::PrimitiveTopology::TriangleStrip,
 			.BackFalceCull = false
-		});
-	m_AABB_OBB_Pipeline = shade::RenderPipeline::Create(
+		}));
+	RegisterNewPipeline(shade::RenderPipeline::Create(
 		{
+			.Name = "AABB_OBB",
 			.Shader = ShaderLibrary::Create("StaticFlat", "./resources/assets/shaders/StaticFlat.glsl"),
 			.FrameBuffer = m_MainTargetFrameBuffer[0],
 			.VertexLayout = mainGeometryVertexlayoutStatic,
 			.Topology = Pipeline::PrimitiveTopology::Line,
 			//.PolygonMode = Pipeline::PrimitivePolygonMode::Point,
 			.LineWidth = 2.f
-		});
-	m_ScreenSpaceAmbientOcclusionPipeline = shade::ComputePipeline::Create(
+		}));
+	RegisterNewPipeline(shade::ComputePipeline::Create(
 		{
+			.Name = "Light-Culling",
+			.Shader = ShaderLibrary::Create("Light-Culling", "./resources/assets/shaders/preprocess/Tiled-Forward-Light-Culling.glsl"),
+		}));
+	RegisterNewPipeline(shade::ComputePipeline::Create(
+		{
+			.Name = "SSAO",
 			.Shader = ShaderLibrary::Create("SSAO", "./resources/assets/shaders/postprocess/SSAO/Screen-Sapce-Ambien-Occlusion-Compute.glsl"),
-		});
-	m_SSAOSamplesBuffer = UniformBuffer::Create(UniformBuffer::Usage::CPU_GPU, 4, sizeof(SSAO::RenderBuffer), Renderer::GetFramesCount(), 0);
-	m_ColorCorrectionPipeline = shade::ComputePipeline::Create(
+		}));
+	RegisterNewPipeline(shade::ComputePipeline::Create(
 		{
-			.Shader = ShaderLibrary::Create("ColorCorrection", "./resources/assets/shaders/postprocess/Color-Correction.glsl"),
-		});
-	m_BloomPipeline = shade::ComputePipeline::Create(
+			.Name = "Color-Correction",
+			.Shader = ShaderLibrary::Create("Color-Correction", "./resources/assets/shaders/postprocess/Color-Correction.glsl"),
+		}));
+	RegisterNewPipeline(shade::ComputePipeline::Create(
 		{
+			.Name = "Bloom",
 			.Shader = ShaderLibrary::Create("Bloom", "./resources/assets/shaders/postprocess/Bloom/Bloom-Compute.glsl"),
-		});
+		}));
 
-	BIND_PIPELINE_PROCESS_FUNCTION(GetPipeline("Main-Geometry-Static")->As<RenderPipeline>(), SceneRenderer, InstancedGeometryPass, this);
+	BIND_PIPELINE_PROCESS_FUNCTION(GetPipeline("Main-Geometry-Static")->As<RenderPipeline>(),   SceneRenderer, InstancedGeometryPass, this);
+	BIND_PIPELINE_PROCESS_FUNCTION(GetPipeline("Main-Geometry-Animated")->As<RenderPipeline>(), SceneRenderer, InstancedGeometryPass, this);
+	BIND_PIPELINE_PROCESS_FUNCTION(GetPipeline("Light-Culling-Pre-Depth")->As<RenderPipeline>(), SceneRenderer, LightCullingPreDepthPass, this);
 
-	//BIND_PIPELINE_PROCESS_FUNCTION(m_MainGeometryPipelineStatic, SceneRenderer, InstancedGeometryPass, this);
-	BIND_PIPELINE_PROCESS_FUNCTION(m_MainGeometryPipelineAnimated.Get(), SceneRenderer, InstancedGeometryPass, this);
-	BIND_PIPELINE_PROCESS_FUNCTION(m_LightCullingPreDepthPipeline.Get(), SceneRenderer, LightCullingPreDepthPass, this);
-	BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION(m_LightCullingPipeline.Get(), SceneRenderer, LightCullingComputePass, this);
-
-	BIND_PIPELINE_PROCESS_FUNCTION(m_GlobalLightShadowDepthPipeline.Get(), SceneRenderer, GlobalLightShadowPreDepthPass, this);
-	BIND_PIPELINE_PROCESS_FUNCTION(m_SpotLightShadowDepthPipeline.Get(), SceneRenderer, SpotLightShadowPreDepthPass, this);
-	BIND_PIPELINE_PROCESS_FUNCTION(m_PointLightShadowDepthPipeline.Get(), SceneRenderer, PointLightShadowPreDepthPass, this);
-
-	BIND_PIPELINE_PROCESS_FUNCTION(m_GridPipeline.Get(), SceneRenderer, GridPass, this);
-	BIND_PIPELINE_PROCESS_FUNCTION(m_AABB_OBB_Pipeline.Get(), SceneRenderer, FlatPipeline, this);
+	BIND_PIPELINE_PROCESS_FUNCTION(GetPipeline("Global-Light-Shadow-Pre-Depth")->As<RenderPipeline>(), SceneRenderer, GlobalLightShadowPreDepthPass, this);
+	BIND_PIPELINE_PROCESS_FUNCTION(GetPipeline("Spot-Light-Shadow-Pre-Depth")->As<RenderPipeline>(), SceneRenderer, SpotLightShadowPreDepthPass, this);
+	BIND_PIPELINE_PROCESS_FUNCTION(GetPipeline("Point-Light-Shadow-Pre-Depth")->As<RenderPipeline>(), SceneRenderer, PointLightShadowPreDepthPass, this);
 	
-	BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION(m_ScreenSpaceAmbientOcclusionPipeline.Get(), SceneRenderer, SSAOComputePass, this);
-	BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION(m_ColorCorrectionPipeline.Get(), SceneRenderer, ColorCorrectionComputePass, this);
-	BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION(m_BloomPipeline.Get(), SceneRenderer, BloomComputePass, this);
-	
-	BIND_PIPELINE_PROCESS_FUNCTION(m_PointLightVisualizationPipeline.Get(), SceneRenderer, LightVisualizationPass, this);
-	BIND_PIPELINE_PROCESS_FUNCTION(m_SpotLightVisualizationPipeline.Get(), SceneRenderer, LightVisualizationPass, this);
-	//BIND_PIPELINE_PROCESS_FUNCTION(m_SkeletonVisualizationPipeline, SceneRenderer, SkeletonVisualizationPass, this);
+	BIND_PIPELINE_PROCESS_FUNCTION(GetPipeline("Point-Lights-Visualizing")->As<RenderPipeline>(), SceneRenderer, LightVisualizationPass, this);
+	BIND_PIPELINE_PROCESS_FUNCTION(GetPipeline("Spot-Lights-Visualizing")->As<RenderPipeline>(), SceneRenderer, LightVisualizationPass, this);
+	BIND_PIPELINE_PROCESS_FUNCTION(GetPipeline("Grid")->As<RenderPipeline>(), SceneRenderer, GridPass, this);
+	BIND_PIPELINE_PROCESS_FUNCTION(GetPipeline("AABB_OBB")->As<RenderPipeline>(), SceneRenderer, FlatPipeline, this);
+
+	BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION(GetPipeline("Light-Culling")->As<ComputePipeline>(), SceneRenderer, LightCullingComputePass, this);
+	BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION(GetPipeline("SSAO")->As<ComputePipeline>(), SceneRenderer, SSAOComputePass, this);
+	BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION(GetPipeline("Color-Correction")->As<ComputePipeline>(), SceneRenderer, ColorCorrectionComputePass, this);
+	BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION(GetPipeline("Bloom")->As<ComputePipeline>(), SceneRenderer, BloomComputePass, this);
+
 
 	m_CollisionPointsMaterial	= SharedPointer<Material>::Create();
 
@@ -283,14 +271,14 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 		// Set camera aspect base on render target resolution
 		m_Camera->SetAspect((float)m_MainTargetFrameBuffer[currentFrame]->GetWidth() / (float)m_MainTargetFrameBuffer[currentFrame]->GetHeight());
 
-		if (m_Settings.RenderSettings.LightCulling)
+		if (GetPipeline("Light-Culling-Pre-Depth")->IsActive() && GetPipeline("Light-Culling")->IsActive())
 		{
 			if (m_LightCullingPreDepthFrameBuffer->GetWidth() != m_MainTargetFrameBuffer[currentFrame]->GetWidth() || m_LightCullingPreDepthFrameBuffer->GetHeight() != m_MainTargetFrameBuffer[currentFrame]->GetHeight())
 			{
 				m_LightCullingPreDepthFrameBuffer->Resize(m_MainTargetFrameBuffer[currentFrame]->GetWidth(), m_MainTargetFrameBuffer[currentFrame]->GetHeight());
 			}
 		}
-		if (m_Settings.BloomSettings.Enabled)
+		if (GetPipeline("Bloom")->IsActive())
 		{
 			if (m_BloomTarget->GetWidth() != m_MainTargetFrameBuffer[currentFrame]->GetWidth() ||
 				m_BloomTarget->GetHeight() != m_MainTargetFrameBuffer[currentFrame]->GetHeight() ||
@@ -299,7 +287,7 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 				m_BloomTarget->Resize(m_MainTargetFrameBuffer[currentFrame]->GetWidth(), m_MainTargetFrameBuffer[currentFrame]->GetHeight(), m_Settings.BloomSettings.Samples);
 			}
 		}
-		if (m_Settings.RenderSettings.SSAOEnabled)
+		if (GetPipeline("SSAO")->IsActive())
 		{
 			if (m_ScreenSpaceAmbientOcclusionTarget->GetWidth() != m_MainTargetFrameBuffer[currentFrame]->GetWidth() ||
 				m_ScreenSpaceAmbientOcclusionTarget->GetHeight() != m_MainTargetFrameBuffer[currentFrame]->GetHeight())
@@ -327,7 +315,7 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 					{
 						/* In case we want to use point light sphere during instance rendering we need reuse deafult sphere and apply changes only to transform matrix.*/
 						pcTransform = glm::scale(pcTransform, glm::vec3(light->Distance));
-						Renderer::SubmitStaticMesh(m_PointLightVisualizationPipeline, m_Sphere, nullptr, nullptr, pcTransform);
+						Renderer::SubmitStaticMesh(GetPipeline("Point-Lights-Visualizing"), m_Sphere, nullptr, nullptr, pcTransform);
 					}
 				}
 			});
@@ -344,7 +332,7 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 					{
 						/* In case we want to use spot light cone during instance rendering we need reuse deafult cone and apply changes only to transform matrix.*/
 						pcTransform = glm::scale(pcTransform, glm::vec3(radius, radius, light->Distance));
-						Renderer::SubmitStaticMesh(m_SpotLightVisualizationPipeline, m_Cone, nullptr, nullptr, pcTransform);
+						Renderer::SubmitStaticMesh(GetPipeline("Spot-Lights-Visualizing"), m_Cone, nullptr, nullptr, pcTransform);
 					}
 				}
 			});
@@ -372,16 +360,15 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 
 						if (animationGraph && finalPose && mesh->GetLod(0).Bones.size())
 						{
-							Renderer::SubmitStaticMesh(m_MainGeometryPipelineAnimated, mesh, mesh->GetMaterial(), model, pcTransform); m_Statistic.SubmitedInstances++;
+							Renderer::SubmitStaticMesh(GetPipeline("Main-Geometry-Animated"), mesh, mesh->GetMaterial(), model, pcTransform); m_Statistic.SubmitedInstances++;
 						}
 						else
 						{
-							//Renderer::SubmitStaticMeshDynamicLOD(m_MainGeometryPipelineStatic, mesh, mesh->GetMaterial(), model, pcTransform); m_Statistic.SubmitedInstances++;
 							Renderer::SubmitStaticMeshDynamicLOD(GetPipeline("Main-Geometry-Static"), mesh, mesh->GetMaterial(), model, pcTransform); m_Statistic.SubmitedInstances++;
 						}
 						
 						if (m_Settings.RenderSettings.LightCulling)
-							Renderer::SubmitStaticMesh(m_LightCullingPreDepthPipeline, mesh, nullptr, model, pcTransform);
+							Renderer::SubmitStaticMesh(GetPipeline("Light-Culling-Pre-Depth"), mesh, nullptr, model, pcTransform);
 					}
 
 					// Check if mesh inside point light for shadow pass  
@@ -399,14 +386,14 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 									if (PointLight::IsMeshInside(renderData.Cascades[side].ViewProjectionMatrix, pcTransform, mesh->GetMinHalfExt(), mesh->GetMaxHalfExt()))
 									{
 										std::size_t seed = index; glm::detail::hash_combine(seed, side);
-										Renderer::SubmitStaticMesh(m_PointLightShadowDepthPipeline, mesh, nullptr, model, pcTransform, seed);
+										Renderer::SubmitStaticMesh(GetPipeline("Point-Light-Shadow-Pre-Depth"), mesh, nullptr, model, pcTransform, seed);
 									}
 								}
 							}
 							else
 							{
 								if (PointLight::IsMeshInside(renderData.Position, renderData.Distance, pcTransform, mesh->GetMinHalfExt(), mesh->GetMaxHalfExt()))
-									Renderer::SubmitStaticMesh(m_PointLightShadowDepthPipeline, mesh, mesh->GetMaterial(), model, pcTransform, index);
+									Renderer::SubmitStaticMesh(GetPipeline("Point-Light-Shadow-Pre-Depth"), mesh, mesh->GetMaterial(), model, pcTransform, index);
 							}
 						}
 					}
@@ -420,13 +407,13 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 							float radius = glm::acos(glm::radians(renderData.MaxAngle)) * renderData.Distance;
 							if (SpotLight::IsMeshInside(renderData.Cascade.ViewProjectionMatrix, pcTransform, mesh->GetMinHalfExt(), mesh->GetMaxHalfExt()))
 							{
-								Renderer::SubmitStaticMesh(m_SpotLightShadowDepthPipeline, mesh, mesh->GetMaterial(), model, pcTransform, index);
+								Renderer::SubmitStaticMesh(GetPipeline("Spot-Light-Shadow-Pre-Depth"), mesh, mesh->GetMaterial(), model, pcTransform, index);
 							}
 						}
 					}
 
 					if (m_Settings.RenderSettings.GlobalShadowsEnabled)
-						Renderer::SubmitStaticMesh(m_GlobalLightShadowDepthPipeline, mesh, mesh->GetMaterial(), model, pcTransform);
+						Renderer::SubmitStaticMesh(GetPipeline("Global-Light-Shadow-Pre-Depth"), mesh, mesh->GetMaterial(), model, pcTransform);
 
 					// OBB Visualization
 					if (m_Settings.IsAABB_OBBShow)
@@ -437,14 +424,14 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 						// Scale the cpTransform matrix using the ratio of the half extents of the mesh and the bounding box
 						permeshTransform = glm::scale(permeshTransform, (mesh->GetMaxHalfExt() - mesh->GetMinHalfExt()) / (m_OBB->GetMaxHalfExt() - m_OBB->GetMinHalfExt()));
 						// Submit aabb for rendering 
-						Renderer::SubmitStaticMesh(m_AABB_OBB_Pipeline, m_OBB, m_OBBMaterial, nullptr, permeshTransform);
+						Renderer::SubmitStaticMesh(GetPipeline("AABB_OBB"), m_OBB, m_OBBMaterial, nullptr, permeshTransform);
 					}
 				}
 
 				
 				if (isModelInFrustrum && animationGraph && finalPose)
 				{
-					 Renderer::SubmitBoneTransforms(m_MainGeometryPipelineAnimated, model, finalPose->GetBoneGlobalTransforms()); 
+					 Renderer::SubmitBoneTransforms(GetPipeline("Main-Geometry-Animated"), model, finalPose->GetBoneGlobalTransforms());
 				}
 
 				// AABB Visualization
@@ -462,7 +449,7 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 							(maxExt - minExt) / glm::vec<3, physic::scalar_t>(m_OBB->GetMaxHalfExt() - m_OBB->GetMinHalfExt())
 						);
 
-						Renderer::SubmitStaticMesh(m_AABB_OBB_Pipeline, m_OBB, m_AABBMaterial, nullptr, permeshTransform);
+						//Renderer::SubmitStaticMesh(m_AABB_OBB_Pipeline, m_OBB, m_AABBMaterial, nullptr, permeshTransform);
 					}
 					
 					//for (auto& contactPoint : rigidBody.GetCollisionContacts())
@@ -520,7 +507,7 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 
 		// Submit grid for rendering
 		if (m_Settings.IsGridShow)
-			Renderer::SubmitStaticMesh(m_GridPipeline, m_Plane, nullptr, nullptr, glm::mat4(1.f));
+			Renderer::SubmitStaticMesh(GetPipeline("Grid"), m_Plane, nullptr, nullptr, glm::mat4(1.f));
 	}
 	else
 	{
@@ -540,47 +527,27 @@ void shade::SceneRenderer::OnRender(SharedPointer<Scene>& scene, const FrameTime
 
 		Renderer::BeginScene(m_Camera, m_Settings.RenderSettings, curentFrameIndex);
 		{
-			//Global lighting shadow pass
-			if (m_Settings.RenderSettings.GlobalShadowsEnabled)
-				Renderer::ExecuteSubmitedRenderPipeline(m_GlobalLightShadowDepthPipeline, curentFrameIndex);
-			// Spot lighting shadow pass
-			if(m_Settings.RenderSettings.SpotShadowEnabled)
-				Renderer::ExecuteSubmitedRenderPipeline(m_SpotLightShadowDepthPipeline, curentFrameIndex);
-			// Point lighting shadow pass
-			if (m_Settings.RenderSettings.PointShadowEnabled)
-				Renderer::ExecuteSubmitedRenderPipeline(m_PointLightShadowDepthPipeline, curentFrameIndex);
-
-			// Cull point and spot light
-			if (m_Settings.RenderSettings.LightCulling)
 			{
-				Renderer::ExecuteSubmitedRenderPipeline(m_LightCullingPreDepthPipeline, curentFrameIndex);
-				Renderer::ExecuteComputePipeline(m_LightCullingPipeline, curentFrameIndex);
+				Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Global-Light-Shadow-Pre-Depth"), curentFrameIndex);
+				Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Spot-Light-Shadow-Pre-Depth"), curentFrameIndex);
+				Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Point-Light-Shadow-Pre-Depth"), curentFrameIndex);
+				Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Light-Culling-Pre-Depth"), curentFrameIndex);
+				Renderer::ExecuteComputePipeline(GetPipeline("Light-Culling"), curentFrameIndex);
 			}
-			//Main geometry pass 
+
 			bool mainPipelineHasExecuted = Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Main-Geometry-Static"), curentFrameIndex, true);
-			mainPipelineHasExecuted		+= Renderer::ExecuteSubmitedRenderPipeline(m_MainGeometryPipelineAnimated, curentFrameIndex, !mainPipelineHasExecuted);
+			mainPipelineHasExecuted		+= Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Main-Geometry-Animated"), curentFrameIndex, !mainPipelineHasExecuted);
 
 			{
-				if (m_Settings.RenderSettings.SSAOEnabled)
-					Renderer::ExecuteComputePipeline(m_ScreenSpaceAmbientOcclusionPipeline, curentFrameIndex);
-				if (m_Settings.BloomSettings.Enabled)
-					Renderer::ExecuteComputePipeline(m_BloomPipeline, curentFrameIndex);
-				if (m_Settings.ColorCorrectionSettings.Enabled)
-					Renderer::ExecuteComputePipeline(m_ColorCorrectionPipeline, curentFrameIndex);
+					Renderer::ExecuteComputePipeline(GetPipeline("SSAO"), curentFrameIndex);
+					Renderer::ExecuteComputePipeline(GetPipeline("Bloom"), curentFrameIndex);
+					Renderer::ExecuteComputePipeline(GetPipeline("Color-Correction"), curentFrameIndex);
 			}
 			{
-				if (m_Settings.IsAABB_OBBShow)
-					Renderer::ExecuteSubmitedRenderPipeline(m_AABB_OBB_Pipeline, curentFrameIndex);
-
-				if (m_Settings.IsGridShow)
-					Renderer::ExecuteSubmitedRenderPipeline(m_GridPipeline, curentFrameIndex, !mainPipelineHasExecuted);
-
-				if (m_Settings.IsPointLightShow)
-					Renderer::ExecuteSubmitedRenderPipeline(m_PointLightVisualizationPipeline, curentFrameIndex, !mainPipelineHasExecuted);
-
-				if (m_Settings.IsSpotLightShow)
-					Renderer::ExecuteSubmitedRenderPipeline(m_SpotLightVisualizationPipeline, curentFrameIndex, !mainPipelineHasExecuted);
-
+					Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("AABB_OBB"), curentFrameIndex);
+					Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Grid"), curentFrameIndex, !mainPipelineHasExecuted);
+					Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Point-Lights-Visualizing"), curentFrameIndex, !mainPipelineHasExecuted);
+					Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Spot-Lights-Visualizing"), curentFrameIndex, !mainPipelineHasExecuted);
 			}
 		}
 		Renderer::EndScene(curentFrameIndex);
@@ -634,18 +601,13 @@ shade::SharedPointer<shade::Pipeline> shade::SceneRenderer::GetPipeline(const st
 	return (m_Pipelines.find(name) != m_Pipelines.end()) ? m_Pipelines.at(name) : shade::SharedPointer<shade::Pipeline>{};
 }
 
-void shade::SceneRenderer::RecompileAllPipelines()
-{	
-	m_BloomPipeline->Recompile();
-	/*m_ScreenSpaceAmbientOcclusionPipeline->Recompile();
-	m_BloomPipeline->Recompile();
-	m_GridPipeline->Recompile();
-	m_AABB_OBB_Pipeline->Recompile();*/
+std::unordered_map<std::string, shade::SharedPointer<shade::Pipeline>>& shade::SceneRenderer::GetPipelines()
+{
+	return m_Pipelines;
 }
 
 void shade::SceneRenderer::LightCullingPreDepthPass(SharedPointer<RenderPipeline>& pipeline, const render::SubmitedInstances& instances, const render::SubmitedSceneRenderData& data, std::uint32_t frameIndex, bool isForceClear)
 {
-	Renderer::BeginTimestamp(m_MainCommandBuffer, "Light-Culling-Pre-Depth");
 	// Begin rendering
 	Renderer::BeginRender(m_MainCommandBuffer, pipeline, frameIndex, true);
 	// Update buffers 
@@ -660,50 +622,46 @@ void shade::SceneRenderer::LightCullingPreDepthPass(SharedPointer<RenderPipeline
 		}
 	}
 	// End rendering
-	Renderer::EndRender(m_MainCommandBuffer, frameIndex);
+	Renderer::EndRender(m_MainCommandBuffer, pipeline, frameIndex);
 
-	m_Statistic.LightCullingPreDepth = Renderer::EndTimestamp(m_MainCommandBuffer, "Light-Culling-Pre-Depth");
 	// Set a memory barrier
 	//pipeline->SetBarrier(m_MainCommandBuffer, RenderPipeline::Stage::FragmentShader, RenderPipeline::Stage::ComputeShader, RenderPipeline::Access::ShaderWrite, RenderPipeline::Access::ShaderWrite, frameIndex);
 }
 
 void shade::SceneRenderer::LightCullingComputePass(SharedPointer<ComputePipeline>& pipeline, std::uint32_t frameIndex)
 {
-	//Renderer::BeginTimestamp(m_MainCommandBuffer, "Light-Culling-Compute");
-	//Renderer::BeginCompute(m_MainCommandBuffer, pipeline, frameIndex);
-	//glm::uvec2 resolution = { m_LightCullingPreDepthFrameBuffer->GetWidth(), m_LightCullingPreDepthFrameBuffer->GetHeight() };
-	//// set uniforms required by the compute shader
-	//pipeline->SetUniform(m_MainCommandBuffer, sizeof(glm::uvec2), &resolution, frameIndex);
-	//// round up the resolution to a multiple of tileSize
-	//constexpr uint32_t tileSize = 16u;
-	//resolution += tileSize - resolution % tileSize;
-	//// divide the resolution by tileSize to get the number of execution groups
-	//glm::uvec3 executionGroups = { resolution / tileSize, 1 };
+	Renderer::BeginCompute(m_MainCommandBuffer, pipeline, frameIndex);
+	glm::uvec2 resolution = { m_LightCullingPreDepthFrameBuffer->GetWidth(), m_LightCullingPreDepthFrameBuffer->GetHeight() };
+	// set uniforms required by the compute shader
+	pipeline->SetUniform(m_MainCommandBuffer, sizeof(glm::uvec2), &resolution, frameIndex);
+	// round up the resolution to a multiple of tileSize
+	constexpr uint32_t tileSize = 16u;
+	resolution += tileSize - resolution % tileSize;
+	// divide the resolution by tileSize to get the number of execution groups
+	glm::uvec3 executionGroups = { resolution / tileSize, 1 };
 
-	//std::uint32_t tilesCountX = executionGroups.x;
+	std::uint32_t tilesCountX = executionGroups.x;
 
-	//// resize buffers used to store visible indices of lights
-	//m_VisiblePointLightIndicesBuffer->Resize(executionGroups.x * executionGroups.y * sizeof(std::uint32_t) * RenderAPI::MAX_POINT_LIGHTS_COUNT);
-	//m_VisibleSpotLightIndicesBuffer->Resize(executionGroups.x * executionGroups.y * sizeof(std::uint32_t) * RenderAPI::MAX_SPOT_LIGHTS_COUNT);
+	// resize buffers used to store visible indices of lights
+	m_VisiblePointLightIndicesBuffer->Resize(executionGroups.x * executionGroups.y * sizeof(std::uint32_t) * RenderAPI::MAX_POINT_LIGHTS_COUNT);
+	m_VisibleSpotLightIndicesBuffer->Resize(executionGroups.x * executionGroups.y * sizeof(std::uint32_t) * RenderAPI::MAX_SPOT_LIGHTS_COUNT);
 
-	//// set resources needed by the compute shader
-	//pipeline->SetResource(m_VisiblePointLightIndicesBuffer, Pipeline::Set::PerInstance, frameIndex);
-	//pipeline->SetResource(m_VisibleSpotLightIndicesBuffer, Pipeline::Set::PerInstance, frameIndex);
-	//pipeline->SetTexture(m_LightCullingPreDepthFrameBuffer->GetDepthAttachment(), Pipeline::Set::PerInstance, 9, frameIndex); // TODO: 9 need to create constan in RenderAPI
+	// set resources needed by the compute shader
+	pipeline->SetResource(m_VisiblePointLightIndicesBuffer, Pipeline::Set::PerInstance, frameIndex);
+	pipeline->SetResource(m_VisibleSpotLightIndicesBuffer, Pipeline::Set::PerInstance, frameIndex);
+	pipeline->SetTexture(m_LightCullingPreDepthFrameBuffer->GetDepthAttachment(), Pipeline::Set::PerInstance, 9, frameIndex); // TODO: 9 need to create constan in RenderAPI
 
-	//m_MainGeometryPipelineStatic->SetUniform(m_MainCommandBuffer, sizeof(std::uint32_t), &tilesCountX, frameIndex, Shader::Type::Fragment);
+	GetPipeline("Main-Geometry-Static")->As<RenderPipeline>().SetUniform(m_MainCommandBuffer, sizeof(std::uint32_t), &tilesCountX, frameIndex, Shader::Type::Fragment);
 
-	//// update resources, dispatch the compute shader and set a memory barrier
-	//pipeline->UpdateResources(m_MainCommandBuffer, frameIndex);
-	//pipeline->Dispatch(m_MainCommandBuffer, executionGroups.x, executionGroups.y, executionGroups.z, frameIndex);
-	//pipeline->SetBarrier(m_MainCommandBuffer, Pipeline::Stage::ComputeShader, Pipeline::Stage::FragmentShader, Pipeline::Access::ShaderWrite, Pipeline::Access::ShaderRead, frameIndex);
-	//Renderer::EndCompute(m_MainCommandBuffer, pipeline, frameIndex);
-	//m_Statistic.LightCullingCompute = Renderer::EndTimestamp(m_MainCommandBuffer, "Light-Culling-Compute");
+	// update resources, dispatch the compute shader and set a memory barrier
+	pipeline->UpdateResources(m_MainCommandBuffer, frameIndex);
+	pipeline->Dispatch(m_MainCommandBuffer, executionGroups.x, executionGroups.y, executionGroups.z, frameIndex);
+	pipeline->SetBarrier(m_MainCommandBuffer, Pipeline::Stage::ComputeShader, Pipeline::Stage::FragmentShader, Pipeline::Access::ShaderWrite, Pipeline::Access::ShaderRead, frameIndex);
+	Renderer::EndCompute(m_MainCommandBuffer, pipeline, frameIndex);
 }
 
 void shade::SceneRenderer::GlobalLightShadowPreDepthPass(SharedPointer<RenderPipeline>& pipeline, const render::SubmitedInstances& instances, const render::SubmitedSceneRenderData& data, std::uint32_t frameIndex, bool isForceClear)
 {
-	Renderer::BeginTimestamp(m_MainCommandBuffer, "Global-Light-Pre-Depth");
 	// Begin rendering
 	Renderer::BeginRender(m_MainCommandBuffer, pipeline, frameIndex, true);
 	// Update buffers 
@@ -722,14 +680,12 @@ void shade::SceneRenderer::GlobalLightShadowPreDepthPass(SharedPointer<RenderPip
 	}
 
 	// End rendering
-	Renderer::EndRender(m_MainCommandBuffer, frameIndex);
+	Renderer::EndRender(m_MainCommandBuffer,pipeline, frameIndex);
 
-	m_Statistic.GlobalLightPreDepth = Renderer::EndTimestamp(m_MainCommandBuffer, "Global-Light-Pre-Depth");
 }
 
 void shade::SceneRenderer::SpotLightShadowPreDepthPass(SharedPointer<RenderPipeline>& pipeline, const render::SubmitedInstances& instances, const render::SubmitedSceneRenderData& data, std::uint32_t frameIndex, bool isForceClear)
 {
-	Renderer::BeginTimestamp(m_MainCommandBuffer, "Spot-Light-Pre-Depth");
 	// Begin rendering
 	Renderer::BeginRender(m_MainCommandBuffer, pipeline, frameIndex, (bool)Renderer::GetSubmitedSpotLightCount(), Renderer::GetSubmitedSpotLightCount());
 	// Update buffers 
@@ -748,14 +704,11 @@ void shade::SceneRenderer::SpotLightShadowPreDepthPass(SharedPointer<RenderPipel
 		}
 	}
 	// End rendering
-	Renderer::EndRender(m_MainCommandBuffer, frameIndex);
-
-	m_Statistic.SpotLightPreDepth = Renderer::EndTimestamp(m_MainCommandBuffer, "Spot-Light-Pre-Depth");
+	Renderer::EndRender(m_MainCommandBuffer, pipeline, frameIndex);
 }
 
 void shade::SceneRenderer::PointLightShadowPreDepthPass(SharedPointer<RenderPipeline>& pipeline, const render::SubmitedInstances& instances, const render::SubmitedSceneRenderData& data, std::uint32_t frameIndex, bool isForceClear)
 {
-	Renderer::BeginTimestamp(m_MainCommandBuffer, "Point-Light-Pre-Depth");
 	// Begin rendering
 	Renderer::BeginRender(m_MainCommandBuffer, pipeline, frameIndex, (bool)Renderer::GetSubmitedPointLightCount(), Renderer::GetSubmitedPointLightCount() * 6);
 	// Update buffers 
@@ -789,14 +742,11 @@ void shade::SceneRenderer::PointLightShadowPreDepthPass(SharedPointer<RenderPipe
 		}
 	}
 	// End rendering
-	Renderer::EndRender(m_MainCommandBuffer, frameIndex);
-
-	m_Statistic.PointLightPreDepth = Renderer::EndTimestamp(m_MainCommandBuffer, "Point-Light-Pre-Depth");
+	Renderer::EndRender(m_MainCommandBuffer, pipeline, frameIndex);
 }
 
 void shade::SceneRenderer::InstancedGeometryPass(SharedPointer<RenderPipeline>& pipeline, const render::SubmitedInstances& instances, const render::SubmitedSceneRenderData& data, std::uint32_t frameIndex, bool isForceClear)
 {
-	Renderer::BeginTimestamp(m_MainCommandBuffer, "Instanced-Geometry");
 	// Begin rendering
 	Renderer::BeginRender(m_MainCommandBuffer, pipeline, frameIndex, isForceClear);
 	// Set the visible point light and spot light indices for the pipeline to use during rendering.
@@ -811,8 +761,8 @@ void shade::SceneRenderer::InstancedGeometryPass(SharedPointer<RenderPipeline>& 
 	// Loop over the instances and their materials, updating and drawing each submitted material with the rendered instance.
 	for (auto& [instance, materials] : instances.Instances)
 	{											
-		if (m_MainGeometryPipelineAnimated.Raw() == pipeline.Raw())
-			Renderer::UpdateSubmitedBonesData(m_MainCommandBuffer, m_MainGeometryPipelineAnimated, materials.ModelHash, frameIndex);
+		if (GetPipeline("Main-Geometry-Animated").Raw() == pipeline.Raw())
+			Renderer::UpdateSubmitedBonesData(m_MainCommandBuffer, GetPipeline("Main-Geometry-Animated"), materials.ModelHash, frameIndex);
 
 		// For each material
 		for (auto& [lod, material] : materials.Materials)
@@ -821,15 +771,13 @@ void shade::SceneRenderer::InstancedGeometryPass(SharedPointer<RenderPipeline>& 
 			Renderer::UpdateSubmitedMaterial(m_MainCommandBuffer, pipeline, instance, material, frameIndex, lod);
 
 			// Draw the submitted instance
-			(m_MainGeometryPipelineAnimated.Raw() == pipeline.Raw()) ? Renderer::DrawSubmitedInstancedAnimated(m_MainCommandBuffer, pipeline, instance, material, frameIndex, lod) : Renderer::DrawSubmitedInstanced(m_MainCommandBuffer, pipeline, instance, material, frameIndex, lod);			
+			(GetPipeline("Main-Geometry-Animated").Raw() == pipeline.Raw()) ? Renderer::DrawSubmitedInstancedAnimated(m_MainCommandBuffer, pipeline, instance, material, frameIndex, lod) : Renderer::DrawSubmitedInstanced(m_MainCommandBuffer, pipeline, instance, material, frameIndex, lod);
 		}
 
 		++drawInstane;
 	}
 	// End rendering
-	Renderer::EndRender(m_MainCommandBuffer, frameIndex);
-	
-	m_Statistic.InstanceGeometry = Renderer::EndTimestamp(m_MainCommandBuffer, "Instanced-Geometry");
+	Renderer::EndRender(m_MainCommandBuffer, pipeline, frameIndex);
 }
 
 void shade::SceneRenderer::GridPass(SharedPointer<RenderPipeline>& pipeline, const render::SubmitedInstances& instances, const render::SubmitedSceneRenderData& data, std::uint32_t frameIndex, bool isForceClear)
@@ -849,7 +797,7 @@ void shade::SceneRenderer::GridPass(SharedPointer<RenderPipeline>& pipeline, con
 		}
 	}
 	// End rendering
-	Renderer::EndRender(m_MainCommandBuffer, frameIndex);
+	Renderer::EndRender(m_MainCommandBuffer, pipeline, frameIndex);
 }
 
 void shade::SceneRenderer::LightVisualizationPass(SharedPointer<RenderPipeline>& pipeline, const render::SubmitedInstances& instances, const render::SubmitedSceneRenderData& data, std::uint32_t frameIndex, bool isForceClear)
@@ -868,7 +816,7 @@ void shade::SceneRenderer::LightVisualizationPass(SharedPointer<RenderPipeline>&
 		}
 	}
 	// End rendering
-	Renderer::EndRender(m_MainCommandBuffer, frameIndex);
+	Renderer::EndRender(m_MainCommandBuffer, pipeline, frameIndex);
 }
 
 void shade::SceneRenderer::SkeletonVisualizationPass(SharedPointer<RenderPipeline>& pipeline, const render::SubmitedInstances& instances, const render::SubmitedSceneRenderData& data, std::uint32_t frameIndex, bool isForceClear)
@@ -894,12 +842,11 @@ void shade::SceneRenderer::FlatPipeline(SharedPointer<RenderPipeline>& pipeline,
 		}
 	}
 	// End rendering
-	Renderer::EndRender(m_MainCommandBuffer, frameIndex);
+	Renderer::EndRender(m_MainCommandBuffer, pipeline, frameIndex);
 }
 
 void shade::SceneRenderer::ColorCorrectionComputePass(SharedPointer<ComputePipeline>& pipeline, std::uint32_t frameIndex)
 {
-	Renderer::BeginTimestamp(m_MainCommandBuffer, "Color-Correction");
 	Renderer::BeginCompute(m_MainCommandBuffer, pipeline, frameIndex);
 	// Get the texture attachment from the main target frame buffer and store in a constant auto reference.
 	const auto& texture = m_MainTargetFrameBuffer[frameIndex]->GetTextureAttachment(0);
@@ -923,7 +870,6 @@ void shade::SceneRenderer::ColorCorrectionComputePass(SharedPointer<ComputePipel
 	// Set a barrier to signal the end of the computation process.
 	pipeline->SetBarrier(m_MainCommandBuffer, texture, Pipeline::Stage::ColorAttachmentOutput, Pipeline::Stage::ComputeShader, Pipeline::Access::ColorAttachmentWrite, Pipeline::Access::ShaderRead, frameIndex);
 	Renderer::EndCompute(m_MainCommandBuffer, pipeline, frameIndex);
-	m_Statistic.ColorCorrection = Renderer::EndTimestamp(m_MainCommandBuffer, "Color-Correction");
 }
 
 void shade::SceneRenderer::BloomComputePass(SharedPointer<ComputePipeline>& pipeline, std::uint32_t frameIndex)
@@ -934,7 +880,6 @@ void shade::SceneRenderer::BloomComputePass(SharedPointer<ComputePipeline>& pipe
 	glm::uvec3 executionGroups { std::ceil(static_cast<float>(mainTarget->GetWidth()) / 16.f), std::ceil(static_cast<float>(mainTarget->GetHeight()) / 16.0f), 1 };
 	Bloom::RenderData bloomData = m_Settings.BloomSettings.GetRenderData();
 
-	Renderer::BeginTimestamp(m_MainCommandBuffer, "Bloom");
 	Renderer::BeginCompute(m_MainCommandBuffer, pipeline, frameIndex);
 	{
 		/////////////////////////HDR////////////////////////////////
@@ -1002,7 +947,6 @@ void shade::SceneRenderer::BloomComputePass(SharedPointer<ComputePipeline>& pipe
 		pipeline->SetBarrier(m_MainCommandBuffer, mainTarget, Pipeline::Stage::ComputeShader, Pipeline::Stage::ComputeShader, Pipeline::Access::ShaderWrite, Pipeline::Access::ShaderRead, frameIndex);
 	}
 	Renderer::EndCompute(m_MainCommandBuffer, pipeline, frameIndex);
-	m_Statistic.Bloom = Renderer::EndTimestamp(m_MainCommandBuffer, "Bloom");
 }
 
 void shade::SceneRenderer::SSAOComputePass(SharedPointer<ComputePipeline>& pipeline, std::uint32_t frameIndex)
@@ -1052,6 +996,18 @@ void shade::SceneRenderer::SSAOComputePass(SharedPointer<ComputePipeline>& pipel
 			pipeline->SetTexture(m_ScreenSpaceAmbientOcclusionTarget, Pipeline::Set::PerInstance, 0, frameIndex);
 			pipeline->SetTexture(m_ScreenSpaceAmbientOcclusionTarget, Pipeline::Set::PerInstance, 1, frameIndex);
 			
+			pipeline->SetUniform(m_MainCommandBuffer, sizeof(SSAO::RenderData), &renderData, frameIndex);
+
+			pipeline->UpdateResources(m_MainCommandBuffer, frameIndex);
+			pipeline->Dispatch(m_MainCommandBuffer, executionGroups.x, executionGroups.y, executionGroups.z, frameIndex);
+			pipeline->SetBarrier(m_MainCommandBuffer, Pipeline::Stage::ComputeShader, Pipeline::Stage::ComputeShader, Pipeline::Access::ShaderWrite, Pipeline::Access::ShaderRead, frameIndex);
+		}
+		{
+			////////////////////////////ZOOM////////////////////////////////////////////
+			renderData.Stage = SSAO::Stage::Zoom;
+			pipeline->SetTexture(m_ScreenSpaceAmbientOcclusionTarget, Pipeline::Set::PerInstance, 0, frameIndex);
+			pipeline->SetTexture(m_ScreenSpaceAmbientOcclusionTarget, Pipeline::Set::PerInstance, 1, frameIndex);
+
 			pipeline->SetUniform(m_MainCommandBuffer, sizeof(SSAO::RenderData), &renderData, frameIndex);
 
 			pipeline->UpdateResources(m_MainCommandBuffer, frameIndex);

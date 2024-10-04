@@ -104,10 +104,12 @@ namespace shade
 					local.Translation = animationData.Animation->InterpolatePosition(*channel, animationData.CurrentPlayTime);
 					local.Rotation = animationData.Animation->InterpolateRotation(*channel, animationData.CurrentPlayTime);
 					local.Scale = animationData.Animation->InterpolateScale(*channel, animationData.CurrentPlayTime);
-					
+
+						
 					globalMatrix *= glm::translate(glm::identity<glm::mat4>(), local.Translation) * glm::toMat4(local.Rotation) * glm::scale(glm::identity<glm::mat4>(), local.Scale);
 
 					pose->GetBoneGlobalTransform(bone->ID) = globalMatrix * bone->InverseBindPose;
+					//pose->GetBoneGlobalTransform(bone->ID) = globalMatrix * glm::rotate(bone->InverseBindPose, glm::radians(-90.f), glm::vec3(1, 0, 0));
 				}
 				else
 				{
@@ -143,6 +145,7 @@ namespace shade
 					armatureMatrix = glm::translate(glm::identity<glm::mat4>(), local.Translation) * glm::toMat4(local.Rotation) * glm::scale(glm::identity<glm::mat4>(), local.Scale);
 				}
 
+				//armatureMatrix = glm::rotate(armatureMatrix, glm::radians(-90.f), glm::vec3(1, 0, 0));
 			
 				ComputePoseRecursevly(pose, animationData, skeleton->GetRootNode(), armatureMatrix);
 			}

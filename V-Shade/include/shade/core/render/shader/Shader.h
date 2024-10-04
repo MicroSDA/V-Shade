@@ -35,7 +35,7 @@ namespace shade
 		Shader() = default;
 		virtual ~Shader() = default;
 		// Create shader. 
-		static SharedPointer<Shader> Create(const std::string& filePath);
+		static SharedPointer<Shader> Create(const std::string& filePath, bool ignoreCache = false);
 
 		const std::string& GetFilePath() const;
 		const std::string& GetFileDirectory() const;

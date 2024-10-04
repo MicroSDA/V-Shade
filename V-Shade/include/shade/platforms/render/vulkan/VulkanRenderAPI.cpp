@@ -326,14 +326,27 @@ float shade::VulkanRenderAPI::EndTimestamp(SharedPointer<RenderCommandBuffer>& c
 	return float(end - begin) / 1000000.f;
 }
 
-//float shade::VulkanRenderAPI::GetTimestampResult()
-//{
-//	std::uint64_t begin = 0;
-//	std::uint64_t end   = 0;
-//	vkGetQueryPoolResults(m_sVkDevice, m_sQueryPool, 0, 1, sizeof(uint64_t), &begin, 0, VK_QUERY_RESULT_64_BIT);
-//	vkGetQueryPoolResults(m_sVkDevice, m_sQueryPool, 1, 1, sizeof(uint64_t), &end, 0, VK_QUERY_RESULT_64_BIT);
-//	return float(end - begin) / 1000000.f;
-//}
+shade::RenderAPI::VramUsage shade::VulkanRenderAPI::GetVramMemoryUsage()
+{
+	VkPhysicalDeviceMemoryProperties2 memoryProperties = {};
+	memoryProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
+
+	VkPhysicalDeviceMemoryBudgetPropertiesEXT memoryBudgetProperties = {};
+	memoryBudgetProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT;
+	memoryProperties.pNext = &memoryBudgetProperties;
+
+	vkGetPhysicalDeviceMemoryProperties2(VulkanContext::GetPhysicalDevice()->GetDevice(), &memoryProperties);
+
+	VramUsage usage{ std::vector<VramUsage::Heap>(memoryProperties.memoryProperties.memoryHeapCount) };
+
+	for (std::uint32_t i = 0; i < usage.Heaps.size(); ++i)
+	{
+		usage.Heaps[i].UsedMemoryBytes  = memoryBudgetProperties.heapUsage[i];
+		usage.Heaps[i].TotalMemoryBytes = memoryProperties.memoryProperties.memoryHeaps[i].size;
+		usage.Heaps[i].AvailableMemory  = memoryBudgetProperties.heapBudget[i];
+	}
+	return usage;
+}
 
 void shade::VulkanRenderAPI::UpdateMaterial(std::uint32_t frameIndex, std::uint32_t offset)
 {

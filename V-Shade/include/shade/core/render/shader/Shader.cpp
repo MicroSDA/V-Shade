@@ -28,11 +28,11 @@ shade::Shader::Shader(const std::string& filePath)
     }
 }
 
-shade::SharedPointer<shade::Shader> shade::Shader::Create(const std::string& filePath)
+shade::SharedPointer<shade::Shader> shade::Shader::Create(const std::string& filePath, bool ignoreCache)
 {
     switch (RenderAPI::GetCurrentAPI())
     {
-        case RenderAPI::API::Vulkan: return SharedPointer<VulkanShader>::Create(filePath);
+        case RenderAPI::API::Vulkan: return SharedPointer<VulkanShader>::Create(filePath, ignoreCache);
         default:SHADE_CORE_ERROR("Only Vulkan api is supported!"); return nullptr;
     }
 }

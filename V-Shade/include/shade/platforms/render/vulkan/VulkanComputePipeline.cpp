@@ -393,9 +393,10 @@ void shade::VulkanComputePipeline::SetBarrier(SharedPointer<RenderCommandBuffer>
 
 }
 
-void shade::VulkanComputePipeline::Recompile()
+void shade::VulkanComputePipeline::Recompile(bool clearCache)
 {
-	m_Specification.Shader = Shader::Create(m_Specification.Shader->GetFilePath());
+	// Add force clear cache 
+	m_Specification.Shader = Shader::Create(m_Specification.Shader->GetFilePath(), clearCache);
 	Invalidate();
 }
 

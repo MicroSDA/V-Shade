@@ -38,8 +38,9 @@ namespace shade
 
 		static void BeginRenderWithCustomomViewPort(SharedPointer<RenderCommandBuffer>& commandBuffer, SharedPointer<RenderPipeline>& pipeline, std::uint32_t frameIndex, glm::vec2 viewPort, bool clear);
 
+		static RenderAPI::VramUsage GetVramMemoryUsage();
 
-		static void EndRender(SharedPointer<RenderCommandBuffer>& commandBuffer, std::uint32_t frameIndex);
+		static void EndRender(SharedPointer<RenderCommandBuffer>& commandBuffer, SharedPointer<RenderPipeline>& pipeline, std::uint32_t frameIndex);
 
 		static void DrawInstanced(SharedPointer<RenderCommandBuffer>& commandBuffer, const SharedPointer<VertexBuffer>& vertices, const SharedPointer<IndexBuffer>& indices, const SharedPointer<VertexBuffer>& transforms, const SharedPointer<VertexBuffer>& bones, std::uint32_t count, std::uint32_t transformOffset = 0);
 		static void DrawSubmitedInstanced(SharedPointer<RenderCommandBuffer>& commandBuffer, const SharedPointer<RenderPipeline>& pipeline, std::size_t instance, std::size_t material, std::uint32_t frameIndex, std::size_t lod = 0, std::uint32_t splitOffset = 0);
@@ -52,17 +53,17 @@ namespace shade
 		static void SubmitStaticMeshDynamicLOD(const SharedPointer<RenderPipeline>& pipeline, const SharedPointer<Drawable>& drawable, const Asset<Material>& material, const SharedPointer<Model>& model, const glm::mat4& transform, std::uint32_t splitOffset = 0);
 
 		static bool ExecuteSubmitedRenderPipeline(SharedPointer<RenderPipeline> pipeline, std::uint32_t frameIndex, bool isForceClear = false);
-		static bool ExecuteComputePipeline(SharedPointer<ComputePipeline>& pipeline, std::uint32_t frameIndex);
+		static bool ExecuteComputePipeline(SharedPointer<ComputePipeline> pipeline, std::uint32_t frameIndex);
 
 		static void SubmitLight(const SharedPointer<GlobalLight>& light, const glm::mat4& transform, const SharedPointer<Camera>& camera);
 		static void SubmitLight(const SharedPointer<SpotLight>& light, const glm::mat4& transform, const SharedPointer<Camera>& camera);
 		static void SubmitLight(const SharedPointer<PointLight>& light, const glm::mat4& transform, const SharedPointer<Camera>& camera);
 		
-		static void UpdateSubmitedMaterial(SharedPointer<RenderCommandBuffer>& commandBuffer, SharedPointer<RenderPipeline>& pipeline, const Asset<Drawable>& instance, const Asset<Material>& material, std::uint32_t frameIndex, std::size_t lod = 0);
-		static void UpdateSubmitedMaterial(SharedPointer<RenderCommandBuffer>& commandBuffer, SharedPointer<RenderPipeline>& pipeline, std::size_t instance, const Asset<Material>& material, std::uint32_t frameIndex, std::size_t lod = 0);
+		static void UpdateSubmitedMaterial(SharedPointer<RenderCommandBuffer>& commandBuffer, SharedPointer<RenderPipeline> pipeline, const Asset<Drawable>& instance, const Asset<Material>& material, std::uint32_t frameIndex, std::size_t lod = 0);
+		static void UpdateSubmitedMaterial(SharedPointer<RenderCommandBuffer>& commandBuffer, SharedPointer<RenderPipeline> pipeline, std::size_t instance, const Asset<Material>& material, std::uint32_t frameIndex, std::size_t lod = 0);
 		
 		static void SubmitBoneTransforms(const SharedPointer<RenderPipeline>& pipeline, const Asset<Model>& instance, const SharedPointer<std::vector<glm::mat4>>& transform);
-		static void UpdateSubmitedBonesData(SharedPointer<RenderCommandBuffer>& commandBuffer, SharedPointer<RenderPipeline>& pipeline, std::size_t modelInstance, std::uint32_t frameIndex);
+		static void UpdateSubmitedBonesData(SharedPointer<RenderCommandBuffer>& commandBuffer, SharedPointer<RenderPipeline> pipeline, std::size_t modelInstance, std::uint32_t frameIndex);
 
 		static const SpotLight::RenderData& GetSubmitedSpotLightRenderData(std::uint32_t lightIndex);
 		static const std::uint32_t GetSubmitedSpotLightCount();

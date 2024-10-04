@@ -2145,7 +2145,7 @@ void graph_editor::PoseNodeDelegate::ProcessSideBar(const InternalContext* conte
 			{
 				ImGui::TableNextColumn();
 				{
-					shade::ImGuiLayer::DrawFontIcon(u8"\xe988", 1, 0.7f); 
+					shade::ImGuiLayer::DrawFontIcon(u8"\xe988", 1, 0.7f, "Hello");
 					ImGuiLayer::HelpMarker("#", std::format("FPS: {:.2f}", FPS).c_str());
 				}
 				ImGui::TableNextColumn();

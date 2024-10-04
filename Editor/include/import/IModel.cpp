@@ -144,7 +144,6 @@ void IModel::ProcessMeshNode(shade::SharedPointer<shade::Model>& model, shade::S
 
 	for (std::size_t v = 0; v < aMesh->mNumVertices; v++)
 	{
-		
 		shade::Vertex vertex{ .Position = { aMesh->mVertices[v].x, aMesh->mVertices[v].y, aMesh->mVertices[v].z} };
 		//shade::Vertex vertex{ .Position = utils::FromAssimpToGLM<glm::mat4>(node->mTransformation) * glm::vec4{ aMesh->mVertices[v].x, aMesh->mVertices[v].y, aMesh->mVertices[v].z, 1.f } };
 
@@ -257,10 +256,6 @@ void PrintMatrix(const glm::mat4& matrix) {
 }
 void ISkeleton::ProcessBone(const aiScene* pScene, const aiNode* pNode, shade::SharedPointer<shade::Skeleton>& skeleton, shade::Skeleton::BoneNode* parent)
 {
-	
-	std::cout << pNode->mName.C_Str() << std::endl;
-	PrintMatrix(utils::FromAssimpToGLM<glm::mat4>(pNode->mTransformation));
-
 	aiBone* pBone = nullptr;
 
 	for (uint32_t meshIndex = 0; meshIndex < pScene->mNumMeshes; ++meshIndex)
@@ -283,7 +278,8 @@ void ISkeleton::ProcessBone(const aiScene* pScene, const aiNode* pNode, shade::S
 	{
 		SHADE_INFO("-- Add new bone : {} --", pNode->mName.C_Str());
 
-		shade::Skeleton::BoneNode* bone = skeleton->AddBone(pNode->mName.C_Str(), utils::FromAssimpToGLM<glm::mat4>(pNode->mTransformation), utils::FromAssimpToGLM<glm::mat4>(pBone->mOffsetMatrix));
+		shade::Skeleton::BoneNode* bone = skeleton->AddBone(pNode->mName.C_Str(),
+			((parent) ? glm::translate(glm::identity<glm::mat4>(), parent->Translation) * glm::toMat4(parent->Rotation) * glm::scale(glm::identity<glm::mat4>(), parent->Scale) : glm::identity<glm::mat4>()) * utils::FromAssimpToGLM<glm::mat4>(pNode->mTransformation), utils::FromAssimpToGLM<glm::mat4>(pBone->mOffsetMatrix));
 
 		if (parent != nullptr)
 			parent->Children.push_back(bone);
@@ -365,6 +361,7 @@ std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> IAnimati
 				);
 			}
 
+			
 			animation->AddChannel(pChannel->mNodeName.C_Str(), channel);
 		}
 

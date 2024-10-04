@@ -677,7 +677,7 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 	m_SceneViewPort.ViewPort.y = screenPosition.y;
 
 	m_SceneViewPort.ViewPort.z = ImGui::GetContentRegionAvail().x;
-	m_SceneViewPort.ViewPort.w = ImGui::GetContentRegionAvail().y;
+	m_SceneViewPort.ViewPort.w = ImGui::GetContentRegionAvail().y - 3.f;
 
 	if ( m_SceneRenderer->GetMainTargetFrameBuffer()[frameIndex]->GetWidth()  != m_SceneViewPort.ViewPort.z ||
 		 m_SceneRenderer->GetMainTargetFrameBuffer()[frameIndex]->GetHeight() != m_SceneViewPort.ViewPort.w)
@@ -761,9 +761,9 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 							400.f, 400.f
 						}, // Size
 								{
-									ImGui::GetCursorScreenPos().x - 400.f, ImGui::GetCursorScreenPos().y + 35.f  // Position
+									ImGui::GetCursorScreenPos().x - 390.f, ImGui::GetCursorScreenPos().y + 35.f  // Position
 								},
-						0.5f, // Alpha
+						0.9f, // Alpha
 						[&]() mutable
 						{
 							RenderSettings(m_SceneRenderer);
@@ -1539,125 +1539,117 @@ void EditorLayer::RenderSettings(shade::SharedPointer<shade::SceneRenderer>& ren
 {
 	if (ImGui::TreeNodeEx("Render", ImGuiTreeNodeFlags_Framed))
 	{
-		if (ImGui::TreeNodeEx("Bloom", ImGuiTreeNodeFlags_Framed))
+		auto vramUsage = shade::Renderer::GetVramMemoryUsage();
+
+		// Calculate VRAM usage in MB
+		float usedMemoryMB = vramUsage.Heaps[0].UsedMemoryBytes / 1048576.0f;  // Convert bytes to MB
+		float totalMemoryMB = vramUsage.Heaps[0].TotalMemoryBytes / 1048576.0f; // Convert bytes to MB
+
+		// Calculate the fraction of memory used
+		float progress = usedMemoryMB / totalMemoryMB;
+
+		// Display progress bar with VRAM usage
+		ImGui::Text("V-Ram"); ImGui::SameLine(); ImGui::ProgressBar(progress, ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() * 0.7f), std::format("{:.2f} MB / {:.2f} MB", usedMemoryMB, totalMemoryMB).c_str());
+		ImGui::Text("Submited instances %d, point lights %d, spot lights %d", m_SceneRenderer->GetStatistic().SubmitedInstances, m_SceneRenderer->GetStatistic().SubmitedPointLights, m_SceneRenderer->GetStatistic().SubmitedSpotLights);
+		
+		if (ImGui::TreeNodeEx("Effects", ImGuiTreeNodeFlags_Framed))
 		{
-
-			ImGui::Checkbox("Enable", &renderer->GetSettings().BloomSettings.Enabled);
-			DragFloat("Threshold", &renderer->GetSettings().BloomSettings.Threshold, 0.001f, 0.f, FLT_MAX, 80.f);
-			DragFloat("Knee", &renderer->GetSettings().BloomSettings.Knee, 0.001f, 0.f, FLT_MAX, 80.f);
-			DragFloat("Exposure", &renderer->GetSettings().BloomSettings.Exposure, 0.001f, 0.f, FLT_MAX, 80.f);
-
-			//ImGui::SliderInt("Samples", (int*)&renderer->GetSettings().BloomSettings.Samples, 1, 10);
-			SliderInt("Samples", (int*)&renderer->GetSettings().BloomSettings.Samples, 1, 10, 80.f);
-			//DrawCurve("Curve", glm::value_ptr(m_PPBloom->GetCurve()), 3, ImVec2{ ImGui::GetContentRegionAvail().x, 70 });*/
-			ImGui::TreePop();
-
-			if (ImGui::TreeNodeEx("Down + Up samples ", ImGuiTreeNodeFlags_Framed))
+			if (ImGui::TreeNodeEx("Bloom", ImGuiTreeNodeFlags_Framed))
 			{
-				static int mipLevel = 0;
-				SliderInt("Level", &mipLevel, 0, m_SceneRenderer->GetSettings().BloomSettings.Samples - 1, 80.f);
-				DrawImage(m_SceneRenderer->GetBloomRenderTarget(), { 300, 200 }, {}, mipLevel);
+
+				ImGui::Checkbox("Enable", &renderer->GetSettings().BloomSettings.Enabled);
+				DragFloat("Threshold", &renderer->GetSettings().BloomSettings.Threshold, 0.001f, 0.f, FLT_MAX, 80.f);
+				DragFloat("Knee", &renderer->GetSettings().BloomSettings.Knee, 0.001f, 0.f, FLT_MAX, 80.f);
+				DragFloat("Exposure", &renderer->GetSettings().BloomSettings.Exposure, 0.001f, 0.f, FLT_MAX, 80.f);
+
+				//ImGui::SliderInt("Samples", (int*)&renderer->GetSettings().BloomSettings.Samples, 1, 10);
+				SliderInt("Samples", (int*)&renderer->GetSettings().BloomSettings.Samples, 1, 10, 80.f);
+				//DrawCurve("Curve", glm::value_ptr(m_PPBloom->GetCurve()), 3, ImVec2{ ImGui::GetContentRegionAvail().x, 70 });*/
 				ImGui::TreePop();
-			}
-		}
 
-		if (ImGui::TreeNodeEx("Color correction", ImGuiTreeNodeFlags_Framed))
-		{
-
-			ImGui::Checkbox("Enable", &renderer->GetSettings().ColorCorrectionSettings.Enabled);
-			DragFloat("Gamma", &renderer->GetSettings().ColorCorrectionSettings.Gamma, 0.001f, 0.f, FLT_MAX, 80.f);
-			DragFloat("Exposure", &renderer->GetSettings().ColorCorrectionSettings.Exposure, 0.001f, 0.f, FLT_MAX, 80.f);
-			ImGui::TreePop();
-		}
-
-		if (ImGui::TreeNodeEx("SSAO", ImGuiTreeNodeFlags_Framed))
-		{
-			ImGui::Checkbox("Enable", &m_SceneRenderer->GetSettings().RenderSettings.SSAOEnabled);
-			DragFloat("Radius", &m_SceneRenderer->GetSettings().SSAOSettings.Radius, 0.01f, -FLT_MAX, FLT_MAX, 80.f);
-			DragFloat("Bias", &m_SceneRenderer->GetSettings().SSAOSettings.Bias, 0.01f, -FLT_MAX, FLT_MAX, 80.f);
-			SliderInt("Blur samples", (int*)&m_SceneRenderer->GetSettings().SSAOSettings.BlurSamples, 0, 20);
-			if (ImGui::TreeNodeEx("SSAO map", ImGuiTreeNodeFlags_Framed))
-			{
-				DrawImage(m_SceneRenderer->GetSAAORenderTarget(), { 300, 200 }, {});
-				ImGui::TreePop();
+				if (ImGui::TreeNodeEx("Down + Up samples ", ImGuiTreeNodeFlags_Framed))
+				{
+					static int mipLevel = 0;
+					SliderInt("Level", &mipLevel, 0, m_SceneRenderer->GetSettings().BloomSettings.Samples - 1, 80.f);
+					DrawImage(m_SceneRenderer->GetBloomRenderTarget(), { 300, 200 }, {}, mipLevel);
+					ImGui::TreePop();
+				}
 			}
 
+			if (ImGui::TreeNodeEx("Color correction", ImGuiTreeNodeFlags_Framed))
+			{
+
+				ImGui::Checkbox("Enable", &renderer->GetSettings().ColorCorrectionSettings.Enabled);
+				DragFloat("Gamma", &renderer->GetSettings().ColorCorrectionSettings.Gamma, 0.001f, 0.f, FLT_MAX, 80.f);
+				DragFloat("Exposure", &renderer->GetSettings().ColorCorrectionSettings.Exposure, 0.001f, 0.f, FLT_MAX, 80.f);
+				ImGui::TreePop();
+			}
+
+			if (ImGui::TreeNodeEx("SSAO", ImGuiTreeNodeFlags_Framed))
+			{
+				ImGui::Checkbox("Enable", &m_SceneRenderer->GetSettings().RenderSettings.SSAOEnabled);
+				DragFloat("Radius", &m_SceneRenderer->GetSettings().SSAOSettings.Radius, 0.01f, -FLT_MAX, FLT_MAX, 80.f);
+				DragFloat("Bias", &m_SceneRenderer->GetSettings().SSAOSettings.Bias, 0.01f, -FLT_MAX, FLT_MAX, 80.f);
+				SliderInt("Blur samples", (int*)&m_SceneRenderer->GetSettings().SSAOSettings.BlurSamples, 0, 20);
+				if (ImGui::TreeNodeEx("SSAO map", ImGuiTreeNodeFlags_Framed))
+				{
+					DrawImage(m_SceneRenderer->GetSAAORenderTarget(), { 300, 200 }, {});
+					ImGui::TreePop();
+				}
+
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNodeEx("Shadows", ImGuiTreeNodeFlags_Framed))
+			{
+				ImGui::Checkbox("Global light shadows", &renderer->GetSettings().RenderSettings.GlobalShadowsEnabled);
+				ImGui::Checkbox("Spot light shadows", &renderer->GetSettings().RenderSettings.SpotShadowEnabled);
+				ImGui::Checkbox("Point light shadows", &renderer->GetSettings().RenderSettings.PointShadowEnabled);
+				ImGui::Checkbox("Point light shadows split by faces", &renderer->GetSettings().IsPointLightShadowSplitBySides);
+				ImGui::TreePop();
+			}
+			ImGui::Checkbox("Light culling", &renderer->GetSettings().RenderSettings.LightCulling);
+
 			ImGui::TreePop();
 		}
-		if (ImGui::TreeNodeEx("Shadows", ImGuiTreeNodeFlags_Framed))
+		
+		if (ImGui::TreeNodeEx("Pipelines", ImGuiTreeNodeFlags_Framed))
 		{
-			ImGui::Checkbox("Global light shadows", &renderer->GetSettings().RenderSettings.GlobalShadowsEnabled);
-			ImGui::Checkbox("Spot light shadows", &renderer->GetSettings().RenderSettings.SpotShadowEnabled);
-			ImGui::Checkbox("Point light shadows", &renderer->GetSettings().RenderSettings.PointShadowEnabled);
-			ImGui::Checkbox("Point light shadows split by faces", &renderer->GetSettings().IsPointLightShadowSplitBySides);
+			if (ImGui::BeginTable("Pipelines", 4, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_RowBg))
+			{
+				for (auto& [name, pipeline] : m_SceneRenderer->GetPipelines())
+				{
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					{
+						bool enabled = pipeline->IsActive();
+						if (ImGui::Checkbox(("##" + name).c_str(), &enabled))
+						{
+							pipeline->SetActive(enabled);
+						}
+					}
+					ImGui::TableNextColumn();
+					{
+						ImGui::Text(name.c_str());
+					}
+					ImGui::TableNextColumn();
+					{
+						ImGui::Text("%0.3f ms", pipeline->GetTimeQuery());
+					}
+					ImGui::TableNextColumn();
+					{
+						if (ImGuiLayer::IconButton("##Recompile", u8"\xe889", 1, 1.0f))
+							pipeline->Recompile(true);
+					}
+				}
+				ImGui::EndTable();
+			}
 			ImGui::TreePop();
 		}
-		ImGui::Checkbox("Light culling", &renderer->GetSettings().RenderSettings.LightCulling);
 
 		ImGui::TreePop();
 	}
 
 
-	
-
-	if (ImGui::TreeNodeEx("Pipelines", ImGuiTreeNodeFlags_Framed))
-	{
-		if (ImGui::BeginTable("asd", 3, ImGuiTableFlags_SizingStretchProp))
-		{
-			ImGui::TableNextRow();
-
-			ImGui::TableNextColumn();
-			{
-				ImGui::Text("Light culling pre depth pass");
-			}
-			ImGui::TableNextColumn();
-			{
-				ImGui::Text("%0.3f ms", m_SceneRenderer->GetStatistic().LightCullingPreDepth);
-			}
-			ImGui::TableNextColumn();
-			{
-				ImGui::Button("Recompile");
-			}
-
-			ImGui::EndTable();
-		}
-
-
-		if (ImGui::Button("Recompile all pipelines"))
-			m_SceneRenderer->RecompileAllPipelines();
-
-
-		if (ImGui::TreeNodeEx("Statistic", ImGuiTreeNodeFlags_Framed))
-		{
-			ImGui::Text("Submited instances %d", m_SceneRenderer->GetStatistic().SubmitedInstances);
-			ImGui::Separator();
-			ImGui::Text("Submited point lights %d", m_SceneRenderer->GetStatistic().SubmitedPointLights);
-			ImGui::Separator();
-			ImGui::Text("Submited spot lights %d", m_SceneRenderer->GetStatistic().SubmitedSpotLights);
-			ImGui::Separator();
-
-			ImGui::Text("Light culling pre depth pass %0.3f ms", m_SceneRenderer->GetStatistic().LightCullingPreDepth);
-			ImGui::Separator();
-			ImGui::Text("Light culling compute pass %0.3f ms", m_SceneRenderer->GetStatistic().LightCullingCompute);
-			ImGui::Separator();
-			ImGui::Text("Instanced geometry pass %0.3f ms", m_SceneRenderer->GetStatistic().InstanceGeometry);
-			ImGui::Separator();
-			ImGui::Text("Global light shadow pre depth pass %0.3f ms", m_SceneRenderer->GetStatistic().GlobalLightPreDepth);
-			ImGui::Separator();
-			ImGui::Text("Spot light shadow pre depth pass %0.3f ms", m_SceneRenderer->GetStatistic().SpotLightPreDepth);
-			ImGui::Separator();
-			ImGui::Text("Point light shadow pre depth pass %0.3f ms", m_SceneRenderer->GetStatistic().PointLightPreDepth);
-			ImGui::Separator();
-			ImGui::Text("Bloom pass %0.3f ms", m_SceneRenderer->GetStatistic().Bloom);
-			ImGui::Separator();
-			ImGui::Text("Color correction pass %0.3f ms", m_SceneRenderer->GetStatistic().ColorCorrection);
-			ImGui::Separator();
-
-			ImGui::TreePop();
-		}
-
-		ImGui::TreePop();
-	}
 
 	static bool showDemoWindow = false;
 	if (ImGui::TreeNodeEx("Debug", ImGuiTreeNodeFlags_Framed))
