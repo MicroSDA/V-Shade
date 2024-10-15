@@ -27,6 +27,7 @@ namespace shade
 			virtual void OnConnect(graphs::Connection::Type connectionType, NodeValueType type, graphs::EndpointIdentifier endpoint) override {};
 
 			const Pose* GetFinalPose() const;
+			Pose* GetFinalPose();
 		};
 	}
 }

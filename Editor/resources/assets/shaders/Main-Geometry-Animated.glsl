@@ -25,16 +25,28 @@ layout(location = 4) out vec3 out_VertexViewSpace;
 layout(location = 5) flat out int out_InstanceId;
 layout(location = 6) out mat3 out_TBN_Matrix;
 
+layout(location = 9) out float out_Weight;
 //Uniform buffer containing the camera data
 layout (std140, set = GLOBAL_SET, binding = CAMERA_BUFFER_BINDING) uniform UCamera
 {
     Camera u_Camera;
 };
-//Storage buffer containing the bones data
+// //Storage buffer containing the bones data
+// layout (std430, set = PER_INSTANCE_SET, binding = BONE_TRANSFORMS_BINDING) restrict readonly buffer SBoneTransform
+// {
+	// mat4 s_BoneTransform[];
+// };
+
+struct BoneData 
+{
+	mat4 s_Transform;
+	int s_ParentId;
+};
+	
 layout (std430, set = PER_INSTANCE_SET, binding = BONE_TRANSFORMS_BINDING) restrict readonly buffer SBoneTransform
 {
-	mat4 s_BoneTransform[];
-};
+	BoneData s_BoneTransform[];
+}; 
 
 layout(push_constant) uniform DrawInstance
 {
@@ -47,8 +59,13 @@ void main()
    uint BoneInstanceOffset = gl_InstanceIndex * MAX_BONES_PER_INSTANCE;
    // TODO: Mby refactor this step wit + matrices
    mat4 BoneTransform = mat4(0.0);
+   out_Weight = 0.0;
    for(uint i = 0; i < BONE_INFLUENCE; i++)
-   	   BoneTransform += (a_BoneId[i] != ~0) ? s_BoneTransform[BoneInstanceOffset + a_BoneId[i]] * a_BoneWeight[i] : mat4(0.0);
+   {
+	  BoneTransform += (a_BoneId[i] != ~0) ? s_BoneTransform[BoneInstanceOffset + a_BoneId[i]].s_Transform * a_BoneWeight[i] : mat4(0.0);
+	  out_Weight += a_BoneWeight[i];
+   }
+   out_Weight /= BONE_INFLUENCE;
    
    mat4 BoneTransformWorldSpace = a_Transform * BoneTransform;
    vec4 VertexWorldSpace = BoneTransformWorldSpace * vec4(a_Position, 1.0);
@@ -88,6 +105,7 @@ layout(location = 3) in vec3 a_VertexWorldSpace;
 layout(location = 4) in vec3 a_VertexViewSpace;
 layout(location = 5) flat in int a_InstanceId;
 layout(location = 6) in mat3 a_TBN_Matrix;
+layout(location = 9) in float a_Weight;
 //Output variables
 layout(location = 0) out vec4 MainColor;
 layout(location = 1) out vec4 Position;
@@ -241,4 +259,6 @@ void main()
 		float value = float(GetPointLightCount(ivec2(gl_FragCoord), u_SceneData.PointLightCount, u_TilesCountX.TilesCountX) + GetSpotLightCount(ivec2(gl_FragCoord), u_SceneData.SpotLightCount, u_TilesCountX.TilesCountX));
 		MainColor.rgb += (MainColor.rgb * 0.2) + GetGradient(value);
 	}
+	
+	if(texture(t_DiffuseTexture,  a_UV_Coordinates).a < 0.1) discard;
 }

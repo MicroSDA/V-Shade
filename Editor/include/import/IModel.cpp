@@ -40,10 +40,9 @@ std::pair<shade::SharedPointer<shade::Model>, std::unordered_map<std::string, sh
 {
 	Assimp::Importer importer;
 	importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false); // false
-	importer.SetPropertyBool(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, false); // Add as settings
+	importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, scale); // Add as settings
 	importer.SetPropertyBool(AI_CONFIG_FBX_CONVERT_TO_M, false);
-	//importer.SetPropertyBool(AI_GLTF, false);
-
+	importer.SetPropertyBool(AI_CONFIG_FBX_USE_SKELETON_BONE_CONTAINER, true);
 	
 	unsigned int ImportFagls = 
 		aiProcess_OptimizeGraph |
@@ -52,6 +51,7 @@ std::pair<shade::SharedPointer<shade::Model>, std::unordered_map<std::string, sh
 		aiProcess_FindInvalidData |
 		aiProcess_OptimizeMeshes |
 		aiProcess_FixInfacingNormals;
+
 
 	ImportFagls |=
 		((flags & Triangulate) ? aiProcess_Triangulate : 0) |
@@ -77,16 +77,6 @@ std::pair<shade::SharedPointer<shade::Model>, std::unordered_map<std::string, sh
 		model->SetAssetData(shade::SharedPointer<shade::AssetData>::Create(pScene->mName.C_Str(), shade::AssetMeta::Category::Primary, shade::AssetMeta::Type::Model));
 
 
-		if (flags & ImportModel)
-		{
-			SHADE_INFO("******************************************************************");
-			SHADE_INFO("Start to extractin model");
-			SHADE_INFO("******************************************************************");
-
-
-			ProcessModelNode(model, filePath.c_str(), pScene->mRootNode, pScene, flags);
-		}
-
 		shade::SharedPointer<shade::Skeleton> skeleton;
 
 		if (flags & TryToImportSkeleton)
@@ -96,6 +86,16 @@ std::pair<shade::SharedPointer<shade::Model>, std::unordered_map<std::string, sh
 			SHADE_INFO("******************************************************************");
 
 			skeleton = ISkeleton::ExtractSkeleton(pScene);
+		}
+
+		if (flags & ImportModel)
+		{
+			SHADE_INFO("******************************************************************");
+			SHADE_INFO("Start to extractin model");
+			SHADE_INFO("******************************************************************");
+
+
+			ProcessModelNode(model, filePath.c_str(), pScene->mRootNode, pScene, flags, skeleton);
 		}
 
 		std::unordered_map<std::string, shade::SharedPointer<shade::Animation>> animations;
@@ -115,24 +115,24 @@ std::pair<shade::SharedPointer<shade::Model>, std::unordered_map<std::string, sh
 	}
 }
 
-void IModel::ProcessModelNode(shade::SharedPointer<shade::Model>& model, const char* filePath, const aiNode* node, const aiScene* scene, IImportFlag flags)
+void IModel::ProcessModelNode(shade::SharedPointer<shade::Model>& model, const char* filePath, const aiNode* node, const aiScene* scene, IImportFlag flags, const shade::SharedPointer<shade::Skeleton>& skeleton)
 {
 	for (unsigned int i = 0; i < node->mNumMeshes; i++)
 	{
 		aiMesh* aMesh = scene->mMeshes[node->mMeshes[i]];
 
 		shade::SharedPointer<shade::Mesh> mesh = shade::Mesh::CreateEXP();
-		ProcessMeshNode(model, mesh, filePath, aMesh, node, flags);
+		ProcessMeshNode(model, mesh, filePath, aMesh, node, flags, skeleton);
 		model->AddMesh(mesh);
 	}
 
 	for (unsigned int i = 0; i < node->mNumChildren; i++)
 	{
-		ProcessModelNode(model, filePath, node->mChildren[i], scene, flags);
+		ProcessModelNode(model, filePath, node->mChildren[i], scene, flags, skeleton);
 	}
 }
 
-void IModel::ProcessMeshNode(shade::SharedPointer<shade::Model>& model, shade::SharedPointer<shade::Mesh>& mesh, const char* filePath, aiMesh* aMesh, const aiNode* node, IImportFlag flags)
+void IModel::ProcessMeshNode(shade::SharedPointer<shade::Model>& model, shade::SharedPointer<shade::Mesh>& mesh, const char* filePath, aiMesh* aMesh, const aiNode* node, IImportFlag flags, const shade::SharedPointer<shade::Skeleton>& skeleton)
 {
 	//node->mTransformation;
 
@@ -175,7 +175,7 @@ void IModel::ProcessMeshNode(shade::SharedPointer<shade::Model>& model, shade::S
 	}
 	
 	if (aMesh->HasBones() && (flags & BakeBoneIdsWeightsIntoMesh))
-		ProcessBones(mesh, filePath, aMesh, node);
+		ProcessBones(mesh, filePath, aMesh, node, skeleton);
 
 	if (aMesh->mMaterialIndex >= 0)
 	{
@@ -186,7 +186,7 @@ void IModel::ProcessMeshNode(shade::SharedPointer<shade::Model>& model, shade::S
 	mesh->GenerateHalfExt();
 }
 
-void IModel::ProcessBones(shade::SharedPointer<shade::Mesh>& mesh, const char* filePath, aiMesh* aMesh, const aiNode* pNode)
+void IModel::ProcessBones(shade::SharedPointer<shade::Mesh>& mesh, const char* filePath, aiMesh* aMesh, const aiNode* pNode, const shade::SharedPointer<shade::Skeleton>& skeleton)
 {
 	SHADE_INFO("Bones count : {}", aMesh->mNumBones);
 
@@ -195,21 +195,19 @@ void IModel::ProcessBones(shade::SharedPointer<shade::Mesh>& mesh, const char* f
 	// We have bones only for lod at level 0 !!!!
 	mesh->GetLod(0).Bones.resize(mesh->GetLod(0).Vertices.size());
 
+	// тут не верно айди распределяются !!
+
 	for (std::size_t boneIndex = 0; boneIndex < aMesh->mNumBones; ++boneIndex)
 	{
 		std::uint32_t boneId = shade::Skeleton::BONE_NULL_ID;
 
 		std::string boneName = aMesh->mBones[boneIndex]->mName.C_Str();
 
-		if (boneList.find(boneName) == boneList.end())
+		if (auto* bone = skeleton->GetBone(aMesh->mBones[boneIndex]->mName.C_Str()))
 		{
-			SHADE_INFO("-- Attach '{0}' bone to : '{1}' mesh --", boneName, aMesh->mName.C_Str());
-			boneId = boneList.size();
-			boneList[boneName] = boneId;
-		}
-		else
-		{
-			boneId = boneList[boneName];
+			boneId = bone->ID;
+			//mesh->GetInverseBindPoseMatrices()[boneName] = utils::FromAssimpToGLM<glm::mat4>(aMesh->mBones[boneIndex]->mOffsetMatrix);
+			SHADE_INFO("-- Attach '{0}' bone with bode id '{1}' to : '{2}' mesh --", boneName, boneId, aMesh->mName.C_Str());
 		}
 
 		assert(boneId != shade::Skeleton::BONE_NULL_ID);
@@ -234,6 +232,21 @@ void IModel::ProcessBones(shade::SharedPointer<shade::Mesh>& mesh, const char* f
 			}
 		}
 	}
+
+
+	mesh->GetLod(0).Bones;
+	/*for (std::size_t i = 0; i < mesh->GetLod(0).Bones.size(); ++i)
+	{
+		std::cout << "--------------------------------------------\n";
+
+		std::cout << "Vertex id =" << i << std::endl;
+		std::cout << "Bone id =" << mesh->GetLod(0).Bones[i].IDs[0] << " Weight: " << mesh->GetLod(0).Bones[i].Weights[0] << std::endl;
+		std::cout << "Bone id =" << mesh->GetLod(0).Bones[i].IDs[1] << " Weight: " << mesh->GetLod(0).Bones[i].Weights[1] << std::endl;
+		std::cout << "Bone id =" << mesh->GetLod(0).Bones[i].IDs[2] << " Weight: " << mesh->GetLod(0).Bones[i].Weights[2] << std::endl;
+		std::cout << "Bone id =" << mesh->GetLod(0).Bones[i].IDs[3] << " Weight: " << mesh->GetLod(0).Bones[i].Weights[3] << std::endl;
+
+		std::cout << "--------------------------------------------\n";
+	}*/
 }
 
 shade::SharedPointer<shade::Skeleton> ISkeleton::ExtractSkeleton(const aiScene* pScene)
@@ -254,6 +267,7 @@ void PrintMatrix(const glm::mat4& matrix) {
 		std::cout << std::endl; // Перевод строки для новой строки матрицы
 	}
 }
+
 void ISkeleton::ProcessBone(const aiScene* pScene, const aiNode* pNode, shade::SharedPointer<shade::Skeleton>& skeleton, shade::Skeleton::BoneNode* parent)
 {
 	aiBone* pBone = nullptr;
@@ -265,7 +279,8 @@ void ISkeleton::ProcessBone(const aiScene* pScene, const aiNode* pNode, shade::S
 		{
 			//SHADE_INFO("-- Add Armature --");
 			skeleton->AddArmature(mesh->mBones[boneIndex]->mArmature->mName.C_Str(), utils::FromAssimpToGLM<glm::mat4>(mesh->mBones[boneIndex]->mArmature->mTransformation));
-			if (pNode == mesh->mBones[boneIndex]->mNode)
+			
+			if (pNode->mName == mesh->mBones[boneIndex]->mName)
 			{
 				pBone = mesh->mBones[boneIndex]; break;
 			}
@@ -277,9 +292,11 @@ void ISkeleton::ProcessBone(const aiScene* pScene, const aiNode* pNode, shade::S
 	if (pBone)
 	{
 		SHADE_INFO("-- Add new bone : {} --", pNode->mName.C_Str());
-
-		shade::Skeleton::BoneNode* bone = skeleton->AddBone(pNode->mName.C_Str(),
-			((parent) ? glm::translate(glm::identity<glm::mat4>(), parent->Translation) * glm::toMat4(parent->Rotation) * glm::scale(glm::identity<glm::mat4>(), parent->Scale) : glm::identity<glm::mat4>()) * utils::FromAssimpToGLM<glm::mat4>(pNode->mTransformation), utils::FromAssimpToGLM<glm::mat4>(pBone->mOffsetMatrix));
+		 
+		shade::Skeleton::BoneNode* bone = skeleton->AddBone(pNode->mName.C_Str(),  
+			utils::FromAssimpToGLM<glm::mat4>(pNode->mTransformation),
+			// InverseBindPose 
+			utils::FromAssimpToGLM<glm::mat4>(pBone->mOffsetMatrix));
 
 		if (parent != nullptr)
 			parent->Children.push_back(bone);

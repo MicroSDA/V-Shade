@@ -28,7 +28,6 @@ shade::Skeleton::BoneNode* shade::Skeleton::AddBone(const std::string& name, con
 		m_RootNode = &bone;
 
 	math::DecomposeMatrix(transform, bone.Translation, bone.Rotation, bone.Scale);
-
 	return &bone;
 }
 
@@ -130,7 +129,7 @@ void SerializeNode(std::ostream& stream, const shade::Skeleton& skeleton, const 
 	shade::serialize::Serializer::Serialize<glm::quat>(stream, node.Rotation);
 	shade::serialize::Serializer::Serialize<glm::vec3>(stream, node.Scale);
 	shade::serialize::Serializer::Serialize<glm::mat4>(stream, node.InverseBindPose);
-
+	
 	SerializeChildren(stream, skeleton, node.Children);
 }
 // TIP: Not tested 
@@ -170,7 +169,7 @@ void DeserializeNode(std::istream& stream, shade::Skeleton& skeleton, shade::Ske
 	shade::serialize::Serializer::Deserialize<glm::quat>(stream, _node.Rotation);
 	shade::serialize::Serializer::Deserialize<glm::vec3>(stream, _node.Scale);
 	shade::serialize::Serializer::Deserialize<glm::mat4>(stream, _node.InverseBindPose);
-
+	
 	auto node = skeleton.AddNode(_node);
 
 	if (child) *child = node;

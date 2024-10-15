@@ -34,10 +34,10 @@ namespace shade
 			glm::quat Rotation = glm::identity<glm::quat>();
 			// Scale of the bone node
 			glm::vec3 Scale = glm::vec3(1.f);
-			// Inverse bind pose matrix of the bone node
-			glm::mat4 InverseBindPose = glm::identity<glm::mat4>();
 			// Children bone nodes
 			std::vector<BoneNode*> Children;
+			// Inverse bind pose
+			glm::mat4 InverseBindPose = glm::identity<glm::mat4>();
 		};
 		struct BoneArmature
 		{
@@ -48,6 +48,7 @@ namespace shade
 			glm::quat Rotation = glm::identity<glm::quat>();
 			// Scale of the bone node
 			glm::vec3 Scale = glm::vec3(1.f);
+
 		};
 		using BoneNodes = std::unordered_map<std::string, BoneNode>;
 	public:

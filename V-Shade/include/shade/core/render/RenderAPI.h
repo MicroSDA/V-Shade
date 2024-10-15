@@ -149,6 +149,15 @@ namespace shade
 			std::uint32_t count,
 			std::uint32_t transformOffset) = 0;
 
+		virtual void DummyInvocation(
+			SharedPointer<RenderCommandBuffer>& commandBuffer,
+			const SharedPointer<VertexBuffer>& vertices,
+			const SharedPointer<IndexBuffer>& indices,
+			const SharedPointer<VertexBuffer>& bones,
+			const SharedPointer<VertexBuffer>& transforms,
+			std::uint32_t count,
+			std::uint32_t transformOffset) = 0;
+
 		virtual void BeginTimestamp(SharedPointer<RenderCommandBuffer>& commandBuffer, const std::string& name) = 0;
 		virtual float EndTimestamp(SharedPointer<RenderCommandBuffer>& commandBuffer, const std::string& name) = 0;
 		virtual VramUsage GetVramMemoryUsage() = 0;

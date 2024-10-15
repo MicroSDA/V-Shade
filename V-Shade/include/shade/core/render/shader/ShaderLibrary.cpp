@@ -13,7 +13,7 @@ shade::SharedPointer<shade::Shader> shade::ShaderLibrary::Create(const std::stri
     else
     {
         SHADE_CORE_WARNING("Shader '{0}' is already exist in library!", name);
-        return nullptr;
+        return m_sLibrary[name];
     }
 }
 

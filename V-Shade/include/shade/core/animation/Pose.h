@@ -21,7 +21,11 @@ namespace shade
 				glm::vec3 Scale			= glm::vec3(0.f);
 			};
 
-			using GlobalTransform		= glm::mat4;
+			struct alignas(16) GlobalTransform
+			{
+				glm::mat4		Transform = glm::identity<glm::mat4>();
+				std::uint32_t	ParentId = ~0;
+			};
 
 			struct SHADE_API RootMotion
 			{
@@ -80,8 +84,11 @@ namespace shade
 			SHADE_INLINE 		float GetDuration()														const   { return m_Duration; }
 			SHADE_INLINE 		float GetCurrentPlayTime()												const   { return m_CurrentPlayTime; }
 
-			SHADE_INLINE		const LocalTransform& GetArmatureTransform() const { return m_ArmatureTransform; }
-			SHADE_INLINE		LocalTransform& GetArmatureTransform() { return m_ArmatureTransform; }
+			SHADE_INLINE		const LocalTransform& GetArmatureLocalTransform() const { return m_ArmatureTransform; }
+			SHADE_INLINE		LocalTransform& GetArmatureLocalTransform() { return m_ArmatureTransform; }
+
+			SHADE_INLINE		void SetArmatureLocalTransform(const LocalTransform& armature) { m_ArmatureTransform = armature; }
+		
 
 			SHADE_INLINE RootMotion& GetRootMotion()
 			{
@@ -108,6 +115,16 @@ namespace shade
 				return m_HasRootMotion;
 			}
 
+			SHADE_INLINE bool HasInverseBindPose() const
+			{
+				return m_HasInverseBindPose;
+			}
+
+			SHADE_INLINE void MarkHasInverseBindPose(bool isSet)
+			{
+				m_HasInverseBindPose = isSet;
+			}
+
 		private:
 			Asset<Skeleton>								m_Skeleton;
 			std::size_t									m_AnimationCombinationHash;
@@ -119,6 +136,7 @@ namespace shade
 			float										m_Duration;
 			float										m_CurrentPlayTime;
 			bool										m_HasRootMotion = false;
+			bool										m_HasInverseBindPose = false;
 			RootMotion									m_RootMotion;
 		};
 	}

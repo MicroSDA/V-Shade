@@ -3,7 +3,7 @@
 #include <shade/core/math/Math.h>
 #include <glm/glm/gtx/quaternion.hpp>
 #include <shade/core/asset/Asset.h>
-#include <shade/core/render/RenderAPI.h>
+//#include <shade/core/render/RenderAPI.h>
 #include <shade/core/animation/Skeleton.h>
 
 namespace shade
@@ -227,7 +227,7 @@ namespace shade
 	}
 
 #ifndef BONE_TRANSFORM_DATA_SIZE
-	#define BONE_TRANSFORM_DATA_SIZE (sizeof(glm::mat4) * RenderAPI::MAX_BONES_PER_INSTANCE)
+	#define BONE_TRANSFORM_DATA_SIZE (sizeof(animation::Pose::GlobalTransform) * RenderAPI::MAX_BONES_PER_INSTANCE)
 #endif // !BONE_TRANSFORM_DATA_SIZE
 
 #ifndef BONE_TRANSFORMS_DATA_SIZE

@@ -153,7 +153,7 @@ namespace shade
 		SceneRenderer(bool swapChainAsMainTarget);
 		virtual ~SceneRenderer() = default;
                             
-		void OnUpdate(SharedPointer<Scene>& scene, const shade::CameraComponent& camera, const FrameTimer& deltaTime);
+		void OnUpdate(SharedPointer<Scene>& scene, const shade::CameraComponent& camera, const FrameTimer& deltaTime, const ecs::Entity& activeEntity = ecs::Entity{});
 		void OnRender(SharedPointer<Scene>& scene, const FrameTimer& deltaTime);
 		void OnEvent(SharedPointer<Scene>& scene, const Event& event, const FrameTimer& deltaTime);
 
@@ -217,6 +217,7 @@ namespace shade
 		SharedPointer<Material>			m_OBBMaterial;
 		SharedPointer<Material>			m_ConvexMeshMaterial;
 		SharedPointer<Material>			m_LightVisualizingMaterial;
+		SharedPointer<Material>			m_JoinVisualizingMaterial;
 		
 	private:
 		// Settings

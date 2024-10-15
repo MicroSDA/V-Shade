@@ -28,7 +28,7 @@ namespace shade
 			};
 
 			template<typename BlendF>
-			void BasePoseBlendRecursevly(Pose* p0, const Pose* p1, const Pose* p2, const Skeleton::BoneNode* bone, const glm::mat4& parrentTransform, float blendFactor, const BoneMask& boneMask)
+			void BasePoseBlendRecursevly(Pose* p0, const Pose* p1, const Pose* p2, const Skeleton::BoneNode* bone, const glm::mat4& parrentTransform, float blendFactor, const BoneMask& boneMask, std::uint32_t parentId)
 			{
 				const float blendFactorWithBoneMask = blendFactor * boneMask.GetWeight(bone->ID);
 
@@ -37,34 +37,35 @@ namespace shade
 				const Pose::LocalTransform& localP1 = p1->GetBoneLocalTransform(bone->ID);
 				const Pose::LocalTransform& localP2 = p2->GetBoneLocalTransform(bone->ID);
 
-
 				localP0.Translation = BlendF::Translation(localP1.Translation, localP2.Translation, blendFactorWithBoneMask);
 				localP0.Rotation	= BlendF::Rotation(localP1.Rotation, localP2.Rotation, blendFactorWithBoneMask);
 				localP0.Scale		= BlendF::Scale(localP1.Scale, localP2.Scale, blendFactorWithBoneMask);
 
 				const glm::mat4 globalMatrix = parrentTransform * glm::translate(glm::identity<glm::mat4>(), localP0.Translation) * glm::toMat4(localP0.Rotation) * glm::scale(glm::identity<glm::mat4>(), localP0.Scale);
 
-				p0->GetBoneGlobalTransform(bone->ID) = globalMatrix * bone->InverseBindPose;
+				p0->GetBoneGlobalTransform(bone->ID) = { globalMatrix , parentId };
 
 				for (const auto& child : bone->Children)
-					BasePoseBlendRecursevly<BlendF>(p0, p1, p2, child, globalMatrix, blendFactor, boneMask);
+					BasePoseBlendRecursevly<BlendF>(p0, p1, p2, child, globalMatrix, blendFactor, boneMask, bone->ID);
 			}
 			template<typename BlendF>
 			void BasePoseBlend(Pose* p0, const Pose* p1, const Pose* p2, const Asset<Skeleton>& skeleton, float blendFactor, const BoneMask& boneMask)
 			{
+				p0->MarkHasInverseBindPose(false);
+
 				const float blendFactorWithBoneMask = blendFactor; // TODO : Armature blend weight
 
-				Pose::LocalTransform& localP0		= p0->GetArmatureTransform();
+				Pose::LocalTransform& localP0		= p0->GetArmatureLocalTransform();
 
-				const Pose::LocalTransform& localP1 = p1->GetArmatureTransform();
-				const Pose::LocalTransform& localP2 = p2->GetArmatureTransform();
+				const Pose::LocalTransform& localP1 = p1->GetArmatureLocalTransform();
+				const Pose::LocalTransform& localP2 = p2->GetArmatureLocalTransform();
 
 				localP0.Translation = BlendF::Translation(localP1.Translation, localP2.Translation, blendFactorWithBoneMask);
 				localP0.Rotation = BlendF::Rotation(localP1.Rotation, localP2.Rotation, blendFactorWithBoneMask);
 				localP0.Scale = BlendF::Scale(localP1.Scale, localP2.Scale, blendFactorWithBoneMask);
 
 				BasePoseBlendRecursevly<BlendF>(p0, p1, p2, skeleton->GetRootNode(), glm::translate(glm::identity<glm::mat4>(), localP0.Translation) * glm::toMat4(localP0.Rotation) * glm::scale(glm::identity<glm::mat4>(), localP0.Scale), 
-					blendFactorWithBoneMask, boneMask);
+					blendFactorWithBoneMask, boneMask, ~0);
 			}
 
 			template<typename BlendF>
@@ -93,7 +94,7 @@ namespace shade
 			}
 
 
-			void ComputePoseRecursevly(animation::Pose* pose, const AnimationController::AnimationControlData& animationData, const Skeleton::BoneNode* bone, const glm::mat4& parentTransform)
+			void ComputePoseRecursevly(animation::Pose* pose, const AnimationController::AnimationControlData& animationData, const Skeleton::BoneNode* bone, const glm::mat4& parentTransform, std::uint32_t parentId)
 			{
 				glm::mat4 globalMatrix = parentTransform;
 
@@ -105,28 +106,28 @@ namespace shade
 					local.Rotation = animationData.Animation->InterpolateRotation(*channel, animationData.CurrentPlayTime);
 					local.Scale = animationData.Animation->InterpolateScale(*channel, animationData.CurrentPlayTime);
 
-						
 					globalMatrix *= glm::translate(glm::identity<glm::mat4>(), local.Translation) * glm::toMat4(local.Rotation) * glm::scale(glm::identity<glm::mat4>(), local.Scale);
 
-					pose->GetBoneGlobalTransform(bone->ID) = globalMatrix * bone->InverseBindPose;
-					//pose->GetBoneGlobalTransform(bone->ID) = globalMatrix * glm::rotate(bone->InverseBindPose, glm::radians(-90.f), glm::vec3(1, 0, 0));
+					pose->GetBoneGlobalTransform(bone->ID) = { globalMatrix, parentId };
 				}
 				else
 				{
 					globalMatrix *= glm::translate(glm::identity<glm::mat4>(), bone->Translation) * glm::toMat4(bone->Rotation) * glm::scale(glm::identity<glm::mat4>(), bone->Scale);
-
-					pose->GetBoneGlobalTransform(bone->ID) = globalMatrix * bone->InverseBindPose;	
+					
+					pose->GetBoneGlobalTransform(bone->ID) = { globalMatrix, parentId };
 				}
 
 				for (const auto& child : bone->Children)
-					ComputePoseRecursevly(pose, animationData, child, globalMatrix);
+					ComputePoseRecursevly(pose, animationData, child, globalMatrix, bone->ID);
 			}
 
 			void ComputePose(animation::Pose* pose, const AnimationController::AnimationControlData& animationData, const Asset<Skeleton>& skeleton)
 			{
 				glm::mat4 armatureMatrix = glm::identity<glm::mat4>();
 
-				Pose::LocalTransform& local = pose->GetArmatureTransform();
+				pose->MarkHasInverseBindPose(false);
+
+				Pose::LocalTransform& local = pose->GetArmatureLocalTransform();
 
 				if (const Animation::Channel* channel = animationData.Animation->GetAnimationCahnnel(skeleton->GetArmature()->Name))
 				{
@@ -145,9 +146,7 @@ namespace shade
 					armatureMatrix = glm::translate(glm::identity<glm::mat4>(), local.Translation) * glm::toMat4(local.Rotation) * glm::scale(glm::identity<glm::mat4>(), local.Scale);
 				}
 
-				//armatureMatrix = glm::rotate(armatureMatrix, glm::radians(-90.f), glm::vec3(1, 0, 0));
-			
-				ComputePoseRecursevly(pose, animationData, skeleton->GetRootNode(), armatureMatrix);
+				ComputePoseRecursevly(pose, animationData, skeleton->GetRootNode(), armatureMatrix, ~0);
 			}
 		}
 	}
@@ -352,7 +351,7 @@ void shade::animation::AnimationController::AnimationControlData::UpdateRootMoti
 {
 	// Ќачинать анимацию не со страта а со нул€ !!!!!, пр присваевании ее
 
-	const Pose::LocalTransform& local = pose->GetArmatureTransform(); // ƒа, нужно добавить арматуру в позу !!
+	const Pose::LocalTransform& local = pose->GetArmatureLocalTransform(); // ƒа, нужно добавить арматуру в позу !!
 
 	if (State == Animation::State::Play || State == Animation::State::Pause) 
 	{

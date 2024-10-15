@@ -27,7 +27,10 @@ shade::Sphere::Sphere(std::size_t xDensity, std::size_t yDensity, float radius)
 			float xP = cos(x * xStep) * sin(y * yStep);
 			float zP = sin(x * xStep) * sin(y * yStep);
 
-			vertex->Position = glm::vec3(xP, yP, zP) * radius;
+			vertex->Position			= glm::vec3(xP, yP, zP) * radius;
+			vertex->Normal				= glm::normalize(glm::vec3(xP, yP, zP));
+			vertex->UV_Coordinates		= glm::vec2(static_cast<float>(x) / xDensity , static_cast<float>(y) / yDensity );
+
 			vertex++;
 		}
 	}

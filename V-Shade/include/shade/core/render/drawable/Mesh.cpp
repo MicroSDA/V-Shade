@@ -92,7 +92,6 @@ void shade::Mesh::Serialize(std::ostream& stream) const
 	/* Convex parts */
 	/*Serializer::Serialize(stream, static_cast<std::uint32_t>(m_ConvexParts.second.size()));
 	for(const )*/
-
 }
 
 void shade::Mesh::Deserialize(std::istream& stream)
@@ -170,6 +169,7 @@ void shade::Mesh::Deserialize(std::istream& stream)
 		serialize::Serializer::Deserialize(stream, minHalf.x);	serialize::Serializer::Deserialize(stream, minHalf.y); serialize::Serializer::Deserialize(stream, minHalf.z);
 		serialize::Serializer::Deserialize(stream, maxHalf.x);	serialize::Serializer::Deserialize(stream, maxHalf.y); serialize::Serializer::Deserialize(stream, maxHalf.z);
 		SetMinHalfExt(minHalf); SetMaxHalfExt(maxHalf);
+
 	}
 	else
 	{

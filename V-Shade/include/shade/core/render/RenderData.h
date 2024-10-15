@@ -6,6 +6,7 @@
 #include <shade/core/render/buffers/StorageBuffer.h>
 #include <shade/core/render/buffers/UniformBuffer.h>
 #include <shade/core/camera/Camera.h>
+#include <shade/core/animation/Pose.h>
 
 namespace shade
 {
@@ -89,7 +90,7 @@ namespace shade
 		struct BoneSubmitedMetaData
 		{
 			// Bone transform per unique pipeline
-			std::vector<SharedPointer<std::vector<glm::mat4>>> BoneTransforms;
+			std::vector<SharedPointer<std::vector<animation::Pose::GlobalTransform>>> BoneTransforms;
 			// Offset within unique pipeline + model.
 			std::uint32_t PipelineModelOffset = 0;
 		};

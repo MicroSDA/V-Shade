@@ -8,7 +8,7 @@
 EditorLayer::EditorCamera::EditorCamera()
 {
 	SetForwardDirection(glm::vec3(-0.011512465, -0.33462766, 0.94228005));
-	SetPosition(glm::vec3(0, 10, -20));
+	SetPosition(glm::vec3(0, 2, -3));
 }
 
 void EditorLayer::EditorCamera::OnUpdate(const shade::FrameTimer& deltaTime)
@@ -77,7 +77,7 @@ void EditorLayer::OnUpdate(shade::SharedPointer<shade::Scene>& scene, const shad
 	// TODO: m_SceneRenderer->OnUpdate using render functions so for logic we need to use on update scene render only when we need to draw
 	// When window is minizied we don't need to update m_SceneRenderer->OnUpdate but layer should be updated instead !
 	// Для того что бы смочь менимизировать окно нам нужно m_SceneRenderer->OnUpdate до EditorLayer::OnRender но не в EditorLayer::OnUpdate!!!!
-	m_SceneRenderer->OnUpdate(scene, (m_IsScenePlaying) ? nullptr : m_EditorCamera, deltaTime);
+	m_SceneRenderer->OnUpdate(scene, (m_IsScenePlaying) ? nullptr : m_EditorCamera, deltaTime, m_SelectedEntity);
 }
 
 void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shade::FrameTimer& deltaTime)
@@ -1888,6 +1888,9 @@ void OpenImageCallback(shade::Asset<shade::Texture2D>& texture)
 		{
 			shade::render::Image image; shade::serialize::Serializer::Deserialize(file, image);
 			texture = shade::Texture2D::CreateEXP(shade::render::Image2D::Create(image));
+
+			//texture->GetAssetData() = shade::SharedPointer<shade::AssetData>::Create();
+			//texture->GetAssetData()->SetId(path.string());
 		}
 	}
 	else
@@ -1930,24 +1933,6 @@ void HandleTexture(EditorLayer& layer, const std::string& buttonId, const char8_
 
 void EditorLayer::ModelComponent(shade::ecs::Entity& entity)
 {
-	
-	std::function<void(shade::Asset<shade::Texture2D>&)> OpenImageCallBack = [](shade::Asset<shade::Texture2D>& texture)
-		{
-			auto path = shade::FileDialog::OpenFile("Texture (*.dds) \0*.dds\0");
-			if (!path.empty())
-			{
-				if (std::ifstream file = std::ifstream(path, std::ios::binary))
-				{
-					shade::render::Image image; shade::serialize::Serializer::Deserialize(file, image);
-					texture = shade::Texture2D::CreateEXP(shade::render::Image2D::Create(image));
-				}
-			}
-			else
-			{
-				SHADE_CORE_WARNING("Couldn't open texture file, path ={0}", path);
-			}
-		};
-
 	static std::function<bool()> AssetLoadCallback;
 
 	static bool IsAssetLoadPopupOpen = false; static float screenPostionY = 0.f;
@@ -2144,7 +2129,9 @@ void EditorLayer::ModelComponent(shade::ecs::Entity& entity)
 					ImGui::EndTable();
 				}
 
-				if (ImGui::BeginTable("##MaterialAndLods", 2))
+				Material(material.Get());
+
+				/*if (ImGui::BeginTable("##MaterialAndLods", 2))
 				{
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn();
@@ -2165,7 +2152,7 @@ void EditorLayer::ModelComponent(shade::ecs::Entity& entity)
 					}
 
 					ImGui::EndTable();
-				}
+				}*/
 
 			}
 

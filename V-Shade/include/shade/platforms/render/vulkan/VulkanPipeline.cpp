@@ -611,6 +611,6 @@ void shade::VulkanPipeline::SetBarrier(SharedPointer<RenderCommandBuffer>& comma
 
 void shade::VulkanPipeline::Recompile(bool clearCache)
 {
-	m_Specification.Shader = Shader::Create(m_Specification.Shader->GetFilePath());
+	m_Specification.Shader = Shader::Create(m_Specification.Shader->GetFilePath(), clearCache);
 	Invalidate();
 }

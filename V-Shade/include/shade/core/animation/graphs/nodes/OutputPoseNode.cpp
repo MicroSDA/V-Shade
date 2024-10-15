@@ -10,3 +10,8 @@ const shade::animation::Pose* shade::animation::OutputPoseNode::GetFinalPose() c
 {
 	return GET_ENDPOINT<graphs::Connection::Input, NodeValueType::Pose>(0);
 }
+
+shade::animation::Pose* shade::animation::OutputPoseNode::GetFinalPose()
+{
+	return GET_ENDPOINT<graphs::Connection::Input, NodeValueType::Pose>(0);
+}

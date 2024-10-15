@@ -98,6 +98,16 @@ void PlayerScript::OnUpdate(const shade::FrameTimer& deltaTime)
 			//	{
 			//		if (!entity.HasComponent<shade::AnimationGraphComponent>())
 			//		{
+			//			if (HasComponent<shade::AnimationGraphComponent>())
+			//			{
+			//				if (auto pose = GetComponent<shade::AnimationGraphComponent>().AnimationGraph->GetOutputPose())
+			//				{
+			//					if (auto bone = pose->GetSkeleton()->GetBone(8))
+			//					{
+			//						tr.SetTransformMatrix(pose->GetBoneGlobalTransform(bone->ID).Transform);
+			//					}
+			//				}
+			//			}
 			//			//entity.GetComponent<shade::TransformComponent>().SetDirection(transform.GetRotationQuaternion() * glm::vec3(0, 0, -1));
 			//		}
 			//	});

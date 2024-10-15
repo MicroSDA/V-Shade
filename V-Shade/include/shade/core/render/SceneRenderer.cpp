@@ -70,6 +70,19 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 		}
 	};
 
+	VertexBuffer::Layout skeletonVisualizinglayout =
+	{
+		{
+			VertexBuffer::Layout::Usage::PerInstance,
+			{
+				{ "a_Transform",		 Shader::DataType::Float4, VertexBuffer::Layout::Usage::PerInstance},
+				{ "a_Transform",		 Shader::DataType::Float4, VertexBuffer::Layout::Usage::PerInstance},
+				{ "a_Transform",		 Shader::DataType::Float4, VertexBuffer::Layout::Usage::PerInstance},
+				{ "a_Transform",		 Shader::DataType::Float4, VertexBuffer::Layout::Usage::PerInstance}
+			}
+		}
+	};
+
 	VertexBuffer::Layout gridVertexlayout =
 	{
 		{
@@ -101,6 +114,30 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 	m_VisibleSpotLightIndicesBuffer		= StorageBuffer::Create(StorageBuffer::Usage::GPU, RenderAPI::SPOT_LIGHT_INDINCES_BINDING, sizeof(std::uint32_t) * RenderAPI::MAX_SPOT_LIGHTS_COUNT, Renderer::GetFramesCount(), 20);
 	m_VisiblePointLightIndicesBuffer	= StorageBuffer::Create(StorageBuffer::Usage::GPU, RenderAPI::POINT_LIGHT_INDINCES_BINDING, sizeof(std::uint32_t) * RenderAPI::MAX_POINT_LIGHTS_COUNT, Renderer::GetFramesCount(), 20);
 	m_SSAOSamplesBuffer					= UniformBuffer::Create(UniformBuffer::Usage::CPU_GPU, 4, sizeof(SSAO::RenderBuffer), Renderer::GetFramesCount(), 0);
+
+	RegisterNewPipeline(shade::RenderPipeline::Create(
+		{
+			.Name = "Skeleton-Bone-Visualizing",
+			.Shader = ShaderLibrary::Create("Skeleton-Bone-Visualizing", "./resources/assets/shaders/utils/SkeletonVisualizing.glsl"),
+			.FrameBuffer = m_MainTargetFrameBuffer[0],
+			.VertexLayout = skeletonVisualizinglayout,
+			.Topology = Pipeline::PrimitiveTopology::Point,
+			.BackFalceCull = false,
+			.LineWidth = 2.f	
+		}));
+
+	RegisterNewPipeline(shade::RenderPipeline::Create(
+		{
+			.Name = "Skeleton-Joint-Visualizing",
+			.Shader = ShaderLibrary::Create("Lights-Visualizing", "./resources/assets/shaders/utils/LightsVisualizing.glsl"),
+			.FrameBuffer = m_MainTargetFrameBuffer[0],
+			.VertexLayout = mainGeometryVertexlayoutStatic,
+			.Topology = Pipeline::PrimitiveTopology::Triangle,
+			.BackFalceCull = false,
+			.LineWidth = 1.5f
+		}));
+
+	GetPipeline("Skeleton-Bone-Visualizing")->SetActive(false);
 
 	RegisterNewPipeline(shade::RenderPipeline::Create(
 		{
@@ -226,6 +263,9 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 	BIND_PIPELINE_PROCESS_FUNCTION(GetPipeline("Grid")->As<RenderPipeline>(), SceneRenderer, GridPass, this);
 	BIND_PIPELINE_PROCESS_FUNCTION(GetPipeline("AABB_OBB")->As<RenderPipeline>(), SceneRenderer, FlatPipeline, this);
 
+	BIND_PIPELINE_PROCESS_FUNCTION(GetPipeline("Skeleton-Bone-Visualizing")->As<RenderPipeline>(), SceneRenderer, SkeletonVisualizationPass, this);
+	BIND_PIPELINE_PROCESS_FUNCTION(GetPipeline("Skeleton-Joint-Visualizing")->As<RenderPipeline>(), SceneRenderer, LightVisualizationPass, this);
+
 	BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION(GetPipeline("Light-Culling")->As<ComputePipeline>(), SceneRenderer, LightCullingComputePass, this);
 	BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION(GetPipeline("SSAO")->As<ComputePipeline>(), SceneRenderer, SSAOComputePass, this);
 	BIND_COMPUTE_PIPELINE_PROCESS_FUNCTION(GetPipeline("Color-Correction")->As<ComputePipeline>(), SceneRenderer, ColorCorrectionComputePass, this);
@@ -241,7 +281,12 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 	m_OBBMaterial->ColorDiffuse = glm::vec3(0.9, 0.3, 0.2);
 
 	m_ConvexMeshMaterial		= SharedPointer<Material>::Create();
+
 	m_LightVisualizingMaterial	= SharedPointer<Material>::Create();
+	m_LightVisualizingMaterial->ColorAmbient = glm::vec3(0.459, 0.773, 1);
+
+	m_JoinVisualizingMaterial   = SharedPointer<Material>::Create();
+	m_JoinVisualizingMaterial->ColorAmbient = glm::vec3(0.9, 0.3, 0.3);
 
 	m_Plane  = Plane::Create(10.f, 10.f, 1);
 	m_OBB    = Box::Create({ -1.0f ,-1.0f ,-1.0f }, { 1.0f, 1.0f, 1.0f });
@@ -249,7 +294,7 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 	m_Cone   = Cone::Create(1.f, 1.f, 20, 8.f, glm::vec3(0.0, 0.0, 1.0));
 }
 
-void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::CameraComponent& camera, const FrameTimer& deltaTime)
+void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::CameraComponent& camera, const FrameTimer& deltaTime, const ecs::Entity& activeEntity)
 {
 	m_Statistic.Reset(); const std::uint32_t currentFrame = Renderer::GetCurrentFrameIndex();
 
@@ -315,7 +360,7 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 					{
 						/* In case we want to use point light sphere during instance rendering we need reuse deafult sphere and apply changes only to transform matrix.*/
 						pcTransform = glm::scale(pcTransform, glm::vec3(light->Distance));
-						Renderer::SubmitStaticMesh(GetPipeline("Point-Lights-Visualizing"), m_Sphere, nullptr, nullptr, pcTransform);
+						Renderer::SubmitStaticMesh(GetPipeline("Point-Lights-Visualizing"), m_Sphere, m_LightVisualizingMaterial, nullptr, pcTransform);
 					}
 				}
 			});
@@ -332,7 +377,7 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 					{
 						/* In case we want to use spot light cone during instance rendering we need reuse deafult cone and apply changes only to transform matrix.*/
 						pcTransform = glm::scale(pcTransform, glm::vec3(radius, radius, light->Distance));
-						Renderer::SubmitStaticMesh(GetPipeline("Spot-Lights-Visualizing"), m_Cone, nullptr, nullptr, pcTransform);
+						Renderer::SubmitStaticMesh(GetPipeline("Spot-Lights-Visualizing"), m_Cone, m_LightVisualizingMaterial, nullptr, pcTransform);
 					}
 				}
 			});
@@ -340,25 +385,18 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 		scene->View<Asset<Model>, TransformComponent>().Each([&](ecs::Entity& entity, Asset<Model>& model, TransformComponent& transform)
 			{
 				auto pcTransform = scene->ComputePCTransform(entity).first; // Frusturm culling need matrix without compensation
-				
-				Asset<animation::AnimationGraph> animationGraph = (entity.HasComponent<AnimationGraphComponent>()) ? entity.GetComponent<AnimationGraphComponent>().AnimationGraph : nullptr;
-				const animation::Pose* finalPose = (animationGraph) ? animationGraph->GetOutputPose() : nullptr;
-
-			/*	if (finalPose)
-				{
-					pcTransform = glm::translate(pcTransform, -finalPose->GetRootMotionTranslation());
-					pcTransform = glm::mat4_cast(finalPose->GetRootMotionRotation()) * pcTransform;
-				}*/
-
 				bool isModelInFrustrum = false;
-				
+
+				Asset<animation::AnimationGraph> animationGraph = (entity.HasComponent<AnimationGraphComponent>()) ? entity.GetComponent<AnimationGraphComponent>().AnimationGraph : nullptr;
+				animation::Pose* finalPose = (animationGraph) ? animationGraph->GetOutputPose() : nullptr;
+
 				for (const auto& mesh : *model)
 				{
-					if (frustum.IsInFrustum(pcTransform, mesh->GetMinHalfExt(), mesh->GetMaxHalfExt()))
+					//if (frustum.IsInFrustum(pcTransform, mesh->GetMinHalfExt(), mesh->GetMaxHalfExt()))
 					{
 						isModelInFrustrum = true;
 
-						if (animationGraph && finalPose && mesh->GetLod(0).Bones.size())
+						if (finalPose && mesh->GetLod(0).Bones.size())
 						{
 							Renderer::SubmitStaticMesh(GetPipeline("Main-Geometry-Animated"), mesh, mesh->GetMaterial(), model, pcTransform); m_Statistic.SubmitedInstances++;
 						}
@@ -369,6 +407,8 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 						
 						if (m_Settings.RenderSettings.LightCulling)
 							Renderer::SubmitStaticMesh(GetPipeline("Light-Culling-Pre-Depth"), mesh, nullptr, model, pcTransform);
+
+
 					}
 
 					// Check if mesh inside point light for shadow pass  
@@ -423,15 +463,57 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 						glm::mat4 permeshTransform = glm::translate(scene->ComputePCTransform(entity).second, (mesh->GetMinHalfExt() + mesh->GetMaxHalfExt()) / 2.f);
 						// Scale the cpTransform matrix using the ratio of the half extents of the mesh and the bounding box
 						permeshTransform = glm::scale(permeshTransform, (mesh->GetMaxHalfExt() - mesh->GetMinHalfExt()) / (m_OBB->GetMaxHalfExt() - m_OBB->GetMinHalfExt()));
+
 						// Submit aabb for rendering 
 						Renderer::SubmitStaticMesh(GetPipeline("AABB_OBB"), m_OBB, m_OBBMaterial, nullptr, permeshTransform);
 					}
 				}
 
-				
-				if (isModelInFrustrum && animationGraph && finalPose)
+				if (isModelInFrustrum && finalPose)
 				{
-					 Renderer::SubmitBoneTransforms(GetPipeline("Main-Geometry-Animated"), model, finalPose->GetBoneGlobalTransforms());
+					if(activeEntity == entity)
+					{
+						static SharedPointer<std::vector<animation::Pose::GlobalTransform>> skVisuazlize = SharedPointer<std::vector<animation::Pose::GlobalTransform>>::Create(RenderAPI::MAX_BONES_PER_INSTANCE);
+
+						for (const auto& [name, bone] : finalPose->GetSkeleton()->GetBones())
+						{
+							auto parrentId = finalPose->GetBoneGlobalTransform(bone.ID).ParentId;
+
+							glm::mat4 boneT = finalPose->GetBoneGlobalTransform(bone.ID).Transform;
+							glm::mat4 parentBoneT = (parrentId != ~0) ? finalPose->GetBoneGlobalTransform(parrentId).Transform : glm::mat4(0.0), parentInverseBindPoseT = (parrentId != ~0) ? finalPose->GetSkeleton()->GetBone(parrentId)->InverseBindPose : glm::mat4(0.0);
+
+							if (finalPose->HasInverseBindPose())
+							{
+								boneT = boneT * glm::inverse(bone.InverseBindPose);
+								parentBoneT = parentBoneT * glm::inverse(parentInverseBindPoseT);
+							}
+
+							skVisuazlize->at(bone.ID).ParentId = parrentId;
+							skVisuazlize->at(bone.ID).Transform = pcTransform * boneT;
+
+							const float scale = glm::distance(boneT * glm::vec4(0, 0, 0, 1), parentBoneT * glm::vec4(0, 0, 0, 1)) * 0.06;
+
+							if (parrentId != ~0)
+							{
+								Renderer::SubmitStaticMesh(GetPipeline("Skeleton-Joint-Visualizing"), m_Sphere, m_JoinVisualizingMaterial, nullptr, pcTransform * glm::scale(parentBoneT, glm::vec3(scale)));
+							}
+						}
+
+						Renderer::SubmitStaticMesh(GetPipeline("Skeleton-Bone-Visualizing"), nullptr, nullptr, model, pcTransform);
+						Renderer::SubmitBoneTransforms(GetPipeline("Skeleton-Bone-Visualizing"), model, skVisuazlize);
+					}
+
+					if (!finalPose->HasInverseBindPose())
+					{
+						for (auto& [name, bone] : finalPose->GetSkeleton()->GetBones())
+						{
+							finalPose->GetBoneGlobalTransforms()->at(bone.ID).Transform *= bone.InverseBindPose;
+						}
+
+						finalPose->MarkHasInverseBindPose(true);
+					}
+					
+					Renderer::SubmitBoneTransforms(GetPipeline("Main-Geometry-Animated"), model, finalPose->GetBoneGlobalTransforms());
 				}
 
 				// AABB Visualization
@@ -539,7 +621,7 @@ void shade::SceneRenderer::OnRender(SharedPointer<Scene>& scene, const FrameTime
 			mainPipelineHasExecuted		+= Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Main-Geometry-Animated"), curentFrameIndex, !mainPipelineHasExecuted);
 
 			{
-					Renderer::ExecuteComputePipeline(GetPipeline("SSAO"), curentFrameIndex);
+					//Renderer::ExecuteComputePipeline(GetPipeline("SSAO"), curentFrameIndex);
 					Renderer::ExecuteComputePipeline(GetPipeline("Bloom"), curentFrameIndex);
 					Renderer::ExecuteComputePipeline(GetPipeline("Color-Correction"), curentFrameIndex);
 			}
@@ -548,6 +630,8 @@ void shade::SceneRenderer::OnRender(SharedPointer<Scene>& scene, const FrameTime
 					Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Grid"), curentFrameIndex, !mainPipelineHasExecuted);
 					Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Point-Lights-Visualizing"), curentFrameIndex, !mainPipelineHasExecuted);
 					Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Spot-Lights-Visualizing"), curentFrameIndex, !mainPipelineHasExecuted);
+					Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Skeleton-Bone-Visualizing"), curentFrameIndex, !mainPipelineHasExecuted);
+					Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Skeleton-Joint-Visualizing"), curentFrameIndex, !mainPipelineHasExecuted);
 			}
 		}
 		Renderer::EndScene(curentFrameIndex);
@@ -805,12 +889,13 @@ void shade::SceneRenderer::LightVisualizationPass(SharedPointer<RenderPipeline>&
 	// Begin rendering
 	Renderer::BeginRender(m_MainCommandBuffer, pipeline, frameIndex, isForceClear);
 	// Update buffers 
-	pipeline->UpdateResources(m_MainCommandBuffer, frameIndex);
+	//pipeline->UpdateResources(m_MainCommandBuffer, frameIndex);
 	// For each instance and its materials in the Instances container
 	for (auto& [instance, materials] : instances.Instances)
 	{
 		for (auto& [lod, material] : materials.Materials)
 		{
+			Renderer::UpdateSubmitedMaterial(m_MainCommandBuffer, pipeline, instance, material, frameIndex, lod);
 			// Draw the submitted instance
 			Renderer::DrawSubmitedInstanced(m_MainCommandBuffer, pipeline, instance, material, frameIndex);
 		}
@@ -821,7 +906,27 @@ void shade::SceneRenderer::LightVisualizationPass(SharedPointer<RenderPipeline>&
 
 void shade::SceneRenderer::SkeletonVisualizationPass(SharedPointer<RenderPipeline>& pipeline, const render::SubmitedInstances& instances, const render::SubmitedSceneRenderData& data, std::uint32_t frameIndex, bool isForceClear)
 {
+	// Begin rendering
+	Renderer::BeginRender(m_MainCommandBuffer, pipeline, frameIndex, false);
+	// Update buffers 
+	//pipeline->UpdateResources(m_MainCommandBuffer, frameIndex);
+	// For each instance and its materials in the Instances container
 
+	int instance = 0;
+	for (auto& [instance, materials] : instances.Instances)
+	{
+		Renderer::UpdateSubmitedBonesData(m_MainCommandBuffer, pipeline, materials.ModelHash, frameIndex);
+
+		for (auto& [lod, material] : materials.Materials)
+		{
+			// Update the submitted material
+			Renderer::UpdateSubmitedMaterial(m_MainCommandBuffer, pipeline, instance, material, frameIndex, lod);
+			// Draw the submitted instance
+			Renderer::DummyInvocation(m_MainCommandBuffer, pipeline, instance, material, frameIndex, lod);
+		}
+	}
+	// End rendering
+	Renderer::EndRender(m_MainCommandBuffer, pipeline, frameIndex);
 }
 
 void shade::SceneRenderer::FlatPipeline(SharedPointer<RenderPipeline>& pipeline, const render::SubmitedInstances& instances, const render::SubmitedSceneRenderData& data, std::uint32_t frameIndex, bool isForceClear)

@@ -404,6 +404,17 @@ void shade::Renderer::DrawSubmitedInstancedAnimated(SharedPointer<RenderCommandB
 	}
 }
 
+void shade::Renderer::DummyInvocation(SharedPointer<RenderCommandBuffer>& commandBuffer, const SharedPointer<RenderPipeline>& pipeline, std::size_t instance, std::size_t material, std::uint32_t frameIndex, std::size_t lod, std::uint32_t splitOffset)
+{
+	const std::size_t hashCombined = render::PointerHashCombine(pipeline, instance, material, lod, splitOffset);
+	auto rawData = m_sRenderAPI->m_sSubmitedSceneRenderData.InstanceRawData.find(hashCombined);
+
+	if (rawData != m_sRenderAPI->m_sSubmitedSceneRenderData.InstanceRawData.end())
+	{
+		m_sRenderAPI->DummyInvocation(commandBuffer, nullptr, nullptr, nullptr, nullptr, rawData->second.Transforms.size(), rawData->second.TransformOffset);
+	}
+}
+
 void shade::Renderer::SubmitStaticMesh(const SharedPointer<RenderPipeline>& pipeline, const Asset<Drawable>& drawable, const Asset<Material>& material, const Asset<Model>& model, const glm::mat4& transform, std::uint32_t splitOffset)
 {
 	if (pipeline->IsActive())
@@ -584,10 +595,14 @@ void shade::Renderer::UpdateSubmitedMaterial(SharedPointer<RenderCommandBuffer>&
 	}
 }
 
-void shade::Renderer::SubmitBoneTransforms(const SharedPointer<RenderPipeline>& pipeline, const Asset<Model>& instance, const SharedPointer<std::vector<glm::mat4>>& transform)
+void shade::Renderer::SubmitBoneTransforms(const SharedPointer<RenderPipeline>& pipeline, const Asset<Model>& instance, const SharedPointer<std::vector<animation::Pose::GlobalTransform>>& transform)
 {
-	std::size_t combinedHash = render::PointerHashCombine(pipeline, instance);
-	m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData[combinedHash].BoneTransforms.emplace_back(transform);
+	if (pipeline->IsActive())
+	{
+		std::size_t combinedHash = render::PointerHashCombine(pipeline, instance);
+		m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData[combinedHash].BoneTransforms.emplace_back(transform);
+		//m_sRenderAPI->m_sSubmitedSceneRenderData.BoneTransfromsBuffer->SetData;
+	}
 }
 
 void shade::Renderer::UpdateSubmitedBonesData(SharedPointer<RenderCommandBuffer>& commandBuffer, SharedPointer<RenderPipeline> pipeline, std::size_t modelInstance, std::uint32_t frameIndex)
@@ -596,6 +611,8 @@ void shade::Renderer::UpdateSubmitedBonesData(SharedPointer<RenderCommandBuffer>
 	auto rawData = m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.find(combinedHash);
 	if (rawData != m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.end())
 	{
+		// TODO: !!!!!! Попробуй покарйне мере, если выйдет то не нужно будет хранить промежуточные буфферы
+		// Почему бы не высчитывать оффсет сразу при добавлении в буффер а не хранить в промежуточном 
 		pipeline->SetResource(m_sRenderAPI->m_sSubmitedSceneRenderData.BoneTransfromsBuffer, Pipeline::Set::PerInstance, frameIndex, rawData->second.PipelineModelOffset);
 	}
 }
@@ -656,22 +673,25 @@ const shade::PointLight::RenderData& shade::Renderer::GetSubmitedPointLightRende
 // TODO: Probably we can keep only asset funciton during to SharedPointer can be converted into Asset ?
 void shade::Renderer::CreateInstancedGeometryBuffer(const Asset<Drawable>& drawable, std::size_t lod)
 {
-	// Get the geometry buffer of the current drawable object
-	auto& buffer = m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers[drawable];
-	
-	const auto& vertices	= drawable->GetLod((lod) ? lod : 0).Vertices;
-	const auto& indices		= drawable->GetLod((lod) ? lod : 0).Indices;
-	const auto& bones		= drawable->GetLod((lod) ? lod : 0).Bones;
-
-	if (vertices.size() && indices.size())
+	if (drawable)
 	{
-		// Create a vertex buffer for the drawable object's vertices
-		buffer[lod].VB = VertexBuffer::Create(VertexBuffer::Usage::GPU, VERTICES_DATA_SIZE(vertices.size()), 0, vertices.data());
-		// Create an index buffer for the drawable object's indices
-		buffer[lod].IB = IndexBuffer::Create(IndexBuffer::Usage::GPU, INDICES_DATA_SIZE(indices.size()), 0, indices.data());
+		// Get the geometry buffer of the current drawable object
+		auto& buffer = m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers[drawable];
 
-		if (bones.size())
-			buffer[lod].BW = VertexBuffer::Create(VertexBuffer::Usage::GPU, BONES_DATA_SIZE(bones.size()), 0, bones.data());
+		const auto& vertices = drawable->GetLod((lod) ? lod : 0).Vertices;
+		const auto& indices = drawable->GetLod((lod) ? lod : 0).Indices;
+		const auto& bones = drawable->GetLod((lod) ? lod : 0).Bones;
+
+		if (vertices.size() && indices.size())
+		{
+			// Create a vertex buffer for the drawable object's vertices
+			buffer[lod].VB = VertexBuffer::Create(VertexBuffer::Usage::GPU, VERTICES_DATA_SIZE(vertices.size()), 0, vertices.data());
+			// Create an index buffer for the drawable object's indices
+			buffer[lod].IB = IndexBuffer::Create(IndexBuffer::Usage::GPU, INDICES_DATA_SIZE(indices.size()), 0, indices.data());
+
+			if (bones.size())
+				buffer[lod].BW = VertexBuffer::Create(VertexBuffer::Usage::GPU, BONES_DATA_SIZE(bones.size()), 0, bones.data());
+		}
 	}
 }
 

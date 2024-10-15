@@ -17,7 +17,7 @@ public:
 		void SetUpdate(bool set) { m_IsUpdate = set; }
 	private:
 		float m_RotationSpeed = 0.3f;
-		float m_MovementSpeed = 0.05f;
+		float m_MovementSpeed = 0.005f;
 		bool m_IsUpdate = false;
 	}; 
 public:

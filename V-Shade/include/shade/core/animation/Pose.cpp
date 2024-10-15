@@ -6,7 +6,7 @@
 shade::animation::Pose::Pose(const Asset<Skeleton>& skeleton, std::size_t animationHash, Type type) :
 	m_Skeleton(skeleton),
 	m_AnimationCombinationHash(animationHash),
-	m_GlobalTransforms(SharedPointer<std::vector<glm::mat4>>::Create()),
+	m_GlobalTransforms(SharedPointer<std::vector<GlobalTransform>>::Create()),
 	m_LocalTransforms(SharedPointer<std::vector<LocalTransform>>::Create()),
 	m_Type(type)
 {
@@ -16,7 +16,7 @@ shade::animation::Pose::Pose(const Asset<Skeleton>& skeleton, std::size_t animat
 void shade::animation::Pose::Reset()
 {
 	//m_GlobalTransforms->clear(); // mby dont need to clear, resize will do this ??
-	m_GlobalTransforms->resize(RenderAPI::MAX_BONES_PER_INSTANCE, glm::identity<glm::mat4>());
+	m_GlobalTransforms->resize(RenderAPI::MAX_BONES_PER_INSTANCE, GlobalTransform());
 
 	//m_LocalTransforms->clear();
 	m_LocalTransforms->resize(RenderAPI::MAX_BONES_PER_INSTANCE);
