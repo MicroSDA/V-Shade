@@ -125,40 +125,40 @@ void main()
 		EndPrimitive();
 		//!/////////////Normals//////////////////!//
 		
-		vec4 pointA = u_Camera.ViewProjectionMatrix * s_BoneTransform[id].s_Transform * vec4(0, 0, 0, 1);
-		vec4 pointB = u_Camera.ViewProjectionMatrix * s_BoneTransform[s_BoneTransform[id].s_ParentId].s_Transform * vec4(0, 0, 0, 1);
-		//vec4 midPoint = (pointA + pointB) * 2.0 / dst;
-		vec4 midPoint = pointB * 3.0 / dst;
+		// vec4 pointA = u_Camera.ViewProjectionMatrix * s_BoneTransform[id].s_Transform * vec4(0, 0, 0, 1);
+		// vec4 pointB = u_Camera.ViewProjectionMatrix * s_BoneTransform[s_BoneTransform[id].s_ParentId].s_Transform * vec4(0, 0, 0, 1);
+		// //vec4 midPoint = (pointA + pointB) * 2.0 / dst;
+		// vec4 midPoint = pointB * 3.0 / dst;
 		
-		// X
-		gl_Position = midPoint;
-		out_Color = vec4(1, 0, 0, 1);
-		EmitVertex();
+		// // X
+		// gl_Position = midPoint;
+		// out_Color = vec4(1, 0, 0, 1);
+		// EmitVertex();
 		
-		gl_Position = midPoint + u_Camera.ViewProjectionMatrix * s_BoneTransform[s_BoneTransform[id].s_ParentId].s_Transform * vec4(1, 0, 0, 0);
-		out_Color = vec4(1, 0, 0, 1);
-		EmitVertex();
-		EndPrimitive(); 
+		// gl_Position = midPoint + u_Camera.ViewProjectionMatrix * s_BoneTransform[s_BoneTransform[id].s_ParentId].s_Transform * vec4(1, 0, 0, 0);
+		// out_Color = vec4(1, 0, 0, 1);
+		// EmitVertex();
+		// EndPrimitive(); 
 		
-		// Y
-		gl_Position = midPoint;
-		out_Color = vec4(0, 1, 0, 1);
-		EmitVertex();
+		// // Y
+		// gl_Position = midPoint;
+		// out_Color = vec4(0, 1, 0, 1);
+		// EmitVertex();
 		
-		gl_Position = midPoint + u_Camera.ViewProjectionMatrix * s_BoneTransform[s_BoneTransform[id].s_ParentId].s_Transform * vec4(0, -1, 0, 1);
-		out_Color = vec4(0, 1, 0, 1);
-		EmitVertex();
-		EndPrimitive();
+		// gl_Position = midPoint + u_Camera.ViewProjectionMatrix * s_BoneTransform[s_BoneTransform[id].s_ParentId].s_Transform * vec4(0, -1, 0, 1);
+		// out_Color = vec4(0, 1, 0, 1);
+		// EmitVertex();
+		// EndPrimitive();
 		
-		// Z
-		gl_Position = midPoint;
-		out_Color = vec4(0, 0, 1, 1);
-		EmitVertex();
+		// // Z
+		// gl_Position = midPoint;
+		// out_Color = vec4(0, 0, 1, 1);
+		// EmitVertex();
 		
-		gl_Position = midPoint + u_Camera.ViewProjectionMatrix * s_BoneTransform[s_BoneTransform[id].s_ParentId].s_Transform * vec4(0, 0, 1, 1);
-		out_Color = vec4(0, 0, 1, 1);
-		EmitVertex();
-		EndPrimitive();
+		// gl_Position = midPoint + u_Camera.ViewProjectionMatrix * s_BoneTransform[s_BoneTransform[id].s_ParentId].s_Transform * vec4(0, 0, 1, 1);
+		// out_Color = vec4(0, 0, 1, 1);
+		// EmitVertex();
+		// EndPrimitive();
 				
 		//!/////////////////////////////////////!//
 	}
@@ -180,5 +180,5 @@ layout(location = 0) out vec4 out_Color;
 void main()
 {
    out_Color = a_Color;
-   gl_FragDepth = gl_FragCoord.z - 0.1;
+   gl_FragDepth = gl_FragCoord.z - 0.5;
 }

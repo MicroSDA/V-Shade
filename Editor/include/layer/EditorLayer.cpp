@@ -758,7 +758,7 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 						ImGui::GetWindowViewport(),
 						std::size_t(this),
 						{
-							400.f, 400.f
+							400.f, 800.f
 						}, // Size
 								{
 									ImGui::GetCursorScreenPos().x - 390.f, ImGui::GetCursorScreenPos().y + 35.f  // Position
@@ -1669,6 +1669,15 @@ void EditorLayer::RenderSettings(shade::SharedPointer<shade::SceneRenderer>& ren
 
 	if (showDemoWindow) ImGui::ShowDemoWindow();
 	//MaterialEdit(shade::Renderer::GetDefaultMaterial().Get());
+
+	for (auto [name, value] : m_sGlobalsValues)
+	{
+		if (name == "Work groups")
+		{
+			ImGui::Text("Work groups");
+			ImGui::DragInt2("Work groups", glm::value_ptr(*reinterpret_cast<glm::ivec2*>(value)), 1.0);
+		}
+	}
 }
 
 void EditorLayer::EntityInspector(shade::ecs::Entity& entity)

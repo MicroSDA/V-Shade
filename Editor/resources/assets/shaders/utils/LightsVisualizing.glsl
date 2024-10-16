@@ -54,9 +54,6 @@ layout (std430, set = PER_INSTANCE_SET, binding = MATERIAL_BINDING) restrict rea
 void main()
 {
 	FragmentColor = vec4(u_Material[a_InstanceId].AmbientColor, 0.8);
-	gl_FragDepth = gl_FragCoord.z - 0.1;
-	
-	
 	// Нормализуем нормаль для освещения
     // vec3 normal = normalize(a_Normal);
     
@@ -73,5 +70,5 @@ void main()
     // FragmentColor = vec4(lightingColor, 1.0);
 
     // Глубина фрагмента
-    gl_FragDepth = gl_FragCoord.z - 0.1;
+    gl_FragDepth = gl_FragCoord.z - 0.5;
 }

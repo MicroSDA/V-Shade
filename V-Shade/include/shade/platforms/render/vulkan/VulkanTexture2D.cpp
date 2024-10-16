@@ -65,6 +65,8 @@ VkDescriptorImageInfo shade::VulkanTexture2D::GetDescriptorImageInfoLayer(std::u
 
 void shade::VulkanTexture2D::Invalidate()
 {
+	// TODO: Создать MODE_CLAMP, и добавть его в спецификацию !!!
+
 	if(m_Sampler != VK_NULL_HANDLE)
 		vkDestroySampler(m_VkDevice, m_Sampler, m_VkInstance.AllocationCallbaks);
 
@@ -77,7 +79,7 @@ void shade::VulkanTexture2D::Invalidate()
 		VK_FILTER_MAX_ENUM,
 		VK_FILTER_MAX_ENUM,
 		VK_SAMPLER_MIPMAP_MODE_MAX_ENUM,
-		(m_Image->GetSpecification().IsCubeMap) ? VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE : VK_SAMPLER_ADDRESS_MODE_REPEAT,
+		static_cast<VkSamplerAddressMode>(m_Image->GetSpecification().Clamp),
 		samplerCreateInfo.addressModeU,
 		samplerCreateInfo.addressModeU,
 		0.0f, //mipLodBias
@@ -87,7 +89,7 @@ void shade::VulkanTexture2D::Invalidate()
 		VK_COMPARE_OP_MAX_ENUM, // compareOp
 		0.0f, // minLod
 		1.f, // maxLod
-		VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, // borderColor // TODO: TAKE A LOOK
+		VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK, // borderColor // TODO: TAKE A LOOK
 		VK_FALSE, // unnormalizedCoordinates // TODO: TAKE A LOOK
 	};
 

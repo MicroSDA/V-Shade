@@ -35,6 +35,15 @@ namespace shade
 				DEPTH24STENCIL8,
 				Depth = DEPTH24STENCIL8,
 			};
+			enum class Clamp
+			{
+				REPEAT = 0,
+				MIRRORED_REPEAT = 1,
+				CLAMP_TO_EDGE = 2,
+				CLAMP_TO_BORDER = 3,
+				MIRROR_CLAMP_TO_EDGE = 4,
+				MAX_ENUM = 0x7FFFFFFF
+			};
 			enum class Usage
 			{
 				None = 0,
@@ -45,7 +54,8 @@ namespace shade
 			struct Specification
 			{
 				Image::Format Format = Image::Format::RGBA;
-				Image::Usage Usage = Image::Usage::None;
+				Image::Usage  Usage = Image::Usage::None;
+				Image::Clamp  Clamp = Clamp::REPEAT;
 
 				std::uint32_t MipLevels = 1;
 				std::uint32_t Layers = 1;

@@ -5,6 +5,8 @@
 
 #include <glm/glm/gtx/hash.hpp>
 
+#include <shade/core/layer/imgui/ImGuiLayer.h>
+
 shade::SharedPointer<shade::SceneRenderer> shade::SceneRenderer::Create(bool swapChainAsMainTarget)
 {
 	return SharedPointer<SceneRenderer>::Create(swapChainAsMainTarget);
@@ -105,11 +107,11 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 	}
 	
 	m_LightCullingPreDepthFrameBuffer	= FrameBuffer::Create({ 1, 1, {0.0f, 0.0f, 0.0f, 1.f}, 1.f, { { render::Image::Format::DEPTH24STENCIL8 } } });
-	m_GlobalLightShadowFrameBuffer		= FrameBuffer::Create({ 6000, 6000, {0.0f, 0.0f, 0.0f, 1.f}, 1.f, { { render::Image::Format::Depth, render::Image::Usage::Attachment, 1, GlobalLight::SHADOW_CASCADES_COUNT } } });
-	m_SpotLightShadowFrameBuffer		= FrameBuffer::Create({ 2000, 2000, {0.0f, 0.0f, 0.0f, 1.f}, 1.f, { { render::Image::Format::Depth, render::Image::Usage::Attachment,  1,  RenderAPI::MAX_SPOT_SHADOW_CASTERS }} });
-	m_PointLightShadowFrameBuffer		= FrameBuffer::Create({ 1000, 1000, {0.0f, 0.0f, 0.0f, 1.f}, 1.f, { { render::Image::Format::Depth, render::Image::Usage::Attachment, 1,  RenderAPI::MAX_POINT_SHADOW_CASTERS * 6, 1, 1, true}} });
-	m_BloomTarget						= Texture2D::CreateEXP({ render::Image::Format::RGBA32F, render::Image::Usage::Storage, m_Settings.BloomSettings.Samples, 1, 200, 200 });
-	m_ScreenSpaceAmbientOcclusionTarget	= Texture2D::CreateEXP({ render::Image::Format::RED8UN, render::Image::Usage::Storage, 1, 1, 200, 200 });
+	m_GlobalLightShadowFrameBuffer		= FrameBuffer::Create({ 6000, 6000, {0.0f, 0.0f, 0.0f, 1.f}, 1.f, { { render::Image::Format::Depth, render::Image::Usage::Attachment, render::Image::Clamp::REPEAT, 1, GlobalLight::SHADOW_CASCADES_COUNT } } });
+	m_SpotLightShadowFrameBuffer		= FrameBuffer::Create({ 2000, 2000, {0.0f, 0.0f, 0.0f, 1.f}, 1.f, { { render::Image::Format::Depth, render::Image::Usage::Attachment, render::Image::Clamp::REPEAT, 1,  RenderAPI::MAX_SPOT_SHADOW_CASTERS }} });
+	m_PointLightShadowFrameBuffer		= FrameBuffer::Create({ 1000, 1000, {0.0f, 0.0f, 0.0f, 1.f}, 1.f, { { render::Image::Format::Depth, render::Image::Usage::Attachment, render::Image::Clamp::REPEAT,1,  RenderAPI::MAX_POINT_SHADOW_CASTERS * 6, 1, 1, true}} });
+	m_BloomTarget						= Texture2D::CreateEXP({ render::Image::Format::RGBA32F, render::Image::Usage::Storage, render::Image::Clamp::CLAMP_TO_EDGE, m_Settings.BloomSettings.Samples, 1, 200, 200 });
+	m_ScreenSpaceAmbientOcclusionTarget	= Texture2D::CreateEXP({ render::Image::Format::RED8UN, render::Image::Usage::Storage, render::Image::Clamp::REPEAT, 1, 1, 200, 200 });
 	// TODO: Should it be like some internal part of renderer ?
 	m_VisibleSpotLightIndicesBuffer		= StorageBuffer::Create(StorageBuffer::Usage::GPU, RenderAPI::SPOT_LIGHT_INDINCES_BINDING, sizeof(std::uint32_t) * RenderAPI::MAX_SPOT_LIGHTS_COUNT, Renderer::GetFramesCount(), 20);
 	m_VisiblePointLightIndicesBuffer	= StorageBuffer::Create(StorageBuffer::Usage::GPU, RenderAPI::POINT_LIGHT_INDINCES_BINDING, sizeof(std::uint32_t) * RenderAPI::MAX_POINT_LIGHTS_COUNT, Renderer::GetFramesCount(), 20);
@@ -982,8 +984,12 @@ void shade::SceneRenderer::BloomComputePass(SharedPointer<ComputePipeline>& pipe
 	const auto& mainTarget = m_MainTargetFrameBuffer[frameIndex]->GetTextureAttachment(0);
 	const std::uint32_t SAMPLES = m_Settings.BloomSettings.Samples;
 
-	glm::uvec3 executionGroups { std::ceil(static_cast<float>(mainTarget->GetWidth()) / 16.f), std::ceil(static_cast<float>(mainTarget->GetHeight()) / 16.0f), 1 };
+	auto grups = ImGuiLayer::GetGlobalValue<glm::ivec2>("Work groups");
+
+	glm::uvec3 executionGroups { std::ceil(static_cast<float>(mainTarget->GetWidth()) / (16.f + grups->x)), std::ceil(static_cast<float>(mainTarget->GetHeight()) / (16.0f + grups->y)), 1 };
 	Bloom::RenderData bloomData = m_Settings.BloomSettings.GetRenderData();
+
+	
 
 	Renderer::BeginCompute(m_MainCommandBuffer, pipeline, frameIndex);
 	{
@@ -1028,6 +1034,7 @@ void shade::SceneRenderer::BloomComputePass(SharedPointer<ComputePipeline>& pipe
 			bloomData.Lod = mip;
 			pipeline->SetTexturePerMipLevel(m_BloomTarget, Pipeline::Set::PerInstance, 0, frameIndex, mip);
 			pipeline->SetTexturePerMipLevel(m_BloomTarget, Pipeline::Set::PerInstance, 2, frameIndex, mip - 1);
+			//Proxy 
 			pipeline->SetTexturePerMipLevel(m_BloomTarget, Pipeline::Set::PerInstance, 1, frameIndex, mip - 1);
 
 			pipeline->SetUniform(m_MainCommandBuffer, sizeof(SceneRenderer::Bloom::RenderData), &bloomData, frameIndex);

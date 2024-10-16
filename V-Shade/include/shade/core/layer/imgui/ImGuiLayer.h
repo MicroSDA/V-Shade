@@ -21,6 +21,18 @@ namespace shade
 		void DrawImage(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor);
 		void DrawImage(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor, std::uint32_t mip);
 		void DrawImage(Asset<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor);
+
+		template<typename T, typename ...Args>
+		inline static T* GetGlobalValue(const std::string& name, Args && ...args)
+		{
+			if (m_sGlobalsValues[name] == nullptr)
+			{
+				m_sGlobalsValues[name] = new T(std::forward<Args>(args)...);
+			}
+
+			return reinterpret_cast<T*>(m_sGlobalsValues[name]);
+		}
+		static inline std::unordered_map<std::string, void*> m_sGlobalsValues;
 	public:
 		ImGuiViewport* m_Viewport;
 		int m_WindowFlags;
@@ -218,5 +230,6 @@ namespace shade
 
 	private:
 		SharedPointer<ImGuiRender> m_ImGuiRender;
+		
 	};
 }

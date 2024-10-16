@@ -23,6 +23,7 @@ vec4 DownsampleBox4(sampler2D texture, vec2 uv, vec2 texelSize, int lod)
 
     return  vec4(color.rgb * (1.0 / 4.0), color.a);
 };
+
 vec4 DownsampleBox13(sampler2D texture, vec2 uv, vec2 texelSize, int lod)
 {
 	texelSize /= 0.5; // Sample from center of texels
@@ -53,6 +54,7 @@ vec4 DownsampleBox13(sampler2D texture, vec2 uv, vec2 texelSize, int lod)
 
     return color;
 };
+
 vec4 UpsampleBox4(sampler2D texture, vec2 uv, vec2 texelSize, int lod)
 {
 	vec4 offset  = texelSize.xyxy * vec4(-1.0, -1.0, 1.0, 1.0) * (1.0 * 0.5);

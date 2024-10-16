@@ -29,13 +29,21 @@ ivec2 FitToBorders(ivec2 Position, ivec2 ImageSize)
 {
     ivec2 PixelCoords = Position;
 
-    if(PixelCoords.x < 0) PixelCoords.x = 0;
-    if(PixelCoords.y < 0) PixelCoords.y = 0;
-    if(PixelCoords.x >= ImageSize.x) PixelCoords.x = ImageSize.x;
-    if(PixelCoords.y >= ImageSize.y) PixelCoords.y = ImageSize.y;
+    if(Position.x < 0) PixelCoords.x = 0;
+    if(Position.y < 0) PixelCoords.y = 0;
+
+    if(Position.x > ImageSize.x) PixelCoords.x = ImageSize.x;
+    if(Position.y > ImageSize.y) PixelCoords.y = ImageSize.y;
 
     return PixelCoords;
 }
+
+vec2 GetUV(sampler2D texture, ivec2 position, int lod)
+{
+     // 0.5 is offset
+     return vec2(vec2(vec2(position.xy) + 0.5) / vec2(textureSize(texture, lod).xy));
+}
+
 void HDR(ivec2 ImagePosition)
 {
    vec2  ImageSize      = vec2(imageSize(u_AboveImage));
@@ -50,15 +58,12 @@ void HDR(ivec2 ImagePosition)
 
 void Downsample(int Mip, ivec2 ImagePosition)
 {
-   //ImagePosition  = ivec2(clamp(vec2(ImagePosition), vec2(0.0,0.0), vec2(imageSize(u_AboveImage))));
-   //ImagePosition = FitToBorders(ImagePosition, ivec2(imageSize(u_AboveImage)));
    vec2  ImageSize      = vec2(imageSize(u_AboveImage));
    vec2  TextureCoords  = vec2(ImagePosition) / ImageSize; 
    vec2  TexelSize      = 1.0 / vec2(textureSize(u_Sampler, 0));
 
    TextureCoords        += (1.0 / ImageSize) * 0.5;
-   //TextureCoords 		= clamp(TextureCoords, -0.5, 0.5);
-   
+
    vec4 Color = DownsampleBox13(u_Sampler, TextureCoords, TexelSize, 0);
    
    imageStore(u_BelowImage, ImagePosition, Color);
@@ -66,17 +71,12 @@ void Downsample(int Mip, ivec2 ImagePosition)
 
 void Upsample(int Mip, ivec2 ImagePosition)
 {
-	//ImagePosition  = ivec2(clamp(vec2(ImagePosition), vec2(0.0,0.0), vec2(imageSize(u_AboveImage))));
-	//ImagePosition = FitToBorders(ImagePosition, ivec2(imageSize(u_AboveImage)));
     vec2  ImageSize      = vec2(imageSize(u_AboveImage));
-
     vec2  TextureCoords  = vec2(ImagePosition) / ImageSize;
     vec2  TexelSize      = 1.0 / vec2(textureSize(u_Sampler, 0));
 
     TextureCoords        += (1.0 / ImageSize) * 0.5;
-	
-	//TextureCoords 		= clamp(TextureCoords, 0.0, 1.0);
-    
+
     vec4  Above          = imageLoad(u_AboveImage, ImagePosition);
     vec4  Current        = UpsampleTent(u_Sampler, TextureCoords, TexelSize, 0);
 
