@@ -595,19 +595,18 @@ void graph_editor::GraphNodePrototype::MoveNode(float scaleFactor)
 
 void graph_editor::GraphEditor::InitializeRecursively(graphs::BaseNode* pNode, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, bool cursor)
 {
-
-	// TODO:: state machine
-	if (dynamic_cast<state_machine::StateNode*>(pNode))
+	if (dynamic_cast<state_machine::StateMachineNode*>(pNode))
 	{
-		state_machine::StateNode* state = reinterpret_cast<state_machine::StateNode*>(pNode);
+		// Transition as graph node, contains nodes
+		state_machine::StateMachineNode* machine = reinterpret_cast<state_machine::StateMachineNode*>(pNode);
 
-		CreateNode<StateNodeDelegate>(pNode, nodes);
-
-		for (auto node : state->GetInternalNodes())
+		CreateNode<StateMachineNodeDeligate>(pNode, nodes);
+		// Aka states
+		for (auto state : machine->GetInternalNodes())
 		{
-			InitializeRecursively(node, nodes, cursor);
+			InitializeRecursively(state, nodes, cursor);
 		}
-	}
+		}
 	else if (dynamic_cast<state_machine::TransitionNode*>(pNode))
 	{
 		// Transition as graph node, contains nodes
@@ -618,17 +617,16 @@ void graph_editor::GraphEditor::InitializeRecursively(graphs::BaseNode* pNode, s
 		{
 			InitializeRecursively(node, nodes, cursor);
 		}
-	}
-	else if (dynamic_cast<state_machine::StateMachineNode*>(pNode))
+		}
+	else if (dynamic_cast<state_machine::StateNode*>(pNode))
 	{
-		// Transition as graph node, contains nodes
-		state_machine::StateMachineNode* machine = reinterpret_cast<state_machine::StateMachineNode*>(pNode);
+		state_machine::StateNode* state = reinterpret_cast<state_machine::StateNode*>(pNode);
 
-		CreateNode<StateMachineNodeDeligate>(pNode, nodes);
-		// Aka states
-		for (auto state : machine->GetInternalNodes())
+		CreateNode<StateNodeDelegate>(pNode, nodes);
+
+		for (auto node : state->GetInternalNodes())
 		{
-			InitializeRecursively(state, nodes, cursor);
+			InitializeRecursively(node, nodes, cursor);
 		}
 	}
 	else if (dynamic_cast<graphs::BaseNode*>(pNode))
@@ -706,14 +704,14 @@ void graph_editor::GraphEditor::InitializeRecursively(graphs::BaseNode* pNode, s
 			shade::graphs::Vec2FloatNode* value = reinterpret_cast<shade::graphs::Vec2FloatNode*>(pNode);
 			CreateNode<Vec2FloatDNodeDeligate>(pNode, nodes);
 		}
-	}
+		}
 
-	if (!cursor)
-	{
-		const ImVec2 mousePos = (ImGui::GetIO().MousePos - m_Context.Offset) / m_Context.Scale.Factor;
-		pNode->GetScreenPosition() = glm::vec2(mousePos.x, mousePos.y);
+		if (!cursor)
+		{
+			const ImVec2 mousePos = (ImGui::GetIO().MousePos - m_Context.Offset) / m_Context.Scale.Factor;
+			pNode->GetScreenPosition() = glm::vec2(mousePos.x, mousePos.y);
 
-	}
+		}
 }
 
 graph_editor::GraphNodePrototype* graph_editor::GraphEditor::GetPrototypedNode(graphs::BaseNode* pNode)
@@ -909,7 +907,7 @@ bool graph_editor::GraphEditor::Edit(const char* title, const ImVec2& size, cons
 
 					ImVec2 center(m_Context.Offset.x, m_Context.Offset.y);
 
-					
+
 					// Рисуем точку в центре сетки
 					m_Context.DrawList->AddCircleFilled(center, 5.0f, ImGui::ColorConvertFloat4ToU32({ 0.5, 0.1, 0.1, 1.0 })); // Размер точки равен 3.0f
 
@@ -1030,12 +1028,12 @@ bool graph_editor::GraphEditor::Edit(const char* title, const ImVec2& size, cons
 	}
 	ImGui::PopStyleColor();
 
-	
+
 	ImGuiLayer::BeginWindowOverlay("Path",
 		ImGui::GetCurrentWindow()->Viewport, 123124,
 		ImVec2{ m_Context.CanvasSize.x, ImGui::GetFrameHeight() + 8.f },
 		m_Context.CanvasRect.Min, 1.0f, [&]() {DrawPathRecursevly(m_Context.CurrentNode); });
-	
+
 
 	if (m_Context.ConnectionEstablish.IsInputSelect && m_Context.ConnectionEstablish.IsOutPutSelect)
 	{
@@ -1695,6 +1693,9 @@ graph_editor::StateNodeDelegate::StateNodeDelegate(graphs::BaseNode* pNode, Grap
 	Style.HeaderColor = STATE_NODE_COLOR;
 }
 
+// Надо это переделать, поместить это куда то в обище где все отрисовуются и проверять если это стейт или стейт машина то нужно делать коннекшены !
+// Я бы все переделал конечно, прям все !! 
+
 bool graph_editor::StateNodeDelegate::Draw(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes)
 {
 	const ImVec2 nodeRectMin = context->Offset + GetScreenPosition() * context->Scale.Factor;
@@ -1726,10 +1727,7 @@ bool graph_editor::StateNodeDelegate::Draw(const InternalContext* context, const
 
 	ImGui::SetCursorScreenPos(context->Offset + ImVec2{ GetScreenPosition().x , GetScreenPosition().y } *context->Scale.Factor);
 
-
 	DrawBody(context, graphStyle, nodes);
-
-
 
 	if (GetNode() == GetNode()->GetParrentGraph()->As<shade::animation::state_machine::StateMachineNode>().GetCurrentState())
 	{
@@ -1747,7 +1745,6 @@ bool graph_editor::StateNodeDelegate::Draw(const InternalContext* context, const
 		else
 		{
 			m_TransitionEstablish.From = GetNode();
-
 		}
 	}
 
@@ -1755,7 +1752,6 @@ bool graph_editor::StateNodeDelegate::Draw(const InternalContext* context, const
 	{
 		isClicked = true;
 	}
-
 
 	MoveNode(context->Scale.Factor);
 
@@ -1861,14 +1857,17 @@ graph_editor::OutputPoseNodeDelegate::OutputPoseNodeDelegate(graphs::BaseNode* p
 
 void graph_editor::OutputPoseNodeDelegate::ProcessBodyContent(const InternalContext* context)
 {
-	auto pose = GetNode()->GET_ENDPOINT<graphs::Connection::Input, NodeValueType::Pose>(0);
-	std::size_t hash = (pose) ? pose->GetAnimationHash() : 0;
-	ImGuiLayer::HelpMarker("#", std::format("{:x}", hash).c_str());
+	
 }
 
 void graph_editor::OutputPoseNodeDelegate::ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint)
 {
 	ImGui::Text("Income pose");
+
+	auto pose = GetNode()->GET_ENDPOINT<graphs::Connection::Input, NodeValueType::Pose>(0);
+	std::size_t hash = (pose) ? pose->GetAnimationHash() : 0;
+	
+	ImGuiLayer::HelpMarker("#", std::format("{:x}", hash).c_str());
 }
 
 graph_editor::BlendNodeDelegate::BlendNodeDelegate(graphs::BaseNode* pNode, GraphEditor* pEditor) : GraphNodePrototype(pNode, pEditor)
@@ -2009,8 +2008,6 @@ void graph_editor::PoseNodeDelegate::ProcessBodyContent(const InternalContext* c
 {
 	PoseNode& node = GetNode()->As<animation::PoseNode>();
 
-	
-
 	float& start = node.GetAnimationData().Start;
 	float& end = node.GetAnimationData().End;
 	float& currentTime = node.GetAnimationData().CurrentPlayTime;
@@ -2022,7 +2019,7 @@ void graph_editor::PoseNodeDelegate::ProcessBodyContent(const InternalContext* c
 	(!rootMotion) ? ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled)) : void();
 	shade::ImGuiLayer::DrawFontIcon(u8"\xf21d", 1, 0.5f);
 	(!rootMotion) ? ImGui::PopStyleColor() : void();
-	
+
 	ImGui::SameLine(); ImGuiLayer::HelpMarker("#", std::format("{:x}", hash).c_str()); ImGui::SameLine();
 
 	{
@@ -2032,7 +2029,7 @@ void graph_editor::PoseNodeDelegate::ProcessBodyContent(const InternalContext* c
 		result = glm::clamp(result, 0.0f, 1.0f);
 
 		ImGui::SetCursorScreenPos(ImGui::GetCursorScreenPos() + ImVec2{ 0, ImGui::GetFrameHeight() / 4.f });
-		ImGui::ProgressBar(result, ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() / 7.f), ""); 
+		ImGui::ProgressBar(result, ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() / 7.f), "");
 	}
 
 }
@@ -2152,7 +2149,7 @@ void graph_editor::PoseNodeDelegate::ProcessSideBar(const InternalContext* conte
 				{
 					ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
 					ImGui::DragFloat("##Tiks", &ticksPerSecond, 0.01f, 0.0f, FLT_MAX);
-					ImGui::PopItemWidth(); 
+					ImGui::PopItemWidth();
 				}
 			}
 			(!node.GetAnimationData().Animation) ? ImGui::EndDisabled() : void();
@@ -2245,8 +2242,8 @@ void graph_editor::PoseNodeDelegate::ProcessSideBar(const InternalContext* conte
 						shade::ImGuiLayer::DrawFontIcon(u8"\xf21d", 1, 0.7f);
 						(!rootMotion) ? ImGui::PopStyleColor() : void();
 
-						ImGui::SameLine(); 
-						if (shade::ImGuiLayer::ToggleButton("RootMotion", &rootMotion)) 
+						ImGui::SameLine();
+						if (shade::ImGuiLayer::ToggleButton("RootMotion", &rootMotion))
 						{
 							node.ResetAnimationData(node.GetAnimationData());
 						}
@@ -2331,6 +2328,11 @@ void graph_editor::StateMachineNodeDeligate::ProcessEndpoint(graphs::EndpointIde
 		ImGui::Text("Outcome pose");
 		break;
 	}
+}
+
+bool graph_editor::StateMachineNodeDeligate::Draw(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes)
+{
+	return GraphNodePrototype::Draw(context, graphStyle, nodes);
 }
 
 void graph_editor::AnimationGraphDeligate::ProcessSideBar(const InternalContext* pContext, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, std::unordered_map<std::size_t, GraphNodePrototype*>& referNodes)

@@ -25,25 +25,6 @@ layout (push_constant) uniform UBloom
    int    Stage;
 } u_Bloom;
 
-ivec2 FitToBorders(ivec2 Position, ivec2 ImageSize)
-{
-    ivec2 PixelCoords = Position;
-
-    if(Position.x < 0) PixelCoords.x = 0;
-    if(Position.y < 0) PixelCoords.y = 0;
-
-    if(Position.x > ImageSize.x) PixelCoords.x = ImageSize.x;
-    if(Position.y > ImageSize.y) PixelCoords.y = ImageSize.y;
-
-    return PixelCoords;
-}
-
-vec2 GetUV(sampler2D texture, ivec2 position, int lod)
-{
-     // 0.5 is offset
-     return vec2(vec2(vec2(position.xy) + 0.5) / vec2(textureSize(texture, lod).xy));
-}
-
 void HDR(ivec2 ImagePosition)
 {
    vec2  ImageSize      = vec2(imageSize(u_AboveImage));

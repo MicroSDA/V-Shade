@@ -115,7 +115,7 @@ namespace graph_editor
 			ImVec4 BackgroundColor	= ImVec4{ 0.15f, 0.15f, 0.15f, 1.f };
 			ImVec4 TextColor		= ImVec4{ 0.0f, 0.0f, 0.0f, 1.f };
 
-			ImVec2 Size = ImVec2{ 200.f, 150.f };
+			ImVec2 Size = ImVec2{ 150.f, 150.f };
 			std::string	Title = "Node title";
 		};
 
@@ -381,6 +381,9 @@ namespace graph_editor
 		virtual void ProcessSideBar(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, std::unordered_map<std::size_t, GraphNodePrototype*>& referNodes) override;
 		virtual void ProcessPopup(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, const std::string& search) override;
 		virtual void ProcessEndpoint(graphs::EndpointIdentifier identifier, graphs::Connection::Type type, NodeValue& endpoint) override;
+
+		virtual bool Draw(const InternalContext* context, const GraphVisualStyle* graphStyle, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes) override;
+
 	private:
 		
 	};

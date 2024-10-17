@@ -72,19 +72,6 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 		}
 	};
 
-	VertexBuffer::Layout skeletonVisualizinglayout =
-	{
-		{
-			VertexBuffer::Layout::Usage::PerInstance,
-			{
-				{ "a_Transform",		 Shader::DataType::Float4, VertexBuffer::Layout::Usage::PerInstance},
-				{ "a_Transform",		 Shader::DataType::Float4, VertexBuffer::Layout::Usage::PerInstance},
-				{ "a_Transform",		 Shader::DataType::Float4, VertexBuffer::Layout::Usage::PerInstance},
-				{ "a_Transform",		 Shader::DataType::Float4, VertexBuffer::Layout::Usage::PerInstance}
-			}
-		}
-	};
-
 	VertexBuffer::Layout gridVertexlayout =
 	{
 		{
@@ -109,7 +96,8 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 	m_LightCullingPreDepthFrameBuffer	= FrameBuffer::Create({ 1, 1, {0.0f, 0.0f, 0.0f, 1.f}, 1.f, { { render::Image::Format::DEPTH24STENCIL8 } } });
 	m_GlobalLightShadowFrameBuffer		= FrameBuffer::Create({ 6000, 6000, {0.0f, 0.0f, 0.0f, 1.f}, 1.f, { { render::Image::Format::Depth, render::Image::Usage::Attachment, render::Image::Clamp::REPEAT, 1, GlobalLight::SHADOW_CASCADES_COUNT } } });
 	m_SpotLightShadowFrameBuffer		= FrameBuffer::Create({ 2000, 2000, {0.0f, 0.0f, 0.0f, 1.f}, 1.f, { { render::Image::Format::Depth, render::Image::Usage::Attachment, render::Image::Clamp::REPEAT, 1,  RenderAPI::MAX_SPOT_SHADOW_CASTERS }} });
-	m_PointLightShadowFrameBuffer		= FrameBuffer::Create({ 1000, 1000, {0.0f, 0.0f, 0.0f, 1.f}, 1.f, { { render::Image::Format::Depth, render::Image::Usage::Attachment, render::Image::Clamp::REPEAT,1,  RenderAPI::MAX_POINT_SHADOW_CASTERS * 6, 1, 1, true}} });
+
+	m_PointLightShadowFrameBuffer		= FrameBuffer::Create({ 1000, 1000, {0.0f, 0.0f, 0.0f, 1.f}, 1.f, { { render::Image::Format::Depth, render::Image::Usage::Attachment, render::Image::Clamp::CLAMP_TO_EDGE,1,  RenderAPI::MAX_POINT_SHADOW_CASTERS * 6, 1, 1, true}} });
 	m_BloomTarget						= Texture2D::CreateEXP({ render::Image::Format::RGBA32F, render::Image::Usage::Storage, render::Image::Clamp::CLAMP_TO_EDGE, m_Settings.BloomSettings.Samples, 1, 200, 200 });
 	m_ScreenSpaceAmbientOcclusionTarget	= Texture2D::CreateEXP({ render::Image::Format::RED8UN, render::Image::Usage::Storage, render::Image::Clamp::REPEAT, 1, 1, 200, 200 });
 	// TODO: Should it be like some internal part of renderer ?
@@ -117,12 +105,16 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 	m_VisiblePointLightIndicesBuffer	= StorageBuffer::Create(StorageBuffer::Usage::GPU, RenderAPI::POINT_LIGHT_INDINCES_BINDING, sizeof(std::uint32_t) * RenderAPI::MAX_POINT_LIGHTS_COUNT, Renderer::GetFramesCount(), 20);
 	m_SSAOSamplesBuffer					= UniformBuffer::Create(UniformBuffer::Usage::CPU_GPU, 4, sizeof(SSAO::RenderBuffer), Renderer::GetFramesCount(), 0);
 
+	/*
+	* [10:41:21]CORE:VK_RENDER_INFO: Validation Error: [ VUID-vkCmdDraw-None-04007 ] Object 0: handle = 0x20020d21a00, name = Command buffer., type = VK_OBJECT_TYPE_COMMAND_BUFFER; Object 1: handle = 0x7c545b0000000230, name = Pipeline, type = VK_OBJECT_TYPE_PIPELINE; | MessageID = 0x9981c31b | vkCmdDraw: VkPipeline 0x7c545b0000000230[Pipeline] expects that this Command Buffer's vertex binding Index 0 should be set via vkCmdBindVertexBuffers. This is because pVertexBindingDescriptions[0].binding value is 0. The Vulkan spec states: All vertex input bindings accessed via vertex input variables declared in the vertex shader entry point's interface must have either valid or VK_NULL_HANDLE buffers bound (https://vulkan.lunarg.com/doc/view/1.3.250.1/windows/1.3-extensions/vkspec.html#VUID-vkCmdDraw-None-04007)
+	*/
+
 	RegisterNewPipeline(shade::RenderPipeline::Create(
 		{
 			.Name = "Skeleton-Bone-Visualizing",
 			.Shader = ShaderLibrary::Create("Skeleton-Bone-Visualizing", "./resources/assets/shaders/utils/SkeletonVisualizing.glsl"),
 			.FrameBuffer = m_MainTargetFrameBuffer[0],
-			.VertexLayout = skeletonVisualizinglayout,
+			//.VertexLayout = skeletonVisualizinglayout,
 			.Topology = Pipeline::PrimitiveTopology::Point,
 			.BackFalceCull = false,
 			.LineWidth = 2.f	
@@ -219,7 +211,8 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 			.FrameBuffer = m_MainTargetFrameBuffer[0],
 			.VertexLayout = gridVertexlayout,
 			.Topology = Pipeline::PrimitiveTopology::TriangleStrip,
-			.BackFalceCull = false
+			.BackFalceCull = false,
+			.LineWidth = 15.f
 		}));
 	RegisterNewPipeline(shade::RenderPipeline::Create(
 		{
@@ -984,12 +977,8 @@ void shade::SceneRenderer::BloomComputePass(SharedPointer<ComputePipeline>& pipe
 	const auto& mainTarget = m_MainTargetFrameBuffer[frameIndex]->GetTextureAttachment(0);
 	const std::uint32_t SAMPLES = m_Settings.BloomSettings.Samples;
 
-	auto grups = ImGuiLayer::GetGlobalValue<glm::ivec2>("Work groups");
-
-	glm::uvec3 executionGroups { std::ceil(static_cast<float>(mainTarget->GetWidth()) / (16.f + grups->x)), std::ceil(static_cast<float>(mainTarget->GetHeight()) / (16.0f + grups->y)), 1 };
+	glm::uvec3 executionGroups { std::ceil(static_cast<float>(mainTarget->GetWidth()) / (16.f)), std::ceil(static_cast<float>(mainTarget->GetHeight()) / (16.0f)), 1 };
 	Bloom::RenderData bloomData = m_Settings.BloomSettings.GetRenderData();
-
-	
 
 	Renderer::BeginCompute(m_MainCommandBuffer, pipeline, frameIndex);
 	{

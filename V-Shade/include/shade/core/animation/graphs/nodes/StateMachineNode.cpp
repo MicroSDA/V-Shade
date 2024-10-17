@@ -204,7 +204,7 @@ bool shade::animation::state_machine::StateNode::RemoveTransition(TransitionNode
 }
 
 shade::animation::state_machine::StateMachineNode::StateMachineNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode)
-	: BaseNode(context, identifier, pParentNode, "State machine")
+	: StateNode(context, identifier, pParentNode, "State machine")
 {
 	REGISTER_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(nullptr);  // transition blend !	
 	REGISTER_ENDPOINT<graphs::Connection::Output, NodeValueType::Float>(0.0);

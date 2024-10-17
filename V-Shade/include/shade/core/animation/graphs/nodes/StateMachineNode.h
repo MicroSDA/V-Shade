@@ -361,7 +361,7 @@ namespace shade
 			};
 
 			/// @brief Represents a state machine node in an animation graph.
-			class SHADE_API StateMachineNode : public graphs::BaseNode
+			class SHADE_API StateMachineNode : public StateNode
 			{
 				NODE_STATIC_TYPE_HELPER(StateMachineNode)
 
