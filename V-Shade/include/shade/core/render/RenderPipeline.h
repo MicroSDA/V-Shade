@@ -43,6 +43,9 @@ namespace shade
 			GeometryShader = 0x00000040,
 			FragmentShader = 0x00000080,
 
+			EarlyFragmentTests = 0x00000100,
+			LateFragmentTests = 0x00000200,
+
 			ColorAttachmentOutput = 0x00000400,
 			ComputeShader = 0x00000800,
 			Transfer = 0x00001000,
@@ -162,7 +165,9 @@ namespace shade
 		virtual void UpdateResources(SharedPointer<RenderCommandBuffer>& commandBuffer, std::uint32_t frameIndex) = 0;
 
 		virtual void SetBarrier(SharedPointer<RenderCommandBuffer>& commandBuffer, Stage srcStage, Stage dstStage, Access srcAccess, Access dstAccces, std::uint32_t frameIndex) = 0;
-		
+		virtual void SetBarrier(SharedPointer<RenderCommandBuffer>& commandBuffer, Asset<Texture2D> texture, Stage srcStage, Stage dstStage, Access srcAccess, Access dstAccces, std::uint32_t frameIndex, std::uint32_t mip) = 0;
+		virtual void SetBarrier(SharedPointer<RenderCommandBuffer>& commandBuffer, SharedPointer<Texture2D> texture, Stage srcStage, Stage dstStage, Access srcAccess, Access dstAccces, std::uint32_t frameIndex, std::uint32_t mip) = 0;
+
 		std::function<void(SharedPointer<RenderPipeline>&, const render::SubmitedInstances&, const render::SubmitedSceneRenderData&, std::uint32_t, bool)> Process;
 	};
 	

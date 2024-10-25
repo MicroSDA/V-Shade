@@ -45,11 +45,11 @@ shared int VisibleSpotLightIndices[MAX_SPOT_LIGHTS];
 
 float ScreenSpaceToViewSpaceDepth(const float screenDepth)
 {
-	// float depthLinearizeMul = (u_Camera.Far * u_Camera.Near ) / ( u_Camera.Far - u_Camera.Near);
-	// float depthLinearizeAdd =  u_Camera.Far / ( u_Camera.Far - u_Camera.Near );
+	float depthLinearizeMul = (u_Camera.Far * u_Camera.Near ) / ( u_Camera.Far - u_Camera.Near);
+	float depthLinearizeAdd =  u_Camera.Far / ( u_Camera.Far - u_Camera.Near );
 
-	float depthLinearizeMul = u_Camera.Near;
-	float depthLinearizeAdd = u_Camera.Far;
+	// float depthLinearizeMul = u_Camera.Near;
+	// float depthLinearizeAdd = u_Camera.Far;
 
 	// Optimised version of "-cameraClipNear / (cameraClipFar - projDepth * (cameraClipFar - cameraClipNear)) * cameraClipFar"
 	return depthLinearizeMul / (depthLinearizeAdd - screenDepth);

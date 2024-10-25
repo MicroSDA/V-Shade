@@ -71,7 +71,7 @@ namespace shade
 			std::string Name;
 		};
 	public:
-		VulkanShader(const std::string& filePath, bool ignoreCache);
+		VulkanShader(const Specification& specification, bool ignoreCache);
 		virtual ~VulkanShader();
 
 		std::vector<VkPipelineShaderStageCreateInfo>& GetPipelineShaderStageCreateInfo();

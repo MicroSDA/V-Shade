@@ -50,8 +50,8 @@ std::pair<shade::SharedPointer<shade::Model>, std::unordered_map<std::string, sh
 		aiProcess_PopulateArmatureData |
 		aiProcess_FindInvalidData |
 		aiProcess_OptimizeMeshes |
+		aiProcess_LimitBoneWeights |
 		aiProcess_FixInfacingNormals;
-
 
 	ImportFagls |=
 		((flags & Triangulate) ? aiProcess_Triangulate : 0) |

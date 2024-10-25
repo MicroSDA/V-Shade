@@ -21,6 +21,9 @@ shade::VulkanPhysicalDevice::VulkanPhysicalDevice(const SystemsRequirements& req
 		VkPhysicalDeviceFeatures features;
 		vkGetPhysicalDeviceFeatures(device, &features);
 
+		VkPhysicalDeviceFeatures2 features2 { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+		vkGetPhysicalDeviceFeatures2(device, &features2);
+
 		VkPhysicalDeviceMemoryProperties memory;
 		vkGetPhysicalDeviceMemoryProperties(device, &memory);
 
@@ -147,21 +150,28 @@ bool shade::VulkanPhysicalDevice::DeviceMeetsRequirements(const SystemsRequireme
 		return false;
 
 	// As far as we are working with swapchain we need this extension to be enabled.
-	m_RequiredExtensions.push_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
-	m_RequiredExtensions.push_back(VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME);
-	m_RequiredExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-	m_RequiredExtensions.push_back(VK_KHR_MAINTENANCE_4_EXTENSION_NAME);
-	m_RequiredExtensions.push_back(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME);
-	m_RequiredExtensions.push_back(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
-	
+	m_RequiredExtensions.emplace_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+	m_RequiredExtensions.emplace_back(VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME);
+	m_RequiredExtensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+	m_RequiredExtensions.emplace_back(VK_KHR_MAINTENANCE_4_EXTENSION_NAME);
+	m_RequiredExtensions.emplace_back(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME);
+	m_RequiredExtensions.emplace_back(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
+	//m_RequiredExtensions.emplace_back(VK_NV_FRAMEBUFFER_MIXED_SAMPLES_EXTENSION_NAME);
+	//m_RequiredExtensions.emplace_back(VK_NV_FRAMEBUFFER_MIXED_SAMPLES_EXTENSION_NAME);
+	//m_RequiredExtensions.emplace_back(VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME);
+	//m_RequiredExtensions.emplace_back(VK_EXT_SHADER_TILE_IMAGE_EXTENSION_NAME);
 
+	//VK_KHR_dynamic_rendering_local_read or VK_EXT_shader_tile_image
+
+	//m_RequiredExtensions.emplace_back(VK_EXT_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_EXTENSION_NAME);
+	
 	bool isNotFound = false;
 	for (auto& ext : m_RequiredExtensions)
 	{
 		if (m_SupportedExtensions.find(ext) == m_SupportedExtensions.end())
 		{
 			SHADE_CORE_WARNING("Graphic device doesn't support required exstension: {0}", ext);
-			isNotFound = true;
+			//isNotFound = true;
 		}	
 	}
 	// Just to print them all and quit after. 
@@ -295,15 +305,19 @@ shade::VulkanDevice::VulkanDevice(const SharedPointer<VulkanPhysicalDevice>& phy
 	deviceCreateInfo.pQueueCreateInfos = physicalDevice->m_QueueCreateInfos.data();
 	deviceCreateInfo.pEnabledFeatures = &physicalDevice->GetPhysicalDeviceFeatures();
 
-	//deviceCreateInfo.pEnabledFeatures = &physicalDevice->GetPhysicalDeviceFeatures();
+	//VkPhysicalDeviceFeatures2 physicalDeviceFeatures = physicalDevice->GetPhysicalDeviceFeatures();
 
 	if (m_PhysicalDevice->GetRequiredExtensions().size() > 0)
 	{
 		deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_PhysicalDevice->GetRequiredExtensions().size());
 		deviceCreateInfo.ppEnabledExtensionNames = m_PhysicalDevice->GetRequiredExtensions().data();
 		
+		//VK_KHR_dynamic_rendering_local_read or VK_EXT_shader_tile_image
+
+	
 		static VkPhysicalDeviceVulkan13Features  physicalDeviceVulkan13Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
 		static VkPhysicalDeviceVulkan12Features  physicalDeviceVulkan12Features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
+		//static VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR dynamicRenderingLocalRead{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_LOCAL_READ_FEATURES_KHR };
 
 		// Allows us to use gl_Layer assigment in vertex shader instend of geometry
 		physicalDeviceVulkan12Features.shaderOutputViewportIndex = true;
@@ -313,6 +327,13 @@ shade::VulkanDevice::VulkanDevice(const SharedPointer<VulkanPhysicalDevice>& phy
 		physicalDeviceVulkan13Features.dynamicRendering = VK_TRUE;
 		//Compute shader use "LocalSizeId"
 		physicalDeviceVulkan13Features.maintenance4 = VK_TRUE;
+
+	
+		//dynamicRenderingLocalRead.dynamicRenderingLocalRead = VK_TRUE;
+		//physicalDeviceFeatures.pNext = &dynamicRenderingLocalRead;
+
+		//physicalDeviceVulkan13Features.pNext = &physicalDeviceFeatures;
+
 		deviceCreateInfo.pNext = &physicalDeviceVulkan12Features;
 	}
 

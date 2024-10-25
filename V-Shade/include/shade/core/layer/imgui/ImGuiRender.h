@@ -17,6 +17,7 @@ namespace shade
 		virtual void DrawImage(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor) = 0;
 		virtual void DrawImage(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor, std::uint32_t mip) = 0;
 		virtual void DrawImage(Asset<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor) = 0;
+		virtual void DrawImageLayerd(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor, std::uint32_t layer) = 0;
 		ImGuiContext* GetImGuiContext();
 
 		

@@ -9,30 +9,31 @@ namespace utils
     {
         if (!std::filesystem::exists(path))
             std::filesystem::create_directories(path);
-
     }
 }
 
-shade::Shader::Shader(const std::string& filePath)
+shade::Shader::Shader(const Specification& specification)
 {
-    m_FilePath  = filePath;
-    m_FileName  = std::filesystem::path(filePath).stem().string();
-    m_Directory = std::filesystem::path(filePath).remove_filename().string();
+    m_Specification = specification;
+    m_FilePath      = specification.FilePath;
+    m_FileName      = specification.Name;
+
+    m_Directory = std::filesystem::path(m_FilePath).remove_filename().string();
     // Try to open raw source file
     std::string source = ReadFile(m_FilePath);
     // If file doesn't exist
     if (!source.empty())
     {
-        m_SourceCode = PreProcess(source, std::filesystem::path(filePath).filename().stem().string());
+        m_SourceCode = PreProcess(source, std::filesystem::path(m_FilePath).filename().stem().string());
         utils::CreateChacheDirectory(GetShaderCacheDirectory());
     }
 }
 
-shade::SharedPointer<shade::Shader> shade::Shader::Create(const std::string& filePath, bool ignoreCache)
+shade::SharedPointer<shade::Shader> shade::Shader::Create(const Specification& specification, bool ignoreCache)
 {
     switch (RenderAPI::GetCurrentAPI())
     {
-        case RenderAPI::API::Vulkan: return SharedPointer<VulkanShader>::Create(filePath, ignoreCache);
+        case RenderAPI::API::Vulkan: return SharedPointer<VulkanShader>::Create(specification, ignoreCache);
         default:SHADE_CORE_ERROR("Only Vulkan api is supported!"); return nullptr;
     }
 }
@@ -50,6 +51,11 @@ const std::string& shade::Shader::GetFileDirectory() const
 const std::string& shade::Shader::GetFileName() const
 {
     return m_FileName;
+}
+
+shade::Shader::Specification& shade::Shader::GetSpecification()
+{
+    return m_Specification;
 }
 
 void shade::Shader::SetFilePath(const std::string& filePath)

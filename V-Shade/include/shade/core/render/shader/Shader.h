@@ -9,10 +9,15 @@ namespace shade
 	// Shader class.
 	class SHADE_API Shader
 	{
-
 		SHADE_CAST_HELPER(Shader)
 
 	public:
+		struct Specification
+		{
+			std::string Name;
+			std::string FilePath;
+			std::vector<std::string> MacroDefinitions;
+		};
 		// Shader type.
 		enum Type : std::uint32_t
 		{
@@ -31,15 +36,18 @@ namespace shade
 			// TODO: Need from Hazel need to refactor 
 			None = 0, Float, Float2, Float3, Float4, Mat3, Mat4, Int, Int2, Int3, Int4, Bool
 		};
-		Shader(const std::string& filePath);
+		Shader(const Specification& specification);
 		Shader() = default;
 		virtual ~Shader() = default;
 		// Create shader. 
-		static SharedPointer<Shader> Create(const std::string& filePath, bool ignoreCache = false);
+		static SharedPointer<Shader> Create(const Specification& specification, bool ignoreCache = false);
 
 		const std::string& GetFilePath() const;
 		const std::string& GetFileDirectory() const;
 		const std::string& GetFileName() const;
+
+		Specification& GetSpecification();
+
 		void SetFilePath(const std::string& filePath);
 		static std::string GetShaderCacheDirectory();
 		static std::uint32_t GetDataTypeSize(const DataType& type);
@@ -52,6 +60,8 @@ namespace shade
 	protected:
 		std::unordered_map<Shader::Type, std::string> m_SourceCode;
 		virtual void TryToFindInCacheAndCompile() = 0;
+
+		Specification m_Specification;
 	private:
 		// Full path.
 		std::string m_FilePath;

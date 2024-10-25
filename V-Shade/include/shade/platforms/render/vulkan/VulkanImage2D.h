@@ -23,6 +23,7 @@ namespace shade
 		VkImageView GetImageViewPerMipLevel(std::uint32_t mip = 0) const; 
 		VkImageView GetImageViewPerLayer(std::uint32_t layer = 0) const; 
 		VkImageView GetImageView() const; 
+
 		VkImage GetImage() const;
 		VkImageAspectFlags GetAspectMask() const;
 	private:
@@ -35,7 +36,7 @@ namespace shade
 		VulkanContext::VulkanInstance m_VkInstance;
 		VkImageLayout m_ImageLayout;
 		VkFormat m_ImageFormat = VK_FORMAT_UNDEFINED;
-		VkImageAspectFlags m_AspectFlags;
+		VkImageAspectFlags m_AspectFlags = 0;
 		bool m_IsDepth = false;
 		bool m_IsDepthStencil = false;
 

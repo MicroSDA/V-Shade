@@ -85,44 +85,42 @@ bool ShadowInRange(float value)
     return value >= 0.0 && value <= 1.0;
 }
 
-float PCF_GeneralLight(sampler2DArray ShadowMap, vec3 ProjectionCoords, float Depth, float Angle, uint CascadeLevel, float Radius)
+float PCF_GeneralLight(sampler2DArray ShadowMap, vec3 ProjectionCoords, uint CascadeLevel, float Radius)
 {
-    const int Samples   = 8;
-	float Value         = 0;
-    vec2 TexelSize      = 1.0 / vec2(textureSize(ShadowMap, 0));
+    const int Samples = 3;
+    float Value = 0.0;
+    vec2 TexelSize = 1.0 / vec2(textureSize(ShadowMap, 0));
 
-	for (int x = 0; x < Samples; x++)
-	{
-        for(int y = 0; y < Samples; y++)
+    for (int x = -Samples; x < Samples; x++)
+    {
+        for (int y = -Samples; y < Samples; y++)
         {
             vec2 Offset = PoissonDisk[(x + y) % 64] * TexelSize * Radius;
-		    Value += step(Depth, texture(ShadowMap, vec3(ProjectionCoords.xy + vec2(x, y) * Offset, CascadeLevel)).r);
+            Value += step(ProjectionCoords.z, texture(ShadowMap, vec3(ProjectionCoords.xy + vec2(x, y) * Offset, CascadeLevel)).r);
         }
-	}
-    return Value / float(pow(Samples, 2.0)) * LineStep(1.0, 0.999, cos(Angle));
+    }
+    return Value / float((Samples * 2) * (Samples * 2));
 }
 
 float GL_ShadowMapping(
     sampler2DArray ShadowMap, 
     mat4 LightViewProjectionMatrix, 
     uint CascadeLevel, 
-    vec3 FragPosWorldSapce, 
+    vec4 FragPosWorldSapce, 
     vec3 LightDirection, 
     vec3 Normal, 
     vec3 ToCameraDirection)
 {
-    vec4 FragPosLightSpace = LightViewProjectionMatrix * vec4(FragPosWorldSapce, 1.0);
-    // perspective divide
+    vec4 FragPosLightSpace = LightViewProjectionMatrix * FragPosWorldSapce;
+    // Perspective divide
     vec3 ProjectionCoords = FragPosLightSpace.xyz / FragPosLightSpace.w;
-    // set between 0 - 1 range
+    // Set between 0.0 - 1.0 range
     ProjectionCoords.xy  = ProjectionCoords.xy * 0.5 + 0.5;
-    // check if ProjectionCoords in 0 - 1 range, else return 1
-    if (!ShadowInRange(ProjectionCoords.z) || !ShadowInRange(ProjectionCoords.x) || !ShadowInRange(ProjectionCoords.y))
-        return 1.0;
-
-    float Angle = dot(-LightDirection, Normal);
-
-    return PCF_GeneralLight(ShadowMap, ProjectionCoords, ProjectionCoords.z, Angle, CascadeLevel, 0.5);
+    // Check if ProjectionCoords in 0.0 - 1.0 range, else return 1.0
+    // if (!ShadowInRange(ProjectionCoords.z) || !ShadowInRange(ProjectionCoords.x) || !ShadowInRange(ProjectionCoords.y))
+    //     return 1.0;
+    
+    return PCF_GeneralLight(ShadowMap, ProjectionCoords, CascadeLevel, 1.0);
 }
 
 float PCF_SpotLight(sampler2DArray ShadowMap, vec3 ProjectionCoords, float Depth, float Angle, uint LightIndex)
@@ -168,7 +166,7 @@ float PCF_PointLight(
     float Depth,
     float Distance)
 {
-    int Samples = 10;
+    int Samples = 8;
     float Value = 0.0;
     float Radius = 0.006;
     for(int i = 0; i < Samples; ++i)

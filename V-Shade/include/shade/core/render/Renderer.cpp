@@ -9,7 +9,7 @@
 shade::UniquePointer<shade::RenderAPI> shade::Renderer::m_sRenderAPI;
 shade::UniquePointer<shade::RenderContext> shade::Renderer::m_sRenderContext;
 
-std::vector<shade::PointLight::RenderData> shade::Renderer::m_sSubmitedPointLightRenderData;
+std::vector<shade::OmnidirectionalLight::RenderData> shade::Renderer::m_sSubmitedOmnidirectionalLightRenderData;
 std::vector<shade::SpotLight::RenderData>  shade::Renderer::m_sSubmitedSpotLightRenderData;
 
 shade::SharedPointer<shade::Texture2D> shade::Renderer::m_sDefaultDiffuseTexture;
@@ -42,9 +42,9 @@ void shade::Renderer::Initialize(const RenderAPI::API& api, const SystemsRequire
 
 	m_sRenderAPI->m_sSubmitedSceneRenderData.MaterialsBuffer			= StorageBuffer::Create(StorageBuffer::Usage::CPU_GPU, RenderAPI::MATERIAL_BINDING, MATERIAL_DATA_SIZE, GetFramesCount(), 50);
 	// Make max 10 directional lights at this moment. 
-	m_sRenderAPI->m_sSubmitedSceneRenderData.GlobalLightsBuffer			= StorageBuffer::Create(StorageBuffer::Usage::CPU_GPU, RenderAPI::GLOBAL_LIGHT_BINDING, GLOBAL_LIGHTS_DATA_SIZE(RenderAPI::MAX_GLOBAL_LIGHTS_COUNT), GetFramesCount(), 0);
+	m_sRenderAPI->m_sSubmitedSceneRenderData.GlobalLightsBuffer			= StorageBuffer::Create(StorageBuffer::Usage::CPU_GPU, RenderAPI::GLOBAL_LIGHT_BINDING, DIRECTIONAL_LIGHTS_DATA_SIZE(RenderAPI::MAX_GLOBAL_LIGHTS_COUNT), GetFramesCount(), 0);
 	// Make max 100 poit lights at this moment. 
-	m_sRenderAPI->m_sSubmitedSceneRenderData.PointsLightsBuffer			= StorageBuffer::Create(StorageBuffer::Usage::CPU_GPU, RenderAPI::POINT_LIGHT_BINDING,	POINT_LIGHTS_DATA_SIZE(RenderAPI::MAX_POINT_LIGHTS_COUNT), GetFramesCount(), 100);
+	m_sRenderAPI->m_sSubmitedSceneRenderData.PointsLightsBuffer			= StorageBuffer::Create(StorageBuffer::Usage::CPU_GPU, RenderAPI::POINT_LIGHT_BINDING,	OMNIDIRECTIONAL_LIGHTS_DATA_SIZE(RenderAPI::MAX_POINT_LIGHTS_COUNT), GetFramesCount(), 100);
 	m_sRenderAPI->m_sSubmitedSceneRenderData.SpotLightsBuffer			= StorageBuffer::Create(StorageBuffer::Usage::CPU_GPU, RenderAPI::SPOT_LIGHT_BINDING,	SPOT_LIGHTS_DATA_SIZE(RenderAPI::MAX_SPOT_LIGHTS_COUNT), GetFramesCount(),   100);
 
 	m_sRenderAPI->m_sSubmitedSceneRenderData.BoneTransfromsBuffer       = StorageBuffer::Create(StorageBuffer::Usage::CPU_GPU, RenderAPI::BONE_TRANSFORMS_BINDING,	BONE_TRANSFORM_DATA_SIZE, GetFramesCount(),  50);
@@ -74,7 +74,7 @@ const std::uint32_t shade::Renderer::GetSubmitedSpotLightCount()
 
 const std::uint32_t shade::Renderer::GetSubmitedPointLightCount()
 {
-	return m_sSubmitedPointLightRenderData.size();
+	return m_sSubmitedOmnidirectionalLightRenderData.size();
 }
 
 shade::RenderAPI::SceneRenderData& shade::Renderer::GetRenderData()
@@ -280,11 +280,11 @@ void shade::Renderer::EndFrame(std::uint32_t frameIndex)
 	m_sRenderAPI->m_sSubmitedSceneRenderData.InstanceRawData.clear();
 	m_sRenderAPI->m_sSubmitedSceneRenderData.BoneOffsetsData.clear();
 
-	m_sSubmitedPointLightRenderData.clear();
+	m_sSubmitedOmnidirectionalLightRenderData.clear();
 	m_sSubmitedSpotLightRenderData.clear();
 
-	m_sRenderAPI->m_sSceneRenderData.GlobalLightCount = 0;
-	m_sRenderAPI->m_sSceneRenderData.PointsLightCount = 0;
+	m_sRenderAPI->m_sSceneRenderData.DirectionalLightCount = 0;
+	m_sRenderAPI->m_sSceneRenderData.OmnidirectionalLightCount = 0;
 	m_sRenderAPI->m_sSceneRenderData.SpotLightCount = 0;
 	// Clear all submited instances, so make them as expired.
 	// If no one will be submited again, so we remove instance geometry buffer at begin of the frame.
@@ -298,21 +298,20 @@ void shade::Renderer::BeginScene(SharedPointer<Camera>& camera, const RenderAPI:
 	Camera::RenderData cameraRenderData = camera->GetRenderData();
 
 	// Is thats makes sense ?
-	cameraRenderData.Near = (-cameraRenderData.Projection[3][2]);    
+	/*cameraRenderData.Near = (-cameraRenderData.Projection[3][2]);    
 	cameraRenderData.Far  = (cameraRenderData.Projection[2][2]); 
 
 	if (cameraRenderData.Near * cameraRenderData.Far < 0)
-		cameraRenderData.Far = -cameraRenderData.Far;
+		cameraRenderData.Far = -cameraRenderData.Far;*/
 
 	m_sRenderAPI->m_sRenderSettings = renderSettings;
 	m_sRenderAPI->m_sSubmitedSceneRenderData.Camera = camera;
 	m_sRenderAPI->m_sSubmitedSceneRenderData.CameraBuffer->SetData(CAMERA_DATA_SIZE, &cameraRenderData, frameIndex);
 	m_sRenderAPI->m_sSubmitedSceneRenderData.SceneRenderDataBuffer->SetData(SCENE_RENDER_DATA_SIZE, &m_sRenderAPI->m_sSceneRenderData, frameIndex);
 	m_sRenderAPI->m_sSubmitedSceneRenderData.RenderSettingsDataBuffer->SetData(RENDER_SETTINGS_DATA_SIZE, &m_sRenderAPI->m_sRenderSettings, frameIndex);
-	m_sRenderAPI->m_sSubmitedSceneRenderData.PointsLightsBuffer->SetData(POINT_LIGHTS_DATA_SIZE(m_sRenderAPI->m_sSceneRenderData.PointsLightCount), m_sSubmitedPointLightRenderData.data(), frameIndex);
+	m_sRenderAPI->m_sSubmitedSceneRenderData.PointsLightsBuffer->SetData(OMNIDIRECTIONAL_LIGHTS_DATA_SIZE(m_sRenderAPI->m_sSceneRenderData.OmnidirectionalLightCount), m_sSubmitedOmnidirectionalLightRenderData.data(), frameIndex);
 	m_sRenderAPI->m_sSubmitedSceneRenderData.SpotLightsBuffer->SetData(SPOT_LIGHTS_DATA_SIZE(m_sRenderAPI->m_sSceneRenderData.SpotLightCount), m_sSubmitedSpotLightRenderData.data(), frameIndex);
 
-	
 	m_sRenderAPI->BeginScene(camera, frameIndex);
 }
 
@@ -540,27 +539,27 @@ bool shade::Renderer::ExecuteComputePipeline(SharedPointer<ComputePipeline> pipe
 	return false;
 }
 
-void shade::Renderer::SubmitLight(const SharedPointer<GlobalLight>& light, const glm::mat4& transform, const SharedPointer<Camera>& camera)
+void shade::Renderer::SubmitLight(const SharedPointer<DirectionalLight>& light, const glm::vec3& direction, const SharedPointer<Camera>& camera)
 {
 	// Get direction vector from rotation !
-																					/* Forward direction */
-	auto renderData = light->GetRenderData(glm::normalize(glm::mat3(transform) * glm::vec3(0.f, 0.f, 1.f)), camera);
+																				
+	auto renderData = light->GetRenderData(direction, camera);
 	
-	assert(RenderAPI::MAX_GLOBAL_LIGHTS_COUNT >= m_sRenderAPI->m_sSceneRenderData.GlobalLightCount + 1, "Current directional light count > RenderAPI::MAX_DIRECTIONAL_LIGHTS_COUNT");
+	assert(RenderAPI::MAX_GLOBAL_LIGHTS_COUNT >= m_sRenderAPI->m_sSceneRenderData.DirectionalLightCount + 1, "Current directional light count > RenderAPI::MAX_DIRECTIONAL_LIGHTS_COUNT");
 
 	m_sRenderAPI->m_sSubmitedSceneRenderData.GlobalLightsBuffer->SetData(
-		GLOBAL_LIGHT_DATA_SIZE, &renderData, GetCurrentFrameIndex(),
-		GLOBAL_LIGHT_DATA_SIZE * m_sRenderAPI->m_sSceneRenderData.GlobalLightCount++);
+		DIRECTIONAL_LIGHT_DATA_SIZE, &renderData, GetCurrentFrameIndex(),
+		DIRECTIONAL_LIGHT_DATA_SIZE * m_sRenderAPI->m_sSceneRenderData.DirectionalLightCount++);
 }
 
-void shade::Renderer::SubmitLight(const SharedPointer<PointLight>& light, const glm::mat4& transform, const SharedPointer<Camera>& camera)
+void shade::Renderer::SubmitLight(const SharedPointer<OmnidirectionalLight>& light, const glm::mat4& transform, const SharedPointer<Camera>& camera)
 {
 	auto renderData = light->GetRenderData(Transform::GetTransformFromMatrix(transform).GetPosition(), camera);
 
-	assert(RenderAPI::MAX_POINT_LIGHTS_COUNT >= m_sRenderAPI->m_sSceneRenderData.PointsLightCount + 1, "Current point light count > RenderAPI::MAX_POINT_LIGHTS_COUNT");
+	assert(RenderAPI::MAX_POINT_LIGHTS_COUNT >= m_sRenderAPI->m_sSceneRenderData.OmnidirectionalLightCount + 1, "Current point light count > RenderAPI::MAX_POINT_LIGHTS_COUNT");
 
-	m_sSubmitedPointLightRenderData.emplace_back(renderData);
-	m_sRenderAPI->m_sSceneRenderData.PointsLightCount++;
+	m_sSubmitedOmnidirectionalLightRenderData.emplace_back(renderData);
+	m_sRenderAPI->m_sSceneRenderData.OmnidirectionalLightCount++;
 
 }
 
@@ -664,10 +663,10 @@ const shade::SpotLight::RenderData& shade::Renderer::GetSubmitedSpotLightRenderD
 	return m_sSubmitedSpotLightRenderData[lightIndex];
 }
 
-const shade::PointLight::RenderData& shade::Renderer::GetSubmitedPointLightRenderData(std::uint32_t lightIndex)
+const shade::OmnidirectionalLight::RenderData& shade::Renderer::GetSubmitedOmnidirectionalLightRenderData(std::uint32_t lightIndex)
 {
-	assert(lightIndex < m_sSubmitedPointLightRenderData.size() && "lightIndex > current point light count");
-	return m_sSubmitedPointLightRenderData[lightIndex];
+	assert(lightIndex < m_sSubmitedOmnidirectionalLightRenderData.size() && "lightIndex > current point light count");
+	return m_sSubmitedOmnidirectionalLightRenderData[lightIndex];
 }
 
 // TODO: Probably we can keep only asset funciton during to SharedPointer can be converted into Asset ?

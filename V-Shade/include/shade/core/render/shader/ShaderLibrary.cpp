@@ -3,17 +3,17 @@
 
 std::unordered_map<std::string, shade::SharedPointer<shade::Shader>> shade::ShaderLibrary::m_sLibrary;
 
-shade::SharedPointer<shade::Shader> shade::ShaderLibrary::Create(const std::string& name, const std::string& filePath)
+shade::SharedPointer<shade::Shader> shade::ShaderLibrary::Create(const Shader::Specification& specification)
 {
-    auto shader = m_sLibrary.find(name);
+    auto shader = m_sLibrary.find(specification.Name);
     if (shader == m_sLibrary.end())
     {
-       return m_sLibrary[name] = Shader::Create(filePath);
+       return m_sLibrary[specification.Name] = Shader::Create(specification);
     }
     else
     {
-        SHADE_CORE_WARNING("Shader '{0}' is already exist in library!", name);
-        return m_sLibrary[name];
+        SHADE_CORE_WARNING("Shader '{0}' is already exist in library!", specification.Name);
+        return m_sLibrary[specification.Name];
     }
 }
 

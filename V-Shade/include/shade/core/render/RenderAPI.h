@@ -32,7 +32,7 @@ namespace shade
 	public:
 		// TODO: Probably need to change it or way to how it works, mby we need to parse data form shader and set binding ids from here !		
 		// Set 0
-		static constexpr std::uint32_t CAMERA_BINDING					= 0;
+		static constexpr std::uint32_t CAMERA_BINDING					= 0; // Set this as Macro to each shader
 		static constexpr std::uint32_t SCENE_RENDER_DATA_BINDING		= 1;
 		static constexpr std::uint32_t RENDER_SETTINGS_BINDING			= 2;
 		static constexpr std::uint32_t GLOBAL_LIGHT_BINDING				= 3;
@@ -63,14 +63,23 @@ namespace shade
 		{
 		private:
 			friend class	Renderer;
-			std::uint32_t	GlobalLightCount		= 0;
-			std::uint32_t	PointsLightCount		= 0;
-			std::uint32_t	SpotLightCount			= 0;
-			std::uint32_t	SubmitedBoneTransfroms  = 0;
+			std::uint32_t	DirectionalLightCount		= 0;
+			std::uint32_t	OmnidirectionalLightCount	= 0;
+			std::uint32_t	SpotLightCount				= 0;
+			std::uint32_t	SubmitedBoneTransfroms		= 0;
 		public:
-			const std::uint32_t GetGlobalLightCount() { return GlobalLightCount; }
-			const std::uint32_t GetPointsLightCount() { return PointsLightCount; }
-			const std::uint32_t GetSpotLightCount()   { return SpotLightCount; }
+			SHADE_INLINE const std::uint32_t GetDirectionalLightCount()		
+			{
+				return DirectionalLightCount; 
+			}
+			SHADE_INLINE const std::uint32_t GetOmnidirectionalLightCount()	
+			{
+				return OmnidirectionalLightCount; 
+			}
+			SHADE_INLINE const std::uint32_t GetSpotLightCount()
+			{ 
+				return SpotLightCount;
+			}
 		};
 
 		struct VramUsage
@@ -93,21 +102,26 @@ namespace shade
 				// Since bool it's uint in the shader we need to use memset to set all additional bits to 0 after alignment.
 				memset(this, 0, sizeof(RenderSettings));
 				// Common default values.
-				LightCulling			= false;
-				ShowLightComplexity		= false;
-				GlobalShadowsEnabled	= false;
-				SpotShadowEnabled		= false;
-				PointShadowEnabled		= false;
-				ShowShadowCascades		= false;
-				SSAOEnabled				= false;
+				DirectionalLightShadows		= false;
+				OmnidirectionalLightShadows	= false;
+				SpotLightShadows			= false;
+
+				LightCulling				= false;
+				SSAOEnabled					= false;
+
+				_DEBUG_ShowLightComplexity	= false;
+				_DEBUG_ShowShadowCascades	= false;
 			}
+
+			alignas(4) bool DirectionalLightShadows;
+			alignas(4) bool OmnidirectionalLightShadows;
+			alignas(4) bool SpotLightShadows;
+
 			alignas(4) bool LightCulling;
-			alignas(4) bool ShowLightComplexity;
-			alignas(4) bool GlobalShadowsEnabled;
-			alignas(4) bool SpotShadowEnabled;
-			alignas(4) bool PointShadowEnabled;
-			alignas(4) bool ShowShadowCascades;
 			alignas(4) bool SSAOEnabled;
+
+			alignas(4) bool _DEBUG_ShowLightComplexity;
+			alignas(4) bool _DEBUG_ShowShadowCascades;
 		};
 	public:
 		enum class API

@@ -193,9 +193,11 @@ void shade::VulkanPipeline::Invalidate()
 			.cullMode = (m_Specification.BackFalceCull) ? static_cast<VkCullModeFlags>(VK_CULL_MODE_BACK_BIT) : static_cast<VkCullModeFlags>(VK_CULL_MODE_NONE),
 			.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
 			.depthBiasEnable = VK_TRUE,
+
 			.depthBiasConstantFactor = m_Specification.DepsBiasConstantFactor,
 			.depthBiasClamp = m_Specification.DepthBiasClamp,
 			.depthBiasSlopeFactor = m_Specification.DepthBiasSlopeFactor,
+
 			.lineWidth = m_Specification.LineWidth,
 		};
 		
@@ -262,11 +264,11 @@ void shade::VulkanPipeline::Invalidate()
 			.stencilTestEnable		= VK_FALSE,
 			.front =
 			{
-				.failOp = VK_STENCIL_OP_KEEP,
+				.failOp = VK_STENCIL_OP_KEEP, 
 				.passOp = VK_STENCIL_OP_KEEP,
 				.compareOp = VK_COMPARE_OP_ALWAYS
 			},
-			.back =
+			.back =  
 			{
 				.failOp = VK_STENCIL_OP_KEEP,
 				.passOp = VK_STENCIL_OP_KEEP,
@@ -284,20 +286,22 @@ void shade::VulkanPipeline::Invalidate()
 			If you wanted to enable MSAA, you would need to set rasterizationSamples to more than 1,
 			and enable sampleShading. Keep in mind that for MSAA to work, your renderpass also has to support it,
 			which complicates things significantly. */
+
 		VkPipelineMultisampleStateCreateInfo  pipelineMultisampleStateCreateInfo
 		{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
 			.pNext = VK_NULL_HANDLE,
 			.flags = 0,
 			.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
-			.sampleShadingEnable = VK_TRUE,
-			.minSampleShading = 1.0f,
-			// Skip evereting else becouse we are not use them rigt now
+			.sampleShadingEnable = VK_FALSE,
+			.minSampleShading = .2f,
+			
 		};
+		
 		/*	A vertex binding describes at which rate to load data from memory throughout the vertices.
 			It specifies the number of bytes between data entries and whether to move to the next data entry after each vertex or after each instance. */
 		std::vector<VkVertexInputBindingDescription> vertexInputBindingDescriptions(m_Specification.VertexLayout.GetElementLayouts().size());
-		for (std::uint32_t i = 0; i < vertexInputBindingDescriptions.size(); ++i)
+			for (std::uint32_t i = 0; i < vertexInputBindingDescriptions.size(); ++i)
 		{
 			vertexInputBindingDescriptions[i] =
 			{
@@ -420,7 +424,9 @@ void shade::VulkanPipeline::Invalidate()
 			.pTessellationState = VK_NULL_HANDLE,
 			.pViewportState = &pipelineViewportStateCreateInfo,
 			.pRasterizationState = &pipelineRasterizationStateCreateInfo,
+
 			.pMultisampleState = &pipelineMultisampleStateCreateInfo,
+
 			.pDepthStencilState = &pipelineDepthStencilStateCreateInfo,
 			.pColorBlendState = &pipelineColorBlendStateCreateInfo,
 			.pDynamicState = &pipelineDynamicStateCreateInfo,
@@ -434,7 +440,7 @@ void shade::VulkanPipeline::Invalidate()
 		};
 
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &graphicsPipelineCreateInfo, instance.AllocationCallbaks, &m_Pipeline), "Failed to create graphics pipeline!");
-		VKUtils::SetDebugObjectName(instance.Instance, "Pipeline", device, VK_OBJECT_TYPE_PIPELINE, m_Pipeline); // TODO Get From Shader Name or somewhere else 
+		VKUtils::SetDebugObjectName(instance.Instance, m_Specification.Name, device, VK_OBJECT_TYPE_PIPELINE, m_Pipeline);
 	}
 }
 
@@ -609,8 +615,85 @@ void shade::VulkanPipeline::SetBarrier(SharedPointer<RenderCommandBuffer>& comma
 		VK_NULL_HANDLE);
 }
 
+void shade::VulkanPipeline::SetBarrier(SharedPointer<RenderCommandBuffer>& commandBuffer, Asset<Texture2D> texture, Stage srcStage, Stage dstStage, Access srcAccess, Access dstAccces, std::uint32_t frameIndex, std::uint32_t mip)
+{
+	VkImageMemoryBarrier imageMemoryBarier
+	{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+		.pNext = VK_NULL_HANDLE,
+		.srcAccessMask = static_cast<VkAccessFlags>(srcAccess),
+		.dstAccessMask = static_cast<VkAccessFlags>(dstAccces),
+		.oldLayout = texture->GetImage()->As<VulkanImage2D>().GetImageLayout(),
+		.newLayout = VK_IMAGE_LAYOUT_GENERAL,
+		.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		.image = texture->GetImage()->As<VulkanImage2D>().GetImage(),
+		.subresourceRange =
+		{
+				texture->As<VulkanTexture2D>().GetImage()->As<VulkanImage2D>().GetAspectMask(), // aspectMask
+				(mip) ? mip : 0, // baseMipLevel
+				(mip) ? 1 : texture->GetImage()->GetSpecification().MipLevels, // levelCount
+				0, // baseArrayLayer
+				texture->GetImage()->GetSpecification().Layers // layerCount
+		}
+	}; ;
+	vkCmdPipelineBarrier(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(frameIndex),
+		static_cast<VkPipelineStageFlags>(srcStage),
+		static_cast<VkPipelineStageFlags>(dstStage),
+		0,
+		0,
+		VK_NULL_HANDLE,
+		0,
+		VK_NULL_HANDLE,
+		1,
+		&imageMemoryBarier);
+}
+
+void shade::VulkanPipeline::SetBarrier(SharedPointer<RenderCommandBuffer>& commandBuffer, SharedPointer<Texture2D> texture, Stage srcStage, Stage dstStage, Access srcAccess, Access dstAccces, std::uint32_t frameIndex, std::uint32_t mip)
+{
+
+	bool isIsDepth			= VKUtils::IsDepthFormat(texture->GetImage()->As<VulkanImage2D>().GetSpecification().Format);
+	bool issDepthStencil	= VKUtils::IsDepthStencilFormat(texture->GetImage()->As<VulkanImage2D>().GetSpecification().Format);
+
+	VkImageAspectFlags aspect = (isIsDepth) ? VK_IMAGE_ASPECT_STENCIL_BIT  : (issDepthStencil) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_NONE;
+
+	VkImageMemoryBarrier imageMemoryBarier
+	{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+		.pNext = VK_NULL_HANDLE,
+		.srcAccessMask = static_cast<VkAccessFlags>(srcAccess),
+		.dstAccessMask = static_cast<VkAccessFlags>(dstAccces),
+		.oldLayout = VK_IMAGE_LAYOUT_GENERAL,
+		.newLayout = VK_IMAGE_LAYOUT_GENERAL,
+		.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		.image = texture->GetImage()->As<VulkanImage2D>().GetImage(),
+		.subresourceRange =
+		{
+				//texture->GetImage()->As<VulkanImage2D>().GetAspectMask() | aspect, // aspectMask
+			VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT,
+				(mip) ? mip : 0, // baseMipLevel
+				(mip) ? 1 : texture->GetImage()->GetSpecification().MipLevels, // levelCount
+				0, // baseArrayLayer
+				texture->GetImage()->GetSpecification().Layers // layerCount
+		}
+	};
+	vkCmdPipelineBarrier(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(frameIndex),
+		static_cast<VkPipelineStageFlags>(srcStage),
+		static_cast<VkPipelineStageFlags>(dstStage),
+		VK_DEPENDENCY_BY_REGION_BIT,
+		0,
+		VK_NULL_HANDLE,
+		0,
+		VK_NULL_HANDLE,
+		1,
+		&imageMemoryBarier);
+}
+
 void shade::VulkanPipeline::Recompile(bool clearCache)
 {
-	m_Specification.Shader = Shader::Create(m_Specification.Shader->GetFilePath(), clearCache);
-	Invalidate();
+	if (auto shader = Shader::Create(m_Specification.Shader->GetSpecification(), clearCache))
+	{
+		m_Specification.Shader = shader; Invalidate();
+	}
 }

@@ -47,6 +47,7 @@ void shade::VulkanFrameBuffer::Invalidate(const FrameBuffer::Specification& spec
 	{
 		for (auto i = 0; i < m_Specification.Attachments.TextureAttachments.size(); i++) 
 		{
+			//m_Specification.Attachments.TextureAttachments[i] = (*images)[i]->GetSpecification();
 			// if it is not a depth format attachment
 			if (!VKUtils::IsDepthFormat(m_Specification.Attachments.TextureAttachments[i].Format) && !VKUtils::IsDepthStencilFormat(m_Specification.Attachments.TextureAttachments[i].Format))
 			{
@@ -104,9 +105,9 @@ void shade::VulkanFrameBuffer::Invalidate(const FrameBuffer::Specification& spec
 			.imageView = m_ColorAttachmentsViews[i],
 			.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 			.resolveMode = VK_RESOLVE_MODE_NONE,
-			.resolveImageView = VK_NULL_HANDLE,
+			.resolveImageView = VK_NULL_HANDLE, 
 			.resolveImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+			.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
 			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
 			.clearValue =
 			{
@@ -136,9 +137,9 @@ void shade::VulkanFrameBuffer::Invalidate(const FrameBuffer::Specification& spec
 			.resolveMode = VK_RESOLVE_MODE_NONE,
 			.resolveImageView = VK_NULL_HANDLE,
 			.resolveImageLayout = (VKUtils::IsDepthFormat(m_DepthAttachments[i]->GetImage()->GetSpecification().Format)) ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-			.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+			.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
 			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-			.clearValue = m_Specification.DepthClearValue
+			.clearValue = m_Specification.DepthClearValue,
 		};
 		// Depth should be always at the end of array
 		m_ClearAttachments.emplace_back() =
@@ -202,6 +203,16 @@ shade::SharedPointer<shade::Texture2D>& shade::VulkanFrameBuffer::GetDepthAttach
 		SHADE_CORE_ERROR("Wrong depth attahcment index!");
 
 	return m_DepthAttachments.at(index);
+}
+
+std::vector<shade::SharedPointer<shade::Texture2D>>& shade::VulkanFrameBuffer::GetTextureAttachments()
+{
+	return m_TextureAttachments;
+}
+
+std::vector<shade::SharedPointer<shade::Texture2D>>& shade::VulkanFrameBuffer::GetDepthAttachments()
+{
+	return m_DepthAttachments;
 }
 
 std::uint32_t shade::VulkanFrameBuffer::GetWidth() const

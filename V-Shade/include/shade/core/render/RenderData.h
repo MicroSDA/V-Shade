@@ -31,6 +31,18 @@ namespace shade
 			//return (std::hash<std::decay_t<Args>>{}(std::forward<Args>(args)) ^ ...);
 		}
 
+		//template<typename... Args>
+		//std::size_t PointerHashCombine(Args&&... args)
+		//{
+		//	std::size_t seed = 0;  // Начальное значение хеша
+
+		//	// Используем glm::detail::hash_combine для каждого аргумента
+		//	(glm::detail::hash_combine(seed, static_cast<std::size_t>(std::decay_t<Args>(std::forward<Args>(args)))), ...);
+
+		//	return seed;
+		//}
+
+
 		// Cast hash to pointer.
 		// IMPORTANT: To use make sure that you 'hash' is the right pointer address.
 		// IMPORTANT: Doesn't work for SharedPointer since it has mix between ponter and time stamp!

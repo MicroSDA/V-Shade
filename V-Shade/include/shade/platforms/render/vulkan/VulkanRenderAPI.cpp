@@ -130,7 +130,7 @@ void shade::VulkanRenderAPI::BeginRender(SharedPointer<RenderCommandBuffer>& com
 
 		auto& frameBuffer = pipeline->GetSpecification().FrameBuffer->As<VulkanFrameBuffer>();
 		auto& renderingInfo = frameBuffer.GetRenderingInfo();
-
+		
 		std::vector<VkViewport> viewports(renderingInfo.layerCount);
 		std::vector<VkRect2D>   scissors(renderingInfo.layerCount);
 
@@ -327,20 +327,23 @@ void shade::VulkanRenderAPI::BeginTimestamp(SharedPointer<RenderCommandBuffer>& 
 		};
 		VK_CHECK_RESULT(vkCreateQueryPool(m_sVkDevice, &queryPoolCreateInfo, nullptr, &m_sQueryPools[name]), "Failed to create m_sQueryPool");
 	}
+
 	vkCmdResetQueryPool(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(m_sCurrentFrameIndex), m_sQueryPools[name], 0, 2);
 	vkCmdWriteTimestamp(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(m_sCurrentFrameIndex), VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_sQueryPools[name], 0);
 }
 
 float shade::VulkanRenderAPI::EndTimestamp(SharedPointer<RenderCommandBuffer>& commandBuffer, const std::string& name)
 {
+	glm::vec<2, std::uint64_t> time = {0, 0};
 	assert(m_sQueryPools[name] != VK_NULL_HANDLE && "Trying to end undefined render timestamp !");
 
 	vkCmdWriteTimestamp(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(m_sCurrentFrameIndex), VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_sQueryPools[name], 1);
+	// Doenst work at this moment 
+	//vkGetQueryPoolResults(m_sVkDevice, m_sQueryPools[name], 0, 2, sizeof(glm::vec<2, std::uint64_t>), glm::value_ptr(time), sizeof(std::uint64_t), VK_QUERY_RESULT_64_BIT);
 
-	std::uint64_t begin = 0, end = 0;
-	vkGetQueryPoolResults(m_sVkDevice, m_sQueryPools[name], 0, 1, sizeof(uint64_t), &begin, 0, VK_QUERY_RESULT_64_BIT);
-	vkGetQueryPoolResults(m_sVkDevice, m_sQueryPools[name], 1, 1, sizeof(uint64_t), &end, 0, VK_QUERY_RESULT_64_BIT);
-	return float(end - begin) / 1000000.f;
+	//vkGetQueryPoolResults(m_sVkDevice, m_sQueryPools[name], 1, 1, sizeof(uint64_t), &end, 0, VK_QUERY_RESULT_64_BIT);
+
+	return float(time.x - time.y) / 1000000.f;
 }
 
 shade::RenderAPI::VramUsage shade::VulkanRenderAPI::GetVramMemoryUsage()

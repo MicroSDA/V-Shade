@@ -34,7 +34,9 @@ void shade::VulkanImage2D::Invalidate(const render::Image::Specification& specif
 	m_IsDepthStencil				= VKUtils::IsDepthStencilFormat(m_Specification.Format);
 	m_ImageFormat					= VKUtils::ToVulkanImageFormat(m_Specification.Format);
 	// Determine the image aspects to be used, whether it is for color or depth
-	m_AspectFlags  = (m_IsDepth || m_IsDepthStencil) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+
+	//m_AspectFlags = (m_IsDepth) ? VK_IMAGE_ASPECT_DEPTH_BIT : (m_IsDepthStencil) ? VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+	m_AspectFlags = m_AspectFlags = (m_IsDepth || m_IsDepthStencil) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;;
 
 	VkImageUsageFlags usageFlags = VK_IMAGE_USAGE_SAMPLED_BIT;
 
@@ -66,7 +68,7 @@ void shade::VulkanImage2D::Invalidate(const render::Image::Specification& specif
 		.samples = VK_SAMPLE_COUNT_1_BIT,
 		.tiling = VK_IMAGE_TILING_OPTIMAL,
 		.usage = usageFlags,
-		.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+		.sharingMode = VK_SHARING_MODE_EXCLUSIVE, // TODO: Take a look !!
 		.queueFamilyIndexCount = 0,
 		.pQueueFamilyIndices = VK_NULL_HANDLE,
 		.initialLayout = m_ImageLayout
@@ -171,7 +173,7 @@ void shade::VulkanImage2D::Invalidate(const render::Image::Specification& specif
 			.levelCount = m_Specification.MipLevels, // Number of levels in the mip chain
 			.baseArrayLayer = 0, // Starting point of the layer to be accessed
 			.layerCount = m_Specification.Layers // Number of layers to be accessed 
-		  }
+		  },
 	};
 
 	// Create the image view based on the info passed
@@ -262,7 +264,8 @@ void shade::VulkanImage2D::Invalidate(render::Image& image)
 	m_Specification.Format		= render::Image::Format::RGBA;
 
 	// Determine the image aspects to be used, whether it is for color or depth
-	m_AspectFlags = (m_IsDepth || m_IsDepthStencil) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+
+	m_AspectFlags = (m_IsDepth) ? VK_IMAGE_ASPECT_DEPTH_BIT : (m_IsDepthStencil) ? VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 
 	VkImageUsageFlags usageFlags = VK_IMAGE_USAGE_SAMPLED_BIT;
 
@@ -542,6 +545,8 @@ void shade::VulkanImage2D::Invalidate(render::Image& image)
 }
 void shade::VulkanImage2D::Invalidate(const render::Image::Specification& specification, const void* source)
 {
+	// For swapchain creating 
+
 	m_Specification		= specification;
 	// Make sure that mips count is in range !
 
@@ -552,7 +557,8 @@ void shade::VulkanImage2D::Invalidate(const render::Image::Specification& specif
 	m_IsDepthStencil	= VKUtils::IsDepthStencilFormat(m_Specification.Format);
 	m_ImageFormat		= VKUtils::ToVulkanImageFormat(m_Specification.Format);
 	// Determine the image aspects to be used, whether it is for color or depth
-	m_AspectFlags = (m_IsDepth || m_IsDepthStencil) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+
+	m_AspectFlags = (m_IsDepth) ? VK_IMAGE_ASPECT_DEPTH_BIT : (m_IsDepthStencil) ? VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 
 	VkImageUsageFlags usageFlags = VK_IMAGE_USAGE_SAMPLED_BIT;
 
@@ -711,8 +717,10 @@ shade::VulkanImage2D::~VulkanImage2D()
 {
 	if (!m_RemouteDestorying)
 	{
+		// Free memory
 		if (m_VkImageMemory != VK_NULL_HANDLE)
 			vkFreeMemory(m_VkDevice, m_VkImageMemory, m_VkInstance.AllocationCallbaks);
+		// Remove image
 		if (m_VkImage != VK_NULL_HANDLE)
 			vkDestroyImage(m_VkDevice, m_VkImage, m_VkInstance.AllocationCallbaks);
 	}
@@ -731,11 +739,18 @@ void shade::VulkanImage2D::Resize(std::uint32_t width, std::uint32_t height, std
 {
 	assert(m_Specification.Usage != render::Image::Usage::Attachment || !m_RemouteDestorying, "Image Usage != Attachment and cannot be implicitly resized.");
 
+	// Free memory
 	if (m_VkImageMemory != VK_NULL_HANDLE)
 		vkFreeMemory(m_VkDevice, m_VkImageMemory, m_VkInstance.AllocationCallbaks);
+	
+	// Remove image
 	if(m_VkImage != VK_NULL_HANDLE)
 		vkDestroyImage(m_VkDevice, m_VkImage, m_VkInstance.AllocationCallbaks);
-	
+
+	// Remove view
+	if (m_VkImageView != VK_NULL_HANDLE)
+		vkDestroyImageView(m_VkDevice, m_VkImageView, m_VkInstance.AllocationCallbaks);
+
 	for (auto& view : m_VkImageViewsMips)
 		if (view != VK_NULL_HANDLE)
 			vkDestroyImageView(m_VkDevice, view, m_VkInstance.AllocationCallbaks);
@@ -743,11 +758,9 @@ void shade::VulkanImage2D::Resize(std::uint32_t width, std::uint32_t height, std
 		if (view != VK_NULL_HANDLE)
 			vkDestroyImageView(m_VkDevice, view, m_VkInstance.AllocationCallbaks);
 
-	if(m_VkImageView != VK_NULL_HANDLE)
-		vkDestroyImageView(m_VkDevice, m_VkImageView, m_VkInstance.AllocationCallbaks);
-
 	m_VkImageViewsMips.clear();
 	m_VkImageViewsLayers.clear();
+
 	m_Specification.Width = width; m_Specification.Height = height;
 	m_Specification.MipLevels = (mipCount == UINT32_MAX) ? m_Specification.MipLevels : mipCount;
 

@@ -7,7 +7,7 @@ namespace shade
 	class SHADE_API ShaderLibrary
 	{
 	public:
-		static SharedPointer<Shader> Create(const std::string& name, const std::string& filePath);
+		static SharedPointer<Shader> Create(const Shader::Specification& specification);
 		static SharedPointer<Shader> Get(const std::string& name);
 		static std::unordered_map<std::string, SharedPointer<Shader>>& GetLibrary();
 		static void Remove(const std::string& name);

@@ -270,7 +270,7 @@ void shade::Scene::SerrializeEntity(std::ostream& stream, ecs::Entity entity, bo
 	}
 
 	// Serialize GlobalLightComponent if present
-	if (bool is = entity.SerializeComponent<GlobalLightComponent>(stream, [](std::ostream& stream, const GlobalLightComponent& light)
+	if (bool is = entity.SerializeComponent<OmnidirectionalLightComponent>(stream, [](std::ostream& stream, const OmnidirectionalLightComponent& light)
 		{
 			serialize::Serializer::Serialize(stream, light);
 		}))
@@ -288,7 +288,7 @@ void shade::Scene::SerrializeEntity(std::ostream& stream, ecs::Entity entity, bo
 	}
 
 	// Serialize PointLightComponent if present
-	if (bool is = entity.SerializeComponent<PointLightComponent>(stream, [](std::ostream& stream, const PointLightComponent& light)
+	if (bool is = entity.SerializeComponent<OmnidirectionalLightComponent>(stream, [](std::ostream& stream, const OmnidirectionalLightComponent& light)
 		{
 			serialize::Serializer::Serialize(stream, light);
 		}))
@@ -384,9 +384,9 @@ void shade::Scene::DeserrializeEntity(std::istream& stream, ecs::Entity entity, 
 			});
 
 		// Deserialize GlobalLightComponent
-		cSize += entity.DeserializeComponent<GlobalLightComponent>(stream, compTypeHash, [](std::istream& stream, GlobalLightComponent& light)
+		cSize += entity.DeserializeComponent<DirectionalLightComponent>(stream, compTypeHash, [](std::istream& stream, DirectionalLightComponent& light)
 			{
-				light = GlobalLightComponent::Create();
+				light = DirectionalLightComponent::Create();
 				serialize::Serializer::Deserialize(stream, light);
 			});
 
@@ -398,9 +398,9 @@ void shade::Scene::DeserrializeEntity(std::istream& stream, ecs::Entity entity, 
 			});
 
 		// Deserialize PointLightComponent
-		cSize += entity.DeserializeComponent<PointLightComponent>(stream, compTypeHash, [](std::istream& stream, PointLightComponent& light)
+		cSize += entity.DeserializeComponent<OmnidirectionalLightComponent>(stream, compTypeHash, [](std::istream& stream, OmnidirectionalLightComponent& light)
 			{
-				light = PointLightComponent::Create();
+				light = OmnidirectionalLightComponent::Create();
 				serialize::Serializer::Deserialize(stream, light);
 			});
 

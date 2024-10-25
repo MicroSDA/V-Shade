@@ -20,6 +20,9 @@ namespace shade
 		virtual SharedPointer<Texture2D>& GetTextureAttachment(std::uint32_t index) override;
 		virtual SharedPointer<Texture2D>& GetDepthAttachment(std::uint32_t index) override;
 
+		virtual std::vector<SharedPointer<Texture2D>>& GetTextureAttachments() override;
+		virtual std::vector<SharedPointer<Texture2D>>& GetDepthAttachments() override;
+
 		virtual std::uint32_t GetWidth()  const override;
 		virtual std::uint32_t GetHeight() const override;
 
@@ -45,6 +48,7 @@ namespace shade
 
 		std::vector<VkClearAttachment> m_ClearAttachments;
 		VkRenderingInfo m_RenderingInfo;
+		VkAttachmentSampleCountInfoNV m_SamplesCountInfoNV;
 	
 		VkDevice m_VkDevice = VK_NULL_HANDLE;
 		VulkanContext::VulkanInstance m_VkInstance;

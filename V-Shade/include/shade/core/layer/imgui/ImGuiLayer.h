@@ -21,6 +21,7 @@ namespace shade
 		void DrawImage(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor);
 		void DrawImage(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor, std::uint32_t mip);
 		void DrawImage(Asset<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor);
+		void DrawImageLayerd(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor, std::uint32_t layer);
 
 		template<typename T, typename ...Args>
 		inline static T* GetGlobalValue(const std::string& name, Args && ...args)

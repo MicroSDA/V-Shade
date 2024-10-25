@@ -37,11 +37,11 @@ namespace shade
 			};
 			enum class Clamp
 			{
-				REPEAT = 0,
-				MIRRORED_REPEAT = 1,
-				CLAMP_TO_EDGE = 2,
-				CLAMP_TO_BORDER = 3,
-				MIRROR_CLAMP_TO_EDGE = 4,
+				Repeat = 0,
+				MirroredRepeat = 1,
+				ClampToEdge = 2,
+				ClampToBorder = 3,
+				MirroredClampToEdge = 4,
 				MAX_ENUM = 0x7FFFFFFF
 			};
 			enum class Usage
@@ -55,12 +55,13 @@ namespace shade
 			{
 				Image::Format Format = Image::Format::RGBA;
 				Image::Usage  Usage = Image::Usage::None;
-				Image::Clamp  Clamp = Clamp::REPEAT;
+				Image::Clamp  Clamp = Clamp::Repeat;
 
 				std::uint32_t MipLevels = 1;
 				std::uint32_t Layers = 1;
 				std::uint32_t Width = 1;
 				std::uint32_t Height = 1;
+				
 				// TIP: TEST !!
 				bool IsCubeMap = false;
 			};

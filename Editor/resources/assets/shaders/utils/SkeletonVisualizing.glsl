@@ -68,31 +68,33 @@ vec4 vertices[4] = {
     vec4(-scale, scale,  scale, 1) 
 };
 
-vec3 ExtractScale(mat4 matrix) {
-    // Извлекаем масштабы по X, Y, Z
-    float scaleX = length(matrix[0].xyz);  // Длина первого столбца
-    float scaleY = length(matrix[1].xyz);  // Длина второго столбца
-    float scaleZ = length(matrix[2].xyz);  // Длина третьего столбца
-
+vec3 ExtractScale(mat4 matrix)
+ {
+    
+    float scaleX = length(matrix[0].xyz);  
+    float scaleY = length(matrix[1].xyz);  
+    float scaleZ = length(matrix[2].xyz); 
     return vec3(scaleX, scaleY, scaleZ);
 }
 
 void main() 
 {
-	int id 	= a_InstanceId[0] + 1;
+	int id = a_InstanceId[0] + 1;
 	
 	if(s_BoneTransform[id].s_ParentId != ~0)
 	{
-		float dst = distance(s_BoneTransform[s_BoneTransform[id].s_ParentId].s_Transform * vec4(0, 0, 0, 1),
-		s_BoneTransform[id].s_Transform * vec4(0, 0, 0, 1));
-		vec3 Scale = ExtractScale(s_BoneTransform[s_BoneTransform[id].s_ParentId].s_Transform);
-		Scale = vec3(dst / Scale.x, dst / Scale.y, dst /Scale.z);
+
+		vec4 ParentPosition = s_BoneTransform[s_BoneTransform[id].s_ParentId].s_Transform * vec4(0, 0, 0, 1);
+		vec4 ChildPosition  = s_BoneTransform[id].s_Transform * vec4(0, 0, 0, 1);
+
+		float Distance 	= distance(ParentPosition, ChildPosition);
+		vec3 Scale 		= ExtractScale(s_BoneTransform[s_BoneTransform[id].s_ParentId].s_Transform);
+		Scale 			= vec3(Distance / Scale.x, Distance / Scale.y, Distance /Scale.z);
 		
 		//////////////////Cone Base/////////////////
-		
 		for(int i = 0; i < 4; i++)
 		{
-			gl_Position = u_Camera.ViewProjectionMatrix * s_BoneTransform[s_BoneTransform[id].s_ParentId].s_Transform * vec4(0, 0, 0, 1.0);
+			gl_Position = u_Camera.ViewProjectionMatrix * ParentPosition;
 			out_Color = ColorPalette[4];
 			EmitVertex();
 		
@@ -106,10 +108,11 @@ void main()
 		} 
 		
 		EndPrimitive();
-		
+		//////////////////!Cone Base/////////////////
+
 		for(int i = 0; i < 4; i++)
 		{
-			gl_Position = u_Camera.ViewProjectionMatrix * s_BoneTransform[id].s_Transform * vec4(0, 0, 0, 1.0);
+			gl_Position = u_Camera.ViewProjectionMatrix * ChildPosition;
 			out_Color = ColorPalette[2];
 			EmitVertex();
 		
@@ -123,12 +126,12 @@ void main()
 		} 
 		
 		EndPrimitive();
-		//!/////////////Normals//////////////////!//
+		// //!/////////////Normals//////////////////!//
 		
 		// vec4 pointA = u_Camera.ViewProjectionMatrix * s_BoneTransform[id].s_Transform * vec4(0, 0, 0, 1);
 		// vec4 pointB = u_Camera.ViewProjectionMatrix * s_BoneTransform[s_BoneTransform[id].s_ParentId].s_Transform * vec4(0, 0, 0, 1);
 		// //vec4 midPoint = (pointA + pointB) * 2.0 / dst;
-		// vec4 midPoint = pointB * 3.0 / dst;
+		// vec4 midPoint = pointB * 3.0 / Distance;
 		
 		// // X
 		// gl_Position = midPoint;

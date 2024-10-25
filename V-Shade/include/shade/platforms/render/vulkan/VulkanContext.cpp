@@ -78,13 +78,13 @@ void shade::VulkanContext::Initialize(const SystemsRequirements& requirements)
 	//extensions.emplace_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
 	//extensions.emplace_back("VK_EXT_depth_range_unrestricted");
 #endif 
-
 	extensions.emplace_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-
+	
 	std::vector<const char*> layers;
 #ifdef SHADE_DEBUG
 	// Enable validation layers for debug purposes.
 	layers.emplace_back("VK_LAYER_KHRONOS_validation");
+	//layers.emplace_back("VK_LAYER_NV_GPU_Trace_release_public_2024_1_0");
 	//// Print everething in console
 	//layers.emplace_back("VK_LAYER_LUNARG_api_dump");
 	if (CheckLayersSupport(layers));

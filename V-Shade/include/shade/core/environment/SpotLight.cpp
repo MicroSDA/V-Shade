@@ -1,8 +1,6 @@
 ﻿#include "shade_pch.h"
 #include "SpotLight.h"
 
-std::uint32_t shade::SpotLight::m_sTotalCount = 0;
-
 shade::SpotLight::SpotLight()
 {
 	++m_sTotalCount;
@@ -22,11 +20,6 @@ shade::SpotLight::RenderData shade::SpotLight::GetRenderData(const glm::vec3& po
 
 	renderData.Cascade = GetSpotLightCascade(fov, position, derection, zNear, distance);
 	return  renderData;
-}
-
-std::uint32_t shade::SpotLight::GetTotalCount()
-{
-	return m_sTotalCount;
 }
 
 const bool shade::SpotLight::IsMeshInside(const glm::mat4& cascade, const glm::mat4& transform, const glm::vec3& minHalfExt, const glm::vec3& maxHalfExt)

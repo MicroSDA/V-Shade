@@ -63,7 +63,7 @@ EditorLayer::EditorLayer() : ImGuiLayer()
 
 void EditorLayer::OnCreate()
 {
-	m_SceneRenderer = shade::SceneRenderer::Create();
+	m_SceneRenderer = shade::SceneRenderer::Create(false);
 	m_EditorCamera = shade::SharedPointer<EditorCamera>::Create();
 }
 
@@ -82,7 +82,6 @@ void EditorLayer::OnUpdate(shade::SharedPointer<shade::Scene>& scene, const shad
 
 void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shade::FrameTimer& deltaTime)
 {
-
 	m_SceneRenderer->OnRender(scene, deltaTime);
 
 	ImGui::SetCurrentContext(GetImGuiContext());
@@ -112,7 +111,26 @@ void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shad
 		ShowWindowBar("Creator", NULL, &EditorLayer::Creator, this);
 		ShowWindowBar("Assets", NULL, &EditorLayer::AssetsExplorer, this);
 		ShowWindowBar("Scene", NULL, &EditorLayer::Scene, this, scene);
+		//ShowWindowBar("DEBUG", NULL, [this]() 
+			//{
+			//	if (auto p = m_SceneRenderer->GetPipeline("Point-Light-Shadow-Pre-Depth"))
+			//	{
+			//		DragFloat("DepsBiasConstantFactor", &p->GetSpecification().DepsBiasConstantFactor);
+			//		DragFloat("DepthBiasSlopeFactor", &p->GetSpecification().DepthBiasSlopeFactor);
+
+			//		DrawImageLayerd(p->GetSpecification().FrameBuffer->GetDepthAttachment(), ImGui::GetContentRegionAvail(), {}, 0);
+			//		/*DrawImageLayerd(p->GetSpecification().FrameBuffer->GetDepthAttachment(), ImGui::GetContentRegionAvail(), {}, 1);
+			//		DrawImageLayerd(p->GetSpecification().FrameBuffer->GetDepthAttachment(), ImGui::GetContentRegionAvail(), {}, 2);
+			//		DrawImageLayerd(p->GetSpecification().FrameBuffer->GetDepthAttachment(), ImGui::GetContentRegionAvail(), {}, 3);
+			//		DrawImageLayerd(p->GetSpecification().FrameBuffer->GetDepthAttachment(), ImGui::GetContentRegionAvail(), {}, 4);
+			//		DrawImageLayerd(p->GetSpecification().FrameBuffer->GetDepthAttachment(), ImGui::GetContentRegionAvail(), {}, 5);*/
+			//		//DrawImageLayerd(p->GetSpecification().FrameBuffer->GetDepthAttachment(), ImGui::GetContentRegionAvail(), {}, 6);
+			//	}
+			//});
 	
+
+
+
 		ImGui::PopItemFlag();
 		ImGui::PopStyleColor();
 		
@@ -679,14 +697,14 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 	m_SceneViewPort.ViewPort.z = ImGui::GetContentRegionAvail().x;
 	m_SceneViewPort.ViewPort.w = ImGui::GetContentRegionAvail().y - 3.f;
 
-	if ( m_SceneRenderer->GetMainTargetFrameBuffer()[frameIndex]->GetWidth()  != m_SceneViewPort.ViewPort.z ||
-		 m_SceneRenderer->GetMainTargetFrameBuffer()[frameIndex]->GetHeight() != m_SceneViewPort.ViewPort.w)
+	if ( m_SceneRenderer->GetMainTargetFrameBuffer()->GetWidth()  != m_SceneViewPort.ViewPort.z ||
+		 m_SceneRenderer->GetMainTargetFrameBuffer()->GetHeight() != m_SceneViewPort.ViewPort.w)
 	{
 		if (m_SceneViewPort.ViewPort.z && m_SceneViewPort.ViewPort.w)
-			m_SceneRenderer->GetMainTargetFrameBuffer()[frameIndex]->Resize(m_SceneViewPort.ViewPort.z, m_SceneViewPort.ViewPort.w);
+			m_SceneRenderer->GetMainTargetFrameBuffer()->Resize(m_SceneViewPort.ViewPort.z, m_SceneViewPort.ViewPort.w);
 	}
 	
-	DrawImage(m_SceneRenderer->GetMainTargetFrameBuffer()[frameIndex]->GetTextureAttachment(0), { m_SceneViewPort.ViewPort.z, m_SceneViewPort.ViewPort.w }, focusColor);
+	DrawImage(m_SceneRenderer->GetMainTargetFrameBuffer()->GetTextureAttachment(0), { m_SceneViewPort.ViewPort.z, m_SceneViewPort.ViewPort.w }, focusColor);
 
 	BeginWindowOverlay("Scene overlay", ImGui::GetWindowViewport(), 0, ImVec2{ m_SceneViewPort.ViewPort.z - 8.f, 0 }, screenPosition + ImVec2{ 5.f, 5.f }, 0.9f, [&]()
 		{
@@ -758,10 +776,10 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 						ImGui::GetWindowViewport(),
 						std::size_t(this),
 						{
-							400.f, 400.f
+							500.f, 500.f
 						}, // Size
 								{
-									ImGui::GetCursorScreenPos().x - 390.f, ImGui::GetCursorScreenPos().y + 35.f  // Position
+									ImGui::GetCursorScreenPos().x - 490.f, ImGui::GetCursorScreenPos().y + 35.f  // Position
 								},
 						0.9f, // Alpha
 						[&]() mutable
@@ -783,9 +801,9 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 			auto& transform = m_SelectedEntity.GetComponent<shade::TransformComponent>();
 			auto pcTransform = scene->ComputePCTransformWithoutRootMotion(m_SelectedEntity);
 			
-			if (m_SelectedEntity.HasComponent<shade::GlobalLightComponent>())
+			if (m_SelectedEntity.HasComponent<shade::DirectionalLightComponent>())
 				m_ImGuizmoAllowedOperation = ImGuizmo::ROTATE | ImGuizmo::BOUNDS;
-			else if (m_SelectedEntity.HasComponent<shade::PointLightComponent>())
+			else if (m_SelectedEntity.HasComponent<shade::OmnidirectionalLightComponent>())
 				m_ImGuizmoAllowedOperation = ImGuizmo::TRANSLATE | ImGuizmo::BOUNDS;
 			else if (m_SelectedEntity.HasComponent<shade::SpotLightComponent>())
 				m_ImGuizmoAllowedOperation = ImGuizmo::TRANSLATE | ImGuizmo::ROTATE | ImGuizmo::BOUNDS;
@@ -894,14 +912,14 @@ void EditorLayer::Entities(shade::SharedPointer<shade::Scene>& scene)
 				{
 					auto entity = scene->CreateEntity();
 					entity.AddComponent<shade::TagComponent>("Global light");
-					entity.AddComponent<shade::GlobalLightComponent>(shade::GlobalLightComponent::Create());
+					entity.AddComponent<shade::DirectionalLightComponent>(shade::DirectionalLightComponent::Create());
 					entity.AddComponent<shade::TransformComponent>();
 				}
 				if (ImGui::MenuItem("Point"))
 				{
 					auto entity = scene->CreateEntity();
 					entity.AddComponent<shade::TagComponent>("Point light");
-					entity.AddComponent<shade::PointLightComponent>(shade::PointLightComponent::Create());
+					entity.AddComponent<shade::OmnidirectionalLightComponent>(shade::OmnidirectionalLightComponent::Create());
 					entity.AddComponent<shade::TransformComponent>();
 				}
 				if (ImGui::MenuItem("Spot"))
@@ -938,17 +956,17 @@ void EditorLayer::Entities(shade::SharedPointer<shade::Scene>& scene)
 
 				if (ImGui::BeginMenu("Lightning"))
 				{
-					AddComponent<shade::GlobalLightComponent>("Global light", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
+					AddComponent<shade::DirectionalLightComponent>("Global light", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
 						{
-							entity.AddComponent<shade::GlobalLightComponent>(shade::GlobalLightComponent::Create());
+							entity.AddComponent<shade::DirectionalLightComponent>(shade::DirectionalLightComponent::Create());
 						}, m_SelectedEntity);
 					AddComponent<shade::SpotLightComponent>("Spot light", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
 						{
 							entity.AddComponent<shade::SpotLightComponent>(shade::SpotLightComponent::Create());
 						}, m_SelectedEntity);
-					AddComponent<shade::PointLightComponent>("Point light", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
+					AddComponent<shade::OmnidirectionalLightComponent>("Point light", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
 						{
-							entity.AddComponent<shade::PointLightComponent>(shade::PointLightComponent::Create());
+							entity.AddComponent<shade::OmnidirectionalLightComponent>(shade::OmnidirectionalLightComponent::Create());
 						}, m_SelectedEntity);
 
 					ImGui::EndMenu();
@@ -1550,27 +1568,27 @@ void EditorLayer::RenderSettings(shade::SharedPointer<shade::SceneRenderer>& ren
 
 		// Display progress bar with VRAM usage
 		ImGui::Text("V-Ram"); ImGui::SameLine(); ImGui::ProgressBar(progress, ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() * 0.7f), std::format("{:.2f} MB / {:.2f} MB", usedMemoryMB, totalMemoryMB).c_str());
-		ImGui::Text("Submited instances %d, point lights %d, spot lights %d", m_SceneRenderer->GetStatistic().SubmitedInstances, m_SceneRenderer->GetStatistic().SubmitedPointLights, m_SceneRenderer->GetStatistic().SubmitedSpotLights);
+		//ImGui::Text("Submited instances %d, point lights %d, spot lights %d", m_SceneRenderer->GetStatistic().SubmitedInstances, m_SceneRenderer->GetStatistic().SubmitedOmnidirectLights, m_SceneRenderer->GetStatistic().SubmitedSpotLights);
 		
 		if (ImGui::TreeNodeEx("Effects", ImGuiTreeNodeFlags_Framed))
 		{
 			if (ImGui::TreeNodeEx("Bloom", ImGuiTreeNodeFlags_Framed))
 			{
 
-				ImGui::Checkbox("Enable", &renderer->GetSettings().BloomSettings.Enabled);
-				DragFloat("Threshold", &renderer->GetSettings().BloomSettings.Threshold, 0.001f, 0.f, FLT_MAX, 80.f);
-				DragFloat("Knee", &renderer->GetSettings().BloomSettings.Knee, 0.001f, 0.f, FLT_MAX, 80.f);
-				DragFloat("Exposure", &renderer->GetSettings().BloomSettings.Exposure, 0.001f, 0.f, FLT_MAX, 80.f);
+				ImGui::Checkbox("Enable", &renderer->GetSettings().Bloom.Enabled);
+				DragFloat("Threshold", &renderer->GetSettings().Bloom.Threshold, 0.001f, 0.f, FLT_MAX, 80.f);
+				DragFloat("Knee", &renderer->GetSettings().Bloom.Knee, 0.001f, 0.f, FLT_MAX, 80.f);
+				DragFloat("Exposure", &renderer->GetSettings().Bloom.Exposure, 0.001f, 0.f, FLT_MAX, 80.f);
 
 				//ImGui::SliderInt("Samples", (int*)&renderer->GetSettings().BloomSettings.Samples, 1, 10);
-				SliderInt("Samples", (int*)&renderer->GetSettings().BloomSettings.Samples, 1, 10, 80.f);
+				SliderInt("Samples", (int*)&renderer->GetSettings().Bloom.Samples, 1, 10, 80.f);
 				//DrawCurve("Curve", glm::value_ptr(m_PPBloom->GetCurve()), 3, ImVec2{ ImGui::GetContentRegionAvail().x, 70 });*/
 				ImGui::TreePop();
 
 				if (ImGui::TreeNodeEx("Down + Up samples ", ImGuiTreeNodeFlags_Framed))
 				{
 					static int mipLevel = 0;
-					SliderInt("Level", &mipLevel, 0, m_SceneRenderer->GetSettings().BloomSettings.Samples - 1, 80.f);
+					SliderInt("Level", &mipLevel, 0, m_SceneRenderer->GetSettings().Bloom.Samples - 1, 80.f);
 					DrawImage(m_SceneRenderer->GetBloomRenderTarget(), { 300, 200 }, {}, mipLevel);
 					ImGui::TreePop();
 				}
@@ -1579,21 +1597,25 @@ void EditorLayer::RenderSettings(shade::SharedPointer<shade::SceneRenderer>& ren
 			if (ImGui::TreeNodeEx("Color correction", ImGuiTreeNodeFlags_Framed))
 			{
 
-				ImGui::Checkbox("Enable", &renderer->GetSettings().ColorCorrectionSettings.Enabled);
-				DragFloat("Gamma", &renderer->GetSettings().ColorCorrectionSettings.Gamma, 0.001f, 0.f, FLT_MAX, 80.f);
-				DragFloat("Exposure", &renderer->GetSettings().ColorCorrectionSettings.Exposure, 0.001f, 0.f, FLT_MAX, 80.f);
+				ImGui::Checkbox("Enable", &renderer->GetSettings().ColorCorrection.Enabled);
+				DragFloat("Gamma", &renderer->GetSettings().ColorCorrection.Gamma, 0.001f, 0.f, FLT_MAX, 80.f);
+				DragFloat("Exposure", &renderer->GetSettings().ColorCorrection.Exposure, 0.001f, 0.f, FLT_MAX, 80.f);
 				ImGui::TreePop();
 			}
 
 			if (ImGui::TreeNodeEx("SSAO", ImGuiTreeNodeFlags_Framed))
 			{
 				ImGui::Checkbox("Enable", &m_SceneRenderer->GetSettings().RenderSettings.SSAOEnabled);
-				DragFloat("Radius", &m_SceneRenderer->GetSettings().SSAOSettings.Radius, 0.01f, -FLT_MAX, FLT_MAX, 80.f);
-				DragFloat("Bias", &m_SceneRenderer->GetSettings().SSAOSettings.Bias, 0.01f, -FLT_MAX, FLT_MAX, 80.f);
-				SliderInt("Blur samples", (int*)&m_SceneRenderer->GetSettings().SSAOSettings.BlurSamples, 0, 20);
+				DragFloat("Radius", &m_SceneRenderer->GetSettings().SSAO.Radius, 0.01f, -FLT_MAX, FLT_MAX, 80.f);
+				DragFloat("Bias", &m_SceneRenderer->GetSettings().SSAO.Bias, 0.01f, -FLT_MAX, FLT_MAX, 80.f);
+				SliderInt("Blur samples", (int*)&m_SceneRenderer->GetSettings().SSAO.BlurSamples, 0, 20);
 				if (ImGui::TreeNodeEx("SSAO map", ImGuiTreeNodeFlags_Framed))
 				{
+					
 					DrawImage(m_SceneRenderer->GetSAAORenderTarget(), { 300, 200 }, {});
+					DrawImage(m_SceneRenderer->GetMainTargetFrameBuffer()->GetTextureAttachment(1), {300, 200}, {});
+					DrawImage(m_SceneRenderer->GetMainTargetFrameBuffer()->GetTextureAttachment(2), {300, 200}, {});
+
 					ImGui::TreePop();
 				}
 
@@ -1601,10 +1623,10 @@ void EditorLayer::RenderSettings(shade::SharedPointer<shade::SceneRenderer>& ren
 			}
 			if (ImGui::TreeNodeEx("Shadows", ImGuiTreeNodeFlags_Framed))
 			{
-				ImGui::Checkbox("Global light shadows", &renderer->GetSettings().RenderSettings.GlobalShadowsEnabled);
+				/*ImGui::Checkbox("Global light shadows", &renderer->GetSettings().RenderSettings.GlobalShadowsEnabled);
 				ImGui::Checkbox("Spot light shadows", &renderer->GetSettings().RenderSettings.SpotShadowEnabled);
-				ImGui::Checkbox("Point light shadows", &renderer->GetSettings().RenderSettings.PointShadowEnabled);
-				ImGui::Checkbox("Point light shadows split by faces", &renderer->GetSettings().IsPointLightShadowSplitBySides);
+				ImGui::Checkbox("Point light shadows", &renderer->GetSettings().RenderSettings.PointShadowEnabled);*/
+				//ImGui::Checkbox("Point light shadows split by faces", &renderer->GetSettings().IsPointLightShadowSplitBySides);
 				ImGui::TreePop();
 			}
 			ImGui::Checkbox("Light culling", &renderer->GetSettings().RenderSettings.LightCulling);
@@ -1654,20 +1676,19 @@ void EditorLayer::RenderSettings(shade::SharedPointer<shade::SceneRenderer>& ren
 	static bool showDemoWindow = false;
 	if (ImGui::TreeNodeEx("Debug", ImGuiTreeNodeFlags_Framed))
 	{
+		ImGui::Checkbox("Show Light complexity", &renderer->GetSettings().RenderSettings._DEBUG_ShowLightComplexity);
+		ImGui::Checkbox("Show Directional light shadow's cascades", &renderer->GetSettings().RenderSettings._DEBUG_ShowShadowCascades);
 		ImGui::Checkbox("Show demo window", &showDemoWindow);
-		
-
-		ImGui::Checkbox("Show Light complexity", &renderer->GetSettings().RenderSettings.ShowLightComplexity);
-		ImGui::Checkbox("Show Grid", &renderer->GetSettings().IsGridShow);
-		ImGui::Checkbox("Show AABB&OBB", &renderer->GetSettings().IsAABB_OBBShow);
+	/*	ImGui::Checkbox("Show AABB&OBB", &renderer->GetSettings().IsAABB_OBBShow);
 		ImGui::Checkbox("Show Point Light", &renderer->GetSettings().IsPointLightShow);
-		ImGui::Checkbox("Show Spot Light", &renderer->GetSettings().IsSpotLightShow);
-		ImGui::Checkbox("Show Global light shadow's cascades", &renderer->GetSettings().RenderSettings.ShowShadowCascades);
+		ImGui::Checkbox("Show Spot Light", &renderer->GetSettings().IsSpotLightShow);*/
+		
 
 		ImGui::TreePop();
 	}
 
 	if (showDemoWindow) ImGui::ShowDemoWindow();
+
 	//MaterialEdit(shade::Renderer::GetDefaultMaterial().Get());
 }
 
@@ -1680,10 +1701,10 @@ void EditorLayer::EntityInspector(shade::ecs::Entity& entity)
 			[&](auto isTreeOpen)->bool { return EditComponent<shade::TagComponent>(entity, {}, isTreeOpen); }, this, entity);
 		DrawComponent<shade::TransformComponent>("Transform", entity, &EditorLayer::TransformComponent,
 			[&](auto isTreeOpen)->bool { return EditComponent<shade::TransformComponent>(entity, {}, isTreeOpen);  }, this, entity);
-		DrawComponent<shade::GlobalLightComponent>("Global Light", entity, &EditorLayer::GlobalLightComponent,
-			[&](auto isTreeOpen)->bool { return EditComponent<shade::GlobalLightComponent>(entity, {}, isTreeOpen); }, this, entity);
-		DrawComponent<shade::PointLightComponent>("Point Light", entity, &EditorLayer::PointLightComponent,
-			[&](auto isTreeOpen)->bool { return EditComponent<shade::PointLightComponent>(entity, {}, isTreeOpen); }, this, entity);
+		DrawComponent<shade::DirectionalLightComponent>("Global Light", entity, &EditorLayer::GlobalLightComponent,
+			[&](auto isTreeOpen)->bool { return EditComponent<shade::DirectionalLightComponent>(entity, {}, isTreeOpen); }, this, entity);
+		DrawComponent<shade::OmnidirectionalLightComponent>("Point Light", entity, &EditorLayer::PointLightComponent,
+			[&](auto isTreeOpen)->bool { return EditComponent<shade::OmnidirectionalLightComponent>(entity, {}, isTreeOpen); }, this, entity);
 		DrawComponent<shade::SpotLightComponent>("Spot Light", entity, &EditorLayer::SpotLightComponent,
 			[&](auto isTreeOpen)->bool { return EditComponent<shade::SpotLightComponent>(entity, {}, isTreeOpen); }, this, entity);
 		DrawComponent<shade::CameraComponent>("Camera", entity, &EditorLayer::CameraComponent,
@@ -1811,18 +1832,23 @@ void EditorLayer::TransformComponent(shade::ecs::Entity& entity)
 
 void EditorLayer::GlobalLightComponent(shade::ecs::Entity& entity)
 {
-	auto& globalLight = entity.GetComponent<shade::GlobalLightComponent>();
+	auto& globalLight = entity.GetComponent<shade::DirectionalLightComponent>();
 	DragFloat("Intensity", &globalLight->Intensity, 0.01f, 0.f);
 	ColorEdit3("Diffuse color", glm::value_ptr(globalLight->DiffuseColor));
 	ColorEdit3("Specular color", glm::value_ptr(globalLight->SpecularColor));
 
-	DragFloat("Near", &globalLight->zNearPlaneOffset);
-	DragFloat("Far", &globalLight->zFarPlaneOffset);
+	// TODO:
+	//DragFloat("Near", &shade::DirectionalLight::GetZNearPlaneOffset());
+	//DragFloat("Far", &shade::DirectionalLight::GetZFarPlaneOffset());
+
+	//float labmda = shade::DirectionalLight::GetShadowCascadeSplitLambda();
+	//DragFloat("Lambda", &labmda);
+	//shade::DirectionalLight::SetShadowCascadeSplitLambda(labmda);
 }
 
 void EditorLayer::PointLightComponent(shade::ecs::Entity& entity)
 {
-	auto& pointLight = entity.GetComponent<shade::PointLightComponent>();
+	auto& pointLight = entity.GetComponent<shade::OmnidirectionalLightComponent>();
 	DragFloat("Intensity", &pointLight->Intensity, 0.01f);
 	DragFloat("Distance", &pointLight->Distance, 0.01f);
 	DragFloat("Falloff", &pointLight->Falloff, 0.01f, -FLT_MAX);

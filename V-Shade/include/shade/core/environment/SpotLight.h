@@ -22,12 +22,19 @@ namespace shade
 			float					MaxAngle;
 			ShadowCascade			Cascade;
 		};
+		struct RenderSettings
+		{
+			// TODO:
+		};
 	public:
 		SpotLight();
 		virtual ~SpotLight();
 		RenderData GetRenderData(const glm::vec3& position, const glm::vec3& derection, const SharedPointer<Camera>& camera) const;
-		std::uint32_t GetTotalCount();
 
+		SHADE_INLINE static std::uint32_t GetTotalCount()
+		{
+			return m_sTotalCount;
+		}
 		// Test collsion between obb and shadow cascade
 		static const bool IsMeshInside(const glm::mat4& cascade, const glm::mat4& transform, const glm::vec3& minHalfExt, const glm::vec3& maxHalfExt);
 	public:
@@ -38,7 +45,7 @@ namespace shade
 	private:
 		ShadowCascade GetSpotLightCascade(float fov, const glm::vec3& position, const glm::vec3& direction, float zNear, float zFar) const;
 	private:
-		static std::uint32_t m_sTotalCount;
+		static inline std::uint32_t m_sTotalCount = 0;
 	private:
 		friend class serialize::Serializer;
 		void Serialize(std::ostream& stream) const;

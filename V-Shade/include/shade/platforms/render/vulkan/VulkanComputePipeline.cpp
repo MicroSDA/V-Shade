@@ -20,6 +20,9 @@ shade::VulkanComputePipeline::~VulkanComputePipeline()
 
 void shade::VulkanComputePipeline::Invalidate()
 {
+
+	auto& instance = VulkanContext::GetInstance();
+
 	std::vector<VkPushConstantRange> pushConstants;
 
 	for (auto& [set, data] : m_Specification.Shader->As<VulkanShader>().GetReflectedData())
@@ -139,6 +142,7 @@ void shade::VulkanComputePipeline::Invalidate()
 	};
 
 	VK_CHECK_RESULT(vkCreateComputePipelines(m_VkDevice, VK_NULL_HANDLE, 1, &computePipelineCreateInfo, m_VkInstance.AllocationCallbaks, &m_Pipeline), "Failed to create compute pipeline!");
+	VKUtils::SetDebugObjectName(m_VkInstance.Instance, m_Specification.Name, m_VkDevice, VK_OBJECT_TYPE_PIPELINE, m_Pipeline);
 }
 
 void shade::VulkanComputePipeline::UpdateResources(SharedPointer<RenderCommandBuffer>& commandBuffer, std::uint32_t frameIndex)
@@ -395,8 +399,9 @@ void shade::VulkanComputePipeline::SetBarrier(SharedPointer<RenderCommandBuffer>
 
 void shade::VulkanComputePipeline::Recompile(bool clearCache)
 {
-	// Add force clear cache 
-	m_Specification.Shader = Shader::Create(m_Specification.Shader->GetFilePath(), clearCache);
-	Invalidate();
+	if (auto shader = Shader::Create(m_Specification.Shader->GetSpecification(), clearCache))
+	{
+		m_Specification.Shader = shader; Invalidate();
+	}
 }
 

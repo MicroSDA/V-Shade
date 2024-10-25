@@ -33,11 +33,13 @@ struct SceneData
 
 struct RenderSettings
 {
+   bool DirectionalLightShadows;
+   bool OmnidirectionalLightShadows;
+   bool SpotLightShadows;
+
    bool LightCulling;
-   bool ShowLightComplexity;
-   bool GlobalShadowsEnabled;
-   bool SpotShadowEnabled;
-   bool PointShadowEnabled;
-   bool ShowShadowCascades;
    bool SSAOEnabled;
+
+   bool _DEBUG_ShowLightComplexity;
+   bool _DEBUG_ShowShadowCascades;
 };

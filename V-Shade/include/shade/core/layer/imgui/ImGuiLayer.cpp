@@ -86,6 +86,10 @@ void shade::ImGuiLayer::DrawImage(Asset<Texture2D>& texture, const ImVec2& size,
 {
 	m_ImGuiRender->DrawImage(texture, size, borderColor);
 }
+void shade::ImGuiLayer::DrawImageLayerd(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor, std::uint32_t layer)
+{
+	m_ImGuiRender->DrawImageLayerd(texture, size, borderColor, layer);
+}
 void shade::ImGuiLayer::HelpMarker(const char* marker, const char* desc)
 {
 	ImGui::SameLine();

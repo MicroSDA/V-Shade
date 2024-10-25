@@ -137,32 +137,6 @@ void Combine()
     imageStore(u_NormalImage, ImagePosition, vec4(vec3(Original * SSAO.r), Original.a));
 }
 
-void Zoom()
-{
-   ivec2 ImagePosition = ivec2(gl_GlobalInvocationID.xy);
-    ivec2 ImageSize     = imageSize(u_PositionImage);
-
-    // Центр изображения
-    vec2 Center = vec2(ImageSize) * 0.5;
-
-    // Вычисляем направление от центра к текущей позиции
-    vec2 Direction = vec2(ImagePosition) - Center;
-
-    // Фактор увеличения (уменьшает расстояние от центра для имитации отдаления)
-    vec2 ZoomFactor = vec2(u_Settings.BlurSamples);  // Используем BlurSamples для масштаба
-
-    // Смещаем координаты пикселя в противоположную сторону от центра
-    vec2 NewCoords = Center + Direction * ZoomFactor;
-
-    // Приводим координаты к границам изображения
-    //ivec2 PixelCoords = FitToBorders(ivec2(NewCoords), ImageSize);
-    ivec2 PixelCoords = ivec2(NewCoords);
-
-    // Загружаем цвет пикселя из увеличенной области и сохраняем результат
-    vec4 Color = imageLoad(u_NormalImage, PixelCoords);
-    imageStore(u_NormalImage, ImagePosition, Color);
-}
-
 void main()
 {
     if(u_Settings.Stage == STAGE_CREATE)
@@ -172,10 +146,6 @@ void main()
     if(u_Settings.Stage == STAGE_BLUR_H || u_Settings.Stage == STAGE_BLUR_V)
     {
         Blur(u_Settings.Stage);
-    }
-	if(u_Settings.Stage == STAGE_ZOOM)
-    {
-        Zoom();
     }
     if(u_Settings.Stage == STAGE_COMBINE)
     {

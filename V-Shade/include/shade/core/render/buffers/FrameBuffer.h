@@ -49,8 +49,12 @@ namespace shade
 		FrameBuffer::Specification& GetSpecification();
 		const FrameBuffer::Specification& GetSpecification() const;
 
-		virtual SharedPointer<Texture2D>& GetTextureAttachment(std::uint32_t index = 0)= 0;
+		virtual SharedPointer<Texture2D>& GetTextureAttachment(std::uint32_t index = 0) = 0;
 		virtual SharedPointer<Texture2D>& GetDepthAttachment(std::uint32_t index = 0) = 0;
+
+		virtual std::vector<SharedPointer<Texture2D>>& GetTextureAttachments() = 0;
+		virtual std::vector<SharedPointer<Texture2D>>& GetDepthAttachments() = 0;
+
 	protected:
 		FrameBuffer::Specification m_Specification;
 	};

@@ -54,7 +54,7 @@ vec4 CreateGrid(vec3 gridColor, vec3 fragPos3D, float scale, bool drawAxis)
 {
 	//Calculate the coordinates of the current fragment in the 2D plane
     vec2  Coord = fragPos3D.xz * scale;
-    vec2  Derivative = fwidth(Coord) + vec2(0.001);
+    vec2  Derivative = fwidth(Coord) + vec2(0.0001);
     vec2  Grid = abs(fract(Coord - 0.5) - 0.5) / Derivative;
     //Calculate the line value based on the coordinate values
     float Line = min(Grid.x, Grid.y);
@@ -119,8 +119,7 @@ void main()
     // Compute linear depth based on fragment position
     float LinearDepth   = ComputeLinearDepth(FragPos3D);
     // Calculate fading based on linear depth
-   float Fading = max(0.0, (0.5 - LinearDepth));
-
+    float Fading = max(0.0, (0.5 - LinearDepth));
 	// Compute depth based on fragment position
     gl_FragDepth        = ComputeDepth(FragPos3D);
 	// Set grid color
