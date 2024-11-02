@@ -102,7 +102,7 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 			.Width = 4096, .Height = 4096,
 			.ClearColor = { 0.0f, 0.0f, 0.0f, 1.f },
 			.DepthClearValue = 1.0,
-			.Attachments = {{ render::Image::Format::Depth, render::Image::Usage::Attachment, render::Image::Clamp::Repeat, 1, DirectionalLight::SHADOW_CASCADES_COUNT  }}
+			.Attachments = {{ render::Image::Format::DEPTH32F, render::Image::Usage::Attachment, render::Image::Clamp::Repeat, 1, GlobalLight::SHADOW_CASCADES_COUNT  }}
 		});
 	m_SpotLightShadowFrameBuffer = FrameBuffer::Create(
 		FrameBuffer::Specification
@@ -221,8 +221,8 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 			.FrameBuffer = m_PointLightShadowFrameBuffer,
 			.VertexLayout = MGVLS,
 			.BackFalceCull = false,
-			.DepsBiasConstantFactor = 4.0f,
-			.DepthBiasSlopeFactor = 8.0f,
+			.DepsBiasConstantFactor = 0.0f,
+			.DepthBiasSlopeFactor = 0.0f,
 		})))
 	{
 		BIND_PIPELINE_PROCESS_FUNCTION(pipeline->As<RenderPipeline>(), SceneRenderer, PointLightShadowPreDepthPass, this);
@@ -258,8 +258,8 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 	//------------------------------------------------------------------------
 	if (auto pipeline = RegisterNewPipeline(shade::RenderPipeline::Create(
 		{
-			.Name = "Spot-Light-Shadow-Pre-Depth",
-			.Shader = ShaderLibrary::Create({.Name = "Spot-Light-Shadow-Pre-Depth", .FilePath = "./resources/assets/shaders/preprocess/Spot-Light-Shadow-Pre-Depth.glsl"}),
+			.Name = "Spot-Light-Shadow-Pre-Depth-Static",
+			.Shader = ShaderLibrary::Create({.Name = "Spot-Light-Shadow-Pre-Depth-Static", .FilePath = "./resources/assets/shaders/preprocess/Spot-Light-Shadow-Pre-Depth.glsl"}),
 			.FrameBuffer = m_SpotLightShadowFrameBuffer,
 			.VertexLayout = MGVLS,
 			.BackFalceCull = false,
@@ -269,7 +269,19 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 	{
 		BIND_PIPELINE_PROCESS_FUNCTION(pipeline->As<RenderPipeline>(), SceneRenderer, SpotLightShadowPreDepthPass, this);
 	}
-	// TODO: Aniamted !
+	if (auto pipeline = RegisterNewPipeline(shade::RenderPipeline::Create(
+		{
+			.Name = "Spot-Light-Shadow-Pre-Depth-Animated",
+			.Shader = ShaderLibrary::Create({.Name = "Spot-Light-Shadow-Pre-Depth-Animated", .FilePath = "./resources/assets/shaders/preprocess/Spot-Light-Shadow-Pre-Depth.glsl", .MacroDefinitions = {"VS_SHADER_ANIMATED"}}),
+			.FrameBuffer = m_SpotLightShadowFrameBuffer,
+			.VertexLayout = MGVLA,
+			.BackFalceCull = false,
+			.DepsBiasConstantFactor = 4.0f,
+			.DepthBiasSlopeFactor = 8.0f,
+		})))
+	{
+		BIND_PIPELINE_PROCESS_FUNCTION(pipeline->As<RenderPipeline>(), SceneRenderer, SpotLightShadowPreDepthPass, this);
+	}
 	if (auto pipeline = RegisterNewPipeline(shade::RenderPipeline::Create(
 		{
 			.Name = "Spot-Lights-Visualizing",
@@ -389,6 +401,7 @@ shade::SceneRenderer::SceneRenderer(bool swapChainAsMainTarget)
 	{
 		BIND_PIPELINE_PROCESS_FUNCTION(pipeline->As<RenderPipeline>(), SceneRenderer, GridPass, this);
 	}
+
 	//------------------------------------------------------------------------
 	// !Debug visualizing                   
 	//------------------------------------------------------------------------
@@ -460,13 +473,13 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 			}
 		}
 
-		scene->View<DirectionalLightComponent, TransformComponent>().Each([&](ecs::Entity& entity, DirectionalLightComponent& light, TransformComponent& transform)
+		scene->View<GlobalLightComponent, TransformComponent>().Each([&](ecs::Entity& entity, GlobalLightComponent& light, TransformComponent& transform)
 			{
 				//transformRenderer::SubmitLight(light, scene->ComputePCTransform(entity).first, m_Camera); 
 				Renderer::SubmitLight(light, transform.GetForwardDirection(), m_Camera);
 			});
 
-		scene->View<OmnidirectionalLightComponent, TransformComponent>().Each([&](ecs::Entity& entity, OmnidirectionalLightComponent& light, TransformComponent& transform)
+		scene->View<PointLightComponent, TransformComponent>().Each([&](ecs::Entity& entity, PointLightComponent& light, TransformComponent& transform)
 			{
 				// Check if point light within camera frustum 
 				glm::mat4 pcTransform = scene->ComputePCTransform(entity).first;
@@ -528,15 +541,15 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 					{
 						for (std::uint32_t index = 0; index < Renderer::GetSubmitedPointLightCount(); index++)
 						{
-							auto& renderData = Renderer::GetSubmitedOmnidirectionalLightRenderData(index);
+							auto& renderData = Renderer::GetSubmitedPointLightRenderData(index);
 
-							if (OmnidirectionalLight::GetRenderSettings().SplitBySides)
+							if (PointLight::GetRenderSettings().SplitBySides)
 							{
 								// Split render passes for each side of cube 
 								for (std::uint32_t side = 0; side < 6; side++)
 								{
 									// Check if mesh inside point light for shadow pass  
-									if (OmnidirectionalLight::IsMeshInside(renderData.Cascades[side].ViewProjectionMatrix, pcTransform, mesh->GetMinHalfExt(), mesh->GetMaxHalfExt()))
+									if (PointLight::IsMeshInside(renderData.Cascades[side].ViewProjectionMatrix, pcTransform, mesh->GetMinHalfExt(), mesh->GetMaxHalfExt()))
 									{
 										std::size_t seed = index; glm::detail::hash_combine(seed, side);
 										if (finalPose && mesh->GetLod(0).Bones.size())
@@ -552,7 +565,7 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 							}
 							else
 							{
-								if (OmnidirectionalLight::IsMeshInside(renderData.Position, renderData.Distance, pcTransform, mesh->GetMinHalfExt(), mesh->GetMaxHalfExt()))
+								if (PointLight::IsMeshInside(renderData.Position, renderData.Distance, pcTransform, mesh->GetMinHalfExt(), mesh->GetMaxHalfExt()))
 								{
 									if (finalPose && mesh->GetLod(0).Bones.size())
 									{
@@ -568,7 +581,7 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 						}
 					}
 					 // Check if mesh inside spot light for shadow pass  
-					if (GetPipeline("Spot-Light-Shadow-Pre-Depth"))
+					if (GetPipeline("Spot-Light-Shadow-Pre-Depth-Static") || GetPipeline("Spot-Light-Shadow-Pre-Depth-Animated"))
 					{
 						for (std::uint32_t index = 0; index < Renderer::GetSubmitedSpotLightCount(); index++)
 						{
@@ -577,7 +590,14 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 							float radius = glm::acos(glm::radians(renderData.MaxAngle)) * renderData.Distance;
 							if (SpotLight::IsMeshInside(renderData.Cascade.ViewProjectionMatrix, pcTransform, mesh->GetMinHalfExt(), mesh->GetMaxHalfExt()))
 							{
-								Renderer::SubmitStaticMesh(GetPipeline("Spot-Light-Shadow-Pre-Depth"), mesh, mesh->GetMaterial(), model, pcTransform, index);
+								if (finalPose && mesh->GetLod(0).Bones.size())
+								{
+									Renderer::SubmitStaticMesh(GetPipeline("Spot-Light-Shadow-Pre-Depth-Animated"), mesh, mesh->GetMaterial(), model, pcTransform, index);
+								}
+								else
+								{
+									Renderer::SubmitStaticMesh(GetPipeline("Spot-Light-Shadow-Pre-Depth-Static"), mesh, mesh->GetMaterial(), model, pcTransform, index);
+								}
 							}
 						}
 					}
@@ -651,6 +671,7 @@ void shade::SceneRenderer::OnUpdate(SharedPointer<Scene>& scene, const shade::Ca
 					
 					Renderer::SubmitBoneTransforms(GetPipeline("Global-Light-Shadow-Pre-Depth-Animated"), model, finalPose->GetBoneGlobalTransforms());
 					Renderer::SubmitBoneTransforms(GetPipeline("Point-Light-Shadow-Pre-Depth-Animated"), model, finalPose->GetBoneGlobalTransforms());
+					Renderer::SubmitBoneTransforms(GetPipeline("Spot-Light-Shadow-Pre-Depth-Animated"), model, finalPose->GetBoneGlobalTransforms());
 					Renderer::SubmitBoneTransforms(GetPipeline("Main-Geometry-Animated"), model, finalPose->GetBoneGlobalTransforms());
 				}
 
@@ -745,12 +766,12 @@ void shade::SceneRenderer::OnRender(SharedPointer<Scene>& scene, const FrameTime
 	m_Settings.RenderSettings.LightCulling					= GetPipeline("Light-Culling-Pre-Depth")->IsActive() && GetPipeline("Light-Culling")->IsActive();
 	m_Settings.RenderSettings.DirectionalLightShadows		= GetPipeline("Global-Light-Shadow-Pre-Depth-Static")->IsActive() || GetPipeline("Global-Light-Shadow-Pre-Depth-Animated")->IsActive();
 	m_Settings.RenderSettings.OmnidirectionalLightShadows	= GetPipeline("Point-Light-Shadow-Pre-Depth-Static")->IsActive() || GetPipeline("Point-Light-Shadow-Pre-Depth-Animated")->IsActive();
-	m_Settings.RenderSettings.SpotLightShadows				= GetPipeline("Spot-Light-Shadow-Pre-Depth")->IsActive();
+	m_Settings.RenderSettings.SpotLightShadows				= GetPipeline("Spot-Light-Shadow-Pre-Depth-Static")->IsActive() || GetPipeline("Spot-Light-Shadow-Pre-Depth-Animated")->IsActive();
 
 	if (m_Camera != nullptr)
 	{
 		m_MainCommandBuffer->Begin(curentFrameIndex);
-
+		Renderer::BeginTimestamp(m_MainCommandBuffer, "__SCENE__");
 		Renderer::BeginScene(m_Camera, m_Settings.RenderSettings, curentFrameIndex);
 		{
 			{
@@ -764,8 +785,8 @@ void shade::SceneRenderer::OnRender(SharedPointer<Scene>& scene, const FrameTime
 				bool pClear		 = Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Point-Light-Shadow-Pre-Depth-Static"), curentFrameIndex, true);
 				pClear			+= Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Point-Light-Shadow-Pre-Depth-Animated"), curentFrameIndex, !pClear);
 
-				bool sClear		 = Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Spot-Light-Shadow-Pre-Depth"), curentFrameIndex, true);
-				
+				bool sClear		 = Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Spot-Light-Shadow-Pre-Depth-Static"), curentFrameIndex, true);
+				sClear			+= Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Spot-Light-Shadow-Pre-Depth-Animated"), curentFrameIndex, !sClear);
 				
 			}
 
@@ -778,20 +799,19 @@ void shade::SceneRenderer::OnRender(SharedPointer<Scene>& scene, const FrameTime
 					Renderer::ExecuteComputePipeline(GetPipeline("Color-Correction"), curentFrameIndex);
 			}
 			{
-					Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("AABB-OBB"), curentFrameIndex, !mClear);
-					Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Point-Lights-Visualizing"), curentFrameIndex, !mClear);
-					Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Spot-Lights-Visualizing"), curentFrameIndex, !mClear);
-					Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Skeleton-Bone-Visualizing"), curentFrameIndex, !mClear);
-					Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Skeleton-Joint-Visualizing"), curentFrameIndex, !mClear);
+					Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("AABB-OBB"), curentFrameIndex,						!mClear);
+					Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Point-Lights-Visualizing"), curentFrameIndex,		!mClear);
+					Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Spot-Lights-Visualizing"), curentFrameIndex,		!mClear);
+					Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Skeleton-Bone-Visualizing"), curentFrameIndex,		!mClear);
+					Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Skeleton-Joint-Visualizing"), curentFrameIndex,	!mClear);
 
 					Renderer::ExecuteSubmitedRenderPipeline(GetPipeline("Grid"), curentFrameIndex, !mClear);
 			}
 		}
 		Renderer::EndScene(curentFrameIndex);
+		Renderer::EndTimestamp(m_MainCommandBuffer, "__SCENE__");
 		m_MainCommandBuffer->End(curentFrameIndex);
 		m_MainCommandBuffer->Submit(curentFrameIndex);
-
-		//Renderer::QueryResults(curentFrameIndex);
 	}
 }
 
@@ -917,7 +937,7 @@ void shade::SceneRenderer::GlobalLightShadowPreDepthPass(SharedPointer<RenderPip
 			// Update the submitted material
 			//Renderer::UpdateSubmitedMaterial(m_MainCommandBuffer, pipeline, instance, material, frameIndex, lod);
 
-			for (std::uint32_t cascade = 0; cascade < DirectionalLight::SHADOW_CASCADES_COUNT; cascade++)
+			for (std::uint32_t cascade = 0; cascade < GlobalLight::SHADOW_CASCADES_COUNT; cascade++)
 			{
 				pipeline->SetUniform(m_MainCommandBuffer, sizeof(std::uint32_t), &cascade, frameIndex, Shader::Type::Vertex);
 
@@ -983,7 +1003,7 @@ void shade::SceneRenderer::PointLightShadowPreDepthPass(SharedPointer<RenderPipe
 				{
 					pipeline->SetUniform(m_MainCommandBuffer, sizeof(std::uint32_t), &side, frameIndex, Shader::Type::Vertex, sizeof(std::uint32_t));
 
-					if (OmnidirectionalLight::GetRenderSettings().SplitBySides)
+					if (PointLight::GetRenderSettings().SplitBySides)
 					{
 						// Draw the submitted instance
 						std::size_t seed = index; glm::detail::hash_combine(seed, side);

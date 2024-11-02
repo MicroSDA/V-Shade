@@ -43,4 +43,11 @@ vec3 GetTangent(vec3 Normal)
         return normalize(C2);
 }
 
+vec3 ExtractScale(mat4 matrix)
+ {
+    float scaleX = length(matrix[0].xyz);  
+    float scaleY = length(matrix[1].xyz);  
+    float scaleZ = length(matrix[2].xyz); 
+    return vec3(scaleX, scaleY, scaleZ);
+}
 

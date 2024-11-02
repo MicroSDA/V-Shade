@@ -6,7 +6,7 @@
 #include <shade/core/render/SwapChain.h>
 #include <shade/core/render/buffers/RenderCommandBuffer.h>
 #include <shade/core/environment/GlobalLight.h>
-#include <shade/core/environment/OmnidirectionalLight.h>
+#include <shade/core/environment/PointLight.h>
 #include <shade/core/environment/SpotLight.h>
 
 #include <shade/core/render/drawable/Model.h>
@@ -58,9 +58,9 @@ namespace shade
 		static bool ExecuteSubmitedRenderPipeline(SharedPointer<RenderPipeline> pipeline, std::uint32_t frameIndex, bool isForceClear = false);
 		static bool ExecuteComputePipeline(SharedPointer<ComputePipeline> pipeline, std::uint32_t frameIndex);
 
-		static void SubmitLight(const SharedPointer<DirectionalLight>& light, const glm::vec3& direction, const SharedPointer<Camera>& camera);
+		static void SubmitLight(const SharedPointer<GlobalLight>& light, const glm::vec3& direction, const SharedPointer<Camera>& camera);
 		static void SubmitLight(const SharedPointer<SpotLight>& light, const glm::mat4& transform, const SharedPointer<Camera>& camera);
-		static void SubmitLight(const SharedPointer<OmnidirectionalLight>& light, const glm::mat4& transform, const SharedPointer<Camera>& camera);
+		static void SubmitLight(const SharedPointer<PointLight>& light, const glm::mat4& transform, const SharedPointer<Camera>& camera);
 		
 		static void UpdateSubmitedMaterial(SharedPointer<RenderCommandBuffer>& commandBuffer, SharedPointer<RenderPipeline> pipeline, const Asset<Drawable>& instance, const Asset<Material>& material, std::uint32_t frameIndex, std::size_t lod = 0);
 		static void UpdateSubmitedMaterial(SharedPointer<RenderCommandBuffer>& commandBuffer, SharedPointer<RenderPipeline> pipeline, std::size_t instance, const Asset<Material>& material, std::uint32_t frameIndex, std::size_t lod = 0);
@@ -71,12 +71,15 @@ namespace shade
 		static const SpotLight::RenderData& GetSubmitedSpotLightRenderData(std::uint32_t lightIndex);
 		static const std::uint32_t GetSubmitedSpotLightCount();
 
-		static const OmnidirectionalLight::RenderData& GetSubmitedOmnidirectionalLightRenderData(std::uint32_t lightIndex);
+		static const PointLight::RenderData& GetSubmitedPointLightRenderData(std::uint32_t lightIndex);
 		static const std::uint32_t GetSubmitedPointLightCount();
 
 		static void  BeginTimestamp(SharedPointer<RenderCommandBuffer>& commandBuffer, const std::string& name);
 		static float EndTimestamp(SharedPointer<RenderCommandBuffer>& commandBuffer, const std::string& name);
-		
+
+		static void  QueryResults(std::uint32_t frameIndex);
+		static float GetQueryResult(const std::string& name);
+
 		static std::size_t GetLodLevelBasedOnDistance(const SharedPointer<Camera> camera, std::size_t lodsCount, const glm::mat4& transform, const glm::vec3& minHaflExt, const glm::vec3& maxHalfExt);
 
 		static std::uint32_t GetCurrentFrameIndex();
@@ -96,7 +99,7 @@ namespace shade
 		static UniquePointer<RenderAPI> m_sRenderAPI;
 		static UniquePointer<RenderContext> m_sRenderContext;
 
-		static std::vector<OmnidirectionalLight::RenderData> m_sSubmitedOmnidirectionalLightRenderData;
+		static std::vector<PointLight::RenderData> m_sSubmitedPointLightRenderData;
 		static std::vector<SpotLight::RenderData> m_sSubmitedSpotLightRenderData;
 	private:
 		static SharedPointer<Texture2D> m_sDefaultDiffuseTexture;

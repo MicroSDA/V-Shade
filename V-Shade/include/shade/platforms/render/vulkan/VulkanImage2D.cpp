@@ -1,7 +1,74 @@
 #include "shade_pch.h"
 #include "VulkanImage2D.h"
-
 #include <shade/core/render/RenderAPI.h>
+
+namespace utils
+{
+	// VK_DESCRIPTOR_TYPE_STORAGE_IMAGE or VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
+
+	/*if (m_Specification.Usage == render::Image::Usage::Attachment)
+	{
+		if (m_IsDepth || m_IsDepthStencil)
+			usageFlags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | ((!m_IsDepthStencil) ? VK_IMAGE_USAGE_STORAGE_BIT : 0);
+		else
+			usageFlags |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
+	}
+	else if (m_Specification.Usage == render::Image::Usage::Texture)
+		usageFlags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+	else if (m_Specification.Usage == render::Image::Usage::Storage)
+	{
+		usageFlags |= VK_IMAGE_USAGE_STORAGE_BIT;
+	}*/
+
+	VkComponentMapping GetComponetsSwizzle(shade::render::Image::Format foramt, VkImageUsageFlags flags)
+	{
+		switch (foramt)
+		{
+		case shade::render::Image::Format::Undefined:
+			return VkComponentMapping{ .r = VK_COMPONENT_SWIZZLE_ZERO,.g = VK_COMPONENT_SWIZZLE_ZERO, .b = VK_COMPONENT_SWIZZLE_ZERO, .a = VK_COMPONENT_SWIZZLE_ZERO };
+		case shade::render::Image::Format::RED8UN:
+		case shade::render::Image::Format::RED8UI:
+		case shade::render::Image::Format::RED16UI:
+		case shade::render::Image::Format::RED32UI:
+		case shade::render::Image::Format::DEPTH32FSTENCIL8UINT:
+		case shade::render::Image::Format::RED32F:
+			if (flags & VK_IMAGE_USAGE_STORAGE_BIT)
+			{
+				return VkComponentMapping{ .r = VK_COMPONENT_SWIZZLE_IDENTITY,.g = VK_COMPONENT_SWIZZLE_IDENTITY, .b = VK_COMPONENT_SWIZZLE_IDENTITY, .a = VK_COMPONENT_SWIZZLE_IDENTITY };
+			}
+			else
+			{
+				return VkComponentMapping{ .r = VK_COMPONENT_SWIZZLE_R,.g = VK_COMPONENT_SWIZZLE_R, .b = VK_COMPONENT_SWIZZLE_R, .a = VK_COMPONENT_SWIZZLE_ZERO };
+			}
+		case shade::render::Image::Format::RG8:
+			return VkComponentMapping{ .r = VK_COMPONENT_SWIZZLE_R,.g = VK_COMPONENT_SWIZZLE_G, .b = VK_COMPONENT_SWIZZLE_ZERO, .a = VK_COMPONENT_SWIZZLE_ZERO };
+		case shade::render::Image::Format::RG16F:
+			return VkComponentMapping{ .r = VK_COMPONENT_SWIZZLE_R,.g = VK_COMPONENT_SWIZZLE_G, .b = VK_COMPONENT_SWIZZLE_ZERO, .a = VK_COMPONENT_SWIZZLE_ZERO };
+		case shade::render::Image::Format::RG32F:
+			return VkComponentMapping{ .r = VK_COMPONENT_SWIZZLE_R,.g = VK_COMPONENT_SWIZZLE_G, .b = VK_COMPONENT_SWIZZLE_ZERO, .a = VK_COMPONENT_SWIZZLE_ZERO };
+		case shade::render::Image::Format::RGB:
+			return VkComponentMapping{ .r = VK_COMPONENT_SWIZZLE_R,.g = VK_COMPONENT_SWIZZLE_G, .b = VK_COMPONENT_SWIZZLE_B, .a = VK_COMPONENT_SWIZZLE_ZERO };
+		case shade::render::Image::Format::RGBA:
+			return VkComponentMapping{ .r = VK_COMPONENT_SWIZZLE_R,.g = VK_COMPONENT_SWIZZLE_G, .b = VK_COMPONENT_SWIZZLE_B, .a = VK_COMPONENT_SWIZZLE_A };
+		case shade::render::Image::Format::BGRA:
+			return VkComponentMapping{ .r = VK_COMPONENT_SWIZZLE_B,.g = VK_COMPONENT_SWIZZLE_G, .b = VK_COMPONENT_SWIZZLE_R, .a = VK_COMPONENT_SWIZZLE_A };
+		case shade::render::Image::Format::RGBA16F:
+			return VkComponentMapping{ .r = VK_COMPONENT_SWIZZLE_R,.g = VK_COMPONENT_SWIZZLE_G, .b = VK_COMPONENT_SWIZZLE_B, .a = VK_COMPONENT_SWIZZLE_A };
+		case shade::render::Image::Format::RGBA32F:
+			return VkComponentMapping{ .r = VK_COMPONENT_SWIZZLE_R,.g = VK_COMPONENT_SWIZZLE_G, .b = VK_COMPONENT_SWIZZLE_B, .a = VK_COMPONENT_SWIZZLE_A };
+		case shade::render::Image::Format::B10R11G11UF:
+			return VkComponentMapping{ .r = VK_COMPONENT_SWIZZLE_R,.g = VK_COMPONENT_SWIZZLE_G, .b = VK_COMPONENT_SWIZZLE_B, .a = VK_COMPONENT_SWIZZLE_ZERO };
+		case shade::render::Image::Format::SRGB:
+			return VkComponentMapping{ .r = VK_COMPONENT_SWIZZLE_R,.g = VK_COMPONENT_SWIZZLE_G, .b = VK_COMPONENT_SWIZZLE_B, .a = VK_COMPONENT_SWIZZLE_ZERO };
+		case shade::render::Image::Format::DEPTH32F:
+			return VkComponentMapping{ .r = VK_COMPONENT_SWIZZLE_R,.g = VK_COMPONENT_SWIZZLE_R, .b = VK_COMPONENT_SWIZZLE_R, .a = VK_COMPONENT_SWIZZLE_A };
+		case shade::render::Image::Format::DEPTH24STENCIL8:
+			return VkComponentMapping{ .r = VK_COMPONENT_SWIZZLE_R,.g = VK_COMPONENT_SWIZZLE_R, .b = VK_COMPONENT_SWIZZLE_R, .a = VK_COMPONENT_SWIZZLE_A };
+		default:
+			break;
+		}
+	}
+}
 
 shade::VulkanImage2D::VulkanImage2D(const VkDevice device, const VulkanContext::VulkanInstance& instnace, const render::Image::Specification& specification) :
 	m_VkDevice(device), m_VkInstance(instnace)
@@ -43,7 +110,7 @@ void shade::VulkanImage2D::Invalidate(const render::Image::Specification& specif
 	if (m_Specification.Usage == render::Image::Usage::Attachment)
 	{
 		if (m_IsDepth || m_IsDepthStencil) 
-			usageFlags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+			usageFlags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | ((!m_IsDepthStencil) ? VK_IMAGE_USAGE_STORAGE_BIT : 0);
 		else
 			usageFlags |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
 	}
@@ -162,10 +229,7 @@ void shade::VulkanImage2D::Invalidate(const render::Image::Specification& specif
 	   .image = m_VkImage, // The VkImage to create an image view for 
 	   .viewType = (m_Specification.Layers > 1) ? (m_Specification.IsCubeMap) ? VK_IMAGE_VIEW_TYPE_CUBE_ARRAY : VK_IMAGE_VIEW_TYPE_2D_ARRAY : (m_Specification.IsCubeMap) ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D, // If the image has layers, create a 2D ImageArray, else, create a 2D image view 
 	   .format = m_ImageFormat, // The format of the image view to be created 
-	   .components = // The component map of the view
-		  {
-			.r = VK_COMPONENT_SWIZZLE_R, .g = VK_COMPONENT_SWIZZLE_G, .b = VK_COMPONENT_SWIZZLE_B, .a = VK_COMPONENT_SWIZZLE_A
-		  },
+	   .components = utils::GetComponetsSwizzle(m_Specification.Format, usageFlags),
 	   .subresourceRange =  // The range of the subresource to be accessed
 		  {
 			.aspectMask = m_AspectFlags, // The aspect of the subresource to access, which could be COLOR, or DEPTH
@@ -194,10 +258,7 @@ void shade::VulkanImage2D::Invalidate(const render::Image::Specification& specif
 		   .image = m_VkImage, // The VkImage to create an image view for 
 		   .viewType = (m_Specification.Layers > 1) ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D, // If the image has layers, create a 2D ImageArray, else, create a 2D image view 
 		   .format = m_ImageFormat, // The format of the image view to be created 
-		   .components = // The component map of the view
-			  {
-				.r = VK_COMPONENT_SWIZZLE_R, .g = VK_COMPONENT_SWIZZLE_G, .b = VK_COMPONENT_SWIZZLE_B, .a = VK_COMPONENT_SWIZZLE_A
-			  },
+		   .components = utils::GetComponetsSwizzle(m_Specification.Format, usageFlags),
 		   .subresourceRange =  // The range of the subresource to be accessed
 			  {
 				.aspectMask = m_AspectFlags, // The aspect of the subresource to access, which could be COLOR, or DEPTH
@@ -226,10 +287,7 @@ void shade::VulkanImage2D::Invalidate(const render::Image::Specification& specif
 		   .image = m_VkImage, // The VkImage to create an image view for 
 		   .viewType = VK_IMAGE_VIEW_TYPE_2D,
 		   .format = m_ImageFormat, // The format of the image view to be created 
-		   .components = // The component map of the view
-			  {
-				.r = VK_COMPONENT_SWIZZLE_R, .g = VK_COMPONENT_SWIZZLE_G, .b = VK_COMPONENT_SWIZZLE_B, .a = VK_COMPONENT_SWIZZLE_A
-			  },
+		  .components = utils::GetComponetsSwizzle(m_Specification.Format, usageFlags),
 		   .subresourceRange =  // The range of the subresource to be accessed
 			  {
 				.aspectMask = m_AspectFlags,	// The aspect of the subresource to access, which could be COLOR, or DEPTH
@@ -458,10 +516,7 @@ void shade::VulkanImage2D::Invalidate(render::Image& image)
 	   .image = m_VkImage, // The VkImage to create an image view for 
 	   .viewType = (m_Specification.Layers > 1) ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D, // If the image has layers, create a 2D ImageArray, else, create a 2D image view 
 	   .format = m_ImageFormat, // The format of the image view to be created 
-	   .components = // The component map of the view
-		  {
-			.r = VK_COMPONENT_SWIZZLE_R, .g = VK_COMPONENT_SWIZZLE_G, .b = VK_COMPONENT_SWIZZLE_B, .a = VK_COMPONENT_SWIZZLE_A
-		  },
+	   .components = utils::GetComponetsSwizzle(m_Specification.Format, usageFlags),
 	   .subresourceRange =  // The range of the subresource to be accessed
 		  {
 			.aspectMask = m_AspectFlags, // The aspect of the subresource to access, which could be COLOR, or DEPTH
@@ -490,10 +545,7 @@ void shade::VulkanImage2D::Invalidate(render::Image& image)
 		   .image = m_VkImage, // The VkImage to create an image view for 
 		   .viewType = (m_Specification.Layers > 1) ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D, // If the image has layers, create a 2D ImageArray, else, create a 2D image view 
 		   .format = m_ImageFormat, // The format of the image view to be created 
-		   .components = // The component map of the view
-			  {
-				.r = VK_COMPONENT_SWIZZLE_R, .g = VK_COMPONENT_SWIZZLE_G, .b = VK_COMPONENT_SWIZZLE_B, .a = VK_COMPONENT_SWIZZLE_A
-			  },
+		   .components = utils::GetComponetsSwizzle(m_Specification.Format, usageFlags),
 		   .subresourceRange =  // The range of the subresource to be accessed
 			  {
 				.aspectMask = m_AspectFlags, // The aspect of the subresource to access, which could be COLOR, or DEPTH
@@ -522,10 +574,7 @@ void shade::VulkanImage2D::Invalidate(render::Image& image)
 		   .image = m_VkImage, // The VkImage to create an image view for 
 		   .viewType = VK_IMAGE_VIEW_TYPE_2D, // If the image has layers, create a 2D ImageArray, else, create a 2D image view 
 		   .format = m_ImageFormat, // The format of the image view to be created 
-		   .components = // The component map of the view
-			  {
-				.r = VK_COMPONENT_SWIZZLE_R, .g = VK_COMPONENT_SWIZZLE_G, .b = VK_COMPONENT_SWIZZLE_B, .a = VK_COMPONENT_SWIZZLE_A
-			  },
+		   .components = utils::GetComponetsSwizzle(m_Specification.Format, usageFlags),
 		   .subresourceRange =  // The range of the subresource to be accessed
 			  {
 				.aspectMask = m_AspectFlags,	// The aspect of the subresource to access, which could be COLOR, or DEPTH
@@ -593,10 +642,7 @@ void shade::VulkanImage2D::Invalidate(const render::Image::Specification& specif
 	   .image = m_VkImage, // The VkImage to create an image view for 
 	   .viewType = (m_Specification.Layers > 1) ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D, // If the image has layers, create a 2D ImageArray, else, create a 2D image view 
 	   .format = m_ImageFormat, // The format of the image view to be created 
-	   .components = // The component map of the view
-		  {
-			.r = VK_COMPONENT_SWIZZLE_R, .g = VK_COMPONENT_SWIZZLE_G, .b = VK_COMPONENT_SWIZZLE_B, .a = VK_COMPONENT_SWIZZLE_A
-		  },
+	   .components = utils::GetComponetsSwizzle(m_Specification.Format, usageFlags),
 	   .subresourceRange =  // The range of the subresource to be accessed
 		  {
 			.aspectMask = m_AspectFlags, // The aspect of the subresource to access, which could be COLOR, or DEPTH
@@ -625,10 +671,7 @@ void shade::VulkanImage2D::Invalidate(const render::Image::Specification& specif
 		   .image = m_VkImage, // The VkImage to create an image view for 
 		   .viewType = (m_Specification.Layers > 1) ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D, // If the image has layers, create a 2D ImageArray, else, create a 2D image view 
 		   .format = m_ImageFormat, // The format of the image view to be created 
-		   .components = // The component map of the view
-			  {
-				.r = VK_COMPONENT_SWIZZLE_R, .g = VK_COMPONENT_SWIZZLE_G, .b = VK_COMPONENT_SWIZZLE_B, .a = VK_COMPONENT_SWIZZLE_A
-			  },
+		   .components = utils::GetComponetsSwizzle(m_Specification.Format, usageFlags),
 		   .subresourceRange =  // The range of the subresource to be accessed
 			  {
 				.aspectMask = m_AspectFlags, // The aspect of the subresource to access, which could be COLOR, or DEPTH
@@ -657,10 +700,7 @@ void shade::VulkanImage2D::Invalidate(const render::Image::Specification& specif
 		   .image = m_VkImage, // The VkImage to create an image view for 
 		   .viewType = VK_IMAGE_VIEW_TYPE_2D, // If the image has layers, create a 2D ImageArray, else, create a 2D image view 
 		   .format = m_ImageFormat, // The format of the image view to be created 
-		   .components = // The component map of the view
-			  {
-				.r = VK_COMPONENT_SWIZZLE_R, .g = VK_COMPONENT_SWIZZLE_G, .b = VK_COMPONENT_SWIZZLE_B, .a = VK_COMPONENT_SWIZZLE_A
-			  },
+		   .components = utils::GetComponetsSwizzle(m_Specification.Format, usageFlags),
 		   .subresourceRange =  // The range of the subresource to be accessed
 			  {
 				.aspectMask = m_AspectFlags,	// The aspect of the subresource to access, which could be COLOR, or DEPTH

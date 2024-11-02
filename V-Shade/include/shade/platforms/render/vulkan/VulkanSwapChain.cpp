@@ -294,13 +294,18 @@ void shade::VulkanSwapChain::BeginFrame()
 	//auto& queue = Renderer::GetRenderResourceReleaseQueue(m_CurrentBufferIndex);
 	//queue.Execute();
 	
-	m_CurrentImageIndex = AcquireNextImage();
+	if (m_FrameBuffers[0]->GetHeight() || m_FrameBuffers[0]->GetHeight())
+	{
+		m_CurrentImageIndex = AcquireNextImage();
+	}
+	
 	Renderer::BeginFrame(m_CurrentFrameIndex);
 }
 
 void shade::VulkanSwapChain::EndFrame()
 {
 	Renderer::EndFrame(m_CurrentFrameIndex);
+	Renderer::QueryResults(m_CurrentFrameIndex);
 }
 
 void shade::VulkanSwapChain::Present(std::uint32_t timeout)

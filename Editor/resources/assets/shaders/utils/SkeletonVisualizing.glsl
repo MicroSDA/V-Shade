@@ -28,6 +28,7 @@ void main()
 #pragma: geometry
 #include "./include/Common.glsl"
 #include "./include/Camera.glsl"
+#include "./include/Vertex.glsl"
 
 layout(points) in; 
 layout(triangle_strip, max_vertices = 100) out;
@@ -67,15 +68,6 @@ vec4 vertices[4] = {
     vec4(scale,  scale,  scale, 1),  
     vec4(-scale, scale,  scale, 1) 
 };
-
-vec3 ExtractScale(mat4 matrix)
- {
-    
-    float scaleX = length(matrix[0].xyz);  
-    float scaleY = length(matrix[1].xyz);  
-    float scaleZ = length(matrix[2].xyz); 
-    return vec3(scaleX, scaleY, scaleZ);
-}
 
 void main() 
 {

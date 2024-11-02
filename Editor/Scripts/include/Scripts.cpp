@@ -88,12 +88,22 @@ void PlayerScript::OnUpdate(const shade::FrameTimer& deltaTime)
 			// Update camera position based on character's position and direction
 
 			transform.Rotate(m_RootMotion.Rotation.Difference); 
-			//transform.SetRotation(m_RootMotion.Rotation.Current); 
+			// Получаем текущий forward direction
+			glm::vec3 forward = transform.GetForwardDirection();
+			glm::vec3 baseDirection = glm::normalize(glm::eulerAngles(m_RootMotion.Rotation.Difference)); // базовое направление (нулевая точка)
+			glm::vec3 translationDir = glm::normalize(m_RootMotion.Translation.Difference); // направление, которое нужно повернуть
 
-			transform.GetForwardDirection();
+			// Находим кватернион, который вращает базовое направление в направление forward
+			glm::quat rotationToForward = glm::rotation(baseDirection, forward);
 
-			transform.Move(m_RootMotion.Translation.Difference);
+			// Применяем этот кватернион к вектору направления трансляции
+			glm::vec3 adjustedTranslation = rotationToForward * translationDir * glm::length(m_RootMotion.Translation.Difference);
 
+			// Применяем скорректированный вектор к transform
+			transform.Move(adjustedTranslation);
+
+			glm::vec3 dir = glm::degrees(transform.GetForwardDirection());
+			std::cout << "X " << adjustedTranslation.x<< " Y " << adjustedTranslation.y << " Z " << adjustedTranslation.z << std::endl;
 			//GetEntity().GetManager().View<shade::TransformComponent>().Each([&](shade::ecs::Entity& entity, shade::TransformComponent& tr)
 			//	{
 			//		if (!entity.HasComponent<shade::AnimationGraphComponent>())

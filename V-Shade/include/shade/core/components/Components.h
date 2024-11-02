@@ -6,7 +6,7 @@
 #include <shade/core/render/drawable/Material.h>
 #include <shade/core/transform/Transform.h>
 #include <shade/core/environment/GlobalLight.h>
-#include <shade/core/environment/OmnidirectionalLight.h>
+#include <shade/core/environment/PointLight.h>
 #include <shade/core/environment/SpotLight.h>
 #include <shade/core/physics/RigidBody.h>
 #include <shade/core/animation/graphs/AnimationGraph.h>
@@ -20,8 +20,8 @@ namespace shade
 	using ModelComponent				= Asset<Model>;
 	using MaterialComponent				= Asset<Material>;
 	using TransformComponent			= Transform;
-	using DirectionalLightComponent		= SharedPointer<DirectionalLight>;
-	using OmnidirectionalLightComponent	= SharedPointer<OmnidirectionalLight>;
+	using GlobalLightComponent		= SharedPointer<GlobalLight>;
+	using PointLightComponent			= SharedPointer<PointLight>;
 	using SpotLightComponent			= SharedPointer<SpotLight>;
 	using RigidBodyComponent			= physic::RigidBody; // Need to delete ?
 

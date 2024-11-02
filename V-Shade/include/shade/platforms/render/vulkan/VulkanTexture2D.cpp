@@ -75,7 +75,6 @@ void shade::VulkanTexture2D::Invalidate()
 		VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO, // sType
 		VK_NULL_HANDLE, // pNext
 		0,
-
 		VK_FILTER_MAX_ENUM,
 		VK_FILTER_MAX_ENUM,
 		VK_SAMPLER_MIPMAP_MODE_MAX_ENUM,
@@ -84,11 +83,11 @@ void shade::VulkanTexture2D::Invalidate()
 		samplerCreateInfo.addressModeU,
 		0.0f, //mipLodBias
 		VK_TRUE, // anisotropyEnable // TODO: TAKE A LOOK
-		16.0f, // maxAnisotropy
+		16.0f, // maxAnisotropy // TODO: TAKE A LOOK
 		VK_FALSE, // compareEnable // TODO: TAKE A LOOK
 		VK_COMPARE_OP_MAX_ENUM, // compareOp
 		0.0f, // minLod
-		1.f, // maxLod
+		VK_LOD_CLAMP_NONE, // maxLod
 		VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK, // borderColor // TODO: TAKE A LOOK
 		VK_FALSE, // unnormalizedCoordinates // TODO: TAKE A LOOK
 	};

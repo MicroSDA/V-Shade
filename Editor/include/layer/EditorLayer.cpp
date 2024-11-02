@@ -110,26 +110,14 @@ void EditorLayer::OnRender(shade::SharedPointer<shade::Scene>& scene, const shad
 
 		ShowWindowBar("Creator", NULL, &EditorLayer::Creator, this);
 		ShowWindowBar("Assets", NULL, &EditorLayer::AssetsExplorer, this);
-		ShowWindowBar("Scene", NULL, &EditorLayer::Scene, this, scene);
-		//ShowWindowBar("DEBUG", NULL, [this]() 
-			//{
-			//	if (auto p = m_SceneRenderer->GetPipeline("Point-Light-Shadow-Pre-Depth"))
-			//	{
-			//		DragFloat("DepsBiasConstantFactor", &p->GetSpecification().DepsBiasConstantFactor);
-			//		DragFloat("DepthBiasSlopeFactor", &p->GetSpecification().DepthBiasSlopeFactor);
-
-			//		DrawImageLayerd(p->GetSpecification().FrameBuffer->GetDepthAttachment(), ImGui::GetContentRegionAvail(), {}, 0);
-			//		/*DrawImageLayerd(p->GetSpecification().FrameBuffer->GetDepthAttachment(), ImGui::GetContentRegionAvail(), {}, 1);
-			//		DrawImageLayerd(p->GetSpecification().FrameBuffer->GetDepthAttachment(), ImGui::GetContentRegionAvail(), {}, 2);
-			//		DrawImageLayerd(p->GetSpecification().FrameBuffer->GetDepthAttachment(), ImGui::GetContentRegionAvail(), {}, 3);
-			//		DrawImageLayerd(p->GetSpecification().FrameBuffer->GetDepthAttachment(), ImGui::GetContentRegionAvail(), {}, 4);
-			//		DrawImageLayerd(p->GetSpecification().FrameBuffer->GetDepthAttachment(), ImGui::GetContentRegionAvail(), {}, 5);*/
-			//		//DrawImageLayerd(p->GetSpecification().FrameBuffer->GetDepthAttachment(), ImGui::GetContentRegionAvail(), {}, 6);
-			//	}
-			//});
-	
-
-
+		ShowWindowBar("Scene", NULL, &EditorLayer::Scene, this, scene, deltaTime);
+		/*ShowWindowBar("DEBUG", NULL, [this]() 
+			{
+				DragFloat("Smoothnes", &shade::DirectionalLight::GetRenderShadowSettings().PCFP.Smooth);
+				int Samples = shade::DirectionalLight::GetRenderShadowSettings().PCFP.Samples;
+				DragInt("Samples", &Samples);
+				shade::DirectionalLight::GetRenderShadowSettings().PCFP.Samples = Samples;
+			});*/
 
 		ImGui::PopItemFlag();
 		ImGui::PopStyleColor();
@@ -667,7 +655,7 @@ void DrawGizmoOperationButton(const char* id, const char8_t* icon, ImGuizmo::OPE
 	ImGui::PopStyleColor(); 
 }
 
-void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
+void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene, const shade::FrameTimer& deltaTime)
 {
 	// Bool shit
 	const std::uint32_t frameIndex = shade::Renderer::GetCurrentFrameIndex();
@@ -781,10 +769,10 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 								{
 									ImGui::GetCursorScreenPos().x - 490.f, ImGui::GetCursorScreenPos().y + 35.f  // Position
 								},
-						0.9f, // Alpha
+						1.0f, // Alpha
 						[&]() mutable
 						{
-							RenderSettings(m_SceneRenderer);
+							RenderSettings(m_SceneRenderer, deltaTime);
 						});
 
 				}
@@ -801,9 +789,9 @@ void EditorLayer::Scene(shade::SharedPointer<shade::Scene>& scene)
 			auto& transform = m_SelectedEntity.GetComponent<shade::TransformComponent>();
 			auto pcTransform = scene->ComputePCTransformWithoutRootMotion(m_SelectedEntity);
 			
-			if (m_SelectedEntity.HasComponent<shade::DirectionalLightComponent>())
+			if (m_SelectedEntity.HasComponent<shade::GlobalLightComponent>())
 				m_ImGuizmoAllowedOperation = ImGuizmo::ROTATE | ImGuizmo::BOUNDS;
-			else if (m_SelectedEntity.HasComponent<shade::OmnidirectionalLightComponent>())
+			else if (m_SelectedEntity.HasComponent<shade::PointLightComponent>())
 				m_ImGuizmoAllowedOperation = ImGuizmo::TRANSLATE | ImGuizmo::BOUNDS;
 			else if (m_SelectedEntity.HasComponent<shade::SpotLightComponent>())
 				m_ImGuizmoAllowedOperation = ImGuizmo::TRANSLATE | ImGuizmo::ROTATE | ImGuizmo::BOUNDS;
@@ -912,14 +900,14 @@ void EditorLayer::Entities(shade::SharedPointer<shade::Scene>& scene)
 				{
 					auto entity = scene->CreateEntity();
 					entity.AddComponent<shade::TagComponent>("Global light");
-					entity.AddComponent<shade::DirectionalLightComponent>(shade::DirectionalLightComponent::Create());
+					entity.AddComponent<shade::GlobalLightComponent>(shade::GlobalLightComponent::Create());
 					entity.AddComponent<shade::TransformComponent>();
 				}
 				if (ImGui::MenuItem("Point"))
 				{
 					auto entity = scene->CreateEntity();
 					entity.AddComponent<shade::TagComponent>("Point light");
-					entity.AddComponent<shade::OmnidirectionalLightComponent>(shade::OmnidirectionalLightComponent::Create());
+					entity.AddComponent<shade::PointLightComponent>(shade::PointLightComponent::Create());
 					entity.AddComponent<shade::TransformComponent>();
 				}
 				if (ImGui::MenuItem("Spot"))
@@ -956,17 +944,17 @@ void EditorLayer::Entities(shade::SharedPointer<shade::Scene>& scene)
 
 				if (ImGui::BeginMenu("Lightning"))
 				{
-					AddComponent<shade::DirectionalLightComponent>("Global light", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
+					AddComponent<shade::GlobalLightComponent>("Global light", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
 						{
-							entity.AddComponent<shade::DirectionalLightComponent>(shade::DirectionalLightComponent::Create());
+							entity.AddComponent<shade::GlobalLightComponent>(shade::GlobalLightComponent::Create());
 						}, m_SelectedEntity);
 					AddComponent<shade::SpotLightComponent>("Spot light", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
 						{
 							entity.AddComponent<shade::SpotLightComponent>(shade::SpotLightComponent::Create());
 						}, m_SelectedEntity);
-					AddComponent<shade::OmnidirectionalLightComponent>("Point light", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
+					AddComponent<shade::PointLightComponent>("Point light", false, m_SelectedEntity, [&](shade::ecs::Entity& entity)
 						{
-							entity.AddComponent<shade::OmnidirectionalLightComponent>(shade::OmnidirectionalLightComponent::Create());
+							entity.AddComponent<shade::PointLightComponent>(shade::PointLightComponent::Create());
 						}, m_SelectedEntity);
 
 					ImGui::EndMenu();
@@ -1553,8 +1541,409 @@ void EditorLayer::EditAsset(shade::SharedPointer<shade::AssetData>& assetData)
 		});
 }
 
-void EditorLayer::RenderSettings(shade::SharedPointer<shade::SceneRenderer>& renderer)
+void RenderFrameTimeWidget(shade::StackArray<float, 180>& frameTimes, std::uint32_t frameWdith, std::uint32_t frameHeight)
 {
+	float frameTimeMax = 0.0f;
+	float frameTimeMin = std::numeric_limits<float>::max();
+	
+	float avgGpuTime = 0.f;
+	for (const float time : frameTimes)
+	{
+		frameTimeMax = std::max(frameTimeMax, time);
+		frameTimeMin = std::min(frameTimeMin, time);
+		avgGpuTime += time;
+	}
+
+	avgGpuTime /= frameTimes.GetSize();
+
+	static float avgFrametimeGraphMax = 1.0f;
+	avgFrametimeGraphMax = std::lerp(avgFrametimeGraphMax, frameTimeMax * 1.5f, 0.05f);
+	avgFrametimeGraphMax = std::min(1000.f, std::max(avgFrametimeGraphMax, frameTimeMax * 1.1f));
+
+	const int graphHeightInLines = 6;
+	float graphWidth = ImGui::GetContentRegionAvail().x;
+	float graphHeight = ImGui::GetTextLineHeight() * graphHeightInLines + ImGui::GetStyle().ItemSpacing.y * 2.0f;
+
+	std::string frameInfo = "GPU: " + std::format("{:.2f}", avgGpuTime) + "(ms) / FPS: " + std::to_string(int(1000.f / avgGpuTime)) + std::format(" ({:}x{:})", frameWdith, frameHeight);
+
+	ImGui::PlotLines("", frameTimes.GetData(), frameTimes.GetCapasity(), 0, frameInfo.c_str(), 0.0f, avgFrametimeGraphMax, ImVec2(graphWidth, graphHeight));
+
+	ImVec2 graphPos = ImGui::GetCursorScreenPos();
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::SetTooltip("Frame (ms) min: %.2f, max: %.2f", frameTimeMin, frameTimeMax);
+	}
+}
+
+void EditorLayer::RenderSettings(shade::SharedPointer<shade::SceneRenderer>& renderer, const shade::FrameTimer& deltaTime)
+{
+	static shade::StackArray<float, 180> frameTimeHistory; static float timeAccamulator = 0.f;
+	static std::string query = "__SCENE__";
+	std::vector<std::string> pipeliens{"__SCENE__"};
+
+	for (auto [name, pipeline] : renderer->GetPipelines())
+	{
+		if(pipeline->IsActive()) pipeliens.emplace_back(name);
+	}
+	
+	ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+	ImGuiLayer::DrawCombo("##Queries", query, pipeliens, 0, 0);
+	ImGui::PopItemWidth();
+
+	timeAccamulator += deltaTime.GetInMilliseconds<float>();
+
+	if (timeAccamulator >= 100.f / deltaTime.GetInMilliseconds<float>())
+	{
+		frameTimeHistory.PushFront(shade::Renderer::GetQueryResult(query));
+		timeAccamulator = 0.f;
+	}
+
+	RenderFrameTimeWidget(frameTimeHistory, renderer->GetMainTargetFrameBuffer()->GetWidth(), renderer->GetMainTargetFrameBuffer()->GetHeight());
+
+	{
+		auto vramUsage = shade::Renderer::GetVramMemoryUsage();
+		// Calculate VRAM usage in MB
+		float usedMemoryMB = vramUsage.Heaps[0].UsedMemoryBytes / 1048576.0f;  // Convert bytes to MB
+		float totalMemoryMB = vramUsage.Heaps[0].TotalMemoryBytes / 1048576.0f; // Convert bytes to MB
+
+		float progress = usedMemoryMB / totalMemoryMB;
+
+		// Display progress bar with VRAM usage
+		ImGui::ProgressBar(progress, ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight()), std::format("{:}: {:.2f} MB / {:.2f} MB", "V-Ram", usedMemoryMB, totalMemoryMB).c_str());
+	}
+
+	DrawRenderMenuItem("Bloom", [this, &renderer]()
+		{
+			const float width = ImGui::GetContentRegionAvail().x - 10.f;
+
+			static int mipLevel = 0;
+
+			if (ImGui::BeginTable("BloomTable", 2, ImGuiTableFlags_SizingStretchSame))
+			{
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn(); 
+				{
+					ImGui::Text("Active");
+				}
+				ImGui::TableNextColumn();
+				{
+					if (auto pipeline = m_SceneRenderer->GetPipeline("Bloom"))
+					{
+						bool enabled = pipeline->IsActive();
+						if (ImGui::Checkbox("##Bloom", &enabled)) pipeline->SetActive(enabled);
+					}
+				}
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn(); { ImGui::Text("Threshold"); }
+				ImGui::TableNextColumn(); { ImGui::DragFloat("##Threshold", &renderer->GetSettings().Bloom.Threshold, 0.0001f, 0.0, FLT_MAX); }
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn(); { ImGui::Text("Knee"); }
+				ImGui::TableNextColumn(); { ImGui::DragFloat("##Knee", &renderer->GetSettings().Bloom.Knee, 0.0001f, 0.0, FLT_MAX); }
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn(); { ImGui::Text("Exposure"); }
+				ImGui::TableNextColumn(); { ImGui::DragFloat("##Exposure", &renderer->GetSettings().Bloom.Exposure, 0.0001f, 0.0, FLT_MAX); }
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn(); { ImGui::Text("Samples"); }
+				ImGui::TableNextColumn(); { ImGui::SliderInt("##Samples", (int*)&renderer->GetSettings().Bloom.Samples, 1, 10); }
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn(); { ImGui::Text("Sample"); }
+				ImGui::TableNextColumn(); { ImGui::SliderInt("##Sample", &mipLevel, 0, m_SceneRenderer->GetSettings().Bloom.Samples - 1); }
+				ImGui::EndTable();
+			}
+			DrawImage(m_SceneRenderer->GetBloomRenderTarget(), { ImGui::GetContentRegionAvail().x, 400.f }, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg), mipLevel);
+			//DrawCurve("Curve", glm::value_ptr(m_PPBloom->GetCurve()), 3, ImVec2{ ImGui::GetContentRegionAvail().x, 70 });*/
+		});
+	DrawRenderMenuItem("SSAO", [this, &renderer]()
+		{
+			const float width = ImGui::GetContentRegionAvail().x - 15.f;
+
+			if (ImGui::BeginTable("SSAOTable", 2, ImGuiTableFlags_SizingStretchSame))
+			{
+
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+				{
+					ImGui::Text("Active");
+				}
+				ImGui::TableNextColumn();
+				{
+					if (auto pipeline = m_SceneRenderer->GetPipeline("SSAO"))
+					{
+						bool enabled = pipeline->IsActive();
+						if (ImGui::Checkbox("##SSAO", &enabled)) pipeline->SetActive(enabled);
+					}
+				}
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn(); { ImGui::Text("Radius"); }
+				ImGui::TableNextColumn(); { ImGui::DragFloat("##Radius", &renderer->GetSettings().SSAO.Radius, 0.0001f, 0.0, FLT_MAX); }
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn(); { ImGui::Text("Bias"); }
+				ImGui::TableNextColumn(); { ImGui::DragFloat("##Bias", &renderer->GetSettings().SSAO.Bias, 0.0001f, 0.0, FLT_MAX); }
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn(); { ImGui::Text("Blur samples"); }
+				ImGui::TableNextColumn(); { ImGui::SliderInt("##Blur samples", (int*)&renderer->GetSettings().SSAO.BlurSamples, 1, 10); }
+				ImGui::TableNextRow();
+
+				ImGui::EndTable();
+			}
+
+			DrawImage(m_SceneRenderer->GetSAAORenderTarget(), { width / 3.f, width / 3.f }, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg)); ImGui::SameLine();
+			DrawImage(m_SceneRenderer->GetMainTargetFrameBuffer()->GetTextureAttachment(1), { width / 3.f, width / 3.f }, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg)); ImGui::SameLine();
+			DrawImage(m_SceneRenderer->GetMainTargetFrameBuffer()->GetTextureAttachment(2), { width / 3.f, width / 3.f }, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
+		});
+	DrawRenderMenuItem("Shadows", [this, &renderer]()
+		{
+			if (ImGui::TreeNodeEx("Global light", ImGuiTreeNodeFlags_Framed))
+			{
+				const float width = ImGui::GetContentRegionAvail().x - 10.f;
+
+				if (ImGui::BeginTable("ShadowTable", 2, ImGuiTableFlags_SizingStretchSame))
+				{
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					{
+						ImGui::Text("Active");
+					}
+					ImGui::TableNextColumn();
+					{
+						if (auto pipeline = m_SceneRenderer->GetPipeline("Global-Light-Shadow-Pre-Depth-Static"))
+						{
+							bool enabled = pipeline->IsActive();
+							if (ImGui::Checkbox("##GLSHADOWS", &enabled)) pipeline->SetActive(enabled);
+						}
+					}
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn(); { ImGui::Text("Smooth"); }
+					ImGui::TableNextColumn(); { ImGui::DragFloat("##Smooth", &shade::GlobalLight::GetRenderShadowSettings().PCFP.Smooth, 0.0001f, 0.0, FLT_MAX); }
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn(); { ImGui::Text("Samples"); }
+					ImGui::TableNextColumn(); { ImGui::SliderInt("##PCF-Samples", (int*)&shade::GlobalLight::GetRenderShadowSettings().PCFP.Samples, 1, 10); }
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn(); { ImGui::Text("Shadow's cascade split"); }
+					{
+						float lambda = shade::GlobalLight::GetShadowCascadeSplitLambda();
+
+						ImGui::TableNextColumn(); { if (ImGui::DragFloat("##SPLIT", &lambda, 0.0001f)) shade::GlobalLight::SetShadowCascadeSplitLambda(lambda); }
+					}
+					
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn(); { ImGui::Text("Show shadow's cascades"); }
+					ImGui::TableNextColumn(); { ImGui::Checkbox("##GLSHADOWS_CASCADES", &renderer->GetSettings().RenderSettings._DEBUG_ShowShadowCascades); }
+
+
+					ImGui::EndTable();
+				}
+				if (auto pipeline = m_SceneRenderer->GetPipeline("Global-Light-Shadow-Pre-Depth-Static"))
+				{
+					DrawImageLayerd(pipeline->GetSpecification().FrameBuffer->GetDepthAttachment(), { width / 2.f,  width / 2.f }, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg), 0, true, { 0.99,  1.0 }); ImGui::SameLine();
+					DrawImageLayerd(pipeline->GetSpecification().FrameBuffer->GetDepthAttachment(), { width / 2.f,  width / 2.f }, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg), 1, true, { 0.99,  1.0 });
+					DrawImageLayerd(pipeline->GetSpecification().FrameBuffer->GetDepthAttachment(), { width / 2.f,  width / 2.f }, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg), 2, true, { 0.99,  1.0 }); ImGui::SameLine();
+					DrawImageLayerd(pipeline->GetSpecification().FrameBuffer->GetDepthAttachment(), { width / 2.f,  width / 2.f }, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg), 3, true, { 0.99,  1.0 });
+				}
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNodeEx("Omnidirectional light", ImGuiTreeNodeFlags_Framed))
+			{
+				const float width	= ImGui::GetContentRegionAvail().x - 10.f;
+				static int index	= 0;
+
+				if (ImGui::BeginTable("ShadowTable", 2, ImGuiTableFlags_SizingStretchSame))
+				{
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					{
+						ImGui::Text("Active");
+					}
+					ImGui::TableNextColumn();
+					{
+						if (auto pipeline = m_SceneRenderer->GetPipeline("Point-Light-Shadow-Pre-Depth-Static"))
+						{
+							bool enabled = pipeline->IsActive();
+							if (ImGui::Checkbox("##PLSHADOWS", &enabled)) pipeline->SetActive(enabled);
+						}
+					}
+					
+					if (auto pipeline = m_SceneRenderer->GetPipeline("Point-Light-Shadow-Pre-Depth-Static"))
+					{
+						ImGui::TableNextRow();
+						ImGui::TableNextColumn();
+						{
+							ImGui::Text("Bias constant");
+						}
+						ImGui::TableNextColumn();
+						{
+							ImGui::DragFloat("##Constant", &pipeline->GetSpecification().DepsBiasConstantFactor, 0.01f);
+						}
+						ImGui::TableNextRow();
+						ImGui::TableNextColumn();
+						{
+							ImGui::Text("Bias slope");
+						}
+						ImGui::TableNextColumn();
+						{
+							ImGui::DragFloat("##Slope", &pipeline->GetSpecification().DepthBiasSlopeFactor, 0.01f);
+						}
+
+						ImGui::TableNextColumn(); { ImGui::Text("Light index"); }
+						ImGui::TableNextColumn(); { ImGui::SliderInt("##LightIndex", &index, 0, shade::RenderAPI::MAX_POINT_SHADOW_CASTERS - 1); }
+						ImGui::TableNextRow();
+					}
+					
+					ImGui::EndTable();
+				}
+
+				if (auto pipeline = m_SceneRenderer->GetPipeline("Point-Light-Shadow-Pre-Depth-Static"))
+				{
+					// Forward 
+					DrawImageLayerd(pipeline->GetSpecification().FrameBuffer->GetDepthAttachment(), { width / 3.f,  width / 3.f }, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg), (index * 6) + 5);  ImGui::SameLine();
+					// Left
+					DrawImageLayerd(pipeline->GetSpecification().FrameBuffer->GetDepthAttachment(), { width / 3.f,  width / 3.f }, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg), (index * 6) + 1);  ImGui::SameLine();
+					// Above
+					DrawImageLayerd(pipeline->GetSpecification().FrameBuffer->GetDepthAttachment(), { width / 3.f,  width / 3.f }, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg), (index * 6) + 3);
+					// Backword
+					DrawImageLayerd(pipeline->GetSpecification().FrameBuffer->GetDepthAttachment(), { width / 3.f,  width / 3.f }, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg), (index * 6) + 4);  ImGui::SameLine();
+					// Right
+					DrawImageLayerd(pipeline->GetSpecification().FrameBuffer->GetDepthAttachment(), { width / 3.f,  width / 3.f }, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg), (index * 6) + 0);  ImGui::SameLine();
+					// Below 
+					DrawImageLayerd(pipeline->GetSpecification().FrameBuffer->GetDepthAttachment(), { width / 3.f,  width / 3.f }, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg), (index * 6) + 2);
+				}
+
+
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNodeEx("Spot light", ImGuiTreeNodeFlags_Framed))
+			{
+				const float width = ImGui::GetContentRegionAvail().x - 10.f;
+				static int index = 0;
+
+				if (ImGui::BeginTable("ShadowTable", 2, ImGuiTableFlags_SizingStretchSame))
+				{
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					{
+						ImGui::Text("Active");
+					}
+					ImGui::TableNextColumn();
+					{
+						if (auto pipeline = m_SceneRenderer->GetPipeline("Spot-Light-Shadow-Pre-Depth-Static"))
+						{
+							bool enabled = pipeline->IsActive();
+							if (ImGui::Checkbox("##SLSHADOWS", &enabled)) pipeline->SetActive(enabled);
+						}
+					}
+
+					if (auto pipeline = m_SceneRenderer->GetPipeline("Spot-Light-Shadow-Pre-Depth-Static"))
+					{
+						ImGui::TableNextRow();
+						ImGui::TableNextColumn();
+						{
+							ImGui::Text("Bias constant");
+						}
+						ImGui::TableNextColumn();
+						{
+							ImGui::DragFloat("##Constant", &pipeline->GetSpecification().DepsBiasConstantFactor, 0.01f);
+						}
+						ImGui::TableNextRow();
+						ImGui::TableNextColumn();
+						{
+							ImGui::Text("Bias slope");
+						}
+						ImGui::TableNextColumn();
+						{
+							ImGui::DragFloat("##Slope", &pipeline->GetSpecification().DepthBiasSlopeFactor, 0.01f);
+						}
+						ImGui::TableNextColumn(); { ImGui::Text("Light index"); }
+						ImGui::TableNextColumn(); { ImGui::SliderInt("##LightIndex", &index, 0, shade::RenderAPI::MAX_POINT_SHADOW_CASTERS - 1); }
+						ImGui::TableNextRow();
+					}
+
+					ImGui::EndTable();
+				}
+
+				if (auto pipeline = m_SceneRenderer->GetPipeline("Spot-Light-Shadow-Pre-Depth-Static"))
+				{
+					DrawImageLayerd(pipeline->GetSpecification().FrameBuffer->GetDepthAttachment(), { width,  width}, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg), index); 
+				}
+
+				ImGui::TreePop();
+			}
+		});
+
+	if (ImGui::TreeNodeEx("Pipelines", ImGuiTreeNodeFlags_Framed))
+	{
+		if (ImGui::BeginTable("Pipelines", 4, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_RowBg))
+		{
+			for (auto& [name, pipeline] : m_SceneRenderer->GetPipelines())
+			{
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+				{
+					bool enabled = pipeline->IsActive();
+					if (ImGui::Checkbox(("##" + name).c_str(), &enabled))
+					{
+						pipeline->SetActive(enabled);
+					}
+				}
+				ImGui::TableNextColumn();
+				{
+					ImGui::Text(name.c_str());
+				}
+				ImGui::TableNextColumn();
+				{
+					ImGui::Text("%0.3f ms", pipeline->GetTimeQuery());
+				}
+				ImGui::TableNextColumn();
+				{
+					if (ImGuiLayer::IconButton("##Recompile", u8"\xe889", 1, 1.0f))
+						pipeline->Recompile(true);
+				}
+			}
+			ImGui::EndTable();
+		}
+		ImGui::TreePop();
+	}
+
+	static bool showDemoWindow = false;
+	if (ImGui::TreeNodeEx("Debug", ImGuiTreeNodeFlags_Framed))
+	{
+		ImGui::Checkbox("Show Light complexity", &renderer->GetSettings().RenderSettings._DEBUG_ShowLightComplexity);
+		ImGui::Checkbox("Show demo window", &showDemoWindow);
+		/*	ImGui::Checkbox("Show Point Light", &renderer->GetSettings().IsPointLightShow);
+			ImGui::Checkbox("Show Spot Light", &renderer->GetSettings().IsSpotLightShow);*/
+
+
+		ImGui::TreePop();
+	}
+
+	if (showDemoWindow) ImGui::ShowDemoWindow();
+
+	return;
+	//ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 0.f);
+	//ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { ImGui::GetStyle().FramePadding.x , ImGui::GetStyle().FramePadding.y * 2.5f });
+	//{
+	//	if (ImGui::TreeNodeEx("Bloom", ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_Framed))
+	//	{
+	//		DragFloat("Threshold", &renderer->GetSettings().Bloom.Threshold, 0.001f, 0.f, FLT_MAX, 80.f);
+	//		DragFloat("Knee", &renderer->GetSettings().Bloom.Knee, 0.001f, 0.f, FLT_MAX, 80.f);
+	//		DragFloat("Exposure", &renderer->GetSettings().Bloom.Exposure, 0.001f, 0.f, FLT_MAX, 80.f);
+
+	//		//ImGui::SliderInt("Samples", (int*)&renderer->GetSettings().BloomSettings.Samples, 1, 10);
+	//		SliderInt("Samples", (int*)&renderer->GetSettings().Bloom.Samples, 1, 10, 80.f);
+	//		//DrawCurve("Curve", glm::value_ptr(m_PPBloom->GetCurve()), 3, ImVec2{ ImGui::GetContentRegionAvail().x, 70 });*/
+	//		ImGui::TreePop();
+	//	}
+	//}
+	//ImGui::PopStyleVar(2);
+	
+
+
+
+	/*DragFloat("Smoothnes", &shade::DirectionalLight::GetRenderShadowSettings().PCFP.Smooth);
+	int Samples = shade::DirectionalLight::GetRenderShadowSettings().PCFP.Samples;
+	DragInt("Samples", &Samples);
+	shade::DirectionalLight::GetRenderShadowSettings().PCFP.Samples = Samples;*/
+
+
 	if (ImGui::TreeNodeEx("Render", ImGuiTreeNodeFlags_Framed))
 	{
 		auto vramUsage = shade::Renderer::GetVramMemoryUsage();
@@ -1572,27 +1961,27 @@ void EditorLayer::RenderSettings(shade::SharedPointer<shade::SceneRenderer>& ren
 		
 		if (ImGui::TreeNodeEx("Effects", ImGuiTreeNodeFlags_Framed))
 		{
-			if (ImGui::TreeNodeEx("Bloom", ImGuiTreeNodeFlags_Framed))
-			{
+			//if (ImGui::TreeNodeEx("Bloom", ImGuiTreeNodeFlags_Framed))
+			//{
 
-				ImGui::Checkbox("Enable", &renderer->GetSettings().Bloom.Enabled);
-				DragFloat("Threshold", &renderer->GetSettings().Bloom.Threshold, 0.001f, 0.f, FLT_MAX, 80.f);
-				DragFloat("Knee", &renderer->GetSettings().Bloom.Knee, 0.001f, 0.f, FLT_MAX, 80.f);
-				DragFloat("Exposure", &renderer->GetSettings().Bloom.Exposure, 0.001f, 0.f, FLT_MAX, 80.f);
+		
+			//	DragFloat("Threshold", &renderer->GetSettings().Bloom.Threshold, 0.001f, 0.f, FLT_MAX, 80.f);
+			//	DragFloat("Knee", &renderer->GetSettings().Bloom.Knee, 0.001f, 0.f, FLT_MAX, 80.f);
+			//	DragFloat("Exposure", &renderer->GetSettings().Bloom.Exposure, 0.001f, 0.f, FLT_MAX, 80.f);
 
-				//ImGui::SliderInt("Samples", (int*)&renderer->GetSettings().BloomSettings.Samples, 1, 10);
-				SliderInt("Samples", (int*)&renderer->GetSettings().Bloom.Samples, 1, 10, 80.f);
-				//DrawCurve("Curve", glm::value_ptr(m_PPBloom->GetCurve()), 3, ImVec2{ ImGui::GetContentRegionAvail().x, 70 });*/
-				ImGui::TreePop();
+			//	//ImGui::SliderInt("Samples", (int*)&renderer->GetSettings().BloomSettings.Samples, 1, 10);
+			//	SliderInt("Samples", (int*)&renderer->GetSettings().Bloom.Samples, 1, 10, 80.f);
+			//	//DrawCurve("Curve", glm::value_ptr(m_PPBloom->GetCurve()), 3, ImVec2{ ImGui::GetContentRegionAvail().x, 70 });*/
+			//	ImGui::TreePop();
 
-				if (ImGui::TreeNodeEx("Down + Up samples ", ImGuiTreeNodeFlags_Framed))
-				{
-					static int mipLevel = 0;
-					SliderInt("Level", &mipLevel, 0, m_SceneRenderer->GetSettings().Bloom.Samples - 1, 80.f);
-					DrawImage(m_SceneRenderer->GetBloomRenderTarget(), { 300, 200 }, {}, mipLevel);
-					ImGui::TreePop();
-				}
-			}
+			//	if (ImGui::TreeNodeEx("Down + Up samples ", ImGuiTreeNodeFlags_Framed))
+			//	{
+			//		static int mipLevel = 0;
+			//		SliderInt("Level", &mipLevel, 0, m_SceneRenderer->GetSettings().Bloom.Samples - 1, 80.f);
+			//		DrawImage(m_SceneRenderer->GetBloomRenderTarget(), { 300, 200 }, {}, mipLevel);
+			//		ImGui::TreePop();
+			//	}
+			//}
 
 			if (ImGui::TreeNodeEx("Color correction", ImGuiTreeNodeFlags_Framed))
 			{
@@ -1673,7 +2062,7 @@ void EditorLayer::RenderSettings(shade::SharedPointer<shade::SceneRenderer>& ren
 
 
 
-	static bool showDemoWindow = false;
+	//static bool showDemoWindow = false;
 	if (ImGui::TreeNodeEx("Debug", ImGuiTreeNodeFlags_Framed))
 	{
 		ImGui::Checkbox("Show Light complexity", &renderer->GetSettings().RenderSettings._DEBUG_ShowLightComplexity);
@@ -1701,10 +2090,10 @@ void EditorLayer::EntityInspector(shade::ecs::Entity& entity)
 			[&](auto isTreeOpen)->bool { return EditComponent<shade::TagComponent>(entity, {}, isTreeOpen); }, this, entity);
 		DrawComponent<shade::TransformComponent>("Transform", entity, &EditorLayer::TransformComponent,
 			[&](auto isTreeOpen)->bool { return EditComponent<shade::TransformComponent>(entity, {}, isTreeOpen);  }, this, entity);
-		DrawComponent<shade::DirectionalLightComponent>("Global Light", entity, &EditorLayer::GlobalLightComponent,
-			[&](auto isTreeOpen)->bool { return EditComponent<shade::DirectionalLightComponent>(entity, {}, isTreeOpen); }, this, entity);
-		DrawComponent<shade::OmnidirectionalLightComponent>("Point Light", entity, &EditorLayer::PointLightComponent,
-			[&](auto isTreeOpen)->bool { return EditComponent<shade::OmnidirectionalLightComponent>(entity, {}, isTreeOpen); }, this, entity);
+		DrawComponent<shade::GlobalLightComponent>("Global Light", entity, &EditorLayer::GlobalLightComponent,
+			[&](auto isTreeOpen)->bool { return EditComponent<shade::GlobalLightComponent>(entity, {}, isTreeOpen); }, this, entity);
+		DrawComponent<shade::PointLightComponent>("Point Light", entity, &EditorLayer::PointLightComponent,
+			[&](auto isTreeOpen)->bool { return EditComponent<shade::PointLightComponent>(entity, {}, isTreeOpen); }, this, entity);
 		DrawComponent<shade::SpotLightComponent>("Spot Light", entity, &EditorLayer::SpotLightComponent,
 			[&](auto isTreeOpen)->bool { return EditComponent<shade::SpotLightComponent>(entity, {}, isTreeOpen); }, this, entity);
 		DrawComponent<shade::CameraComponent>("Camera", entity, &EditorLayer::CameraComponent,
@@ -1832,7 +2221,7 @@ void EditorLayer::TransformComponent(shade::ecs::Entity& entity)
 
 void EditorLayer::GlobalLightComponent(shade::ecs::Entity& entity)
 {
-	auto& globalLight = entity.GetComponent<shade::DirectionalLightComponent>();
+	auto& globalLight = entity.GetComponent<shade::GlobalLightComponent>();
 	DragFloat("Intensity", &globalLight->Intensity, 0.01f, 0.f);
 	ColorEdit3("Diffuse color", glm::value_ptr(globalLight->DiffuseColor));
 	ColorEdit3("Specular color", glm::value_ptr(globalLight->SpecularColor));
@@ -1848,7 +2237,7 @@ void EditorLayer::GlobalLightComponent(shade::ecs::Entity& entity)
 
 void EditorLayer::PointLightComponent(shade::ecs::Entity& entity)
 {
-	auto& pointLight = entity.GetComponent<shade::OmnidirectionalLightComponent>();
+	auto& pointLight = entity.GetComponent<shade::PointLightComponent>();
 	DragFloat("Intensity", &pointLight->Intensity, 0.01f);
 	DragFloat("Distance", &pointLight->Distance, 0.01f);
 	DragFloat("Falloff", &pointLight->Falloff, 0.01f, -FLT_MAX);

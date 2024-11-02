@@ -2,18 +2,20 @@
 #include "GlobalLight.h"
 #include <glm/glm/gtx/compatibility.hpp>
 
-shade::DirectionalLight::DirectionalLight()
+shade::GlobalLight::GlobalLight()
 {
 	++m_sTotalCount;
 }
 
-shade::DirectionalLight::~DirectionalLight()
+shade::GlobalLight::~GlobalLight()
 {
 	--m_sTotalCount;
 }
 
-shade::DirectionalLight::RenderData shade::DirectionalLight::GetRenderData(const glm::vec3& direction, const SharedPointer<Camera>& camera) const
+shade::GlobalLight::RenderData shade::GlobalLight::GetRenderData(const glm::vec3& direction, const SharedPointer<Camera>& camera) const
 {
+	
+
 	RenderData renderData{ Intensity, DiffuseColor, SpecularColor, direction };
 	std::array<float, SHADOW_CASCADES_COUNT> cascadeSplits;
 	// Get camera near and far clip planes and calculate the range
@@ -47,22 +49,23 @@ shade::DirectionalLight::RenderData shade::DirectionalLight::GetRenderData(const
 	return renderData;
 }
 
-std::array<glm::vec3, 8> shade::DirectionalLight::GetCameraFrustumCorners(const glm::mat4& projection, const glm::mat4& view) const
+std::array<glm::vec3, 8> shade::GlobalLight::GetCameraFrustumCorners(const glm::mat4& projection, const glm::mat4& view) const
 {
 	//// Create the view projection matrix by multiplying the flipped Y projection matrix with the view matrix.
 	glm::mat4 cameraViewProjection = glm::inverse(projection * view);
 	// Define the 8 corners of the frustum in world space.
 	std::array<glm::vec3, 8> corners 
 	{
-		glm::vec3( -1.0f,	1.0f,	0.0f),
-		glm::vec3(	1.0f,	1.0f,	0.0f),
-		glm::vec3(	1.0f,  -1.0f,	0.0f),
-		glm::vec3( -1.0f,  -1.0f,	0.0f),
+		glm::vec3(-1.0f,  1.0f,  1.0f),		// Top-left corner of the near plane
+		glm::vec3(1.0f,  1.0f,  1.0f),		// Top-right corner of the near plane
+		glm::vec3(1.0f, -1.0f,  1.0f),		// Bottom-right corner of the near plane
+		glm::vec3(-1.0f, -1.0f,  1.0f),		// Bottom-left corner of the near plane
 
-		glm::vec3( -1.0f,	1.0f,	1.0f),
-		glm::vec3(	1.0f,   1.0f,	1.0f),
-		glm::vec3(	1.0f,  -1.0f,	1.0f),
-		glm::vec3( -1.0f,  -1.0f,	1.0f),
+		glm::vec3(-1.0f,  1.0f, -1.0f),		// Top-left corner of the far plane
+		glm::vec3(1.0f,  1.0f, -1.0f),		// Top-right corner of the far plane
+		glm::vec3(1.0f, -1.0f, -1.0f),		// Bottom-right corner of the far plane
+		glm::vec3(-1.0f, -1.0f, -1.0f),		// Bottom-left corner of the far plane
+
 	};
 
 	// Transform the corners of the frustum by multiplying each of them with the view projection matrix
@@ -76,7 +79,7 @@ std::array<glm::vec3, 8> shade::DirectionalLight::GetCameraFrustumCorners(const 
 	return corners;
 }
 
-shade::DirectionalLight::ShadowCascade shade::DirectionalLight::GetShadowCascade(const shade::SharedPointer<Camera>& camera, const glm::vec3& direction, float zNear, float zFar, float splitDistance, float clipRange) const
+shade::GlobalLight::ShadowCascade shade::GlobalLight::GetShadowCascade(const shade::SharedPointer<Camera>& camera, const glm::vec3& direction, float zNear, float zFar, float splitDistance, float clipRange) const
 {
 	//Create the projection matrix using the camera's field of view, aspect ratio, and near and far planes
 	glm::mat4 projection = glm::perspective(camera->GetFov(), camera->GetAspect(), zNear, zFar);
@@ -104,20 +107,21 @@ shade::DirectionalLight::ShadowCascade shade::DirectionalLight::GetShadowCascade
 
 	//Create a view matrix for the light based on the frustum center and direction, with an up vector pointing upwards
 	const glm::mat4 lightView = glm::lookAt(frustumCenter - direction * -minExtents.z, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
+	// Look at back position to center of frustrum 
 	//Create the orthographic projection matrix for the light based on the max and min extends calculated and the camera's far plane
 	const glm::mat4 lightProjection = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, -camera->GetFar() + m_szNearPlaneOffset, (maxExtents.z - minExtents.z) + m_szFarPlaneOffset);
 	//Return the combined light view and projection matrices, along with the negative radius
 	return  { lightProjection * lightView, radius * -1.f };
 }
 
-void shade::DirectionalLight::Serialize(std::ostream& stream) const
+void shade::GlobalLight::Serialize(std::ostream& stream) const
 {
 	serialize::Serializer::Serialize(stream, DiffuseColor);
 	serialize::Serializer::Serialize(stream, SpecularColor);
 	serialize::Serializer::Serialize(stream, Intensity);
 }
 
-void shade::DirectionalLight::Deserialize(std::istream& stream)
+void shade::GlobalLight::Deserialize(std::istream& stream)
 {
 	serialize::Serializer::Deserialize(stream, DiffuseColor);
 	serialize::Serializer::Deserialize(stream, SpecularColor);

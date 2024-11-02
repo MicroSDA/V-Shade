@@ -54,21 +54,5 @@ layout (std430, set = PER_INSTANCE_SET, binding = MATERIAL_BINDING) restrict rea
 void main()
 {
 	FragmentColor = vec4(u_Material[a_InstanceId].AmbientColor, 0.8);
-	// Нормализуем нормаль для освещения
-    // vec3 normal = normalize(a_Normal);
-    
-    // // Рассчитываем освещение с использованием Lambertian (diffuse) модели
-    // float diffuseFactor = max(dot(normal, -vec3(1.0)), 0.0);
-    
-    // // Основной цвет материала (Ambient)
-    // vec3 ambientColor = u_Material[a_InstanceId].AmbientColor;
-
-    // // Итоговый цвет с учетом освещения
-    // vec3 lightingColor = ambientColor * diffuseFactor * vec3(1.0);
-
-    // // Задаем цвет фрагмента
-    // FragmentColor = vec4(lightingColor, 1.0);
-
-    // Глубина фрагмента
     gl_FragDepth = gl_FragCoord.z - 0.5;
 }

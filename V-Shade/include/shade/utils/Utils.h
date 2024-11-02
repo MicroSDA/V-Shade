@@ -92,6 +92,8 @@ namespace shade
 		std::size_t GetCapasity() const { return m_Array.size(); }
 		std::size_t GetSize() const { return m_Size; }
 
+		const T* GetData() const { return m_Array.data(); }
+		T* GetData() { return m_Array.data(); }
 	public:
 		auto begin() { return m_Array.begin(); }
 		auto end() { return m_Array.end(); }

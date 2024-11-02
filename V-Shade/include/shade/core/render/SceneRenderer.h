@@ -43,7 +43,6 @@ namespace shade
 			float			Threshold = 0.5;
 			float			Knee = 0.1;
 			std::uint32_t	Samples = 5;
-			bool			Enabled = true;
 
 			RenderData GetRenderData() { return { GetCurve(), Exposure, Threshold, Knee }; }
 			glm::vec3 GetCurve() { return { Threshold - Knee, Knee * 2, 0.25f / Knee }; }
@@ -133,10 +132,6 @@ namespace shade
 			SceneRenderer::BloomSettings			Bloom;
 			SceneRenderer::ColorCorrection			ColorCorrection;
 			SceneRenderer::SSAO						SSAO;
-
-			DirectionalLight::RenderSettings		DirectLight;
-			OmnidirectionalLight::RenderSettings	OmnidirectLight;
-			SpotLight::RenderSettings				SpotLight;
 		};
 		// TODO: Remove ? 
 		struct Statistic
@@ -221,6 +216,5 @@ namespace shade
 		void ColorCorrectionComputePass(SharedPointer<ComputePipeline>& pipeline, std::uint32_t frameIndex);
 		void BloomComputePass(SharedPointer<ComputePipeline>& pipeline, std::uint32_t frameIndex);
 		void SSAOComputePass(SharedPointer<ComputePipeline>& pipeline, std::uint32_t frameIndex);
-
 	};
 }

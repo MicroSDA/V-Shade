@@ -50,7 +50,7 @@ layout(push_constant) uniform PLightIndex
 // Main entry point
 void main()
 {
-    #ifdef VS_SHADER_ANIMATED
+#ifdef VS_SHADER_ANIMATED
 	uint BoneInstanceOffset = gl_InstanceIndex * MAX_BONES_PER_INSTANCE;
     mat4 BoneTransform = mat4(0.0);
 

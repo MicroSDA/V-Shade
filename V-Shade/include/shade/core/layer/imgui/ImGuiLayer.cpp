@@ -86,9 +86,9 @@ void shade::ImGuiLayer::DrawImage(Asset<Texture2D>& texture, const ImVec2& size,
 {
 	m_ImGuiRender->DrawImage(texture, size, borderColor);
 }
-void shade::ImGuiLayer::DrawImageLayerd(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor, std::uint32_t layer)
+void shade::ImGuiLayer::DrawImageLayerd(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor, std::uint32_t layer, bool isGrayScale, const glm::vec2& clamp)
 {
-	m_ImGuiRender->DrawImageLayerd(texture, size, borderColor, layer);
+	m_ImGuiRender->DrawImageLayerd(texture, size, borderColor, layer, isGrayScale, clamp);
 }
 void shade::ImGuiLayer::HelpMarker(const char* marker, const char* desc)
 {

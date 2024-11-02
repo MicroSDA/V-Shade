@@ -1,17 +1,17 @@
 #include "shade_pch.h"
-#include "OmnidirectionalLight.h"
+#include "PointLight.h"
 
-shade::OmnidirectionalLight::OmnidirectionalLight()
+shade::PointLight::PointLight()
 {
     ++m_sTotalCount;
 }
 
-shade::OmnidirectionalLight::~OmnidirectionalLight()
+shade::PointLight::~PointLight()
 {
     --m_sTotalCount;
 }
 
-shade::OmnidirectionalLight::RenderData shade::OmnidirectionalLight::GetRenderData(const glm::vec3& position, const SharedPointer<Camera>& camera) const
+shade::PointLight::RenderData shade::PointLight::GetRenderData(const glm::vec3& position, const SharedPointer<Camera>& camera) const
 {
     RenderData renderData{ Intensity, DiffuseColor, SpecularColor, position, Distance, Falloff };
 
@@ -29,7 +29,7 @@ shade::OmnidirectionalLight::RenderData shade::OmnidirectionalLight::GetRenderDa
    return  renderData;
 }
 
-bool shade::OmnidirectionalLight::IsMeshInside(const glm::vec3& position, float radius, const glm::mat4& transform, const glm::vec3& minHalfExt, const glm::vec3& maxHalfExt)
+bool shade::PointLight::IsMeshInside(const glm::vec3& position, float radius, const glm::mat4& transform, const glm::vec3& minHalfExt, const glm::vec3& maxHalfExt)
 {
 #if 1
 	glm::vec3 t, r, scale;
@@ -64,7 +64,7 @@ bool shade::OmnidirectionalLight::IsMeshInside(const glm::vec3& position, float 
 #endif
 }
 
-bool shade::OmnidirectionalLight::IsMeshInside(const glm::mat4& cascade, const glm::mat4& transform, const glm::vec3& minHalfExt, const glm::vec3& maxHalfExt)
+bool shade::PointLight::IsMeshInside(const glm::mat4& cascade, const glm::mat4& transform, const glm::vec3& minHalfExt, const glm::vec3& maxHalfExt)
 {
 	// Calculates the clip space matrix, which is the result of multiplying the View-Projection matrix by the transform matrix.
 	glm::mat4 clipSpaceMatrix = cascade * transform;
@@ -110,7 +110,7 @@ bool shade::OmnidirectionalLight::IsMeshInside(const glm::mat4& cascade, const g
 }
 
 
-shade::OmnidirectionalLight::ShadowCascade shade::OmnidirectionalLight::GetLightCascade(float fov, const glm::vec3& position, const glm::vec3& direction, const glm::vec3& up, float zNear, float zFar) const
+shade::PointLight::ShadowCascade shade::PointLight::GetLightCascade(float fov, const glm::vec3& position, const glm::vec3& direction, const glm::vec3& up, float zNear, float zFar) const
 {
     glm::mat4 lightProjection = glm::perspective(fov, 1.0f, zNear, zFar);
     glm::mat4 lightView = glm::lookAt(position, position + direction, up);
@@ -120,7 +120,7 @@ shade::OmnidirectionalLight::ShadowCascade shade::OmnidirectionalLight::GetLight
     return ShadowCascade();
 }
 
-void shade::OmnidirectionalLight::Serialize(std::ostream& stream) const
+void shade::PointLight::Serialize(std::ostream& stream) const
 {
 	
 	serialize::Serializer::Serialize(stream, DiffuseColor);
@@ -130,7 +130,7 @@ void shade::OmnidirectionalLight::Serialize(std::ostream& stream) const
 	serialize::Serializer::Serialize(stream, Falloff);
 }
 
-void shade::OmnidirectionalLight::Deserialize(std::istream& stream)
+void shade::PointLight::Deserialize(std::istream& stream)
 {
 	serialize::Serializer::Deserialize(stream, DiffuseColor);
 	serialize::Serializer::Deserialize(stream, SpecularColor);

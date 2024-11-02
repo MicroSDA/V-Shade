@@ -6,7 +6,7 @@
 shade::VulkanRenderAPI::VulkanGlobalSeceneData shade::VulkanRenderAPI::m_sVulkanGlobaSceneData;
 VkDevice shade::VulkanRenderAPI::m_sVkDevice = VK_NULL_HANDLE;
 shade::VulkanContext::VulkanInstance shade::VulkanRenderAPI::m_sVkInstance;
-std::unordered_map<std::string, VkQueryPool> shade::VulkanRenderAPI::m_sQueryPools;
+std::unordered_map<std::string, std::pair<VkQueryPool, float>> shade::VulkanRenderAPI::m_sQueryPools;
 
 shade::UniquePointer<shade::RenderContext> shade::VulkanRenderAPI::Initialize(const SystemsRequirements& requirements)
 {
@@ -83,7 +83,7 @@ shade::UniquePointer<shade::RenderContext> shade::VulkanRenderAPI::Initialize(co
 void shade::VulkanRenderAPI::ShutDown()
 {
 	for (auto& [name, pool] : m_sQueryPools)
-		vkDestroyQueryPool(m_sVkDevice, pool, m_sVkInstance.AllocationCallbaks);
+		vkDestroyQueryPool(m_sVkDevice, pool.first, m_sVkInstance.AllocationCallbaks);
 
 	m_sVulkanGlobaSceneData.DescriptorSetLayout.Reset();
 
@@ -93,9 +93,9 @@ void shade::VulkanRenderAPI::ShutDown()
 void shade::VulkanRenderAPI::BeginFrame(std::uint32_t frameIndex)
 {
 	SetCurrentFrameIndex(frameIndex);
-	VulkanDescriptorsManager::ResetDepricated(frameIndex);
+	//VulkanDescriptorsManager::ResetDepricated(frameIndex);
 	// For RenderDoc
-	//VulkanDescriptorsManager::ResetAllDescripotrs(frameIndex);
+	VulkanDescriptorsManager::ResetAllDescripotrs(frameIndex);
 }
 
 void shade::VulkanRenderAPI::EndFrame(std::uint32_t frameIndex)
@@ -314,7 +314,7 @@ const std::shared_ptr<shade::VulkanDescriptorSet> shade::VulkanRenderAPI::GetGlo
 
 void shade::VulkanRenderAPI::BeginTimestamp(SharedPointer<RenderCommandBuffer>& commandBuffer, const std::string& name)
 {
-	if (m_sQueryPools[name] == VK_NULL_HANDLE)
+	if (m_sQueryPools[name].first == VK_NULL_HANDLE)
 	{
 		VkQueryPoolCreateInfo queryPoolCreateInfo
 		{
@@ -325,25 +325,50 @@ void shade::VulkanRenderAPI::BeginTimestamp(SharedPointer<RenderCommandBuffer>& 
 			 .queryCount = 2,
 			 .pipelineStatistics = 0
 		};
-		VK_CHECK_RESULT(vkCreateQueryPool(m_sVkDevice, &queryPoolCreateInfo, nullptr, &m_sQueryPools[name]), "Failed to create m_sQueryPool");
+		VK_CHECK_RESULT(vkCreateQueryPool(m_sVkDevice, &queryPoolCreateInfo, nullptr, &m_sQueryPools.at(name).first), "Failed to create m_sQueryPool");
 	}
 
-	vkCmdResetQueryPool(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(m_sCurrentFrameIndex), m_sQueryPools[name], 0, 2);
-	vkCmdWriteTimestamp(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(m_sCurrentFrameIndex), VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_sQueryPools[name], 0);
+	vkCmdResetQueryPool(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(m_sCurrentFrameIndex), m_sQueryPools.at(name).first, 0, 2);
+	vkCmdWriteTimestamp(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(m_sCurrentFrameIndex), VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_sQueryPools.at(name).first, 0);
 }
 
 float shade::VulkanRenderAPI::EndTimestamp(SharedPointer<RenderCommandBuffer>& commandBuffer, const std::string& name)
 {
-	glm::vec<2, std::uint64_t> time = {0, 0};
-	assert(m_sQueryPools[name] != VK_NULL_HANDLE && "Trying to end undefined render timestamp !");
+	assert(m_sQueryPools.at(name).first != VK_NULL_HANDLE && "Trying to end undefined render timestamp !");
 
-	vkCmdWriteTimestamp(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(m_sCurrentFrameIndex), VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_sQueryPools[name], 1);
+	vkCmdWriteTimestamp(commandBuffer->As<VulkanCommandBuffer>().GetCommandBuffer(m_sCurrentFrameIndex), VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_sQueryPools.at(name).first, 1);
 	// Doenst work at this moment 
 	//vkGetQueryPoolResults(m_sVkDevice, m_sQueryPools[name], 0, 2, sizeof(glm::vec<2, std::uint64_t>), glm::value_ptr(time), sizeof(std::uint64_t), VK_QUERY_RESULT_64_BIT);
 
 	//vkGetQueryPoolResults(m_sVkDevice, m_sQueryPools[name], 1, 1, sizeof(uint64_t), &end, 0, VK_QUERY_RESULT_64_BIT);
 
-	return float(time.x - time.y) / 1000000.f;
+	return 0.0;
+}
+
+void shade::VulkanRenderAPI::QueryResults(std::uint32_t frameIndex)
+{
+	for (auto& [name, q] : m_sQueryPools)
+	{
+		uint64_t start = 0, end = 0;
+		vkGetQueryPoolResults(m_sVkDevice, q.first, 0, 1, sizeof(uint64_t), &start, 0, VK_QUERY_RESULT_64_BIT);
+		vkGetQueryPoolResults(m_sVkDevice, q.first, 1, 1, sizeof(uint64_t), &end, 0, VK_QUERY_RESULT_64_BIT);
+		q.second = (end - start) / 1000000.f;
+	}
+}
+
+float shade::VulkanRenderAPI::GetQueryResult(const std::string& name)
+{
+	auto q = m_sQueryPools.find(name);
+
+	if (q != m_sQueryPools.end())
+	{
+		return q->second.second;
+	}
+	else
+	{
+		return 0.f;
+	}
+	
 }
 
 shade::RenderAPI::VramUsage shade::VulkanRenderAPI::GetVramMemoryUsage()

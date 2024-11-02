@@ -20,6 +20,8 @@
 
 #include <shade/core/camera/Camera.h>
 
+#include <shade/core/environment/GlobalLight.h>
+
 #include <shade/core/render/drawable/Drawable.h>
 #include <shade/core/render/drawable/Material.h>
 
@@ -64,7 +66,7 @@ namespace shade
 		private:
 			friend class	Renderer;
 			std::uint32_t	DirectionalLightCount		= 0;
-			std::uint32_t	OmnidirectionalLightCount	= 0;
+			std::uint32_t	PointLightCount					= 0;
 			std::uint32_t	SpotLightCount				= 0;
 			std::uint32_t	SubmitedBoneTransfroms		= 0;
 		public:
@@ -72,9 +74,9 @@ namespace shade
 			{
 				return DirectionalLightCount; 
 			}
-			SHADE_INLINE const std::uint32_t GetOmnidirectionalLightCount()	
+			SHADE_INLINE const std::uint32_t GetPointlLightCount()	
 			{
-				return OmnidirectionalLightCount; 
+				return PointLightCount;
 			}
 			SHADE_INLINE const std::uint32_t GetSpotLightCount()
 			{ 
@@ -94,6 +96,13 @@ namespace shade
 			std::vector<Heap> Heaps;
 		};
 
+		struct ShadowSettings
+		{
+			GlobalLight::RenderShadowSettings	GlobalLight;
+			/*OmnidirectionalLight::RenderSettings	OmnidirectLight;
+			SpotLight::RenderSettings				SpotLight;*/
+		};
+
 		struct RenderSettings
 		{
 			RenderSettings() {
@@ -111,6 +120,7 @@ namespace shade
 
 				_DEBUG_ShowLightComplexity	= false;
 				_DEBUG_ShowShadowCascades	= false;
+
 			}
 
 			alignas(4) bool DirectionalLightShadows;
@@ -122,6 +132,10 @@ namespace shade
 
 			alignas(4) bool _DEBUG_ShowLightComplexity;
 			alignas(4) bool _DEBUG_ShowShadowCascades;
+
+			float __std140Padding[1];
+			ShadowSettings	ShadowSettings;
+			//float Padding[4];
 		};
 	public:
 		enum class API
@@ -174,6 +188,9 @@ namespace shade
 
 		virtual void BeginTimestamp(SharedPointer<RenderCommandBuffer>& commandBuffer, const std::string& name) = 0;
 		virtual float EndTimestamp(SharedPointer<RenderCommandBuffer>& commandBuffer, const std::string& name) = 0;
+		virtual void  QueryResults(std::uint32_t frameIndex) = 0;
+		virtual float GetQueryResult(const std::string& name) = 0;
+
 		virtual VramUsage GetVramMemoryUsage() = 0;
 
 		// Return current frame index which set by BeginFrame in SwapChain 

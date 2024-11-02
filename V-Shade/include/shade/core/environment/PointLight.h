@@ -4,7 +4,7 @@
 
 namespace shade
 {
-	class SHADE_API OmnidirectionalLight : public Light
+	class SHADE_API PointLight : public Light
 	{
 	public:
 		struct ShadowCascade
@@ -24,8 +24,8 @@ namespace shade
 			bool SplitBySides		= false;
 		};
 	public:
-		OmnidirectionalLight();
-		virtual ~OmnidirectionalLight();
+		PointLight();
+		virtual ~PointLight();
 		RenderData GetRenderData(const glm::vec3& position, const SharedPointer<Camera>& camera) const;
 
 		static bool IsMeshInside(const glm::vec3& position, float radius, const glm::mat4& transform, const glm::vec3& minHalfExt, const glm::vec3& maxHalfExt);
@@ -56,37 +56,37 @@ namespace shade
 		void Serialize(std::ostream& stream) const;
 		void Deserialize(std::istream& stream);
 	};
-#ifndef OMNIDIRECTIONAL_LIGHT_DATA_SIZE
-	#define OMNIDIRECTIONAL_LIGHT_DATA_SIZE (sizeof(OmnidirectionalLight::RenderData))
-#endif // !OMNIDIRECTIONAL_LIGHT_DATA_SIZE
+#ifndef POINT_LIGHT_DATA_SIZE
+	#define POINT_LIGHT_DATA_SIZE (sizeof(PointLight::RenderData))
+#endif // !POINT_LIGHT_DATA_SIZE
 
-#ifndef OMNIDIRECTIONAL_LIGHTS_DATA_SIZE
-	#define OMNIDIRECTIONAL_LIGHTS_DATA_SIZE(count) (OMNIDIRECTIONAL_LIGHT_DATA_SIZE * static_cast<std::uint32_t>(count))
-#endif // !OMNIDIRECTIONAL_LIGHTS_DATA_SIZE
+#ifndef POINT_LIGHTS_DATA_SIZE
+	#define POINT_LIGHTS_DATA_SIZE(count) (POINT_LIGHT_DATA_SIZE * static_cast<std::uint32_t>(count))
+#endif // !POINT_LIGHTS_DATA_SIZE
 }
 
 namespace shade
 {
 	template<>
-	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const OmnidirectionalLight& light)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const PointLight& light)
 	{
 		light.Serialize(stream);
 	}
 
 	template<>
-	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const SharedPointer<OmnidirectionalLight>& light)
+	SHADE_INLINE void serialize::Serializer::Serialize(std::ostream& stream, const SharedPointer<PointLight>& light)
 	{
 		light->Serialize(stream);
 	}
 
 	template<>
-	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, OmnidirectionalLight& light)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, PointLight& light)
 	{
 		light.Deserialize(stream);
 	}
 
 	template<>
-	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, SharedPointer<OmnidirectionalLight>& light)
+	SHADE_INLINE void serialize::Serializer::Deserialize(std::istream& stream, SharedPointer<PointLight>& light)
 	{
 		light->Deserialize(stream);
 	}

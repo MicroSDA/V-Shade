@@ -21,7 +21,7 @@ namespace shade
 		void DrawImage(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor);
 		void DrawImage(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor, std::uint32_t mip);
 		void DrawImage(Asset<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor);
-		void DrawImageLayerd(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor, std::uint32_t layer);
+		void DrawImageLayerd(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor, std::uint32_t layer, bool isGrayScale = false, const glm::vec2& clamp = glm::vec2{0.0, 1.0});
 
 		template<typename T, typename ...Args>
 		inline static T* GetGlobalValue(const std::string& name, Args && ...args)
@@ -72,7 +72,7 @@ namespace shade
 		static void BeginWindowOverlay(const char* title, ImGuiViewport* veiwport, ImGuiID id, const ImVec2& size, const ImVec2& position, float alpha, Callback callback, Args&& ...args)
 		{
 			ImGui::SetNextWindowViewport(veiwport->ID);
-			ImGui::SetNextWindowBgAlpha(alpha); // Transparent background
+			ImGui::SetNextWindowBgAlpha(alpha); 
 
 			float y = (veiwport->Size.y < (position.y + size.y)) ? position.y - (size.y + ImGui::GetStyle().IndentSpacing + ImGui::GetFrameHeight() + 7.f) : position.y;
 			
@@ -80,13 +80,19 @@ namespace shade
 			ImGui::SetNextWindowSize(size, ImGuiCond_Always);
 
 			ImGui::PushID(id);
-			if (ImGui::Begin(title, nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize |
-				ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_Tooltip))
+
+			ImGui::PushStyleColor(ImGuiCol_WindowBg, ImGui::GetStyleColorVec4(ImGuiCol_ChildBg));
+			bool isOpen = ImGui::Begin(title, nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize |
+				ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav);
+			ImGui::PopStyleColor();
+
+			if (isOpen)
 			{
 				std::invoke(callback, std::forward<Args>(args)...);
-
-			} ImGui::End();
+				ImGui::End();
+			}
 			ImGui::PopID();
+			
 		}
 
 		template<typename Component, typename Callback, typename EditCallback, typename ...Args>

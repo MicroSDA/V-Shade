@@ -91,7 +91,7 @@ shade::VulkanShader::VulkanShader(const Specification& specification, bool ignor
 			}
 			else
 			{
-				SHADE_CORE_WARNING("Failed to load shader form cache or packet, path = {}", specification.FilePath);
+				SHADE_CORE_ERROR("Failed to load shader form cache or packet, path = {}", specification.FilePath);
 			}
 		}
 	}
@@ -121,7 +121,16 @@ shade::VulkanShader::VulkanShader(const Specification& specification, bool ignor
 
 				if (module.GetCompilationStatus() != shaderc_compilation_status_success)
 				{
-					SHADE_CORE_WARNING(module.GetErrorMessage());
+					
+					std::string line; std::istringstream stream(source);
+					std::uint32_t index = 0;
+					while (std::getline(stream, line)) 
+					{
+						SHADE_CORE_INFO("{0}: {1}", index, line);
+						index++;
+					}
+
+					SHADE_CORE_ERROR(module.GetErrorMessage());
 				}
 
 				shaderData[stage] = std::vector<uint32_t>(module.cbegin(), module.cend());
@@ -134,7 +143,7 @@ shade::VulkanShader::VulkanShader(const Specification& specification, bool ignor
 				}
 				else
 				{
-					SHADE_CORE_WARNING("Failed to save shader form cache or packet, path = {}", specification.FilePath);
+					SHADE_CORE_ERROR("Failed to save shader form cache or packet, path = {}", specification.FilePath);
 				}
 			}
 		}

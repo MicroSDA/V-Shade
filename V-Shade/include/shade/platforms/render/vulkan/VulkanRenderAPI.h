@@ -58,6 +58,9 @@ namespace shade
 
 		virtual void BeginTimestamp(SharedPointer<RenderCommandBuffer>& commandBuffer, const std::string& name) override;
 		virtual float EndTimestamp(SharedPointer<RenderCommandBuffer>& commandBuffer, const std::string& name) override;
+		virtual void  QueryResults(std::uint32_t frameIndex) override;
+		virtual float GetQueryResult(const std::string& name) override;
+
 		virtual VramUsage GetVramMemoryUsage() override;
 
 
@@ -81,7 +84,8 @@ namespace shade
 		static VkDevice m_sVkDevice;
 		static VulkanContext::VulkanInstance m_sVkInstance;
 
-		static std::unordered_map<std::string, VkQueryPool> m_sQueryPools;
+		
+		static std::unordered_map<std::string, std::pair<VkQueryPool, float>> m_sQueryPools;
 	};
 
 }

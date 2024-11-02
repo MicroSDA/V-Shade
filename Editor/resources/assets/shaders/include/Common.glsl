@@ -31,6 +31,24 @@ struct SceneData
    uint SpotLightCount;
 };
 
+// Percentage closer filtering + poisson 
+struct PCFP 
+{
+	uint Samples;
+	float Smooth;
+};
+
+struct DirectLightShadowSettings
+{
+   uint	Kind;
+	PCFP	PCFPSettings;
+};
+
+struct ShadowS
+{
+   DirectLightShadowSettings DLShadow;
+};
+
 struct RenderSettings
 {
    bool DirectionalLightShadows;
@@ -42,4 +60,6 @@ struct RenderSettings
 
    bool _DEBUG_ShowLightComplexity;
    bool _DEBUG_ShowShadowCascades;
+
+   ShadowS ShadowSettings;
 };

@@ -94,7 +94,7 @@ void main()
     out_VertexViewSpace  = u_Camera.ViewMatrix * VertexWorldSpace;
 #endif
     // Forward UV coordinates and instance ID to fragment shader
-    out_UV_Coordinates 	= a_UV_Coordinates;
+    out_UV_Coordinates 	= a_UV_Coordinates ; // Add tiling factor to the material !! xz
     out_InstanceId 		= gl_InstanceIndex;
 }
 //Fragment Shader
@@ -185,18 +185,16 @@ void main()
     vec3 ToCameraDirection = normalize(u_Camera.Position - a_VertexWorldSpace.xyz);
     vec3 NormalWorldSpace  = u_Material[a_InstanceId].NormalMapEnabled ? Get_TBNNormal(texture(t_NormalTexture, a_UV_Coordinates).rgb, a_TBN_Matrix) : a_NormalWorldSpace;
 
-	vec4    FragPosVeiwSpace    = a_VertexViewSpace;
-	float   Depth               = FragPosVeiwSpace.z;
-
     MainColor =  vec4(0.0, 0.0, 0.0, 1.0);
 
     for(int i = 0; i < u_SceneData.GlobalLightCount;  i++)
     {
 		uint    CascadeLevel        = 0;
 		for(int j = 0; j < s_GlobalLight[i].Cascades.length() - 1; j++)
-			if(Depth < s_GlobalLight[i].Cascades[j].SplitDistance)
+			if(a_VertexViewSpace.z < s_GlobalLight[i].Cascades[j].SplitDistance)
 				CascadeLevel = j + 1;
 
+		//CascadeLevel = 0;
 		float Shadow = 1.0;
 
 		if(u_RenderSettings.DirectionalLightShadows)
@@ -206,7 +204,7 @@ void main()
 						s_GlobalLight[i].Cascades[CascadeLevel].ViewProjectionMatrix, 
 						CascadeLevel, 
 						a_VertexWorldSpace,
-						s_GlobalLight[i].Direction, NormalWorldSpace, ToCameraDirection);	
+						s_GlobalLight[i].Direction, NormalWorldSpace, ToCameraDirection, u_RenderSettings.ShadowSettings.DLShadow);	
 
 			if(u_RenderSettings._DEBUG_ShowShadowCascades)
 			{

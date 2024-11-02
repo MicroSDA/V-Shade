@@ -182,9 +182,9 @@ void shade::VulkanImGuiRender::DrawImage(SharedPointer<Texture2D>& texture, cons
 	commandBuffer2->End();
 	commandBuffer2->Submit();*/
 
-	if (m_Images.find(texture.Raw()) == m_Images.end())
+	if (m_Images.find(texture) == m_Images.end())
 	{
-		m_Images[texture.Raw()] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(), 
+		m_Images[texture] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(),
 			
 			image.GetImageView(), image.GetImageLayout()),
 			
@@ -193,9 +193,9 @@ void shade::VulkanImGuiRender::DrawImage(SharedPointer<Texture2D>& texture, cons
 		//ImGui::Image(m_Images[texture.Raw()].first, size, ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), borderColor);
 
 	}
-	else if (m_Images.at(texture.Raw()).second != image.GetImageView())
+	else if (m_Images.at(texture).second != image.GetImageView())
 	{
-		m_Images[texture.Raw()] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(), 
+		m_Images[texture] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(),
 			image.GetImageView(), image.GetImageLayout()),
 
 			image.GetImageView() };
@@ -203,7 +203,7 @@ void shade::VulkanImGuiRender::DrawImage(SharedPointer<Texture2D>& texture, cons
 		//ImGui::Image(m_Images[texture.Raw()].first, size, ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), borderColor);
 	}	
 
-	ImGui::Image(m_Images[texture.Raw()].first, size, ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), borderColor);
+	ImGui::Image(m_Images[texture].first, size, ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), borderColor);
 }
 
 
@@ -221,15 +221,15 @@ void shade::VulkanImGuiRender::DrawImage(SharedPointer<Texture2D>& texture, cons
 		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
 		VK_IMAGE_ASPECT_COLOR_BIT, mip, 1);
 
-	if (m_Images.find(texture.Raw()) == m_Images.end())
+	if (m_Images.find(texture) == m_Images.end())
 	{
-		m_Images[texture.Raw()] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(), image.GetImageViewPerMipLevel(mip), image.GetImageLayout()), image.GetImageViewPerMipLevel(mip) };
+		m_Images[texture] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(), image.GetImageViewPerMipLevel(mip), image.GetImageLayout()), image.GetImageViewPerMipLevel(mip) };
 	}
-	else if (m_Images.at(texture.Raw()).second != image.GetImageViewPerMipLevel(mip))
+	else if (m_Images.at(texture).second != image.GetImageViewPerMipLevel(mip))
 	{
-		m_Images[texture.Raw()] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(), image.GetImageViewPerMipLevel(mip), image.GetImageLayout()), image.GetImageViewPerMipLevel(mip) };
+		m_Images[texture] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(), image.GetImageViewPerMipLevel(mip), image.GetImageLayout()), image.GetImageViewPerMipLevel(mip) };
 	}
-	ImGui::Image(m_Images[texture.Raw()].first, size, ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), borderColor);
+	ImGui::Image(m_Images[texture].first, size, ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), borderColor);
 }
 
 void shade::VulkanImGuiRender::DrawImage(Asset<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor)
@@ -247,18 +247,18 @@ void shade::VulkanImGuiRender::DrawImage(Asset<Texture2D>& texture, const ImVec2
 		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
 		VK_IMAGE_ASPECT_COLOR_BIT);*/
 	
-	if (m_Images.find(texture.Raw()) == m_Images.end())
+	if (m_Images.find(texture) == m_Images.end())
 	{
-		m_Images[texture.Raw()] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(), image.GetImageView(), image.GetImageLayout()), image.GetImageView() };
+		m_Images[texture] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(), image.GetImageView(), image.GetImageLayout()), image.GetImageView() };
 	}
-	else if (m_Images.at(texture.Raw()).second != image.GetImageView())
+	else if (m_Images.at(texture).second != image.GetImageView())
 	{
-		m_Images[texture.Raw()] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(), image.GetImageView(), image.GetImageLayout()),image.GetImageView() };
+		m_Images[texture] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(), image.GetImageView(), image.GetImageLayout()),image.GetImageView() };
 	}
-	ImGui::Image(m_Images[texture.Raw()].first, size, ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), borderColor);
+	ImGui::Image(m_Images[texture].first, size, ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), borderColor);
 }
 
-void shade::VulkanImGuiRender::DrawImageLayerd(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor, std::uint32_t layer)
+void shade::VulkanImGuiRender::DrawImageLayerd(SharedPointer<Texture2D>& texture, const ImVec2& size, const ImVec4& borderColor, std::uint32_t layer, bool isGrayScale, const glm::vec2& clamp)
 {
 	auto commandBuffer = RenderCommandBuffer::Create();
 	auto& image = texture->GetImage()->As<VulkanImage2D>();
@@ -273,9 +273,9 @@ void shade::VulkanImGuiRender::DrawImageLayerd(SharedPointer<Texture2D>& texture
 		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
 		VK_IMAGE_ASPECT_COLOR_BIT);*/
 
-	if (m_Images.find(texture.Raw()) == m_Images.end())
+	if (m_Images.find(std::size_t(texture) ^ std::size_t(image.GetImageViewPerLayer(layer))) == m_Images.end())
 	{
-		m_Images[texture.Raw()] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(),
+		m_Images[std::size_t(texture) ^ std::size_t(image.GetImageViewPerLayer(layer))] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(),
 
 			image.GetImageViewPerLayer(layer), image.GetImageLayout()),
 
@@ -284,9 +284,9 @@ void shade::VulkanImGuiRender::DrawImageLayerd(SharedPointer<Texture2D>& texture
 		//ImGui::Image(m_Images[texture.Raw()].first, size, ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), borderColor);
 
 	}
-	else if (m_Images.at(texture.Raw()).second != image.GetImageViewPerLayer(layer))
+	else if (m_Images.at(std::size_t(texture) ^ std::size_t(image.GetImageViewPerLayer(layer))).second != image.GetImageViewPerLayer(layer))
 	{
-		m_Images[texture.Raw()] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(),
+		m_Images[std::size_t(texture) ^ std::size_t(image.GetImageViewPerLayer(layer))] = { ImGui_ImplVulkan_AddTexture(texture->As<VulkanTexture2D>().GetSampler(),
 			image.GetImageViewPerLayer(layer), image.GetImageLayout()),
 
 			image.GetImageViewPerLayer(layer) };
@@ -294,5 +294,6 @@ void shade::VulkanImGuiRender::DrawImageLayerd(SharedPointer<Texture2D>& texture
 		//ImGui::Image(m_Images[texture.Raw()].first, size, ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), borderColor);
 	}
 
-	ImGui::Image(m_Images[texture.Raw()].first, size, ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), borderColor);
+	ImGui::Image(m_Images[std::size_t(texture) ^ std::size_t(image.GetImageViewPerLayer(layer))].first, size, ImVec2(0, 0), ImVec2(1, 1), { 1, 1, 1, 1 }, borderColor);
+	
 }

@@ -63,14 +63,14 @@ private:
 	bool m_IsScenePlaying = false;
 
 	void MainMenu(shade::SharedPointer<shade::Scene>& scene);
-	void Scene(shade::SharedPointer<shade::Scene>& scene);
+	void Scene(shade::SharedPointer<shade::Scene>& scene, const shade::FrameTimer& deltaTime);
 	bool EntitiesList(const char* search, shade::SharedPointer<shade::Scene>& scene);
 	void EntitiesList(const char* search, shade::ecs::Entity& entity);
 	void Entities(shade::SharedPointer<shade::Scene>& scene);
 	void AssetsExplorer();
 	void Creator();
 	void EditAsset(shade::SharedPointer<shade::AssetData>& assetData);
-	void RenderSettings(shade::SharedPointer<shade::SceneRenderer>& renderer);
+	void RenderSettings(shade::SharedPointer<shade::SceneRenderer>& renderer, const shade::FrameTimer& deltaTime);
 	void EntityInspector(shade::ecs::Entity& entity);
 	void AddNewAsset();
 	/////////
@@ -92,4 +92,14 @@ private:
 	void AnimationSequencer();
 	//////
 	void CreateCollisionShapes();
+
+	template<typename Callback>
+	void DrawRenderMenuItem(const std::string& title, Callback callback)
+	{
+		//ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 0.f);
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { ImGui::GetStyle().FramePadding.x , ImGui::GetStyle().FramePadding.y * 2.0f });
+		bool isOpen = ImGui::TreeNodeEx(title.c_str(), ImGuiTreeNodeFlags_Framed);
+		ImGui::PopStyleVar(1);
+		if (isOpen) { std::invoke(callback); ImGui::TreePop();} 
+	}
 };
