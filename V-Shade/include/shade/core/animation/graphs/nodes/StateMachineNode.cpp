@@ -125,24 +125,6 @@ void shade::animation::state_machine::StateNode::Evaluate(const FrameTimer& delt
 	GetRootNode()->ProcessBranch(deltaTime);
 }
 
-shade::animation::state_machine::EntryStateNode::EntryStateNode(
-	shade::graphs::GraphContext* context,
-	graphs::NodeIdentifier identifier,
-	graphs::BaseNode* pParentNode,
-	const std::string& name)
-	: StateNode(context, identifier, pParentNode, name)
-{
-	m_IsRenamable = false;
-	m_IsRemovable = false;
-	m_CanBeOpen = false;
-}
-
-void shade::animation::state_machine::EntryStateNode::Evaluate(const FrameTimer& deltaTime)
-{
-	/*GetRootNode()->As<OutputPoseNode>().GET_ENDPOINT<graphs::Connection::Input, NodeValueType::Pose>(0,
-		GetParrentGraph()->As<StateMachineNode>().GET_ENDPOINT<graphs::Connection::Input, NodeValueType::Pose>(0));*/
-}
-
 shade::animation::state_machine::TransitionNode* shade::animation::state_machine::StateNode::EmplaceTransition(StateNode* destination)
 {
 	auto it = std::find_if(m_Transitions.begin(), m_Transitions.end(), [this, destination](const TransitionNode* tr)
@@ -206,58 +188,84 @@ bool shade::animation::state_machine::StateNode::RemoveTransition(TransitionNode
 shade::animation::state_machine::StateMachineNode::StateMachineNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode)
 	: StateNode(context, identifier, pParentNode, "State machine")
 {
-	REGISTER_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(nullptr);  // transition blend !	
-	REGISTER_ENDPOINT<graphs::Connection::Output, NodeValueType::Float>(0.0);
+	// Root node comes from State 
+	REGISTER_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(nullptr);
 }
 
 shade::animation::state_machine::StateNode* shade::animation::state_machine::StateMachineNode::CreateState(const std::string& name)
 {
 	auto state = CreateNode<StateNode>(name);
-	if (m_pCurrentState == nullptr) m_pCurrentState = state;
+	if (GetCurrentState() == nullptr) SetCurrentState(state);
 	return state;
 }
 
 bool shade::animation::state_machine::StateMachineNode::RemoveNode(BaseNode* pNode)
 {
+	auto& internal = GetInternalNodes();
+
 	for (BaseNode* node : GetInternalNodes())
 	{
-		StateNode& pState = node->As<StateNode>();
-		auto it = pState.GetTransitions().begin();
-
-		while (it != pState.GetTransitions().end())
+		if (!StateNode::RemoveTransition(reinterpret_cast<TransitionNode*>(node)))
 		{
-			auto state = std::find_if(pState.GetTransitions().begin(), pState.GetTransitions().end(), [pNode](const TransitionNode* pTransition)
-				{
-					return (pTransition->GetTransitionData().DestinationState == pNode);
-				});
+			if (node->GetNodeType() != TransitionNode::GetNodeStaticType())
+			{
+				StateNode& pState = node->As<StateNode>();
+				auto it = pState.GetTransitions().begin();
 
-			if (state != pState.GetTransitions().end())
-			{
-				it = pState.GetTransitions().erase(state);
-			}
-			else
-			{
-				it++;
+				while (it != pState.GetTransitions().end())
+				{
+					auto state = std::find_if(pState.GetTransitions().begin(), pState.GetTransitions().end(), [pNode](const TransitionNode* pTransition)
+						{
+							return (pTransition->GetTransitionData().DestinationState == pNode);
+						});
+
+					if (state != pState.GetTransitions().end())
+					{
+						it = pState.GetTransitions().erase(state);
+					}
+					else
+					{
+						it++;
+					}
+				}
 			}
 		}
 	}
-	if (pNode == GetRootNode())
+
+	if (pNode == GetCurrentState())
 	{
-		SetRootNode(nullptr);
+		if (GetGraphContext()->RemoveNode(pNode))
+		{
+			if (GetInternalNodes().size())
+			{
+				SetCurrentState(&GetInternalNodes()[0]->As<StateNode>());
+			}
+			else
+			{
+				SetCurrentState(nullptr);
+			}
+
+			return true;
+		}
+		else
+		{
+			return false;
+		}
 	}
-	// Need to set new root 
-	return GetGraphContext()->RemoveNode(pNode);
+	else
+	{
+		return GetGraphContext()->RemoveNode(pNode);
+	}
 }
 
 void shade::animation::state_machine::StateMachineNode::Initialize()
 {
-	SetRootNode(CreateNode<EntryStateNode>());
-	m_pCurrentState = &GetRootNode()->As<StateNode>();
+	//m_pCurrentState = &GetRootNode()->As<StateNode>();
 }
 
 void shade::animation::state_machine::StateMachineNode::Evaluate(const FrameTimer& deltaTime)
 {
-	if (StateNode* pState = m_pCurrentState)
+	if (StateNode* pState = GetCurrentState())
 	{
 		if (m_pActiveTransition)
 		{
@@ -280,7 +288,6 @@ void shade::animation::state_machine::StateMachineNode::Evaluate(const FrameTime
 						break;
 					}
 				}
-
 
 				StateNode* srcState = m_pActiveTransition->GetTransitionData().SourceState;
 
@@ -361,8 +368,6 @@ shade::animation::Pose* shade::animation::state_machine::StateMachineNode::Trans
 
 		
 		float blendFactor = math::CalculateBezierFactor(transition.GetTransitionAccumulator(), 0.f, transition.GetTransitionDuration(), 0.f, 1.f, transition.GetCurveControllPoints());
-
-		GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Float>(1, blendFactor);
 
 		if (sPose && dPose) // Почему то dPose nullptr в transitionData.DestinationState->GetOutputPose(); нужно проплеить все стейты при десериализации ? после востановления конекшенов ?
 		{ 
@@ -784,19 +789,28 @@ void shade::animation::state_machine::StateNode::Serialize(std::ostream& stream)
 	// !Endpoints section
 	//------------------------------------------------------------------------
 
-	// Serialize states
+	// Serialize internal nodes
 	for (const BaseNode* pNode : GetInternalNodes())
 	{
-		if (GetTransitions().end() == std::find_if(GetTransitions().begin(), GetTransitions().end(), [pNode](const TransitionNode* transition)
-			{
-				return transition == pNode;
-			}))
+		// Skip transtition serializing, transition is serializing by state machine !
+		if (pNode->GetNodeType() != TransitionNode::GetNodeStaticType())
 		{
 			// Serialize type
 			serialize::Serializer::Serialize(stream, pNode->GetNodeType());
 			// Serialize node
 			serialize::Serializer::Serialize(stream, *pNode);
 		}
+
+		//if (GetTransitions().end() == std::find_if(GetTransitions().begin(), GetTransitions().end(), [pNode](const TransitionNode* transition)
+		//	{
+		//		return transition == pNode;
+		//	}))
+		//{
+		//	// Serialize type
+		//	serialize::Serializer::Serialize(stream, pNode->GetNodeType());
+		//	// Serialize node
+		//	serialize::Serializer::Serialize(stream, *pNode);
+		//}
 	}
 	// Serialize root node id 
 	serialize::Serializer::Serialize(stream, (GetRootNode()) ? GetRootNode()->GetNodeIdentifier() : shade::graphs::INVALID_NODE_IDENTIFIER);
@@ -812,7 +826,7 @@ void shade::animation::state_machine::StateMachineNode::Serialize(std::ostream& 
 	// Serialzie screen position
 	serialize::Serializer::Serialize(stream, GetScreenPosition());
 	// Serialzie count of internal nodes
-	serialize::Serializer::Serialize(stream, std::uint32_t(GetInternalNodes().size()));
+	serialize::Serializer::Serialize(stream, std::uint32_t(GetInternalNodes().size() - GetTransitions().size()));
 
 	//------------------------------------------------------------------------
 	// Body section
@@ -848,22 +862,33 @@ void shade::animation::state_machine::StateMachineNode::Serialize(std::ostream& 
 	// Serialize states
 	for (const BaseNode* pNode : GetInternalNodes())
 	{
-		// SerialzieSerialzie type
-		serialize::Serializer::Serialize(stream, pNode->GetNodeType());
-		serialize::Serializer::Serialize(stream, *pNode);
-	}
-	// Serialize transitions
-	for (const BaseNode* node : GetInternalNodes())
-	{
-		// Serialzie count of transition nodes
-		serialize::Serializer::Serialize(stream, std::uint32_t(node->As<StateNode>().GetTransitions().size()));
-
-		for (const BaseNode* transition : node->As<StateNode>().GetTransitions())
+		if (pNode->GetNodeType() == StateNode::GetNodeStaticType() || pNode->GetNodeType() == StateMachineNode::GetNodeStaticType())
 		{
 			// Serialzie type
-			serialize::Serializer::Serialize(stream, transition->GetNodeType());
+			serialize::Serializer::Serialize(stream, pNode->GetNodeType());
 			// Serialzie transition
-			serialize::Serializer::Serialize(stream, *transition);
+			serialize::Serializer::Serialize(stream, *pNode);
+		}	
+	}
+	// Serialize transitions
+	for (const BaseNode* pNode : GetInternalNodes())
+	{
+		if (pNode->GetNodeType() == StateNode::GetNodeStaticType() || pNode->GetNodeType() == StateMachineNode::GetNodeStaticType())
+		{
+			// Serialzie count of transition nodes
+			serialize::Serializer::Serialize(stream, std::uint32_t(pNode->As<StateNode>().GetTransitions().size()));
+
+			for (const BaseNode* transition : pNode->As<StateNode>().GetTransitions())
+			{
+				// Serialzie type
+				serialize::Serializer::Serialize(stream, transition->GetNodeType());
+				// Serialzie transition
+				serialize::Serializer::Serialize(stream, *transition);
+			}
+		}
+		else
+		{
+			// TODO: Handle such situation when transition is attached to state machine !!
 		}
 	}
 

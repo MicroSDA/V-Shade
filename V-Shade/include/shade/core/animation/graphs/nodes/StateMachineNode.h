@@ -324,7 +324,7 @@ namespace shade
 				/// @return Pointer to the Pose object.
 				virtual SHADE_INLINE Pose* GetOutputPose()
 				{
-					return GetRootNode()->GET_ENDPOINT<graphs::Connection::Input, NodeValueType::Pose>(0);
+					return GetRootNode()->As<OutputPoseNode>().GetFinalPose();
 				}
 
 				/// @brief Gets the output pose of the state (const version).
@@ -341,23 +341,6 @@ namespace shade
 				virtual void Serialize(std::ostream& stream) const override;
 
 				friend class StateMachineNode;
-			};
-
-	
-			// @brief Represents a entry state node in an animation state machine.
-			//1. Сделать EntryState как рут StateMachine, добавть метотд сет руут стейт
-			//2. Добавить на вход State machine позу, если она не нулл птр, значит EntryState будет ее хранить
-			//3. При переходе из EntryState в любую другую стейт будет бленд как и обычно, если pose не nullptr
-			class SHADE_API EntryStateNode : public StateNode
-			{
-				NODE_STATIC_TYPE_HELPER(EntryStateNode)
-			public:
-				EntryStateNode(graphs::GraphContext* context, graphs::NodeIdentifier identifier, graphs::BaseNode* pParentNode, const std::string& name = "Entry");
-				virtual ~EntryStateNode() = default;
-				/// @brief Evaluates the state logic.
-				/// @param deltaTime The time elapsed since the last frame.
-				void Evaluate(const FrameTimer& deltaTime) override;
-
 			};
 
 			/// @brief Represents a state machine node in an animation graph.
@@ -393,18 +376,27 @@ namespace shade
 				/// @return Pointer to the created StateNode.
 				StateNode* CreateState(const std::string& name);
 
-				SHADE_INLINE void SetCurrentState(StateNode* pState)
+				// @brief Gets the output pose of the state.
+				/// @return Pointer to the Pose object.
+				virtual SHADE_INLINE Pose* GetOutputPose()
 				{
-					pState->m_pPreviousState = m_pCurrentState;
-					m_pCurrentState = pState;
+					return GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0);
 				}
+
+				/// @brief Gets the output pose of the state (const version).
+				/// @return Const pointer to the Pose object.
+				virtual SHADE_INLINE const Pose* GetOutputPose() const
+				{
+					return GetOutputPose();
+				}
+
 				SHADE_INLINE StateNode* GetCurrentState()
 				{
-					return m_pCurrentState;
+					return &GetRootNode()->As<StateNode>();
 				}
-				SHADE_INLINE const StateNode* GetCurrentState() const
+				SHADE_INLINE void SetCurrentState(StateNode* state)
 				{
-					return m_pCurrentState;
+					SetRootNode(state);
 				}
 			private:
 				TransitionNode* m_pActiveTransition = nullptr;    ///< Pointer to the currently active transition.
@@ -415,24 +407,11 @@ namespace shade
 				/// @param pPTPose Optional pointer to a Pose object.
 				/// @return Pointer to the Pose after transition.
 				Pose* Transit(TransitionNode* pTransition, const FrameTimer& deltaTime, Pose* pPTPose = nullptr);
+				
 			private:
 				bool	m_IsTransitionHasBeenInterrupted = false;    ///< Flag indicating if the transition was interrupted.
-				void	HandlePoseBlending(StateNode* pState, const animation::Pose* statePose);
-				bool	IsTransitionCompletedOrImmediate(const OutputTransitionNode& transition);
-				void	ResetTransitionData(TransitionNode::Data& transitionData);
-				Pose*	HandleTransitionInProcess(OutputTransitionNode& transition, TransitionNode::Data& transitionData, const FrameTimer& deltaTime);
-				float	AdjustBlendFactorForEntryPoint(const OutputTransitionNode& transition, const StateNode* dstState, float blendFactor);
-				Pose*	ProcessTransitionPoses(AnimationController* controller, const Asset<Skeleton>& skeleton, OutputTransitionNode& transition, TransitionNode::Data& transitionData, const animation::Pose* sPose, const animation::Pose* dPose, float blendFactor, const FrameTimer& deltaTime);
-				void	AdjustMultipliersForSyncStyle(SyncStyle style, float& sMultiplier, float& dMultiplier);
-				void SetTransitionSyncData(
-					OutputTransitionNode& transition,
-					TransitionNode::Data& transitionData, TransitionStatus status, SyncStyle style,
-					float blendFactor, float sMultiplier, float dMultiplier,
-					const animation::Pose* sPose, const animation::Pose* dPose);
-
 				virtual void Serialize(std::ostream& stream) const override;
 				virtual void Deserialize(std::istream& stream) override;
-				StateNode* m_pCurrentState = nullptr;
 			};
 		}
 	}

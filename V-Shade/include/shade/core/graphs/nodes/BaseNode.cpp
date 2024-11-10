@@ -118,7 +118,6 @@ shade::graphs::BaseNode* shade::graphs::BaseNode::CreateNodeByType(NodeType type
 		case shade::graphs::GetNodeTypeId<shade::animation::state_machine::TransitionNode>() : return CreateNode<shade::animation::state_machine::TransitionNode>();
 		case shade::graphs::GetNodeTypeId<shade::animation::state_machine::StateNode>() : return CreateNode<shade::animation::state_machine::StateNode>();
 		case shade::graphs::GetNodeTypeId<shade::animation::state_machine::StateMachineNode>() : return CreateNode<shade::animation::state_machine::StateMachineNode>();
-		case shade::graphs::GetNodeTypeId<shade::animation::state_machine::EntryStateNode>() : return  &GetRootNode()->As<shade::animation::state_machine::EntryStateNode>();
 
 		default: return nullptr;
 	}

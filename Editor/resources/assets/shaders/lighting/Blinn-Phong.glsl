@@ -57,8 +57,8 @@ vec4 BilinPhongPointLight(PointLight light, Material material, vec4 diffuseTextu
     return totalColor * attenuation;
 }
 // The function calculates the final color of a pixel using the Blinn-Phong lighting model with spot lighting
-vec4 BilinPhongSpotLight(SpotLight light, Material material, vec4 diffuseTexture, vec4 specularTexture, vec3 normal, vec3 vertex, vec3 toCameraDirection, float shadow) {
-
+vec4 BilinPhongSpotLight(SpotLight light, Material material, vec4 diffuseTexture, vec4 specularTexture, vec3 normal, vec3 vertex, vec3 toCameraDirection, float shadow) 
+{
 	// Harcoded value for smoothstep
 	const float Smooth = 2.0;
 	// Direction from the current vertex to the light position

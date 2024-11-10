@@ -52,11 +52,6 @@ layout (std430, set = GLOBAL_SET, binding = GLOBAL_LIGHT_BINDING) restrict reado
 	GlobalLight s_GlobalLight[];
 };
 
-// layout(push_constant) uniform DrawInstance
-// {
-// 	uint Index;
-// } u_DrawInstance;
-
 precise invariant gl_Position;
 //Vertex shader entry point
 void main() 
@@ -94,7 +89,7 @@ void main()
     out_VertexViewSpace  = u_Camera.ViewMatrix * VertexWorldSpace;
 #endif
     // Forward UV coordinates and instance ID to fragment shader
-    out_UV_Coordinates 	= a_UV_Coordinates ; // Add tiling factor to the material !! xz
+    out_UV_Coordinates 	= a_UV_Coordinates; // Add tiling factor to the material !! xz
     out_InstanceId 		= gl_InstanceIndex;
 }
 //Fragment Shader
@@ -193,8 +188,7 @@ void main()
 		for(int j = 0; j < s_GlobalLight[i].Cascades.length() - 1; j++)
 			if(a_VertexViewSpace.z < s_GlobalLight[i].Cascades[j].SplitDistance)
 				CascadeLevel = j + 1;
-
-		//CascadeLevel = 0;
+				
 		float Shadow = 1.0;
 
 		if(u_RenderSettings.DirectionalLightShadows)
@@ -206,9 +200,9 @@ void main()
 						a_VertexWorldSpace,
 						s_GlobalLight[i].Direction, NormalWorldSpace, ToCameraDirection, u_RenderSettings.ShadowSettings.DLShadow);	
 
+			/* Cascades visualizing */
 			if(u_RenderSettings._DEBUG_ShowShadowCascades)
 			{
-				/* Cascades visualizing */
 				if(CascadeLevel == 0)		
 					MainColor += vec4(0.0, 0.2, 0, 0);
 				if(CascadeLevel == 1)
@@ -261,7 +255,7 @@ void main()
 	if(u_RenderSettings.SSAOEnabled)
 	{
 		Position = vec4(a_VertexViewSpace.xyz, LinearDepth(gl_FragCoord.z, u_Camera.Near, u_Camera.Far));
-		Normal   = vec4(normalize(a_NormalViewSpace), 1.0);
+		Normal   = vec4(normalize(a_NormalViewSpace), 1.0); // Do i need to normalize it ?
 	}
 	
 	if(u_RenderSettings.LightCulling && u_RenderSettings._DEBUG_ShowLightComplexity)
