@@ -7,7 +7,7 @@ std::uint32_t shade::RenderAPI::m_sCurrentFrameIndex = 0;
 shade::SystemsRequirements shade::RenderAPI::m_sSystemsRequirements;
 
 shade::render::SubmitedSceneRenderData shade::RenderAPI::m_sSubmitedSceneRenderData;
-std::unordered_map<std::size_t, shade::render::SubmitedInstances> shade::RenderAPI::m_sSubmitedPipelines;
+ankerl::unordered_dense::map<std::size_t, shade::render::SubmitedInstances> shade::RenderAPI::m_sSubmitedPipelines;
 shade::RenderAPI::SceneRenderData shade::RenderAPI::m_sSceneRenderData;
 shade::RenderAPI::RenderSettings shade::RenderAPI::m_sRenderSettings;
 

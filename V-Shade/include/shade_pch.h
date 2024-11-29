@@ -27,6 +27,8 @@
 #include <map>
 #include <set>
 
+#include <ankerl/unordered_dense.h>
+
 #include <typeindex>
 #include <typeinfo>
 

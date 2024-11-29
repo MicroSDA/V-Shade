@@ -26,9 +26,18 @@ namespace shade
 			void ResetAnimationData(const Asset<Animation>& animation);
 			void ResetAnimationData(const AnimationController::AnimationControlData& data);
 
+			SHADE_INLINE Pose* GetOutputPose()
+			{
+				return GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0);
+			}
+			SHADE_INLINE const Pose* GetOutputPose() const
+			{
+				return GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0);
+			}
+
 			const AnimationController::AnimationControlData& GetAnimationData() const;
 			AnimationController::AnimationControlData& GetAnimationData();
-			bool m_IsAddative = false;
+			bool m_IsAddative = false; // Need to set private !! or remove
 		private:
 			
 			virtual void SerializeBody(std::ostream& stream) const override;

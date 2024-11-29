@@ -50,17 +50,17 @@ namespace shade
 
 		static void ShutDown();
 		template<typename T, typename... Args>
-		static std::shared_ptr<T> GetPool(std::unordered_map<std::size_t, std::weak_ptr<T>>& resources, Args&... args);
+		static std::shared_ptr<T> GetPool(ankerl::unordered_dense::map<std::size_t, std::weak_ptr<T>>& resources, Args&... args);
 		template<typename T, typename... Args>
-		static std::shared_ptr<T> GetDescriptor(std::unordered_map<std::size_t, std::shared_ptr<T>>& resources, Args&... args);
+		static std::shared_ptr<T> GetDescriptor(ankerl::unordered_dense::map<std::size_t, std::shared_ptr<T>>& resources, Args&... args);
 
 		static void ResetAllDescripotrs(std::uint32_t frameIndex);
 		static void ResetDepricated(std::uint32_t frameIndex);
 	private:
 		// Frame index - > (Descriptor Layout) Hash - > DescriptorPool
-		static std::vector<std::unordered_map<std::size_t, std::weak_ptr<VulkanDescriptorSetPool>>> m_sDescriptorPools;
+		static inline std::vector<ankerl::unordered_dense::map<std::size_t, std::weak_ptr<VulkanDescriptorSetPool>>> m_sDescriptorPools;
 		// Frame index - > (Descriptor Layout + Buffers + ImageBuffers) Hashes - > DescriptorSet
-		static std::vector<std::unordered_map<std::size_t, std::shared_ptr<VulkanDescriptorSet>>>  m_sDescriptorSets;
+		static inline std::vector<ankerl::unordered_dense::map<std::size_t, std::shared_ptr<VulkanDescriptorSet>>>  m_sDescriptorSets;
 
 		static VkDevice m_sVkDevice;
 		static VulkanContext::VulkanInstance m_sVkInstance;
@@ -73,7 +73,7 @@ namespace shade
 		static inline void GenerateHash(size_t& seed, const T& first_arg, const Args &... args);
 	};
 	template<typename T, typename... Args>
-	inline std::shared_ptr<T> VulkanDescriptorsManager::GetPool(std::unordered_map<std::size_t, std::weak_ptr<T>>& resources, Args&... args)
+	inline std::shared_ptr<T> VulkanDescriptorsManager::GetPool(ankerl::unordered_dense::map<std::size_t, std::weak_ptr<T>>& resources, Args&... args)
 	{
 		std::size_t hash = 0U;
 		GenerateHash(hash, args...);
@@ -91,7 +91,7 @@ namespace shade
 		}
 	}
 	template<typename T, typename... Args>
-	inline std::shared_ptr<T> VulkanDescriptorsManager::GetDescriptor(std::unordered_map<std::size_t, std::shared_ptr<T>>& resources, Args&... args)
+	inline std::shared_ptr<T> VulkanDescriptorsManager::GetDescriptor(ankerl::unordered_dense::map<std::size_t, std::shared_ptr<T>>& resources, Args&... args)
 	{
 		std::size_t hash = 0U;
 		GenerateHash(hash, args...);

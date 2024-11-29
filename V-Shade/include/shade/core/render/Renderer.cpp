@@ -458,7 +458,7 @@ void shade::Renderer::SubmitStaticMesh(const SharedPointer<RenderPipeline>& pipe
 
 		// Add the material and model hash to the instances for the given pipeline and drawable
 		m_sRenderAPI->m_sSubmitedPipelines[pipeline].Instances[drawable].Materials.insert({ lod, material });
-		m_sRenderAPI->m_sSubmitedPipelines[pipeline].Instances[drawable].ModelHash = (model) ? model : 0u;
+		m_sRenderAPI->m_sSubmitedPipelines[pipeline].Instances[drawable].ModelHash = (model) ? std::size_t(model) : 0u;
 
 		// If the drawable is not already in the geometry buffers, create instanced geometry buffers for each level of detail
 		if (m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.find(drawable) == m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.end())
@@ -508,7 +508,7 @@ void shade::Renderer::SubmitStaticMeshDynamicLOD(const SharedPointer<RenderPipel
 
 		// Add the material and model hash to the instances for the given pipeline and drawable
 		m_sRenderAPI->m_sSubmitedPipelines[pipeline].Instances[drawable].Materials.insert({ lod, material });
-		m_sRenderAPI->m_sSubmitedPipelines[pipeline].Instances[drawable].ModelHash = (model) ? model : 0u;
+		m_sRenderAPI->m_sSubmitedPipelines[pipeline].Instances[drawable].ModelHash = (model) ? std::size_t(model) : 0u;
 
 		// If the drawable is not already in the geometry buffers, create instanced geometry buffers for each level of detail
 		if (m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.find(drawable) == m_sRenderAPI->m_sSubmitedSceneRenderData.GeometryBuffers.end())

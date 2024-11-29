@@ -17,8 +17,7 @@ void EditorApplication::OnCreate()
 	// Initialzie render.
 	shade::Renderer::Initialize(shade::RenderAPI::API::Vulkan, shade::SystemsRequirements{ .GPU { .Discrete = true }, .FramesInFlight = 3 });
 	// Crete window.
-	shade::Window::Create({"Editor", 1900, 900, false, true});
-
+	shade::Window::Create({"Editor", 1900, 1080, false, true});
 	shade::scripts::ScriptManager::Initialize("./resources/scripts");
 
 	// Create layer.

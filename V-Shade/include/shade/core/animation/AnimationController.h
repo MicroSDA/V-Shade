@@ -43,6 +43,7 @@ namespace shade
 				float					Start  = 0.f, End = 0.f, Duration = 0.f, CurrentPlayTime = 0.f, TicksPerSecond = 0.f;
 				bool					IsLoop = true;
 				bool					HasRootMotion = false;
+				std::string				SyncGroupName;
 
 				void UpdateRootMotion(Pose* pose, bool newFrame = false);
 			

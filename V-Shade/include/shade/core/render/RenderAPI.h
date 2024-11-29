@@ -210,7 +210,7 @@ namespace shade
 	protected:
 		static render::SubmitedSceneRenderData m_sSubmitedSceneRenderData;
 		// Where std::size_t is SharedPointer<RenderPipeline> hash - > Submited instances.
-		static std::unordered_map<std::size_t, render::SubmitedInstances> m_sSubmitedPipelines;
+		static ankerl::unordered_dense::map<std::size_t, render::SubmitedInstances> m_sSubmitedPipelines;
 		static RenderAPI::SceneRenderData m_sSceneRenderData;
 		static RenderAPI::RenderSettings  m_sRenderSettings;
 

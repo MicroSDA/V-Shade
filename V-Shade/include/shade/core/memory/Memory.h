@@ -17,124 +17,150 @@ namespace shade
 		// @brief Create a new SharedPointer with the given arguments.
 		// @tparam Args... Variadic template arguments for constructing the managed object.
 		template<typename ...Args>
-		static SharedPointer<T> Create(Args&&... args)
+		SHADE_INLINE static SharedPointer<T> Create(Args&&... args)
 		{
+#ifdef SHADE_USE_POINTER_TIME_STAMP
 			return SharedPointer(new T(std::forward<Args>(args)...), std::make_shared<std::size_t>(GetCurrentTimeStamp<std::chrono::microseconds>()));
+#else
+			return SharedPointer(new T(std::forward<Args>(args)...));
+#endif // !SHADE_USE_POINTER_TIME_STAMP
 		}
 		// @brief Copy constructor to create a new SharedPointer from an existing one.
-		SharedPointer(const SharedPointer<T>& other)
+		SHADE_INLINE SharedPointer(const SharedPointer<T>& other)
 		{
-			m_Pointer = other.m_Pointer;
+#ifdef SHADE_USE_POINTER_TIME_STAMP
 			m_TimeStamp = other.m_TimeStamp;
+#endif	// !SHADE_USE_POINTER_TIME_STAMP
+			m_Pointer = other.m_Pointer;	
 		}
 		// @brief Copy assignment operator to assign the value of an existing SharedPointer.
-		SharedPointer& operator=(const SharedPointer<T>& other)
+		SHADE_INLINE SharedPointer& operator=(const SharedPointer<T>& other)
 		{
 			if (m_Pointer != other.m_Pointer)
 			{
 				m_Pointer = other.m_Pointer;
+#ifdef SHADE_USE_POINTER_TIME_STAMP
 				m_TimeStamp = other.m_TimeStamp;
+#endif	// !SHADE_USE_POINTER_TIME_STAMP
 			}
 			return *this;
 		}
 		// @brief Copy constructor for related types (e.g., base or derived classes).
 		// @tparam U Type that is related to T.
 		template<typename U, std::enable_if_t<std::is_base_of_v<U, T> || std::is_base_of_v<T, U>, bool> = true>
-		SharedPointer(const SharedPointer<U>&other)
+		SHADE_INLINE SharedPointer(const SharedPointer<U>&other)
 		{
 			m_Pointer = std::static_pointer_cast<T>(other.m_Pointer);
+#ifdef SHADE_USE_POINTER_TIME_STAMP
 			m_TimeStamp = other.m_TimeStamp;
+#endif	// !SHADE_USE_POINTER_TIME_STAMP
 		}
 		// @brief Copy assignment operator for related types.
 		// @tparam U Type that is related to T.
 		template<typename U, std::enable_if_t<std::is_base_of_v<U, T> || std::is_base_of_v<T, U>, bool> = true>
-		SharedPointer & operator=(const SharedPointer<U>&other)
+		SHADE_INLINE SharedPointer & operator=(const SharedPointer<U>&other)
 		{
 			if (m_Pointer != other.m_Pointer)
 			{
 				m_Pointer = std::static_pointer_cast<T>(other.m_Pointer);
+#ifdef SHADE_USE_POINTER_TIME_STAMP
 				m_TimeStamp = other.m_TimeStamp;
+#endif	// !SHADE_USE_POINTER_TIME_STAMP
 			}
 			return *this;
 		}
 		// @brief Constructor for setting the SharedPointer to nullptr.
-		SharedPointer(std::nullptr_t)
+		SHADE_INLINE SharedPointer(std::nullptr_t)
 		{
 			m_Pointer = nullptr;
+#ifdef SHADE_USE_POINTER_TIME_STAMP
 			m_TimeStamp = nullptr;
+#endif	// !SHADE_USE_POINTER_TIME_STAMP
 		}
 		// @brief Assignment operator for setting the SharedPointer to nullptr.
-		SharedPointer& operator =(std::nullptr_t)
+		SHADE_INLINE SharedPointer& operator =(std::nullptr_t)
 		{
 			m_Pointer = nullptr;
+#ifdef SHADE_USE_POINTER_TIME_STAMP
 			m_TimeStamp = nullptr;
+#endif	// !SHADE_USE_POINTER_TIME_STAMP
 			return *this;
 		}
 		// @brief Convert the SharedPointer instance into a boolean value indicating whether it is not nullptr.
-		operator bool() { return (m_Pointer != nullptr); }
+		SHADE_INLINE operator bool() { return (m_Pointer != nullptr); }
 		// @brief Convert the SharedPointer instance into a boolean value indicating whether it is not nullptr.
-		operator bool() const { return (m_Pointer != nullptr); }
+		SHADE_INLINE operator bool() const { return (m_Pointer != nullptr); }
 		// @brief Check if this SharedPointer is equal to another SharedPointer by comparing their pointers.
 		// @param other The other SharedPointer to compare with.
 		// @return true if the pointers are equal, false otherwise.
-		bool operator== (const SharedPointer<T>& other) { return (m_Pointer == other.m_Pointer); }
+		SHADE_INLINE bool operator== (const SharedPointer<T>& other) { return (m_Pointer == other.m_Pointer); }
 		// @brief Check if this SharedPointer is not equal to another SharedPointer by comparing their pointers.
 		// @param other The other SharedPointer to compare with.
 		// @return true if the pointers are not equal, false otherwise.
-		bool operator!= (const SharedPointer<T>& other) { return (m_Pointer != other.m_Pointer); }
+		SHADE_INLINE bool operator!= (const SharedPointer<T>& other) { return (m_Pointer != other.m_Pointer); }
 		// @brief Const version of the equality operator for comparing with another SharedPointer.
 		// @param other The other SharedPointer to compare with.
 		// @return true if the pointers are equal, false otherwise.
-		bool operator== (const SharedPointer<T>& other) const { return (m_Pointer == other.m_Pointer); }
+		SHADE_INLINE bool operator== (const SharedPointer<T>& other) const { return (m_Pointer == other.m_Pointer); }
 		// @brief Const version of the inequality operator for comparing with another SharedPointer.
 		// @param other The other SharedPointer to compare with.
 		// @return true if the pointers are not equal, false otherwise.
-		bool operator!= (const SharedPointer<T>& other) const { return (m_Pointer != other.m_Pointer); }
+		SHADE_INLINE bool operator!= (const SharedPointer<T>& other) const { return (m_Pointer != other.m_Pointer); }
 		// @brief Equality operator for comparing with another SharedPointer of a related type.
 		// @tparam U Type that is related to T.
 		template<typename U>
-		bool operator== (const SharedPointer<U>& other) { return (m_Pointer.get() == other.m_Pointer.get()); }
+		SHADE_INLINE bool operator== (const SharedPointer<U>& other) { return (m_Pointer.get() == other.m_Pointer.get()); }
 		// @brief Inequality operator for comparing with another SharedPointer of a related type.
 		// @tparam U Type that is related to T.
 		template<typename U>
-		bool operator!= (const SharedPointer<U>& other) { return (m_Pointer.get() != other.m_Pointer.get()); }
+		SHADE_INLINE bool operator!= (const SharedPointer<U>& other) { return (m_Pointer.get() != other.m_Pointer.get()); }
 		// @brief Const versions of equality and inequality operators.
 		// @tparam U Type that is related to T.
 		template<typename U>
-		bool operator== (const SharedPointer<U>& other) const { return (m_Pointer.get() == other.m_Pointer.get()); }
+		SHADE_INLINE bool operator== (const SharedPointer<U>& other) const { return (m_Pointer.get() == other.m_Pointer.get()); }
 		template<typename U>
-		bool operator!= (const SharedPointer<U>& other) const { return (m_Pointer.get() != other.m_Pointer.get()); }
+		SHADE_INLINE bool operator!= (const SharedPointer<U>& other) const { return (m_Pointer.get() != other.m_Pointer.get()); }
 		// @brief Convert the SharedPointer instance into a std::size_t combined hash,
 		// where the hash is derived from the instance's pointer and creation timestamp.
-		operator std::size_t() { return std::hash<SharedPointer<T>>{}(*this); }
+		SHADE_INLINE operator std::size_t() { return std::hash<SharedPointer<T>>{}(*this); }
 		// @brief Convert the SharedPointer instance into a std::size_t combined hash,
 		// where the hash is derived from the instance's pointer and creation timestamp.
-		operator std::size_t() const { return std::hash<SharedPointer<T>>{}(*this); }
+		SHADE_INLINE operator std::size_t() const { return std::hash<SharedPointer<T>>{}(*this); }
 		// @brief Arrow operator for dereferencing the pointer.
-		T* operator->() { return m_Pointer.get(); }
+		SHADE_INLINE T* operator->() { return m_Pointer.get(); }
 		// @brief Const version of the arrow operator.
-		const T* operator->() const { return m_Pointer.get(); }
+		SHADE_INLINE const T* operator->() const { return m_Pointer.get(); }
 		// @brief Dereference operator for accessing the pointed object.
-		T& operator*() { return *m_Pointer.get(); }
+		SHADE_INLINE T& operator*() { return *m_Pointer.get(); }
 		// @brief Const version of the dereference operator.
-		const T& operator*() const { return *m_Pointer.get(); }
+		SHADE_INLINE const T& operator*() const { return *m_Pointer.get(); }
 		// @brief Get the count of references to the shared pointer.
-		std::size_t GetCount() const { return m_Pointer.use_count(); }
+		SHADE_INLINE std::size_t GetCount() const { return m_Pointer.use_count(); }
 		// @brief Providing direct link.
-		T& Get() { return  *m_Pointer.get(); }
+		SHADE_INLINE T& Get() { return  *m_Pointer.get(); }
 		// @brief Providing direct link.
-		const T& Get() const { return  *m_Pointer.get(); }
+		SHADE_INLINE const T& Get() const { return  *m_Pointer.get(); }
 		// @brief Providing direct pointer.
-		T* Raw() { return  m_Pointer.get(); }
+		SHADE_INLINE T* Raw() { return  m_Pointer.get(); }
 		// @brief Providing direct pointer.
-		const T* Raw() const { return  m_Pointer.get(); }
+		SHADE_INLINE const T* Raw() const { return  m_Pointer.get(); }
 	private:
+		
+
+#ifdef SHADE_USE_POINTER_TIME_STAMP
 		// @brief Private constructor for SharedPointer<T>::Create().
 		SharedPointer(T* ptr, const std::shared_ptr<std::size_t>& timeStamp)
 			: m_Pointer(ptr), m_TimeStamp(timeStamp) {}
+#else
+		// @brief Private constructor for SharedPointer<T>::Create().
+		SharedPointer(T* ptr)
+			: m_Pointer(ptr) {}
+#endif	// !SHADE_USE_POINTER_TIME_STAMP
 	private:
 		std::shared_ptr<T> m_Pointer;               // The shared pointer to the managed object.
+#ifdef SHADE_USE_POINTER_TIME_STAMP
 		std::shared_ptr<std::size_t> m_TimeStamp;   // A shared timestamp to track object lifetime.
+#endif	// !SHADE_USE_POINTER_TIME_STAMP
 	private:
 		template<class U>
 		friend class SharedPointer;
@@ -245,8 +271,12 @@ struct std::hash<shade::SharedPointer<T>>
 {
 	std::size_t operator()(const shade::SharedPointer<T>& instance) const noexcept
 	{
+#ifdef SHADE_USE_POINTER_TIME_STAMP
 		std::size_t seed = hash<std::shared_ptr<T>>()(instance.m_Pointer);
 		shade::HashCombine(seed, instance.m_TimeStamp);
+#else
+		std::size_t seed = hash<std::shared_ptr<T>>()(instance.m_Pointer);
+#endif // !SHADE_USE_POINTER_TIME_STAMP
 		return seed;
 	}
 };

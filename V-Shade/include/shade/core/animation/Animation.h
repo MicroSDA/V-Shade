@@ -37,8 +37,8 @@ namespace shade
 			std::vector<AnimationKey<glm::vec3>> ScaleKeys;
 		};
 
-		using AnimationChannels = std::unordered_map<std::string, Channel>;
-
+		using AnimationChannels		= ankerl::unordered_dense::map<std::string, Channel>;
+		using SynkMarkers			= ankerl::unordered_dense::map<std::string, std::vector<float>>;
 	public: 
 		virtual ~Animation() = default;
 		// Add a channel to the animation
@@ -77,7 +77,8 @@ namespace shade
 	private:
 		friend class serialize::Serializer;
 	private:
-		AnimationChannels	m_AnimationChannels;
+		AnimationChannels									m_AnimationChannels;
+		ankerl::unordered_dense::map<std::string, float>	m_SynkMarkers;
 		float				m_TicksPerSecond = 0.f;
 		float				m_Duration = 0.f;
 	};

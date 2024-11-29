@@ -1557,7 +1557,6 @@ void graph_editor::PoseNodeDelegate::ProcessBodyContent(const InternalContext* c
 		ImGui::SetCursorScreenPos(ImGui::GetCursorScreenPos() + ImVec2{ 0, ImGui::GetFrameHeight() / 4.f });
 		ImGui::ProgressBar(result, ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() / 7.f), "");
 	}
-
 }
 
 void graph_editor::PoseNodeDelegate::ProcessSideBar(const InternalContext* context, std::unordered_map<std::size_t, GraphNodePrototype*>& nodes, std::unordered_map<std::size_t, GraphNodePrototype*>& referNodes)
@@ -1571,8 +1570,11 @@ void graph_editor::PoseNodeDelegate::ProcessSideBar(const InternalContext* conte
 	bool& isloop = node.GetAnimationData().IsLoop;
 	auto& state = node.GetAnimationData().State;
 	auto& rootMotion = node.GetAnimationData().HasRootMotion;
+	auto& syncGroup = node.GetAnimationData().SyncGroupName;
+	auto& syncGroups = node.GetGraphContext()->As<AnimationGraphContext>().SyncGroups;
+
 	const float FPS = (node.GetAnimationData().Animation) ? node.GetAnimationData().Animation->GetFps() : 0.f;
-	if (ImGui::BeginChildEx("Node: Pose", std::size_t(&node), ImGui::GetContentRegionAvail(), true, 0))
+	if (ImGui::BeginChildEx("Node: Pose", std::size_t(&node), {0, ImGui::GetContentRegionAvail().y / 2.f}, true, 0))
 	{
 		const ImVec2 windowPosition = ImGui::GetWindowPos();
 		const ImVec2 windowSize = ImGui::GetWindowSize();
@@ -1777,10 +1779,30 @@ void graph_editor::PoseNodeDelegate::ProcessSideBar(const InternalContext* conte
 					ImGui::TableNextColumn();
 				}
 			}
-
 			ImGui::EndTable();
 		}
 
+	} ImGui::EndChild();
+
+	if (ImGui::BeginChild("Sync groups", ImGui::GetContentRegionAvail(), true, 0))
+	{
+		ImGui::Text("Synchronization groups");
+		std::vector<std::string> groups = { "None", "A", "B" };
+
+		for (auto& [key, v] : syncGroups.GetGroups())
+			groups.emplace_back(key);
+
+		ImGuiLayer::IconButton("##Add", u8"\xc000", 1, 1.0f); ImGui::SameLine();
+
+
+
+		ImGui::PushItemWidth(ImGui::GetWindowContentRegionWidth());
+		if (ImGuiLayer::DrawCombo("##Sync Groups", syncGroup, groups, 0, 0))
+		{
+			syncGroups.AddGroup(syncGroup.c_str());
+			syncGroups.GetGroup(syncGroup.c_str())->AddNode(&node);
+		}
+		ImGui::PopItemWidth();
 	} ImGui::EndChild();
 }
 

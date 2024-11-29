@@ -3,13 +3,62 @@
 #include <shade/core/animation/AnimationController.h>
 #include <shade/core/animation/graphs/nodes/StateMachineNode.h>
 
+namespace shade
+{
+	namespace animation
+	{
+		namespace utils
+		{
+			SHADE_INLINE static const SynchronizingGroup* GetSyncGroup(const char* groupName, const shade::animation::SynchronizingGroups& pools, const graphs::BaseNode* node)
+			{
+				if (auto group = pools.GetGroup(groupName))
+				{
+					if (group->Nodes.find(node) != group->Nodes.end())
+					{
+						return group;
+					}
+				}
+				return nullptr;
+			}
+		}
+	}
+}
+
+// Rename to Animation track ! ! !
 void shade::animation::PoseNode::Evaluate(const FrameTimer& deltaTime)
 {
 	auto& controller	= GetGraphContext()->As<AnimationGraphContext>().Controller;
 	auto& skeleton		= GetGraphContext()->As<AnimationGraphContext>().Skeleton;
+	auto& syncPools		= GetGraphContext()->As<AnimationGraphContext>().SyncGroups;
 
 	if (m_AnimationData.Animation)
 	{
+		if (auto syncGroup = utils::GetSyncGroup(m_AnimationData.SyncGroupName.c_str(), syncPools, this))
+		{
+			//Check if we are not leader and leader exists !
+			if (syncGroup->pLeader && syncGroup->pLeader != this)
+			{
+				const auto& leaderAnimationData			= syncGroup->pLeader->As<PoseNode>().GetAnimationData();
+				const auto& followerAnimationData		= m_AnimationData;
+
+				/*float leaderCurrentTime		= leaderAnimationData.CurrentTime;
+				const auto& leaderMarkers	= leaderAnimationData.SyncMarkers;*/
+				
+				const auto [TimeMultiplier1, TimeMultiplier2] = controller->GetTimeMultiplier(syncGroup->pLeader->As<PoseNode>().GetAnimationData().Duration, m_AnimationData.Duration, 1.0);
+
+
+
+
+
+				GET_ENDPOINT<graphs::Connection::Output, NodeValueType::Pose>(0, controller->ProcessPose(skeleton, m_AnimationData, deltaTime, TimeMultiplier1));
+				return;
+				// So here should be all magic with sync 
+				// 1. We dont need transition sync data i belive, maby just current transition time to make a proper synk
+				// 2. Also we need to check from transition i guess what our transition is using
+				// 3. We need get from transition synkc some transition synk rules, reset dist animation, and use group or not 
+			}
+		}
+	
 		if (graphs::GetNodeTypeId<state_machine::StateNode>() == GetParrentGraph()->GetNodeType())
 		{
 			const state_machine::TransitionSyncData syncData = GetParrentGraph()->As<state_machine::StateNode>().GetTransitionSyncData();

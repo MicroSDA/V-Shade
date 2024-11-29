@@ -67,14 +67,14 @@ namespace shade
 		};
 		struct MaterialModelPair
 		{
-			std::unordered_set<std::pair<std::size_t, Asset<Material>>, PairHash> Materials;
+			ankerl::unordered_dense::set<std::pair<std::size_t, Asset<Material>>, PairHash> Materials;
 			std::size_t ModelHash = 0u;
 		};
 
 		struct SubmitedInstances
 		{
 			// Where size_t is Asset<Drawable> 		
-			std::unordered_map <std::size_t, MaterialModelPair> Instances;
+			ankerl::unordered_dense::map<std::size_t, MaterialModelPair> Instances;
 		};
 
 		struct GeometryBuffer
@@ -109,11 +109,11 @@ namespace shade
 		struct SubmitedSceneRenderData
 		{
 			// Where size_t is Asset<Drawable> hash - > Geometry buffers
-			std::unordered_map<std::size_t, std::array<render::GeometryBuffer, Drawable::MAX_LEVEL_OF_DETAIL>> GeometryBuffers;
+			ankerl::unordered_dense::map<std::size_t, std::array<render::GeometryBuffer, Drawable::MAX_LEVEL_OF_DETAIL>> GeometryBuffers;
 			// Where size_t is hash of (Pipeline, Drawable, Material) - > Transforms and materials with offset.
-			std::unordered_map<std::size_t, InstanceRawData> InstanceRawData;
+			ankerl::unordered_dense::map<std::size_t, InstanceRawData> InstanceRawData;
 			// Where size_t hash of Pipeline -> std::uint32_t bone transforms data per with offset
-			std::unordered_map<std::size_t, BoneSubmitedMetaData> BoneOffsetsData;
+			ankerl::unordered_dense::map<std::size_t, BoneSubmitedMetaData> BoneOffsetsData;
 			// Where index is frame index.
 			std::vector<SharedPointer<VertexBuffer>> TransformBuffers;
 			SharedPointer<StorageBuffer> MaterialsBuffer;

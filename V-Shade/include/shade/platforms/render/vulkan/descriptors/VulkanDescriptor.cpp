@@ -2,9 +2,6 @@
 #include "VulkanDescriptor.h"
 #include <shade/core/render/RenderAPI.h>
 
-std::vector<std::unordered_map<std::size_t, std::weak_ptr<shade::VulkanDescriptorSetPool>>> shade::VulkanDescriptorsManager::m_sDescriptorPools;
-std::vector<std::unordered_map<std::size_t, std::shared_ptr<shade::VulkanDescriptorSet>>> shade::VulkanDescriptorsManager::m_sDescriptorSets;
-
 VkDevice shade::VulkanDescriptorsManager::m_sVkDevice = VK_NULL_HANDLE;
 shade::VulkanContext::VulkanInstance shade::VulkanDescriptorsManager::m_sVkInstance;
 

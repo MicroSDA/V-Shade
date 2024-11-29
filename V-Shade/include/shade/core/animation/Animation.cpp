@@ -151,4 +151,37 @@ void shade::Animation::Deserialize(std::istream& stream)
 	serialize::Serializer::Deserialize(stream, m_Duration);
 	serialize::Serializer::Deserialize(stream, m_TicksPerSecond);
 	serialize::Serializer::Deserialize(stream, m_AnimationChannels);
+
+	for (const auto& [name, value] : m_AnimationChannels)
+	{
+
+	}
+
+	SynkMarkers markers;
+
+	for (const auto& [boneName, channel] : m_AnimationChannels) {
+		float lowestY = std::numeric_limits<float>::max();
+		std::vector<float> times;
+
+		// Определяем минимальное значение Y
+		for (const auto& positionKey : channel.PositionKeys) {
+			if (positionKey.Key.y < lowestY) {
+				lowestY = positionKey.Key.y;
+			}
+		}
+
+		// Собираем все временные метки с минимальным значением Y
+		for (const auto& positionKey : channel.PositionKeys) {
+			if (positionKey.Key.y == lowestY) {
+				times.push_back(positionKey.TimeStamp);
+			}
+		}
+
+		// Если найдены метки, добавляем их в результат
+		if (!times.empty()) {
+			markers[boneName] = times;
+		}
+	}
+
+	markers;
 }
